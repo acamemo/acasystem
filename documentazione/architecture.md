@@ -1,6 +1,6 @@
 # Architettura proposta e decisioni
 
-Aggiornato: 2026-10-02. Fonte dell'intento: [product.md](../product.md). Stato reale e questioni aperte: [project-status.md](project-status.md).
+Aggiornato: 2026-10-02. Fonte dell'intento: [product.md](product.md). Stato reale e questioni aperte: [project-status.md](project-status.md).
 
 ## Stato e confini
 

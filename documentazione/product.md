@@ -3,19 +3,19 @@
 
 **Specifica evolutiva — aggiornata il 2026-10-02.** Le funzionalità e le soluzioni applicative sono **proposte da validare**, non implementazioni o approvazioni tecniche già acquisite. Le priorità esprimono l'intento iniziale; l'incarico umano corrente determina cosa è autorizzato realizzare.
 
-La [copia originale](docs/archive/product-original-2026-10-02.md) resta immutata. [ADR-0001](docs/decisions/ADR-0001-documentazione-e-storico.md) approva documentazione e storico locale, senza approvare lo stack applicativo. Lo [stato reale](docs/project-status.md), il [registro dei vincoli](docs/compliance.md) e l'[audit iniziale](docs/reports/REP-20261002-001-audit-product.md) descrivono evidenze, limiti e decisioni ancora aperte.
+La [copia originale](archive/product-original-2026-10-02.md) resta immutata. [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) approva documentazione e storico locale, senza approvare lo stack applicativo. Lo [stato reale](project-status.md), il [registro dei vincoli](compliance.md) e l'[audit iniziale](reports/REP-20261002-001-audit-product.md) descrivono evidenze, limiti e decisioni ancora aperte.
 
-Gli ID `REQ-00`–`REQ-16` sono conservati. I requisiti diventano **Approvati** soltanto con una richiesta/decisione umana identificabile; possono essere **Rimandati** o **Ritirati** mantenendone lo storico. Una proposta documentata non è un incarico assegnato. I criteri della sezione 11 sono anch'essi proposti; le verifiche previste ed eseguite sono distinte in [verification.md](docs/verification.md).
+Gli ID `REQ-00`–`REQ-16` sono conservati. I requisiti diventano **Approvati** soltanto con una richiesta/decisione umana identificabile; possono essere **Rimandati** o **Ritirati** mantenendone lo storico. Una proposta documentata non è un incarico assegnato. I criteri della sezione 11 sono anch'essi proposti; le verifiche previste ed eseguite sono distinte in [verification.md](verification.md).
 
 ---
 
 ## 1. Requisiti Hardware di Partenza & Setup Iniziale Hetzner (Proposte da Validare)
-La dotazione hardware e il setup cloud seguenti sono una base proposta per il banco e l'impianto pilota. Modelli, compatibilità, disponibilità e dimensionamento richiedono verifica prima di acquisti o installazioni; non costituiscono una garanzia di stabilità. Questioni aperte: [ISSUE-005](docs/project-status.md#issue-005), [ISSUE-011](docs/project-status.md#issue-011) e [ISSUE-012](docs/project-status.md#issue-012). La conformità delle installazioni fisiche resta un ambito separato da questo registro software/cloud.
+La dotazione hardware e il setup cloud seguenti sono una base proposta per il banco e l'impianto pilota. Modelli, compatibilità, disponibilità e dimensionamento richiedono verifica prima di acquisti o installazioni; non costituiscono una garanzia di stabilità. Questioni aperte: [ISSUE-005](project-status.md#issue-005), [ISSUE-011](project-status.md#issue-011) e [ISSUE-012](project-status.md#issue-012). La conformità delle installazioni fisiche resta un ambito separato da questo registro software/cloud.
 
 ### 1.1 Distinta Base Hardware (Cosa va acquistato per una configurazione tipo d'impianto)
 
 #### A. Gateway Locale d'Impianto (Edge Controller da Quadro Elettrico)
-Il gateway locale proposto esegue **Home Assistant Container** (Core in Docker) e gestisce i collegamenti con sensori, contatori e relè. Modalità d'installazione e servizi complementari restano da approvare ([ISSUE-004](docs/project-status.md#issue-004)).
+Il gateway locale proposto esegue **Home Assistant Container** (Core in Docker) e gestisce i collegamenti con sensori, contatori e relè. Modalità d'installazione e servizi complementari restano da approvare ([ISSUE-004](project-status.md#issue-004)).
 * **Opzione Proposta (Residenziale standard & Hotel):**
   * **Raspberry Pi Compute Module 4 (CM4)** con memoria **eMMC integrata** (8GB/16GB/32GB). Preferenza iniziale da valutare rispetto a carico, storage e recupero; la durata delle microSD non è stata misurata.
   * Baseboard industriale con montaggio su **barra DIN** (es. Waveshare CM4-IO-BASE-BOX-B o baseboard Edatec); disponibilità di RS485 e isolamento da verificare sul modello esatto.
@@ -23,7 +23,7 @@ Il gateway locale proposto esegue **Home Assistant Container** (Core in Docker) 
 * **Opzione Alternativa per Grandi Strutture (B2B / Ristoranti / Centri Direzionali):**
   * **Mini PC Fanless Industriale x86:** Processore Intel N100 / N97 quad-core, 8GB/16GB RAM DDR5, SSD NVMe M.2 128GB+, doppia porta Gigabit Ethernet RJ45.
 * **Radio Zigbee e supporto Thread/Matter da Definire:**
-  * **1x Dongle USB Coordinatore Zigbee 3.0 proposto:** Modello con antenna esterna (es. *Sonoff Zigbee 3.0 USB Dongle Plus-E* oppure *Nabu Casa SkyConnect/ZBT-1*). Il supporto Thread/Matter richiede una configurazione distinta da precisare; il funzionamento simultaneo Zigbee/Thread sullo stesso ZBT-1 non è assunto come soluzione di produzione ([ISSUE-005](docs/project-status.md#issue-005)).
+  * **1x Dongle USB Coordinatore Zigbee 3.0 proposto:** Modello con antenna esterna (es. *Sonoff Zigbee 3.0 USB Dongle Plus-E* oppure *Nabu Casa SkyConnect/ZBT-1*). Il supporto Thread/Matter richiede una configurazione distinta da precisare; il funzionamento simultaneo Zigbee/Thread sullo stesso ZBT-1 non è assunto come soluzione di produzione ([ISSUE-005](project-status.md#issue-005)).
   * Prolunga cavo USB schermato da 1 metro (indispensabile per allontanare l'antenna dalle interferenze elettromagnetiche del processore e del quadro elettrico).
 * **Interfaccia Seriale per Contatori e Pompe di Calore:**
   * **1x Adattatore USB-to-RS485 isolato industrial grade** (chip FTDI FT232R o CP2102) con protezione da sovratensioni (TVS).
@@ -47,7 +47,7 @@ Per validare l'intero stack (comandi, telemetria, scenari e distacco carichi) è
 
 ### 1.2 Setup e Gestione dell'Infrastruttura Hetzner (Premesse Cloud)
 
-Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto elencati sono candidati; disponibilità reale, costi, rete e operazioni sono da definire in [infrastructure.md](docs/infrastructure.md). Nessun provisioning è stato eseguito in questo incarico.
+Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto elencati sono candidati; disponibilità reale, costi, rete e operazioni sono da definire in [infrastructure.md](infrastructure.md). Nessun provisioning è stato eseguito in questo incarico.
 
 #### A. Risorse e Tier Macchina Virtuale Hetzner Consigliati
 * **Tipo Server:** Riferimenti iniziali Hetzner Cloud **CPX31** (4 vCPU, 8 GB RAM, 160 GB SSD nel documento originale) oppure **CPX41** (8 vCPU, 16 GB RAM). Specifiche e disponibilità attuali da ricontrollare; adeguatezza al modello AI da misurare, non garantita.
@@ -78,7 +78,7 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 * **2.2 Filosofia Architetturale (Modello Ibrido Hub & Spoke):** 
   * Massima resilienza e continuità di servizio: le automazioni fisiche critiche funzionano in locale anche in assenza di connessione internet.
   * Il cloud centrale gestisce identità, intelligenza artificiale, backup e controllo remoto, mentre i gateway locali dialogano fisicamente con sensori e attuatori.
-* **2.3 Conservazione delle Funzionalità:** Obiettivo originale conservato: nessuna funzionalità nativa di Home Assistant viene rimossa; il sistema espande le capacità con scenari e strumenti visuali. La modalità di copertura va precisata rispetto all'installazione, ai ruoli e alle app/add-on non incluse in Container; nessuna equivalenza completa con HA OS è stata verificata ([ISSUE-004](docs/project-status.md#issue-004)).
+* **2.3 Conservazione delle Funzionalità:** Obiettivo originale conservato: nessuna funzionalità nativa di Home Assistant viene rimossa; il sistema espande le capacità con scenari e strumenti visuali. La modalità di copertura va precisata rispetto all'installazione, ai ruoli e alle app/add-on non incluse in Container; nessuna equivalenza completa con HA OS è stata verificata ([ISSUE-004](project-status.md#issue-004)).
 
 ---
 
@@ -88,7 +88,7 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
   * È proposto **Home Assistant Container** (Core in Docker) per macchina a stati, event bus e collegamenti fisici (Modbus RS485, Zigbee USB, KNX, Wi-Fi locale). Integrazioni effettive e servizi complementari da verificare.
   * **Connessione Sicura in Uscita (Zero Port-Forwarding):** Connessione permanente crittografata verso Hetzner.
   * **Operatività Offline (Local-First):** In caso di blackout internet, continua a regolare temperature, distaccare carichi ed eseguire scenari senza alcuna interruzione.
-  * **Criterio da Definire:** L'obiettivo offline va verificato separatamente per automazioni, controllo dal client e riavvio del tablet con credenziali scadute; non è ancora una garanzia realizzata ([ISSUE-007](docs/project-status.md#issue-007)).
+  * **Criterio da Definire:** L'obiettivo offline va verificato separatamente per automazioni, controllo dal client e riavvio del tablet con credenziali scadute; non è ancora una garanzia realizzata ([ISSUE-007](project-status.md#issue-007)).
 
 * **3.2 Livello Cloud Centralizzato (Hub - Server Hetzner):**
   * Hosting dei servizi centrali: Identity Provider, Reverse Tunnel Broker, Hosting Modello AI, Catalogo Scenari e Database utenti.
@@ -97,21 +97,21 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 
 ## 4. Frontend & UI/UX Stack
 * **4.1 Stack Tecnologico Frontend:**
-  * **Framework & Bundler:** React + Vite + TypeScript proposti. React 18 era la versione indicata nell'originale; il manifest HAKit esaminato richiede React >=19.x. Versioni compatibili e adozione dell'SDK restano da decidere ([ISSUE-003](docs/project-status.md#issue-003)).
+  * **Framework & Bundler:** React + Vite + TypeScript proposti. React 18 era la versione indicata nell'originale; il manifest HAKit esaminato richiede React >=19.x. Versioni compatibili e adozione dell'SDK restano da decidere ([ISSUE-003](project-status.md#issue-003)).
   * **Styling & Design System:** Tailwind CSS personalizzato per la brand identity di ACA SYSTEM.
   * **Motore Reattivo & Connessione Real-Time:** 
     * WebSocket bidirezionale ad alta velocità tramite libreria `home-assistant-js-websocket`.
     * Layer di astrazione React tramite **`@hakit/core`** per la gestione reattiva degli stati delle entità e l'invio dei comandi di servizio.
     * *In Rete Locale (LAN):* Connessione diretta proposta tra tablet e gateway. Il valore <30ms è un obiettivo iniziale da definire e misurare su un ambiente dichiarato.
-    * *Da Remoto:* Connessione protetta proposta tramite il broker cloud Hetzner. Percorso, certificati, terminazione TLS e proprietà end-to-end da dimostrare ([ISSUE-013](docs/project-status.md#issue-013)).
+    * *Da Remoto:* Connessione protetta proposta tramite il broker cloud Hetzner. Percorso, certificati, terminazione TLS e proprietà end-to-end da dimostrare ([ISSUE-013](project-status.md#issue-013)).
 
 * **4.2 Toolkit e Progetti di Riferimento (Adozione da Validare):**
-  HAKit e Tunet sono candidati/riferimenti iniziali per ridurre il lavoro di sviluppo. La stima di risparmio >70% non è misurata. Licenze e modalità di riuso vanno risolte prima dell'adozione commerciale ([ISSUE-001](docs/project-status.md#issue-001), [ISSUE-002](docs/project-status.md#issue-002)); non è stata selezionata una soluzione alternativa.
+  HAKit e Tunet sono candidati/riferimenti iniziali per ridurre il lavoro di sviluppo. La stima di risparmio >70% non è misurata. Licenze e modalità di riuso vanno risolte prima dell'adozione commerciale ([ISSUE-001](project-status.md#issue-001), [ISSUE-002](project-status.md#issue-002)); non è stata selezionata una soluzione alternativa.
 
   * **A. Framework SDK & Component Kit: HAKit (`ha-component-kit`)**
     * **Repository GitHub:** [shannonhochkins/ha-component-kit](https://github.com/shannonhochkins/ha-component-kit).
     * **Documentazione & Storybook:** [shannonhochkins.github.io/ha-component-kit](https://shannonhochkins.github.io/ha-component-kit/)
-    * **Vincolo Verificato:** Le licenze dei pacchetti esaminati richiedono una licenza commerciale separata. Fonti/revisioni nel [registro di conformità](docs/compliance.md#fonti-e-revisioni-già-esaminate). Funzioni e API seguenti descrivono il ruolo atteso; disponibilità e compatibilità vanno verificate sulla versione scelta.
+    * **Vincolo Verificato:** Le licenze dei pacchetti esaminati richiedono una licenza commerciale separata. Fonti/revisioni nel [registro di conformità](compliance.md#fonti-e-revisioni-già-esaminate). Funzioni e API seguenti descrivono il ruolo atteso; disponibilità e compatibilità vanno verificate sulla versione scelta.
     * **Ruolo di `@hakit/core`:** SDK essenziale per collegare React a Home Assistant. Fornisce Custom Hook pronti all'uso (`useEntity`, `useService`, `useHass`) con aggiornamento istantaneo dello stato, gestione della cache locale, riconnessione automatica e tipizzazione TypeScript completa di ogni dispositivo. Elimina la complessità di dover gestire a mano il parsing dei messaggi WebSocket.
     * **Ruolo di `@hakit/components`:** Libreria di card e controller interattivi per React (controllo luci RGB/dimmer, termostato circolare clima, percentuali apertura tapparelle/cover, sensori e modali di dettaglio). Fornisce la logica di controllo avanzata da vestire con il design system e i token grafici proprietari ACA SYSTEM.
 
@@ -130,13 +130,13 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 
 ## 5. Gestione Account, Identity Provider & Policy Plugin
 * **5.1 Autenticazione & Identity Provider su Hetzner (Stile Tripers):**
-  * **Progettazione Aperta:** Associazione dell'identità ACA agli utenti HA, emissione/rinnovo/revoca dei token e comportamento offline richiedono un contratto verificabile ([ISSUE-006](docs/project-status.md#issue-006)); il token centrale non è automaticamente una credenziale accettata da HA.
+  * **Progettazione Aperta:** Associazione dell'identità ACA agli utenti HA, emissione/rinnovo/revoca dei token e comportamento offline richiedono un contratto verificabile ([ISSUE-006](project-status.md#issue-006)); il token centrale non è automaticamente una credenziale accettata da HA.
   * Il backend su Hetzner funge da **Identity Provider & Token Gateway**:
     * **Login Social (Google OAuth):** Autenticazione diretta senza verifica email aggiuntiva.
     * **Registrazione Email + Password:** Invio email di conferma tramite servizio **Resend**; l'account è operativo solo a verifica completata.
   * **Token Exchange Trasparente:** L'utente effettua il login sul portale centrale; l'Identity Provider valida le credenziali, verifica l'impianto associato e rilascia al frontend il token di autorizzazione WebSocket per connettersi in modo sicuro al rispettivo gateway locale.
 * **5.2 Ruoli e Livelli di Autorizzazione:**
-  * **Policy da Validare:** Assegnazione e revoca dei privilegi, separazione degli impianti e controlli sulle API devono essere definiti lato server/gateway; la sola visibilità dei widget non realizza l'autorizzazione ([ISSUE-008](docs/project-status.md#issue-008)).
+  * **Policy da Validare:** Assegnazione e revoca dei privilegi, separazione degli impianti e controlli sulle API devono essere definiti lato server/gateway; la sola visibilità dei widget non realizza l'autorizzazione ([ISSUE-008](project-status.md#issue-008)).
   * **Ruolo Amministratore (Admin):**
     * Assegnazione automatica per tutti gli account con dominio `@fourmemo.com`.
     * **Governance Totale dell'Applicativo:** L'amministratore stabilisce cosa l'applicazione può o non può fare:
@@ -150,11 +150,11 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
       * Controllo diretto di tutte le entità assegnate (luci, clima, prese, tapparelle, sensori).
     * Limitazioni: l'utente non può modificare la policy dei moduli né creare automazioni a basso livello non validate.
 * **5.3 Definizione dei "Plugin" come Feature Modules di Frontend:**
-  * **Confine da Precisare:** Il widget è la parte di interfaccia. Moduli come distacco carichi e clima richiedono anche logiche locali, configurazioni e limiti operativi da progettare; l'etichetta frontend non elimina queste responsabilità ([ISSUE-009](docs/project-status.md#issue-009)).
+  * **Confine da Precisare:** Il widget è la parte di interfaccia. Moduli come distacco carichi e clima richiedono anche logiche locali, configurazioni e limiti operativi da progettare; l'etichetta frontend non elimina queste responsabilità ([ISSUE-009](project-status.md#issue-009)).
   * I "Plugin" sono definiti a livello architetturale come **Feature Modules / Widget di Frontend** gestiti a licenza e permessi (es. *Modulo Piantina Interattiva*, *Modulo Clima & Zone*, *Modulo Monitoraggio Energetico / Distacco Carichi*, *Modulo Videosorveglianza*).
   * Non richiedono l'installazione di codice Python instabile a caldo su Home Assistant né riavvii di sistema.
 * **5.4 Distribuzione e Aggiornamento "One-Click":**
-  * **Ciclo da Progettare:** Sincronizzazione client e attivazione degli scenari sul gateway sono fasi distinte. Versioni, conferma di attivazione, errori parziali e ripristino richiedono una decisione e collaudo ([ISSUE-009](docs/project-status.md#issue-009)).
+  * **Ciclo da Progettare:** Sincronizzazione client e attivazione degli scenari sul gateway sono fasi distinte. Versioni, conferma di attivazione, errori parziali e ripristino richiedono una decisione e collaudo ([ISSUE-009](project-status.md#issue-009)).
   * Quando l'amministratore abilita un nuovo Feature Module o rilascia nuovi scenari per un impianto, sull'interfaccia dell'utente (e sui tablet a muro) compare un **pulsante di aggiornamento rapido** (*"Aggiorna configurazione / Sincronizza"*).
   * Con un singolo tocco, il frontend ricarica i permessi e attiva istantaneamente le nuove schermate e funzioni.
 
@@ -163,7 +163,7 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 ## 6. Mappatura Interattiva della Casa (Floorplan & Piantina)
 * **6.1 Caricamento Planimetria Personalizzata:**
   * Utente e sistemista possono caricare liberamente l'immagine della piantina (PNG, JPG, SVG).
-  * Formati ammessi, gestione dei file, accessi e conservazione saranno definiti nell'incarico pertinente ([ISSUE-014](docs/project-status.md#issue-014)).
+  * Formati ammessi, gestione dei file, accessi e conservazione saranno definiti nell'incarico pertinente ([ISSUE-014](project-status.md#issue-014)).
 * **6.2 Posizionamento Dispositivi con Drag & Drop:**
   * Interfaccia visuale intuitiva: i dispositivi dell'impianto vengono selezionati da un drawer laterale e posizionati con Drag & Drop direttamente sulla planimetria.
   * Memorizzazione delle coordinate relative in percentuale (X%, Y%) rispetto alla risoluzione dell'immagine per garantire un rendering perfetto e reattivo su schermi di ogni dimensione (smartphone, tablet 8", 10", 15").
@@ -180,9 +180,9 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
   * Permette di creare o modificare scenari dialogando in linguaggio naturale (es. *"Crea uno scenario per la notte: spegni tutte le luci tranne il corridoio al 10%, chiudi le tapparelle e metti il clima a 19.5°C se non c'è presenza per 20 minuti"*).
 * **7.2 Hosting del Modello AI Self-Hosted Leggero (SLM / LLM):**
   * Il modello (es. Llama 3.2 3B o Mistral 7B via Ollama / vLLM) viene eseguito sul server cloud Hetzner.
-  * Obiettivo: spostare il carico del modello fuori da tablet e gateway. Il valore <2s è una stima iniziale da verificare con modello, hardware, contesto e concorrenza dichiarati ([ISSUE-010](docs/project-status.md#issue-010)); licenze e dati trattati sono da valutare.
+  * Obiettivo: spostare il carico del modello fuori da tablet e gateway. Il valore <2s è una stima iniziale da verificare con modello, hardware, contesto e concorrenza dichiarati ([ISSUE-010](project-status.md#issue-010)); licenze e dati trattati sono da valutare.
 * **7.3 Middleware di Validazione Deterministico (Anti-Allucinazione):**
-  * **Limite da Gestire:** Schema e riferimenti alle entità verificano struttura e identificativi; la correttezza funzionale e i limiti delle azioni richiedono ulteriori regole e prove. Le correzioni devono essere visibili nella bozza sottoposta ad approvazione ([ISSUE-010](docs/project-status.md#issue-010)).
+  * **Limite da Gestire:** Schema e riferimenti alle entità verificano struttura e identificativi; la correttezza funzionale e i limiti delle azioni richiedono ulteriori regole e prove. Le correzioni devono essere visibili nella bozza sottoposta ad approvazione ([ISSUE-010](project-status.md#issue-010)).
   * Per evitare che il modello inventi entità inesistenti o sintassi errata:
     1. **Iniezione del Contesto Reale:** Il sistema passa al prompt solo l'elenco delle entità reali registrate sul gateway dell'impianto.
     2. **Guida Skill Markdown:** Il modello segue una skill in formato Markdown che codifica le regole sintattiche rigorose di Home Assistant (trigger, condition, action ammessi).
@@ -206,7 +206,7 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 
 ## 9. Tabella dei Requisiti Funzionali Ordinati per Priorità
 
-**Stato iniziale:** tutti i requisiti applicativi sono Proposti, con realizzazione Non iniziata. Le soluzioni citate restano candidate. I criteri AC sono proposti nella sezione 11; la realizzazione corrente è mantenuta in [project-status.md](docs/project-status.md#stato-per-requisito).
+**Stato iniziale:** tutti i requisiti applicativi sono Proposti, con realizzazione Non iniziata. Le soluzioni citate restano candidate. I criteri AC sono proposti nella sezione 11; la realizzazione corrente è mantenuta in [project-status.md](project-status.md#stato-per-requisito).
 
 | ID | Sezione | Descrizione del Requisito | Ruolo Coinvolto | Priorità | Stato | Criterio |
 |---|---|---|---|---|---|---|
@@ -232,7 +232,7 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 
 ## 10. Roadmap di Rilascio
 
-Sequenza e sprint sono **stime iniziali non approvate come calendario**. Primo segmento cliente, dimensione dell'impianto, capacità del team e condizioni di ingresso/uscita delle fasi sono da definire ([ISSUE-012](docs/project-status.md#issue-012)). Licenze e decisioni aperte possono modificarne la fattibilità; nessuna fase è stata avviata. La preparazione documentale è un incarico distinto dalla roadmap applicativa.
+Sequenza e sprint sono **stime iniziali non approvate come calendario**. Primo segmento cliente, dimensione dell'impianto, capacità del team e condizioni di ingresso/uscita delle fasi sono da definire ([ISSUE-012](project-status.md#issue-012)). Licenze e decisioni aperte possono modificarne la fattibilità; nessuna fase è stata avviata. La preparazione documentale è un incarico distinto dalla roadmap applicativa.
 
 1. **Fase 0 – Approvvigionamento Hardware & Setup Server Hetzner (Sprint 1):**
    * Ordine hardware banco di prova: Raspberry CM4/Mini PC, Dongle Zigbee, USB-RS485, Tablet Android, contatore Modbus e relè.
@@ -258,7 +258,7 @@ Sequenza e sprint sono **stime iniziali non approvate come calendario**. Primo s
 
 ## 11. Criteri di Accettazione Proposti
 
-Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma e precisazione nel relativo incarico. Non approvano nuove funzionalità e non riportano test già superati. La matrice degli scenari V corrispondenti è in [verification.md](docs/verification.md#scenari-di-prodotto-previsti).
+Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma e precisazione nel relativo incarico. Non approvano nuove funzionalità e non riportano test già superati. La matrice degli scenari V corrispondenti è in [verification.md](verification.md#scenari-di-prodotto-previsti).
 
 | Criterio | Requisito | Risultato osservabile proposto |
 |---|---|---|
@@ -280,4 +280,4 @@ Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma 
 | AC-15 | REQ-15 | Associazione tablet e kiosk verificate, incluso riavvio senza internet e sessione scaduta; esiti collegati al progetto offline. |
 | AC-16 | REQ-16 | Valutazione R&D con misure e limiti sui dispositivi scelti, prima di una decisione esplicita sul supporto 3D. |
 
-Per aggiornare un requisito conservare ID e motivazione; collegare l'autorizzazione, le decisioni e le verifiche pertinenti. Problemi, vincoli e nuove idee restano nel [registro corrente](docs/project-status.md#registro-dei-problemi-e-limiti) fino a un incarico autorizzato.
+Per aggiornare un requisito conservare ID e motivazione; collegare l'autorizzazione, le decisioni e le verifiche pertinenti. Problemi, vincoli e nuove idee restano nel [registro corrente](project-status.md#registro-dei-problemi-e-limiti) fino a un incarico autorizzato.

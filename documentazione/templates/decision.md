@@ -1,6 +1,6 @@
 # Modello di decisione
 
-Duplicare in `docs/decisions/ADR-NNNN-titolo.md`, sostituire i campi e aggiornare l'indice. Questo modello non costituisce una decisione.
+Duplicare in `documentazione/decisions/ADR-NNNN-titolo.md`, sostituire i campi e aggiornare l'indice. Questo modello non costituisce una decisione.
 
 | Campo | Da compilare |
 |---|---|

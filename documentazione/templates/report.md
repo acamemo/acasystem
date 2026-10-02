@@ -1,6 +1,6 @@
 # Modello di incarico e report
 
-Duplicare in `docs/reports/REP-YYYYMMDD-NNN-titolo.md` per un intervento significativo. Questo modello non è un incarico autorizzato. All'avvio compilare richiesta, perimetro e criteri; durante il lavoro aggiornare l'avanzamento; alla chiusura registrare gli esiti.
+Duplicare in `documentazione/reports/REP-YYYYMMDD-NNN-titolo.md` per un intervento significativo. Questo modello non è un incarico autorizzato. All'avvio compilare richiesta, perimetro e criteri; durante il lavoro aggiornare l'avanzamento; alla chiusura registrare gli esiti.
 
 | Campo | Da compilare |
 |---|---|

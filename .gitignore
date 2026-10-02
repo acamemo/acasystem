@@ -15,3 +15,7 @@ secrets/
 # Log locali; le evidenze nei report devono essere selezionate e anonimizzate.
 *.log
 /.codex-log/
+
+# Copie locali di backup: mantenere versionata soltanto la guida della cartella.
+/backup/**
+!/backup/README.md

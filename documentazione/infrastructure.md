@@ -1,12 +1,13 @@
 # Infrastruttura e operazioni
 
-Aggiornato: 2026-10-02. Documento progettuale; nessun provisioning è stato eseguito. Intento nel [PRD](../product.md), problemi ISSUE-011/013/014 nello [stato del progetto](project-status.md).
+Aggiornato: 2026-10-02. Documento progettuale; nessun provisioning è stato eseguito. Intento nel [PRD](product.md), problemi ISSUE-011/013/014 nello [stato del progetto](project-status.md).
 
 ## Inventario verificato e previsto
 
 | Risorsa | Evidenza attuale | Destinazione prevista |
 |---|---|---|
 | Repository locale | Git inizializzato; documentazione e copia originale versionate | Storico di codice, configurazioni e documenti quando autorizzati. |
+| Area backup locale | [backup/](../backup/README.md) predisposta, con il solo README; nessuna copia o prova di ripristino | Destinazioni, frequenza, accessi e recupero da progettare nell'incarico dedicato. |
 | Ambiente sviluppo applicativo | Nessun manifest o codice di progetto | Runtime/versioni e procedura di avvio da scegliere. |
 | Ambiente test/staging | Nessuna configurazione nel repository; risorse esterne non verificate | Collaudo isolato prima dei rilasci. |
 | Cloud Hetzner | Accesso, VM, regione, costi e disponibilità non verificati | Servizi centrali proposti. |

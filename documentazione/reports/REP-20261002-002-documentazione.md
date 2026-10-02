@@ -67,3 +67,7 @@ Per individuare il commit che include il report consultare `git log -- docs/repo
 ## Rettifiche successive
 
 Nessuna alla chiusura. Le successive rettifiche devono essere datate e accompagnate da nuove evidenze, mantenendo gli esiti storici.
+
+### Annotazione del 2026-10-02 — Trasferimento delle cartelle
+
+Il successivo incarico [REP-20261002-003](REP-20261002-003-organizzazione-cartelle.md) ha trasferito `docs/` in `documentazione/` e il PRD in `documentazione/product.md`. I comandi, i conteggi e i due commit descritti sopra riferiscono la chiusura di questo incarico prima del trasferimento. Per seguire il report nella struttura corrente usare `git log --follow -- documentazione/reports/REP-20261002-002-documentazione.md`; per i blob storici resta valido il vecchio percorso nel relativo commit. L'originale archiviato conserva gli stessi byte.

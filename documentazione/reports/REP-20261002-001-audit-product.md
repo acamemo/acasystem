@@ -68,3 +68,7 @@ L'audit non ha implementato le proposte. I problemi sono riportati nel [registro
 ## Rettifiche successive
 
 Nessuna alla chiusura. Aggiungere eventuali rettifiche datate con nuove evidenze, mantenendo le osservazioni originali.
+
+### Annotazione del 2026-10-02 — Trasferimento delle cartelle
+
+Questo report è stato trasferito da `docs/reports/` a `documentazione/reports/` nell'incarico [REP-20261002-003](REP-20261002-003-organizzazione-cartelle.md). Osservazioni e fonti dell'audit restano quelle registrate alla chiusura; l'originale collegato conserva gli stessi byte.

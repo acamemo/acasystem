@@ -8,6 +8,8 @@ La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializz
 
 Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in questo incarico. Disponibilità di eventuali risorse esterne: non verificata. Non esistono evidenze di operatività, prestazioni o conformità del prodotto. Nessuna CI è configurata.
 
+La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Documenti e PRD sono in `documentazione/`; backup e progetto contengono soltanto i rispettivi README. Nessuna copia di backup è stata creata.
+
 ## Stati e responsabilità
 
 - **Stato del requisito:** Proposto, Approvato, Rimandato, Ritirato. Approvato richiede riferimento a una richiesta/decisione umana. La pubblicazione iniziale del PRD ne registra l'intento, non l'approvazione tecnica di tutte le soluzioni.
@@ -20,7 +22,7 @@ Un nuovo incarico umano può autorizzare un requisito proposto: registrare l'amb
 
 ## Stato per requisito
 
-Criteri proposti nel [PRD](../product.md#11-criteri-di-accettazione-proposti); scenari in [verification.md](verification.md#scenari-di-prodotto-previsti).
+Criteri proposti nel [PRD](product.md#11-criteri-di-accettazione-proposti); scenari in [verification.md](verification.md#scenari-di-prodotto-previsti).
 
 | ID | Requisito | Approvazione | Realizzazione | Verifica prevista | Questioni collegate |
 |---|---|---|---|---|---|
@@ -42,7 +44,7 @@ Criteri proposti nel [PRD](../product.md#11-criteri-di-accettazione-proposti); s
 | REQ-15 | Tablet kiosk | Proposto | Non iniziato | V-15 | ISSUE-005, ISSUE-007 |
 | REQ-16 | Valutazione piantina 3D | Proposto, futuro/R&D | Non iniziato | V-16 | ISSUE-012 |
 
-Non ci sono evidenze applicative per questi requisiti. L'unica decisione accettata è [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md), relativa al processo documentale.
+Non ci sono evidenze applicative per questi requisiti. Le decisioni accettate sono [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md), sul processo documentale, e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md), sulla separazione delle cartelle. Nessuna delle due approva lo stack applicativo.
 
 ## Registro dei problemi e limiti
 
@@ -110,7 +112,8 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-02. Fonti ed esiti della lettu
 |---|---|---|
 | [REP-20261002-001](reports/REP-20261002-001-audit-product.md) | Lettura e audit del PRD originale | Completato; risultati documentati. |
 | [REP-20261002-002](reports/REP-20261002-002-documentazione.md) | Documentazione e storico Git locale | Completato; verifiche documentali e storico locale registrati. |
+| [REP-20261002-003](reports/REP-20261002-003-organizzazione-cartelle.md) | Separazione di documentazione, backup e progetto | Completato; percorsi, integrità e storico verificati. |
 
-**Incarico attivo:** nessuno. Il piano documentale è completato; non resta lavoro assegnato in questo incarico. Il prossimo intervento richiede una richiesta umana che ne identifichi obiettivo e perimetro. La chiusura documentale non approva lo sviluppo dell'applicazione.
+**Incarico attivo:** nessuno. La documentazione e la separazione delle cartelle sono completate. Il prossimo intervento richiede una richiesta umana che ne identifichi obiettivo e perimetro; nessun lavoro applicativo o di provisioning è avviato. L'area backup è predisposta senza copie o automazioni.
 
 **Backlog proposto, non assegnato:** chiarire vincoli delle dipendenze frontend; progettare identità/permessi/offline; delimitare primo rilascio e infrastruttura. L'ordine finale richiede il prossimo incarico umano.

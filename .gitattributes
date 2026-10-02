@@ -3,4 +3,4 @@
 .gitignore text eol=lf
 .gitattributes text eol=lf
 # Gli archivi originali devono conservare esattamente i byte acquisiti.
-docs/archive/** -text
+documentazione/archive/** -text

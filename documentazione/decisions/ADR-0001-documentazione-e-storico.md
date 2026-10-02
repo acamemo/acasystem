@@ -38,3 +38,7 @@ Non viene approvata alcuna sostituzione dello stack o installazione di servizi. 
 ## Verifica e futura revisione
 
 Verifiche di accettazione in [verification.md](../verification.md), evidenze nel report collegato. Per modificare il processo, registrare l'autorizzazione umana e un ADR sostitutivo; preservare questa decisione.
+
+## Annotazione del 2026-10-02 — Organizzazione delle cartelle
+
+[ADR-0002](ADR-0002-organizzazione-cartelle.md) integra la collocazione dei documenti: il PRD è ora `documentazione/product.md` e l'archivio è in `documentazione/archive/`. Le regole e le motivazioni di questa decisione restano valide; il contenuto dell'originale e i commit iniziali sono preservati.
