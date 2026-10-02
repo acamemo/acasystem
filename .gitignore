@@ -1,0 +1,17 @@
+# Segreti e configurazioni locali: versionare solo esempi privi di credenziali.
+.env
+.env.*
+!.env.example
+!.env.sample
+secrets/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Log locali; le evidenze nei report devono essere selezionate e anonimizzate.
+*.log
+/.codex-log/
