@@ -1,6 +1,6 @@
 # ACA SYSTEM 2.0
 
-Piattaforma domotica proposta con automazioni locali, gestione centrale e interfaccia proprietaria. Il lavoro realizzato comprende documentazione e storico Git locale. L'applicazione e i servizi devono ancora essere realizzati.
+Sistema locale basato su Home Assistant, con Tunet come punto di partenza React. Il [pilota in ufficio](documentazione/pilot-scope.md) ha come fase 1 minima la personalizzazione grafica. Hetzner è escluso dalla direzione corrente. Il lavoro realizzato comprende documentazione e Git locale; applicazione e installazioni devono ancora essere realizzate.
 
 ## Organizzazione della cartella
 

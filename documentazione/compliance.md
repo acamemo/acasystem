@@ -1,6 +1,6 @@
 # Registro dei vincoli software e cloud
 
-Aggiornato: 2026-10-02. Ambito approvato: software e cloud, secondo [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md). Installazioni fisiche, sicurezza elettrica e conformità hardware sono separate; le dipendenze note restano in ISSUE-005.
+Aggiornato: 2026-10-05. Ambito approvato: software e cloud, secondo [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md). Installazioni fisiche, sicurezza elettrica e conformità hardware sono separate; le dipendenze note restano in ISSUE-005.
 
 Questo registro raccoglie vincoli, evidenze e verifiche mancanti. Non dichiara la conformità complessiva del prodotto. Applicabilità delle norme, ruoli giuridici e valutazioni contrattuali richiedono informazioni sul servizio e, dove necessario, verifica professionale.
 
@@ -15,10 +15,10 @@ Il committente approva il perimetro e individua i responsabili. Ruoli specifici 
 | ID | Oggetto | Evidenza / stato attuale | Verifica necessaria per l'uso ACA | Problema |
 |---|---|---|---|---|
 | C-01 | HAKit Core e Components | Testi delle licenze verificati nella revisione esaminata; uso commerciale richiede licenza separata. Adozione da risolvere. | Documentare autorizzazione/licenza applicabile alla versione e al prodotto prima dell'integrazione commerciale, oppure sottoporre un'alternativa all'utente. | ISSUE-001 |
-| C-02 | Riuso Tunet | GPL-3.0 verificata nella revisione esaminata; modalità di riuso da valutare. | Distinguere riferimento progettuale e codice incorporato; verificare condizioni degli artefatti che verranno distribuiti. | ISSUE-002 |
+| C-02 | Riuso Tunet | Punto di partenza React confermato dall'utente; GPL-3.0 nella revisione esaminata. Modalità di integrazione/distribuzione da valutare. | Identificare modifiche e artefatti forniti sui mini PC/Raspberry; verificare condizioni di distribuzione, licenze e notice prima dell'integrazione concreta. | ISSUE-002 |
 | C-03 | Altre dipendenze e modelli AI | Nessun manifest applicativo o modello adottato. Da valutare. | Inventariare versioni, provenienza, licenze, notice e condizioni d'uso; valutare compatibilità con distribuzione e servizio previsti. | ISSUE-014 |
-| C-04 | Google OAuth, Resend, Hetzner | Fornitori proposti, nessuna configurazione o condizione contrattuale acquisita. Da valutare. | Identificare condizioni pertinenti, dati inviati, localizzazione/trasferimenti, accessi e documentazione contrattuale necessaria. | ISSUE-014 |
-| C-05 | Identità, privilegi e isolamento | Progetto non definito né collaudato. Da valutare. | Definire autorizzazioni e revoca; provare il rifiuto dei comandi/API non autorizzati e l'isolamento tra impianti. | ISSUE-006/008 |
+| C-04 | Fornitori esterni | Hetzner non applicabile alla direzione corrente per ADR-0003. Google/Resend restano opzioni future; nessun provider scelto per il remoto. | Quando un servizio viene proposto, identificare condizioni, dati inviati, localizzazione/trasferimenti e accessi; il funzionamento locale non certifica da solo la conformità. | ISSUE-014 |
+| C-05 | Identità, privilegi e isolamento | Flusso admin iniziale/cliente e ruolo condominiale approvati; meccanismo non definito né collaudato. | Verificare logout/privilegi residui, autorizzazioni comuni/private, revoca e rifiuto delle API non autorizzate; valutare isolamento su hardware condiviso. | ISSUE-006/008/015 |
 | C-06 | Account e dati d'impianto | Dati e finalità non inventariati. Da valutare. | Documentare necessità, finalità, ruoli, accessi, informazione agli utenti, conservazione e gestione delle richieste sui dati quando applicabili. | ISSUE-014 |
 | C-07 | Chat, contesto AI e scenari | Nessun flusso dati implementato. Da valutare. | Identificare contesto ammesso, dati nei prompt/log, accessi, conservazione e condizioni del modello utilizzato. | ISSUE-010/014 |
 | C-08 | Log, backup e ripristino | Procedure non definite o provate. Da valutare. | Descrivere dati raccolti, accessi, conservazione, anonimizzazione delle evidenze e prove di recupero. | ISSUE-011/014 |
@@ -31,6 +31,8 @@ HAKit: revisione `df12c20dba61ca68ab462fd3ec0918db16dc8a8f`. Le licenze esaminat
 Tunet: revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`, [licenza](https://github.com/oyvhov/Tunet/blob/5dec99587b4fcc2fb1f831a0a0002c9b90e6958e/LICENSE) e [manifest](https://github.com/oyvhov/Tunet/blob/5dec99587b4fcc2fb1f831a0a0002c9b90e6958e/package.json). Nessun codice Tunet è incorporato in ACA.
 
 Fonti consultate il 2026-10-02; metodi ed esiti nell'[audit iniziale](reports/REP-20261002-001-audit-product.md). La verifica delle condizioni di un impiego concreto resta distinta dalla lettura delle licenze.
+
+Il 2026-10-05 `git ls-remote` conferma per Tunet main la stessa revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`; README e licenza sono stati riletti. Non è una versione adottata nell'applicazione, che non esiste ancora. Distribuzione su hardware negli immobili confermata dall'utente; verifiche nel [report del pilota](reports/REP-20261005-001-direzione-pilota.md).
 
 ## Inventario dei dati da compilare
 

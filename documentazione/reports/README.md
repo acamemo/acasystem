@@ -1,12 +1,13 @@
 # Registro degli incarichi e report
 
-Aggiornato: 2026-10-02. Stato corrente degli incarichi in [project-status.md](../project-status.md#incarichi-e-punto-di-ripresa).
+Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](../project-status.md#incarichi-e-punto-di-ripresa).
 
 | ID | Titolo | Funzione del report |
 |---|---|---|
 | [REP-20261002-001](REP-20261002-001-audit-product.md) | Audit del PRD originale | Lettura precedente, fatti verificati, valutazioni e decisioni aperte. |
 | [REP-20261002-002](REP-20261002-002-documentazione.md) | Documentazione e storico Git locale | Incarico umano approvato, modifiche, controlli e punto di ripresa. |
 | [REP-20261002-003](REP-20261002-003-organizzazione-cartelle.md) | Separazione di documentazione, backup e progetto | Riorganizzazione autorizzata, integrità dell'archivio e aggiornamento dei percorsi. |
+| [REP-20261005-001](REP-20261005-001-direzione-pilota.md) | Direzione di prodotto e primo pilota in ufficio | Risposte umane, perimetro della fase 1, decisioni e verifiche documentali. |
 
 ## Regole
 

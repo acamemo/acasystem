@@ -1,6 +1,6 @@
 # Verifiche ed evidenze
 
-Aggiornato: 2026-10-02. Questo documento distingue controlli documentali eseguiti e scenari di prodotto previsti. La realizzazione dei requisiti resta in [project-status.md](project-status.md).
+Aggiornato: 2026-10-05. Questo documento distingue controlli documentali eseguiti e scenari di prodotto previsti. La realizzazione dei requisiti resta in [project-status.md](project-status.md).
 
 ## Criteri per gli esiti
 
@@ -32,19 +32,29 @@ Evidenze e limiti nel [report REP-20261002-003](reports/REP-20261002-003-organiz
 | DOC-09 | Backup esclusi, archivio versionabile senza conversione, diff limitato | Superato, 2026-10-02 | 23 file versionati, sei casi di esclusione verificati, attributo `text: unset`, archivio staged uguale all'originale e diff coerente senza errori di whitespace. |
 | DOC-10 | Commit locale di riorganizzazione; due commit iniziali preservati | Superato, 2026-10-02 | 3 commit, 23 file versionati, due commit iniziali preservati come antenati diretti, working tree pulita, 0 remote e archivio versionato integro. |
 
+### Direzione del pilota — 2026-10-05
+
+Evidenze in [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md). Gli esiti DOC precedenti restano quelli delle rispettive versioni storiche.
+
+| ID | Criterio | Esito | Evidenza |
+|---|---|---|---|
+| DOC-11 | Originale integro, ID conservati, link e matrici validi | Superato, 2026-10-05 | 24 Markdown, 18 REQ/AC/V, 15 ISSUE; priorità originali conservate, stati coerenti e originale integro. Conteggio finale dei link nel report. |
+| DOC-12 | Direzione umana tracciata, fase minima distinta dalle estensioni e dalla realizzazione | Superato, 2026-10-05, revisione documentale | Risposte e ADR-0003 tracciabili; fase minima grafica, ruoli/estensioni e dettaglio tecnico distinti. Nessun risultato applicativo inventato. |
+| DOC-13 | Diff documentale, storico conservato e commit locale coerente | Superato, 2026-10-05 | 15 file Markdown modificati/aggiunti, 26 file versionati, 4 commit con storico preesistente preservato, working tree pulita, 0 remote e archivio versionato integro; esclusioni dei backup conservate. |
+
 ## Scenari di prodotto previsti
 
-**Tutti gli scenari V-00–V-16 sono Non eseguiti.** Sono proposte di accettazione da precisare nell'incarico di progettazione/implementazione pertinente. Nessun ambiente applicativo è disponibile nel repository.
+**Gli scenari applicativi attivi sono Non eseguiti; V-01 è Non applicabile perché REQ-01 è Ritirato.** V-00–V-17 conservano la mappatura dei requisiti, incluso quello ritirato. Criteri da precisare nell'incarico pertinente; nessun ambiente applicativo è disponibile. La fase 1 è delimitata in [pilot-scope.md](pilot-scope.md).
 
 | ID | Requisito | Scenario proposto e risultato atteso |
 |---|---|---|
-| V-00 | REQ-00 | Inventario del banco e prove di lettura/comando per i dispositivi scelti; protocolli e alimentazioni confermati nel relativo ambito fisico. |
-| V-01 | REQ-01 | Installazione ripetibile nell'ambiente autorizzato, salute dei servizi e prova di ripristino con dati di test; versioni e configurazioni documentate. |
-| V-02 | REQ-02 | Automazione locale con cloud irraggiungibile, riconnessione e riavvio; verificare separatamente disponibilità del controllo client offline. |
-| V-03 | REQ-03 | Stati e comandi reali dopo riconnessione, versioni compatibili e condizioni di utilizzo delle dipendenze risolte. |
+| V-00 | REQ-00 | Inventario dell'ufficio, Linux 64 bit ARM64/x86-64, client e dispositivi scelti; prove pertinenti e ambito fisico documentati. |
+| V-01 | REQ-01 | Non applicabile al piano corrente: provisioning Hetzner Ritirato in ADR-0003; scenario storico nell'archivio/Git. Non è un controllo superato. |
+| V-02 | REQ-02 | Frontend locale, stati/comandi e automazioni selezionati senza internet, inclusi riavvio client/gateway e riconnessione; dipendenze cloud identificate. Remoto nel suo incarico. |
+| V-03 | REQ-03 | Confronto grafico delle schermate concordate, copertura delle funzioni HA, stati/comandi e riconnessione; base Tunet, versioni e condizioni di distribuzione verificate. |
 | V-04 | REQ-04 | Login Google/email autorizzati, account email non verificato rifiutato e sessione scaduta gestita secondo il progetto approvato. |
 | V-05 | REQ-05 | Credenziali accettate dal gateway, associazione corretta, rinnovo/revoca e rifiuto dell'accesso a un altro impianto; comportamento offline definito. |
-| V-06 | REQ-06 | Assegnazione e revoca dei privilegi; account non autorizzati rifiutati anche tramite API dirette. |
+| V-06 | REQ-06 | Sessione admin aperta solo per il primo setup, configurazione, logout e login cliente; nessun privilegio admin residuo e rifiuto delle operazioni non autorizzate anche via API. |
 | V-07 | REQ-07 | Abilitazione/revoca dei moduli rispettata dai punti di autorizzazione; comandi vietati rifiutati anche con UI modificata. |
 | V-08 | REQ-08 | Sincronizzazione riuscita, client/gateway disconnesso ed errore parziale; versione e stato effettivo visibili, recupero secondo il progetto scelto. |
 | V-09 | REQ-09 | Formati ammessi, caricamento invalido e accessi; piantina coerente su viewport approvati senza alterare le coordinate relative. |
@@ -55,6 +65,7 @@ Evidenze e limiti nel [report REP-20261002-003](reports/REP-20261002-003-organiz
 | V-14 | REQ-14 | Ricerca/tag, associazione agli impianti e versioni; distribuzione della versione approvata e comportamento con dispositivo non disponibile. |
 | V-15 | REQ-15 | Associazione tablet e kiosk, riavvio senza internet, sessione scaduta e ritorno della rete; nessuna concessione implicita di privilegi tecnici. |
 | V-16 | REQ-16 | Valutazione R&D separata con compatibilità/prestazioni misurate sui dispositivi scelti; esito documentato prima di una decisione sul 3D. |
+| V-17 | REQ-17 | Amministratore condominiale configura dispositivi comuni autorizzati; configurazione dei dispositivi privati rifiutata anche via API. Letture/comandi secondo la policy da approvare. |
 
 ## Regressioni da conservare quando esiste codice
 

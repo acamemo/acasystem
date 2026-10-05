@@ -1,16 +1,16 @@
 # ACA SYSTEM 2.0 – Product Requirements Document (PRODUCT.MD)
 **Documento di Requisiti di Prodotto, Specifiche Hardware e Architettura Funzionale**
 
-**Specifica evolutiva — aggiornata il 2026-10-02.** Le funzionalità e le soluzioni applicative sono **proposte da validare**, non implementazioni o approvazioni tecniche già acquisite. Le priorità esprimono l'intento iniziale; l'incarico umano corrente determina cosa è autorizzato realizzare.
+**Specifica evolutiva — aggiornata il 2026-10-05.** [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) approva la direzione corrente: Home Assistant locale, Tunet come punto di partenza React, pilota in ufficio e fase 1 minima di personalizzazione grafica. Hetzner è escluso. Linux è a 64 bit, ARM64 oppure x86-64. Il [perimetro del pilota](pilot-scope.md) distingue risultato minimo, obiettivi successivi e criteri proposti.
 
-La [copia originale](archive/product-original-2026-10-02.md) resta immutata. [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) approva documentazione e storico locale, senza approvare lo stack applicativo. Lo [stato reale](project-status.md), il [registro dei vincoli](compliance.md) e l'[audit iniziale](reports/REP-20261002-001-audit-product.md) descrivono evidenze, limiti e decisioni ancora aperte.
+La [copia originale](archive/product-original-2026-10-02.md) resta immutata. [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md) restano valide per documentazione e storico. Lo [stato reale](project-status.md), il [registro dei vincoli](compliance.md) e i [report](reports/README.md) registrano decisioni, evidenze e problemi.
 
-Gli ID `REQ-00`–`REQ-16` sono conservati. I requisiti diventano **Approvati** soltanto con una richiesta/decisione umana identificabile; possono essere **Rimandati** o **Ritirati** mantenendone lo storico. Una proposta documentata non è un incarico assegnato. I criteri della sezione 11 sono anch'essi proposti; le verifiche previste ed eseguite sono distinte in [verification.md](verification.md).
+Gli ID `REQ-00`–`REQ-16` sono conservati, incluso REQ-01 ritirato; REQ-17 aggiunge il ruolo condominiale richiesto dall'utente. Approvato indica la direzione o il comportamento autorizzato, non versioni, licenze o realizzazione già verificate. L'incarico corrente è progettuale: nessuno sviluppo o provisioning è avviato. Le [verifiche](verification.md) distinguono controlli documentali e scenari applicativi non eseguiti.
 
 ---
 
-## 1. Requisiti Hardware di Partenza & Setup Iniziale Hetzner (Proposte da Validare)
-La dotazione hardware e il setup cloud seguenti sono una base proposta per il banco e l'impianto pilota. Modelli, compatibilità, disponibilità e dimensionamento richiedono verifica prima di acquisti o installazioni; non costituiscono una garanzia di stabilità. Questioni aperte: [ISSUE-005](project-status.md#issue-005), [ISSUE-011](project-status.md#issue-011) e [ISSUE-012](project-status.md#issue-012). La conformità delle installazioni fisiche resta un ambito separato da questo registro software/cloud.
+## 1. Hardware Locale e Accesso Remoto
+Il pilota è in ufficio; il prodotto verrà fornito su mini PC o Raspberry nelle abitazioni, negli uffici e nelle aziende. È approvato Linux a 64 bit (ARM64 o x86-64). La distinta seguente resta una proposta storica da adattare al pilota; non è un inventario di materiale disponibile. Modelli, compatibilità, disponibilità e dimensionamento richiedono verifica prima di acquisti o installazioni; non costituiscono una garanzia di stabilità. Questioni aperte: [ISSUE-005](project-status.md#issue-005), [ISSUE-011](project-status.md#issue-011) e [ISSUE-012](project-status.md#issue-012). La conformità delle installazioni fisiche resta un ambito separato da questo registro software/cloud.
 
 ### 1.1 Distinta Base Hardware (Cosa va acquistato per una configurazione tipo d'impianto)
 
@@ -37,7 +37,7 @@ Il gateway locale proposto esegue **Home Assistant Container** (Core in Docker) 
   * Modulo alimentatore da incasso 220V -> 5V/3A USB-C da alloggiare nella scatola di derivazione (503) dietro al tablet, con cavo piatto a 90° per alimentazione continua senza cavi visibili.
 
 #### C. Kit Dispositivi Minimi di Riferimento per Test e Collaudo (MVP)
-Per validare l'intero stack (comandi, telemetria, scenari e distacco carichi) è necessario avere a banco:
+Il kit seguente è candidato per le estensioni e i collaudi successivi. Il materiale necessario per il minimo grafico della fase 1 deve essere definito dall'inventario dell'ufficio:
 * **1x Contatore di Energia Modbus RS485:** Modello da guida DIN bidirezionale (es. *Eastron SDM120 / SDM230 Modbus* o *Carlo Gavazzi EM111*).
 * **2x Moduli Relè Smart (Luci e Carichi):** Relè da incasso o da barra DIN, con protocollo da confermare sul modello scelto (es. *Sonoff ZBMINIL2* o *Shelly 1PM Gen3*, quest'ultimo Wi-Fi/Bluetooth).
 * **1x Sensore Presenza & Luminosità:** Sensore radar mmWave proposto (es. *Aqara FP2*, Wi-Fi/Bluetooth, o un modello Zigbee Tuya da verificare). Eventuale combinazione con PIR, capacità e integrazione richiedono collaudo.
@@ -45,110 +45,63 @@ Per validare l'intero stack (comandi, telemetria, scenari e distacco carichi) è
 
 ---
 
-### 1.2 Setup e Gestione dell'Infrastruttura Hetzner (Premesse Cloud)
+### 1.2 Accesso Remoto e Risorse Esterne
 
-Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto elencati sono candidati; disponibilità reale, costi, rete e operazioni sono da definire in [infrastructure.md](infrastructure.md). Nessun provisioning è stato eseguito in questo incarico.
+Hetzner e il suo provisioning sono ritirati dalla direzione corrente (REQ-01, ADR-0003). Il prodotto deve operare localmente con il massimo funzionamento possibile senza internet. La gestione da fuori casa resta un obiettivo quando la connettività è disponibile.
 
-#### A. Risorse e Tier Macchina Virtuale Hetzner Consigliati
-* **Tipo Server:** Riferimenti iniziali Hetzner Cloud **CPX31** (4 vCPU, 8 GB RAM, 160 GB SSD nel documento originale) oppure **CPX41** (8 vCPU, 16 GB RAM). Specifiche e disponibilità attuali da ricontrollare; adeguatezza al modello AI da misurare, non garantita.
-* **Sistema Operativo:** Ubuntu 24.04 LTS x64 (Server Minimal).
-* **IP Pubblico Dedicato:** 1x IPv4 statico con record DNS puntato (es. `api.acasystem.it`, `cloud.acasystem.it`).
-
-#### B. Componenti Software Proposti per Hetzner
-1. **Container Engine & Orchestrazione:** Docker Engine + Docker Compose per garantire isolamento e riproducibilità.
-2. **Reverse Proxy & Gestione Certificati SSL:**
-   * Nginx Proxy Manager o Traefik con rinnovo automatico certificati Let's Encrypt (porte 80 e 443 aperte sul firewall Hetzner).
-3. **Reverse Tunnel Broker (Per connettere i gateway locali senza aprire porte):**
-   * Server **WireGuard VPN** oppure **Rathole / WSS Relay**.
-   * Il gateway locale del cliente si collega in uscita verso Hetzner; Hetzner instrada il traffico WebSocket senza richiedere IP pubblico statico o port-forwarding presso il cliente.
-4. **Database Centrale (PostgreSQL + TimescaleDB):**
-   * Tabelle: Utenti, Ruoli, Token sessione, Registro Impianti/Gateway ID, Catalogo Scenari con tag, Audit log.
-5. **Identity Provider & Token Gateway (Backend Node.js/NestJS):**
-   * Gestione OAuth Google (stile Tripers) ed Email con servizio **Resend**.
-   * Riconoscimento automatico admin `@fourmemo.com`.
-   * Servizio di Token Exchange: rilascia al frontend il token autorizzato per connettersi via WebSocket al gateway d'impianto assegnato.
-6. **Motore AI Locale (Ollama / vLLM):**
-   * Istanza **Ollama** in container, con download del modello quantizzato compatto (es. `llama3.2:3b` o `mistral:7b-instruct-q4_K_M`).
-   * Esposizione solo su rete interna Docker (porta 11434 protetta, accessibile solo dal backend).
+Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. Le proposte originali su identità centrale, database e hosting AI non sono dipendenze obbligatorie della fase 1. Budget, rete e manutenzione restano da progettare in [infrastructure.md](infrastructure.md).
 
 ---
 
 ## 2. Visione Generale del Prodotto
-* **2.1 Scopo del Progetto:** Realizzazione di una piattaforma domotica e di automazione avanzata (B2B e Residenziale evoluto) caratterizzata da un frontend moderno, personalizzabile e brandizzato, alimentato da un kernel domotico industriale affidabile e collaudato.
-* **2.2 Filosofia Architetturale (Modello Ibrido Hub & Spoke):** 
-  * Massima resilienza e continuità di servizio: le automazioni fisiche critiche funzionano in locale anche in assenza di connessione internet.
-  * Il cloud centrale gestisce identità, intelligenza artificiale, backup e controllo remoto, mentre i gateway locali dialogano fisicamente con sensori e attuatori.
-* **2.3 Conservazione delle Funzionalità:** Obiettivo originale conservato: nessuna funzionalità nativa di Home Assistant viene rimossa; il sistema espande le capacità con scenari e strumenti visuali. La modalità di copertura va precisata rispetto all'installazione, ai ruoli e alle app/add-on non incluse in Container; nessuna equivalenza completa con HA OS è stata verificata ([ISSUE-004](project-status.md#issue-004)).
+
+* **2.1 Scopo:** Sistema domotico installato su hardware locale fornito negli immobili, con Home Assistant come base obbligatoria e interfaccia personalizzata.
+* **2.2 Direzione Locale:** Automazioni, stati, comandi e asset necessari al frontend devono privilegiare il funzionamento locale. La gestione remota è un'estensione online; le integrazioni dipendenti da servizi esterni vanno identificate.
+* **2.3 Conservazione delle Funzionalità:** Obiettivo originale conservato: mantenere le capacità Home Assistant. Copertura della UI React e accesso alle funzioni HA restanti devono essere concordati; una dashboard personalizzata non dimostra da sola la copertura di ogni funzione nativa. Metodo HA e servizi complementari restano aperti ([ISSUE-004](project-status.md#issue-004)).
+* **2.4 Primo Risultato:** Fase 1 minima: Home Assistant personalizzato graficamente, provato in ufficio. Funzioni aggiuntive e ruoli avanzati richiedono successivi incarichi; dettagli in [pilot-scope.md](pilot-scope.md).
 
 ---
 
-## 3. Architettura di Sistema: Modello Ibrido Hub & Spoke
+## 3. Architettura di Sistema: Funzionamento Locale e Remoto
 
-* **3.1 Livello Edge / Gateway Locale (Spoke - Presso l'Immobile):**
-  * È proposto **Home Assistant Container** (Core in Docker) per macchina a stati, event bus e collegamenti fisici (Modbus RS485, Zigbee USB, KNX, Wi-Fi locale). Integrazioni effettive e servizi complementari da verificare.
-  * **Connessione Sicura in Uscita (Zero Port-Forwarding):** Connessione permanente crittografata verso Hetzner.
-  * **Operatività Offline (Local-First):** In caso di blackout internet, continua a regolare temperature, distaccare carichi ed eseguire scenari senza alcuna interruzione.
-  * **Criterio da Definire:** L'obiettivo offline va verificato separatamente per automazioni, controllo dal client e riavvio del tablet con credenziali scadute; non è ancora una garanzia realizzata ([ISSUE-007](project-status.md#issue-007)).
-
-* **3.2 Livello Cloud Centralizzato (Hub - Server Hetzner):**
-  * Hosting dei servizi centrali: Identity Provider, Reverse Tunnel Broker, Hosting Modello AI, Catalogo Scenari e Database utenti.
+* **3.1 Gateway Locale:** Home Assistant su mini PC o Raspberry Linux a 64 bit. Container è un candidato originale, non il metodo già scelto. Inventario, versioni e protocolli fisici sono da verificare.
+* **3.2 Frontend Locale:** Tunet confermato come punto di partenza React. Hosting degli asset, servizi richiesti dal repository, autenticazione e riavvio senza internet devono essere progettati.
+* **3.3 Continuità Offline:** Obiettivo: massimo uso possibile delle funzionalità locali, inclusi UI e comandi, con rete locale e alimentazione disponibili. Dipendenze cloud, sessioni e riavvii devono avere comportamenti verificabili ([ISSUE-007](project-status.md#issue-007)).
+* **3.4 Remoto:** Accesso fuori casa da progettare senza dipendenza obbligatoria Hetzner. Nessuna soluzione VPN, relay o backend centrale è selezionata ([ISSUE-013](project-status.md#issue-013)).
+* **3.5 Più Utenti:** Valutare molti utenti su una macchina. Distinguere uno stesso impianto condiviso da abitazioni separate e dispositivi condominiali; capacità e isolamento non sono dimostrati ([ISSUE-015](project-status.md#issue-015)).
 
 ---
 
 ## 4. Frontend & UI/UX Stack
 * **4.1 Stack Tecnologico Frontend:**
-  * **Framework & Bundler:** React + Vite + TypeScript proposti. React 18 era la versione indicata nell'originale; il manifest HAKit esaminato richiede React >=19.x. Versioni compatibili e adozione dell'SDK restano da decidere ([ISSUE-003](project-status.md#issue-003)).
-  * **Styling & Design System:** Tailwind CSS personalizzato per la brand identity di ACA SYSTEM.
+  * **Framework & Bundler:** React tramite il riferimento Tunet confermato. Bundler, linguaggi e versioni vanno verificati nella revisione da adottare. React 18 e HAKit erano proposte originali; la compatibilità HAKit resta pertinente soltanto se l'SDK viene scelto ([ISSUE-003](project-status.md#issue-003)).
+  * **Styling & Design System:** Personalizzazione grafica da concordare sulla base Tunet. Tailwind era il candidato originale; compatibilità e versione vanno verificate prima di adottarlo come vincolo.
   * **Motore Reattivo & Connessione Real-Time:** 
     * WebSocket bidirezionale ad alta velocità tramite libreria `home-assistant-js-websocket`.
-    * Layer di astrazione React tramite **`@hakit/core`** per la gestione reattiva degli stati delle entità e l'invio dei comandi di servizio.
+    * L'eventuale adozione di **`@hakit/core`** deve essere valutata rispetto alla base Tunet, a licenze e versioni; non è richiesta dalla conferma di Tunet.
     * *In Rete Locale (LAN):* Connessione diretta proposta tra tablet e gateway. Il valore <30ms è un obiettivo iniziale da definire e misurare su un ambiente dichiarato.
-    * *Da Remoto:* Connessione protetta proposta tramite il broker cloud Hetzner. Percorso, certificati, terminazione TLS e proprietà end-to-end da dimostrare ([ISSUE-013](project-status.md#issue-013)).
+    * *Da Remoto:* Meccanismo ancora da scegliere; percorso, autenticazione, certificati e terminazione TLS vanno progettati e verificati ([ISSUE-013](project-status.md#issue-013)).
 
-* **4.2 Toolkit e Progetti di Riferimento (Adozione da Validare):**
-  HAKit e Tunet sono candidati/riferimenti iniziali per ridurre il lavoro di sviluppo. La stima di risparmio >70% non è misurata. Licenze e modalità di riuso vanno risolte prima dell'adozione commerciale ([ISSUE-001](project-status.md#issue-001), [ISSUE-002](project-status.md#issue-002)); non è stata selezionata una soluzione alternativa.
-
-  * **A. Framework SDK & Component Kit: HAKit (`ha-component-kit`)**
-    * **Repository GitHub:** [shannonhochkins/ha-component-kit](https://github.com/shannonhochkins/ha-component-kit).
-    * **Documentazione & Storybook:** [shannonhochkins.github.io/ha-component-kit](https://shannonhochkins.github.io/ha-component-kit/)
-    * **Vincolo Verificato:** Le licenze dei pacchetti esaminati richiedono una licenza commerciale separata. Fonti/revisioni nel [registro di conformità](compliance.md#fonti-e-revisioni-già-esaminate). Funzioni e API seguenti descrivono il ruolo atteso; disponibilità e compatibilità vanno verificate sulla versione scelta.
-    * **Ruolo di `@hakit/core`:** SDK essenziale per collegare React a Home Assistant. Fornisce Custom Hook pronti all'uso (`useEntity`, `useService`, `useHass`) con aggiornamento istantaneo dello stato, gestione della cache locale, riconnessione automatica e tipizzazione TypeScript completa di ogni dispositivo. Elimina la complessità di dover gestire a mano il parsing dei messaggi WebSocket.
-    * **Ruolo di `@hakit/components`:** Libreria di card e controller interattivi per React (controllo luci RGB/dimmer, termostato circolare clima, percentuali apertura tapparelle/cover, sensori e modali di dettaglio). Fornisce la logica di controllo avanzata da vestire con il design system e i token grafici proprietari ACA SYSTEM.
-
-  * **B. Dashboard Template & Layout Base: Tunet**
-    * **Repository GitHub:** [oyvhov/Tunet](https://github.com/oyvhov/Tunet)
-    * **Thread Community:** [Tunet - A Modern Dashboard for Home Assistant](https://community.home-assistant.io/t/wip-tunet-a-modern-dashboard-for-home-assistant/990003)
-    * **Vincolo Verificato:** GPL-3.0 nella revisione esaminata. L'uso come ispirazione e l'incorporazione di codice richiedono una scelta esplicita e la verifica delle condizioni pertinenti.
-    * **Ruolo di Tunet:** Fornisce l'ispirazione architetturale per la struttura a griglia personalizzabile, la disposizione dei widget e la navigazione tra stanze/viste.
-
-  * **C. Sinergia Operativa:**
-    * **Tunet** guida l'impostazione macro (griglia dashboard, navigazione e sezioni).
-    * **HAKit** alimenta il motore micro (Custom Hook per gli stati, reattività WebSocket e logica delle card dei singoli dispositivi).
-    * **Tailwind CSS + Brand ACA:** Unifica il tutto sotto un'estetica proprietaria premium e moderna.
+* **4.2 Progetti di Riferimento:**
+  * **Tunet — punto di partenza confermato:** [oyvhov/Tunet](https://github.com/oyvhov/Tunet). È la base React indicata dall'utente per il frontend; l'integrazione concreta e le condizioni degli artefatti distribuiti restano da verificare. GPL-3.0 nella revisione esaminata ([ISSUE-002](project-status.md#issue-002)).
+  * **HAKit — candidato eventuale:** [shannonhochkins/ha-component-kit](https://github.com/shannonhochkins/ha-component-kit). Non è obbligatorio per la fase 1. Le licenze esaminate richiedono una licenza commerciale separata; fonti in [compliance.md](compliance.md#fonti-e-revisioni-già-esaminate).
+  * **Personalizzazione grafica:** identità, schermate e layout vanno concordati. La combinazione Tunet/HAKit/Tailwind originale non è una dipendenza tecnica approvata; il risparmio di sviluppo >70% non è misurato.
 
 ---
 
-## 5. Gestione Account, Identity Provider & Policy Plugin
-* **5.1 Autenticazione & Identity Provider su Hetzner (Stile Tripers):**
-  * **Progettazione Aperta:** Associazione dell'identità ACA agli utenti HA, emissione/rinnovo/revoca dei token e comportamento offline richiedono un contratto verificabile ([ISSUE-006](project-status.md#issue-006)); il token centrale non è automaticamente una credenziale accettata da HA.
-  * Il backend su Hetzner funge da **Identity Provider & Token Gateway**:
-    * **Login Social (Google OAuth):** Autenticazione diretta senza verifica email aggiuntiva.
-    * **Registrazione Email + Password:** Invio email di conferma tramite servizio **Resend**; l'account è operativo solo a verifica completata.
-  * **Token Exchange Trasparente:** L'utente effettua il login sul portale centrale; l'Identity Provider valida le credenziali, verifica l'impianto associato e rilascia al frontend il token di autorizzazione WebSocket per connettersi in modo sicuro al rispettivo gateway locale.
-* **5.2 Ruoli e Livelli di Autorizzazione:**
-  * **Policy da Validare:** Assegnazione e revoca dei privilegi, separazione degli impianti e controlli sulle API devono essere definiti lato server/gateway; la sola visibilità dei widget non realizza l'autorizzazione ([ISSUE-008](project-status.md#issue-008)).
-  * **Ruolo Amministratore (Admin):**
-    * Assegnazione automatica per tutti gli account con dominio `@fourmemo.com`.
-    * **Governance Totale dell'Applicativo:** L'amministratore stabilisce cosa l'applicazione può o non può fare:
-      * Attivazione e revoca dei moduli funzionali/plugin per ciascun impianto.
-      * Revisione, validazione e pubblicazione degli scenari domotici.
-      * Supervisione della telemetria globale e gestione accessi.
-  * **Ruolo Utente / Cliente Finale:**
-    * Massima libertà di personalizzazione dell'interfaccia:
-      * Personalizzazione della griglia e del layout della dashboard (aggiunta/rimozione/spostamento di card).
-      * Caricamento della propria piantina/mappa di casa e posizionamento dei dispositivi.
-      * Controllo diretto di tutte le entità assegnate (luci, clima, prese, tapparelle, sensori).
-    * Limitazioni: l'utente non può modificare la policy dei moduli né creare automazioni a basso livello non validate.
+## 5. Account, Ruoli e Configurazione
+
+* **5.1 Autenticazione Locale e Primo Setup:**
+  * Identità, sessioni HA e accesso del frontend devono sostenere l'operatività locale; modalità e gestione delle credenziali restano da progettare ([ISSUE-006](project-status.md#issue-006)).
+  * Flusso confermato: admin già collegato **soltanto nel primo setup**, configurazione e associazione dei dispositivi, logout admin, login con account cliente. Attivazione, durata e chiusura della sessione iniziale devono essere verificate.
+  * Google OAuth, email/Resend e token exchange erano proposte iniziali, non prerequisiti della fase grafica. Nessun Identity Provider centrale è scelto.
+* **5.2 Ruoli Richiesti:**
+  * **Admin:** configura l'impianto in lavorazione e associa i dispositivi. La regola automatica `@fourmemo.com` dell'originale non è confermata; assegnazione e revoca dei privilegi vanno definite.
+  * **Cliente:** utilizza il sistema con il proprio account dopo la consegna. Personalizzazione e operazioni consentite sono da precisare per le funzioni comprese nel relativo incarico.
+  * **Amministratore di Condominio (REQ-17):** configura i dispositivi comuni, per esempio la caldaia condivisa, senza poter configurare i dispositivi delle singole abitazioni. Visibilità, letture e comandi devono essere precisati; traduzione in permessi HA e isolamento sono da progettare.
+  * **Confini:** verificare letture, comandi e configurazione anche su API e dati, oltre che sulla UI. Accesso remoto permanente del sistemista, organizzazione delle istanze e privilegi su più impianti non sono approvati implicitamente ([ISSUE-008](project-status.md#issue-008), [ISSUE-015](project-status.md#issue-015)).
+  * Personalizzazione delle card, piantina, moduli e scenari restano estensioni del prodotto, con perimetro da assegnare.
+
 * **5.3 Definizione dei "Plugin" come Feature Modules di Frontend:**
   * **Confine da Precisare:** Il widget è la parte di interfaccia. Moduli come distacco carichi e clima richiedono anche logiche locali, configurazioni e limiti operativi da progettare; l'etichetta frontend non elimina queste responsabilità ([ISSUE-009](project-status.md#issue-009)).
   * I "Plugin" sono definiti a livello architetturale come **Feature Modules / Widget di Frontend** gestiti a licenza e permessi (es. *Modulo Piantina Interattiva*, *Modulo Clima & Zone*, *Modulo Monitoraggio Energetico / Distacco Carichi*, *Modulo Videosorveglianza*).
@@ -178,9 +131,9 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 * **7.1 Chatbot Conversazionale In-App (Stile ChatGPT / Gemini):**
   * Finestra di chat integrata nativamente nella dashboard, accessibile da amministratori ed eventuali utenti abilitati.
   * Permette di creare o modificare scenari dialogando in linguaggio naturale (es. *"Crea uno scenario per la notte: spegni tutte le luci tranne il corridoio al 10%, chiudi le tapparelle e metti il clima a 19.5°C se non c'è presenza per 20 minuti"*).
-* **7.2 Hosting del Modello AI Self-Hosted Leggero (SLM / LLM):**
-  * Il modello (es. Llama 3.2 3B o Mistral 7B via Ollama / vLLM) viene eseguito sul server cloud Hetzner.
-  * Obiettivo: spostare il carico del modello fuori da tablet e gateway. Il valore <2s è una stima iniziale da verificare con modello, hardware, contesto e concorrenza dichiarati ([ISSUE-010](project-status.md#issue-010)); licenze e dati trattati sono da valutare.
+* **7.2 Hosting del Modello AI da Valutare (SLM / LLM, Estensione Futura):**
+  * Modello e motore (es. Llama 3.2 3B o Mistral 7B via Ollama / vLLM) restano candidati. La sede di esecuzione è da valutare rispetto a hardware locale, licenze, carico e obiettivo offline; Hetzner è escluso dalla direzione corrente.
+  * Obiettivo: valutare la generazione degli scenari rispetto a risorse disponibili e funzionamento locale. Sede e hardware del modello non sono scelti. Il valore <2s è una stima iniziale da verificare con modello, hardware, contesto e concorrenza dichiarati ([ISSUE-010](project-status.md#issue-010)); licenze e dati trattati sono da valutare.
 * **7.3 Middleware di Validazione Deterministico (Anti-Allucinazione):**
   * **Limite da Gestire:** Schema e riferimenti alle entità verificano struttura e identificativi; la correttezza funzionale e i limiti delle azioni richiedono ulteriori regole e prove. Le correzioni devono essere visibili nella bozza sottoposta ad approvazione ([ISSUE-010](project-status.md#issue-010)).
   * Per evitare che il modello inventi entità inesistenti o sintassi errata:
@@ -198,7 +151,7 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 
 ## 8. Deployment Tablet a Muro & Operatività Sistemisti
 * **8.1 Configurazione da Parte dei Sistemisti:**
-  * I sistemisti effettuano il setup iniziale del tablet a muro effettuando l'accesso con le credenziali tecniche e associando il tablet al gateway locale dell'immobile.
+  * Il sistemista usa la sessione admin aperta solo per il primo setup, configura l'impianto e i dispositivi, esce dall'account admin ed entra con l'account cliente. Associazione del tablet e modalità kiosk restano da delimitare nell'incarico pertinente.
 * **8.2 Esperienza Kiosk a Muro:**
   * Esecuzione in modalità Kiosk a schermo intero (tramite Capacitor APK o Fully Kiosk), blocco delle impostazioni Android di sistema, touch reattivo, e gestione risveglio schermo su rilevamento presenza o tocco.
 
@@ -206,53 +159,40 @@ Il server Hetzner è proposto come Hub centrale. Le risorse e i componenti sotto
 
 ## 9. Tabella dei Requisiti Funzionali Ordinati per Priorità
 
-**Stato iniziale:** tutti i requisiti applicativi sono Proposti, con realizzazione Non iniziata. Le soluzioni citate restano candidate. I criteri AC sono proposti nella sezione 11; la realizzazione corrente è mantenuta in [project-status.md](project-status.md#stato-per-requisito).
+**Stato al 2026-10-05:** ADR-0003 approva alcuni vincoli e comportamenti; REQ-01 è Ritirato, gli altri dettagli non confermati restano Proposti. Nessun requisito è implementato. Le priorità P originali sono conservate come storico dell'intento; l'ordine operativo corrente parte dalla fase grafica in [pilot-scope.md](pilot-scope.md). Approvato non assegna automaticamente l'implementazione e non convalida tutte le tecnologie originali.
 
 | ID | Sezione | Descrizione del Requisito | Ruolo Coinvolto | Priorità | Stato | Criterio |
 |---|---|---|---|---|---|---|
-| **REQ-00** | Hardware | Approvvigionamento gateway CM4/MiniPC, dongle Zigbee, USB-RS485 e tablet | Sistemisti | P0 (Bloccante) | Proposto | AC-00 |
-| **REQ-01** | Cloud Hetzner | Setup VM Hetzner con Reverse Proxy, Reverse Tunnel e Docker; tier da validare | DevOps | P0 (Bloccante) | Proposto | AC-01 |
-| **REQ-02** | Architettura | Modello Hub & Spoke: gateway locale HA collegato a Hetzner | Sistema / DevOps | P0 (Bloccante) | Proposto | AC-02 |
-| **REQ-03** | Frontend | Dashboard React/Vite/Tailwind; Tunet e HAKit candidati con licenze e versioni da validare | Grafica / Dev | P0 (Bloccante) | Proposto | AC-03 |
-| **REQ-04** | Auth | Identity Provider su Hetzner: Google OAuth + Email con Resend | Tutti | P0 (Bloccante) | Proposto | AC-04 |
-| **REQ-05** | Auth | Token Exchange trasparente verso gateway HA, contratto da progettare | Backend | P0 (Bloccante) | Proposto | AC-05 |
-| **REQ-06** | Ruoli | Accesso Admin automatico per dominio `@fourmemo.com`, policy da validare | Fourmemo Staff | P0 (Bloccante) | Proposto | AC-06 |
+| **REQ-00** | Hardware | Hardware locale Linux a 64 bit ARM64/x86-64; inventario e modelli del pilota da scegliere | Sistemisti | P0 (Bloccante) | Approvato | AC-00 |
+| **REQ-01** | Cloud Hetzner | Provisioning Hetzner dell'originale ritirato per decisione umana; ID conservato | DevOps | P0 (Bloccante) | Ritirato | AC-01 |
+| **REQ-02** | Architettura | Home Assistant locale, massimo uso offline e obiettivo remoto online; trasporto da progettare | Sistema / DevOps | P0 (Bloccante) | Approvato | AC-02 |
+| **REQ-03** | Frontend | Fase 1 grafica in ufficio, frontend React con Tunet come punto di partenza; licenze/versioni da verificare | Grafica / Dev | P0 (Bloccante) | Approvato | AC-03 |
+| **REQ-04** | Auth | Google OAuth + email/Resend, opzione futura; nessun Identity Provider centrale obbligatorio | Tutti | P0 (Bloccante) | Proposto | AC-04 |
+| **REQ-05** | Auth | Integrazione identità/sessioni con HA e gestione credenziali offline; contratto da progettare | Backend | P0 (Bloccante) | Proposto | AC-05 |
+| **REQ-06** | Ruoli | Admin configura e associa dispositivi; primo setup con logout admin e login cliente, assegnazione da definire | Fourmemo Staff | P0 (Bloccante) | Approvato | AC-06 |
 | **REQ-07** | Plugin | Feature Modules controllati da Admin, con confini frontend/logiche locali da precisare | Admin | P0 (Bloccante) | Proposto | AC-07 |
 | **REQ-08** | Distribuzione | Pulsante di aggiornamento rapido (One-Click Update) su client/tablet | Utenti / Tablet | P1 (Alta) | Proposto | AC-08 |
 | **REQ-09** | Floorplan | Caricamento piantina 2D (PNG/JPG/SVG) e render responsive (X%, Y%) | Utente / Admin | P1 (Alta) | Proposto | AC-09 |
 | **REQ-10** | Floorplan | Posizionamento dispositivi con Drag & Drop e controllo interattivo | Utente / Admin | P1 (Alta) | Proposto | AC-10 |
 | **REQ-11** | AI / Chat | Chatbot in-app stile ChatGPT/Gemini per creazione guidata scenari | Admin / Utente | P2 (Medio/R&D) | Proposto | AC-11 |
-| **REQ-12** | AI / Server | Hosting motore AI e modello SLM/LLM su Hetzner; candidati da verificare | Backend / R&D | P2 (Medio/R&D) | Proposto | AC-12 |
+| **REQ-12** | AI / Server | Hosting motore AI e modello SLM/LLM; sede e capacità da valutare senza vincolo Hetzner | Backend / R&D | P2 (Medio/R&D) | Proposto | AC-12 |
 | **REQ-13** | AI / Sicurezza | Middleware di validazione deterministico e Skill Markdown per scenari | Dev / R&D | P2 (Medio/R&D) | Proposto | AC-13 |
 | **REQ-14** | Scenari DB | Database e catalogo scenari con tassonomia (diurno, notturno, eco) | Backend / Admin | P2 (Medio/R&D) | Proposto | AC-14 |
 | **REQ-15** | Tablet | Configurazione rapida tablet da parte dei sistemisti e Kiosk mode | Sistemisti | P1 (Alta) | Proposto | AC-15 |
 | **REQ-16** | Floorplan | Valutazione supporto piantina 3D con Three.js / WebGL | R&D | P3 (Futuro) | Proposto | AC-16 |
+| **REQ-17** | Ruoli | Amministratore di condominio configura dispositivi comuni ed esclude quelli privati; letture/comandi da precisare | Amministratore condominio | Da definire | Approvato | AC-17 |
 
 ---
 
 ## 10. Roadmap di Rilascio
 
-Sequenza e sprint sono **stime iniziali non approvate come calendario**. Primo segmento cliente, dimensione dell'impianto, capacità del team e condizioni di ingresso/uscita delle fasi sono da definire ([ISSUE-012](project-status.md#issue-012)). Licenze e decisioni aperte possono modificarne la fattibilità; nessuna fase è stata avviata. La preparazione documentale è un incarico distinto dalla roadmap applicativa.
+La sequenza originale basata su provisioning Hetzner è superata da ADR-0003 e resta nell'archivio/Git. Il **primo risultato confermato** è Home Assistant personalizzato graficamente in ufficio. Nessuna fase applicativa è iniziata.
 
-1. **Fase 0 – Approvvigionamento Hardware & Setup Server Hetzner (Sprint 1):**
-   * Ordine hardware banco di prova: Raspberry CM4/Mini PC, Dongle Zigbee, USB-RS485, Tablet Android, contatore Modbus e relè.
-   * Provisioning VM Hetzner (CPX31/CPX41) con Docker, Reverse Tunnel Wireguard/WSS, Nginx con SSL e PostgreSQL.
-2. **Fase 1 – Setup Ibrido Hub & Spoke, Auth & Gateway (Sprint 2-3):**
-   * Installazione candidata Home Assistant Container per il gateway locale, con servizi complementari da definire.
-   * Configurazione del tunnel sicuro in uscita dal gateway verso Hetzner (Zero Port-Forwarding).
-   * Sistema di autenticazione centrale con Google OAuth, credenziali email con Resend e policy `@fourmemo.com`.
-3. **Fase 2 – Custom Dashboard (Tunet + HAKit) & Kiosk Tablet (Sprint 4-5):**
-   * Inizializzazione frontend combinando l'architettura a griglia di Tunet con il framework SDK HAKit (`@hakit/core` per Custom Hook e stati reattivi, `@hakit/components` per la logica dei controlli).
-   * Re-theming completo con brand identity e design system Tailwind ACA SYSTEM.
-   * Sistema di permessi per Feature Modules (Plugin) e pulsante di aggiornamento "One-Click".
-   * Test di deployment Kiosk su tablet a muro.
-4. **Fase 3 – Modulo Piantina Interattiva Drag & Drop (Sprint 6-7):**
-   * Caricamento immagini planimetria 2D e calcolo coordinate responsive percentuali.
-   * Drawer dispositivi con Drag & Drop e interazione con click diretto sui pin.
-5. **Fase 4 – Chatbot AI, Validatore Deterministico & Catalogo Scenari (Sprint 8-9):**
-   * Setup del motore LLM/Ollama su Hetzner.
-   * Sviluppo del Middleware di Validazione Deterministico basato su Skill Markdown ed entità reali.
-   * Interfaccia Chatbot conversazionale nell'app e catalogo scenari con filtri orari/funzionali.
+1. **Preparazione progettuale della fase 1:** inventario dell'ufficio, analisi della base Tunet, condizioni di riuso, scelta del metodo HA, schermate/materiale grafico e criteri di verifica.
+2. **Fase 1 — Home Assistant personalizzato graficamente:** frontend locale basato sul riferimento Tunet, perimetro UI concordato e verifiche di stati/comandi e offline per i dispositivi/client selezionati. L'implementazione richiede un incarico successivo.
+3. **Estensioni da pianificare:** piantina, moduli, consumi, scenari/AI, remoto, kiosk, ruoli condominiali e possibili macchine condivise. Ordine, dipendenze e inclusioni richiedono successivi incarichi; non sono aggiunte automaticamente alla fase minima.
+
+Sprint, budget e scadenze non sono definiti. Il flusso di primo setup e il ruolo condominiale sono obiettivi approvati del prodotto; la loro realizzazione va delimitata nel relativo incarico. Dettagli nel [perimetro del pilota](pilot-scope.md).
 
 ---
 
@@ -262,13 +202,13 @@ Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma 
 
 | Criterio | Requisito | Risultato osservabile proposto |
 |---|---|---|
-| AC-00 | REQ-00 | Inventario del banco, protocolli e interfacce confermati; letture e comandi dei dispositivi scelti provati. Dipendenza dall'ambito fisico separato. |
-| AC-01 | REQ-01 | Configurazione/versioni documentate, servizi avviabili nell'ambiente autorizzato e recupero da backup provato con dati di test. |
-| AC-02 | REQ-02 | Automazioni previste funzionanti senza cloud; perdita/ritorno della rete e riavvio verificati. Disponibilità del client offline valutata separatamente. |
-| AC-03 | REQ-03 | Stati e comandi coerenti dopo riconnessione; versioni compatibili e condizioni di utilizzo delle dipendenze risolte. |
+| AC-00 | REQ-00 | Inventario dell'ufficio, Linux a 64 bit e architettura ARM64/x86-64 identificati; dispositivi/protocolli scelti e prove pertinenti documentate. Dipendenza fisica separata. |
+| AC-01 | REQ-01 | Non applicabile al piano corrente: requisito Hetzner Ritirato in ADR-0003. Criterio storico conservato nell'originale e in Git. |
+| AC-02 | REQ-02 | Frontend, stati/comandi e automazioni locali del perimetro scelto funzionanti senza internet, incluso riavvio dei client previsti; dipendenze cloud esplicite. Remoto verificato nel suo incarico. |
+| AC-03 | REQ-03 | Schermate e identità grafica concordate, frontend locale con base Tunet, stati/comandi e riconnessione corretti; copertura HA, versioni e condizioni di distribuzione verificate. |
 | AC-04 | REQ-04 | Percorsi Google/email verificati; account email non confermato rifiutato e gestione delle sessioni secondo policy approvata. |
 | AC-05 | REQ-05 | Collegamento all'impianto assegnato, credenziali valide/rinnovate/revocate gestite e accesso a impianti estranei rifiutato. |
-| AC-06 | REQ-06 | Privilegi assegnati e revocati secondo policy approvata, con verifica dell'identità e rifiuto delle operazioni non autorizzate. |
+| AC-06 | REQ-06 | Admin configura l'impianto; sessione aperta limitata al primo setup; logout e login cliente completati senza privilegi admin residui. Assegnazione/revoca e rifiuto di operazioni non autorizzate verificati. |
 | AC-07 | REQ-07 | Attivazione/revoca dei moduli applicata ai punti di autorizzazione; i controlli non dipendono dalla sola visibilità delle card. |
 | AC-08 | REQ-08 | Sincronizzazione e versione effettiva osservabili; disconnessione ed errore parziale gestiti secondo ciclo approvato. |
 | AC-09 | REQ-09 | Caricamento nei formati ammessi e visualizzazione corretta sui viewport scelti; gestione dei file/accessi definita. |
@@ -279,5 +219,6 @@ Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma 
 | AC-14 | REQ-14 | Ricerca/tag e associazione agli impianti verificati; versione pubblicata e distribuita tracciabile. |
 | AC-15 | REQ-15 | Associazione tablet e kiosk verificate, incluso riavvio senza internet e sessione scaduta; esiti collegati al progetto offline. |
 | AC-16 | REQ-16 | Valutazione R&D con misure e limiti sui dispositivi scelti, prima di una decisione esplicita sul supporto 3D. |
+| AC-17 | REQ-17 | Amministratore di condominio configura dispositivi comuni autorizzati; configurazioni delle abitazioni private rifiutate anche via API. Letture/comandi verificati secondo la policy da approvare. |
 
 Per aggiornare un requisito conservare ID e motivazione; collegare l'autorizzazione, le decisioni e le verifiche pertinenti. Problemi, vincoli e nuove idee restano nel [registro corrente](project-status.md#registro-dei-problemi-e-limiti) fino a un incarico autorizzato.

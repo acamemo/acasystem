@@ -1,6 +1,6 @@
 # Documentazione — ACA SYSTEM 2.0
 
-Piattaforma domotica proposta con automazioni locali, gestione centrale e interfaccia proprietaria. Il repository contiene attualmente documentazione e storico Git locale; non contiene applicazione, configurazioni di deployment o test di prodotto.
+Direzione corrente: Home Assistant locale con frontend personalizzato a partire da Tunet; pilota in ufficio e fase 1 minima grafica, secondo ADR-0003. Il repository contiene documentazione e Git locale; applicazione e installazioni non sono realizzate.
 
 ## Da dove iniziare
 
@@ -13,7 +13,8 @@ Piattaforma domotica proposta con automazioni locali, gestione centrale e interf
 
 | Fonte | Responsabilità |
 |---|---|
-| [product.md](product.md) | Visione, requisiti, priorità e criteri di accettazione proposti. |
+| [product.md](product.md) | Visione, requisiti proposti/approvati/ritirati, priorità storiche e criteri di accettazione proposti. |
+| [Pilota e fase 1](pilot-scope.md) | Indicazioni umane, perimetro minimo grafico, obiettivi successivi e informazioni mancanti. |
 | [Stato del progetto](project-status.md) | Stato reale dei requisiti, problemi e punto di ripresa. |
 | [Architettura](architecture.md) | Responsabilità e flussi proposti, decisioni tecniche aperte. |
 | [Infrastruttura](infrastructure.md) | Ambienti previsti, inventario verificato e procedure operative da definire. |

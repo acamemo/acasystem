@@ -11,7 +11,7 @@
 
 1. Controlla lo stato Git, le istruzioni applicabili e `documentazione/project-status.md`.
 2. Individua la richiesta corrente e il report da riprendere. Per un nuovo intervento significativo usa `documentazione/templates/report.md`, compilando richiesta, perimetro e criteri di completamento prima delle modifiche sostanziali.
-3. Leggi i documenti pertinenti: `documentazione/product.md` per requisiti, architettura e ADR per confini tecnici, infrastruttura per operazioni, conformità per vincoli, verifiche per controlli.
+3. Leggi i documenti pertinenti: `documentazione/product.md` per requisiti, `documentazione/pilot-scope.md` per il primo risultato e i suoi limiti, architettura e ADR per confini tecnici, infrastruttura per operazioni, conformità per vincoli, verifiche per controlli.
 4. Ricostruisci l'avanzamento da file, diff e risultati disponibili. Le affermazioni di un agente precedente non sostituiscono l'evidenza.
 
 Il cambio di agente, modello o chat non annulla le decisioni approvate e non amplia l'incarico. Se manca un'informazione, cercala nel repository; chiarisci soltanto le ambiguità che impediscono il lavoro corretto. Continua le parti indipendenti già autorizzate.

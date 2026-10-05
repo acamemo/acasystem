@@ -1,6 +1,6 @@
 # Stato effettivo del progetto
 
-Aggiornato: 2026-10-02. Responsabile dell'approvazione di prodotto: utente committente. Questo documento è la fonte corrente per stato dei requisiti, problemi e incarichi; i report conservano gli esiti datati.
+Aggiornato: 2026-10-05. Responsabile dell'approvazione di prodotto: utente committente. Questo documento è la fonte corrente per stato dei requisiti, problemi e incarichi; i report conservano gli esiti datati.
 
 ## Situazione verificata
 
@@ -9,6 +9,10 @@ La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializz
 Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in questo incarico. Disponibilità di eventuali risorse esterne: non verificata. Non esistono evidenze di operatività, prestazioni o conformità del prodotto. Nessuna CI è configurata.
 
 La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Documenti e PRD sono in `documentazione/`; backup e progetto contengono soltanto i rispettivi README. Nessuna copia di backup è stata creata.
+
+## Direzione corrente approvata
+
+ADR-0003 e le risposte umane del 2026-10-05 stabiliscono Home Assistant locale, riferimento React Tunet, pilota in ufficio e fase 1 minima grafica. Hetzner è ritirato. Linux 64 bit ammette ARM64 e x86-64. Primo setup: admin aperto solo inizialmente, configurazione, logout e login cliente. Il ruolo condominiale e la valutazione di molti utenti su una macchina sono obiettivi successivi; meccanismi e sviluppo non sono avviati.
 
 ## Stati e responsabilità
 
@@ -22,65 +26,66 @@ Un nuovo incarico umano può autorizzare un requisito proposto: registrare l'amb
 
 ## Stato per requisito
 
-Criteri proposti nel [PRD](product.md#11-criteri-di-accettazione-proposti); scenari in [verification.md](verification.md#scenari-di-prodotto-previsti).
+Criteri nel [PRD](product.md#11-criteri-di-accettazione-proposti); scenari in [verification.md](verification.md#scenari-di-prodotto-previsti). Approvato riguarda il vincolo/comportamento riportato in ADR-0003, senza selezionare automaticamente tutte le tecnologie del documento originale. La fase minima è nel [perimetro del pilota](pilot-scope.md).
 
 | ID | Requisito | Approvazione | Realizzazione | Verifica prevista | Questioni collegate |
 |---|---|---|---|---|---|
-| REQ-00 | Banco hardware | Proposto | Non iniziato | V-00 | ISSUE-005; dipendenza fisica separata. |
-| REQ-01 | Cloud Hetzner | Proposto | Non iniziato | V-01 | ISSUE-011 |
-| REQ-02 | Hub & Spoke | Proposto | Non iniziato | V-02 | ISSUE-004, ISSUE-007, ISSUE-013 |
-| REQ-03 | Dashboard e SDK | Proposto | Non iniziato | V-03 | ISSUE-001, ISSUE-002, ISSUE-003 |
-| REQ-04 | Login Google/email | Proposto | Non iniziato | V-04 | ISSUE-008, ISSUE-014 |
-| REQ-05 | Autenticazione gateway | Proposto | Non iniziato | V-05 | ISSUE-006, ISSUE-007 |
-| REQ-06 | Ruolo amministratore | Proposto | Non iniziato | V-06 | ISSUE-008 |
-| REQ-07 | Moduli e permessi | Proposto | Non iniziato | V-07 | ISSUE-008, ISSUE-009 |
-| REQ-08 | Sincronizzazione | Proposto | Non iniziato | V-08 | ISSUE-009 |
-| REQ-09 | Caricamento piantina | Proposto | Non iniziato | V-09 | ISSUE-014 |
-| REQ-10 | Posizionamento e comandi | Proposto | Non iniziato | V-10 | ISSUE-008 |
-| REQ-11 | Chat scenari | Proposto | Non iniziato | V-11 | ISSUE-010, ISSUE-014 |
-| REQ-12 | Hosting modello AI | Proposto | Non iniziato | V-12 | ISSUE-010, ISSUE-011, ISSUE-014 |
-| REQ-13 | Validazione scenari | Proposto | Non iniziato | V-13 | ISSUE-009, ISSUE-010 |
-| REQ-14 | Catalogo scenari | Proposto | Non iniziato | V-14 | ISSUE-009 |
-| REQ-15 | Tablet kiosk | Proposto | Non iniziato | V-15 | ISSUE-005, ISSUE-007 |
-| REQ-16 | Valutazione piantina 3D | Proposto, futuro/R&D | Non iniziato | V-16 | ISSUE-012 |
+| REQ-00 | Hardware locale Linux 64 bit | Approvato | Non iniziato | V-00 | Vincoli approvati; inventario/modelli aperti, ISSUE-005. |
+| REQ-01 | Provisioning Hetzner storico | Ritirato | Non iniziato | V-01, non applicabile | ADR-0003; ID e storico conservati. |
+| REQ-02 | Home Assistant locale, offline e obiettivo remoto | Approvato | Non iniziato | V-02 | ISSUE-004, ISSUE-007, ISSUE-013, ISSUE-015. |
+| REQ-03 | Fase 1 grafica, riferimento React Tunet | Approvato | Non iniziato | V-03 | ISSUE-002; ISSUE-001/003 solo se HAKit viene adottato. |
+| REQ-04 | Google/email, opzione futura | Proposto | Non iniziato | V-04 | Fuori dal minimo grafico; ISSUE-006, ISSUE-014. |
+| REQ-05 | Identità/sessioni e credenziali HA | Proposto | Non iniziato | V-05 | Contratto da progettare; ISSUE-006, ISSUE-007. |
+| REQ-06 | Admin e consegna del primo setup al cliente | Approvato | Non iniziato | V-06 | Comportamento richiesto; meccanismo aperto, ISSUE-006/008. |
+| REQ-07 | Moduli e permessi | Proposto | Non iniziato | V-07 | Estensione da delimitare; ISSUE-008, ISSUE-009. |
+| REQ-08 | Sincronizzazione | Proposto | Non iniziato | V-08 | Estensione da delimitare; ISSUE-009. |
+| REQ-09 | Caricamento piantina | Proposto | Non iniziato | V-09 | Estensione da delimitare; ISSUE-014. |
+| REQ-10 | Posizionamento e comandi da piantina | Proposto | Non iniziato | V-10 | Estensione da delimitare; ISSUE-008. |
+| REQ-11 | Chat scenari | Proposto | Non iniziato | V-11 | Estensione da delimitare; ISSUE-010, ISSUE-014. |
+| REQ-12 | Hosting modello AI, sede da valutare | Proposto | Non iniziato | V-12 | Nessun vincolo Hetzner; ISSUE-010, ISSUE-011, ISSUE-014. |
+| REQ-13 | Validazione scenari | Proposto | Non iniziato | V-13 | Estensione da delimitare; ISSUE-009, ISSUE-010. |
+| REQ-14 | Catalogo scenari | Proposto | Non iniziato | V-14 | Estensione da delimitare; ISSUE-009. |
+| REQ-15 | Tablet e kiosk | Proposto | Non iniziato | V-15 | Client del pilota non inventariati; ISSUE-005, ISSUE-007. |
+| REQ-16 | Valutazione piantina 3D | Proposto | Non iniziato | V-16 | Futuro/R&D; ISSUE-012. |
+| REQ-17 | Amministratore condominiale per dispositivi comuni | Approvato | Non iniziato | V-17 | Obiettivo successivo; progetto dei permessi aperto, ISSUE-008/015. |
 
-Non ci sono evidenze applicative per questi requisiti. Le decisioni accettate sono [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md), sul processo documentale, e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md), sulla separazione delle cartelle. Nessuna delle due approva lo stack applicativo.
+Le decisioni accettate sono [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md) per processo/struttura, e [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) per la direzione di prodotto. Nessuna evidenza di implementazione applicativa è disponibile.
 
 ## Registro dei problemi e limiti
 
-Tutte le voci seguenti sono **Aperte** al 2026-10-02. Fonti ed esiti della lettura sono nel [primo audit](reports/REP-20261002-001-audit-product.md). La chiusura richiede una decisione o una verifica pertinente; non basta spostare il problema in un altro documento.
+Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono alcuni obiettivi, senza chiudere questioni tecniche prive di verifica. Fonti ed esiti della lettura sono nel [primo audit](reports/REP-20261002-001-audit-product.md). La chiusura richiede una decisione o una verifica pertinente; non basta spostare il problema in un altro documento.
 
 ### ISSUE-001
 
-**Licenze HAKit — fatto verificato, vincolo all'adozione commerciale.** Le licenze dei due pacchetti alla revisione esaminata richiedono una licenza commerciale separata. Per REQ-03 occorre documentare le condizioni autorizzate oppure proporre una soluzione diversa. Nessun acquisto, contatto con l'autore o sostituzione è autorizzato da questo registro. Evidenza: C-01 in [compliance.md](compliance.md#registro-dei-vincoli).
+**HAKit — vincolo storico verificato, adozione eventuale aperta.** Le licenze dei pacchetti alla revisione esaminata richiedono una licenza commerciale separata. Tunet è il punto di partenza confermato; HAKit non è obbligatorio. Se l'SDK viene proposto, documentare condizioni autorizzate per versione e distribuzione. Evidenza: C-01 in [compliance.md](compliance.md#registro-dei-vincoli). Nessun acquisto o sostituzione autorizzati da questo registro.
 
 ### ISSUE-002
 
-**Tunet — licenza verificata, scelta di riuso aperta.** GPL-3.0 nella revisione esaminata. Chiarire se REQ-03 usa solo riferimenti progettuali o codice, quali artefatti vengono distribuiti e con quali condizioni. Evidenza: C-02 nel registro di conformità.
+**Tunet — riferimento confermato, modalità di riuso aperta.** Il 2026-10-05 l'utente conferma Tunet come punto di partenza React. La revisione main acquisita con `git ls-remote` coincide con quella dell'audit: `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`, GPL-3.0. Per il prodotto fornito su hardware locale definire modifiche, artefatti consegnati e condizioni della distribuzione. Evidenza: C-02 e [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md). La direzione approvata non chiude il vincolo.
 
 ### ISSUE-003
 
-**React/HAKit — incompatibilità dichiarata nella combinazione proposta.** Il manifest esaminato di HAKit Core richiede React/React DOM >=19.x; il PRD proponeva React 18. Selezionare e verificare versioni compatibili nell'incarico frontend; non è stata scelta una sostituzione.
+**React/HAKit — compatibilità da verificare se l'SDK viene adottato.** Il manifest storico di HAKit Core richiede React/React DOM >=19.x e non coincide con React 18 dell'originale. Il punto di partenza corrente è Tunet; non è stata decisa una combinazione con HAKit. Nell'analisi tecnica scegliere una revisione e verificare le sue dipendenze effettive, senza imporre lo stack originale.
 
 ### ISSUE-004
 
-**Home Assistant Container — limite di installazione verificato.** La modalità Container non include la gestione delle app/add-on di HA OS. Per REQ-02 delimitare cosa significa conservare le funzionalità native e come gestire eventuali servizi complementari.
+**Metodo Home Assistant — scelta aperta, limite Container verificato.** Home Assistant è obbligatorio; Container è soltanto un candidato originale e non include la gestione delle app di HA OS. Definire metodo/versione e mantenimento delle funzioni native richieste, considerando hosting Tunet e servizi complementari. Nessuna installazione è stata effettuata.
 
 ### ISSUE-005
 
-**Banco e radio — dati verificati, compatibilità complessiva non collaudata.** Shelly 1PM Gen3 e Aqara FP2 sono Wi-Fi/Bluetooth; il multiprotocollo Zigbee/Thread su ZBT-1 è sconsigliato dalla fonte ufficiale. Restano da verificare distinta base, alimentazioni, interfacce isolate e modelli esatti. REQ-00/REQ-15 dipendono dall'ambito delle installazioni fisiche, separato da questo registro di conformità.
+**Hardware e rete del pilota — inventario e compatibilità mancanti.** Pilota in ufficio, Linux 64 bit ARM64 o x86-64 approvati; mini PC/Raspberry sono alternative da scegliere. Rete cablata e componente Wi-Fi sono indicate dall'utente, ma funzione della «scheda ritornante wi-fi», modelli, protocolli, client, alimentazioni e interfacce non sono precisati. Restano le evidenze del primo audit su Shelly 1PM Gen3/Aqara FP2 e ZBT-1; nessun dispositivo è collaudato. Dipendenza fisica separata.
 
 ### ISSUE-006
 
-**Identità centrale e token HA — lacuna progettuale.** REQ-05 non definisce associazione degli utenti, emissione, rinnovo e revoca delle credenziali accettate da HA, né il comportamento locale senza cloud. La fattibilità della soluzione ACA deve essere progettata e provata.
+**Autenticazione locale e primo setup — progetto mancante.** La proposta di Identity Provider obbligatorio Hetzner è superata. Progettare account/sessioni del frontend con HA, rinnovo/revoca e accesso offline. Flusso richiesto: sessione admin aperta solo per il primo setup, configurazione/associazione dispositivi, logout, login cliente. Definire attivazione e chiusura della sessione e provare l'assenza di privilegi admin residui. REQ-05/06; nessun automatismo è implementato.
 
 ### ISSUE-007
 
-**Dashboard offline — lacuna progettuale.** REQ-02/REQ-05/REQ-15 descrivono automazioni locali ma non chiariscono avvio del client, credenziali scadute e riavvio del tablet senza internet. Definire comportamenti e disponibilità locale dei dati necessari, poi eseguire V-02/V-05/V-15.
+**Frontend offline — obiettivo confermato, realizzazione mancante.** Il funzionamento locale riguarda anche UI, stati e comandi, non soltanto automazioni. Progettare hosting degli asset Tunet, autenticazione e riavvio di client/gateway senza internet; inventariare integrazioni che richiedono cloud. Disponibilità dipendente anche da rete locale e alimentazione. Verifiche V-02/V-03/V-05/V-15 da delimitare al pilota.
 
 ### ISSUE-008
 
-**Autorizzazioni e separazione impianti — lacuna progettuale.** Per REQ-04/REQ-06/REQ-07/REQ-10 definire controllo server/gateway, assegnazione e revoca dei privilegi, gestione account tecnici e accesso alle entità. Verificare anche chiamate API dirette e identità di un altro impianto. La regola del dominio email è ancora una proposta.
+**Ruoli e isolamento — comportamenti approvati, meccanismo aperto.** Admin configura l'impianto in lavorazione; il cliente utilizza il proprio account dopo la consegna; l'amministratore condominiale configura solo dispositivi comuni ed esclude la configurazione dei dispositivi privati. Visibilità, letture e comandi vanno precisati. La regola automatica `@fourmemo.com` non è confermata. Definire policy e revoca su UI, API e dati, con V-06/V-07/V-17. Nessun ruolo HA personalizzato o accesso remoto permanente del sistemista è stato implementato o scelto.
 
 ### ISSUE-009
 
@@ -92,19 +97,23 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-02. Fonti ed esiti della lettu
 
 ### ISSUE-011
 
-**Operazioni cloud/gateway — progettazione e inventario mancanti.** REQ-01/REQ-02/REQ-12 non hanno provisioning verificato, dimensionamento approvato, budget, gestione aggiornamenti, backup/ripristino o monitoraggio provati. Documentare prima le risorse reali e poi procedure e risultati. Dettagli operativi in [infrastructure.md](infrastructure.md).
+**Operazioni del sistema locale — inventario e procedure mancanti.** Per mini PC/Raspberry e frontend definire metodo/versioni, storage, riavvio, aggiornamenti, backup/ripristino e monitoraggio. Hardware, budget, client e scadenze del pilota non sono acquisiti. Hetzner è ritirato; eventuali risorse per il remoto o l'AI richiedono un nuovo progetto. Procedure in [infrastructure.md](infrastructure.md).
 
 ### ISSUE-012
 
-**Primo rilascio e roadmap — proposta da delimitare.** Mancano primo segmento cliente, scala del primo impianto e vincoli del rilascio. Sprint e priorità del PRD sono stime iniziali; il 3D resta futuro/R&D. I criteri aggiunti al PRD sono proposti e non costituiscono nuove approvazioni.
+**Perimetro del primo rilascio — chiarito in parte.** L'utente sceglie ufficio e minimo grafico su Home Assistant con Tunet. Restano schermate, materiale grafico, inventario, entità rappresentative, budget e tempi. Le estensioni non hanno un ordine assegnato e non entrano automaticamente nella fase 1; il 3D resta futuro/R&D. Dettagli in [pilot-scope.md](pilot-scope.md). Stato Aperto fino alla definizione del perimetro esecutivo.
 
 ### ISSUE-013
 
-**Trasporto e cifratura — proprietà da dimostrare.** Il PRD cita connessione LAN e cifratura end-to-end remota senza precisare TLS, certificati, terminazione presso il broker e confini di fiducia. Verificare la proprietà reale rispetto al progetto scelto; un tunnel non dimostra da solo tutte queste garanzie.
+**Accesso remoto e trasporto — soluzione aperta.** L'accesso fuori casa è un obiettivo online; il broker Hetzner è ritirato e non è stato scelto un sostituto. Per LAN/remoto definire percorso, autenticazione, TLS, certificati e confini di fiducia. Nessuna proprietà end-to-end è dimostrata. Perdita di internet e indisponibilità della rete locale sono condizioni distinte.
 
 ### ISSUE-014
 
-**Dati e condizioni dei fornitori — informazioni mancanti.** Per account, planimetrie, presenza, telemetria, chat e backup identificare dati, finalità, accessi, conservazione e trasferimenti. Mancano valutazioni dei servizi Google/Resend/Hetzner e delle licenze dei modelli AI. Voci C-03/C-04/C-06/C-07/C-08 nel registro di conformità.
+**Distribuzione software e dati — verifiche mancanti.** Il prodotto verrà fornito su hardware negli immobili; identificare artefatti distribuiti, licenze, account, dati, accessi, conservazione e backup locali. Hetzner è escluso; Google/Resend restano opzioni non approvate per la fase 1. Per eventuale AI o accesso remoto documentare nuovi flussi/provider prima dell'adozione. Voci nel [registro di conformità](compliance.md).
+
+### ISSUE-015
+
+**Molti utenti su una macchina — valutazione richiesta, architettura aperta.** Distinguere utenti di uno stesso impianto da abitazioni separate con dispositivi comuni. Definire scala, accessi, reti, isolamento delle entità/configurazioni, risorse e conseguenze di un guasto comune. Capacità e organizzazione in una o più istanze HA non sono dimostrate né scelte. Collegamenti: REQ-02/17 e ISSUE-008. Chiusura con proposta motivata, eventuale decisione umana e verifiche pertinenti.
 
 ## Incarichi e punto di ripresa
 
@@ -113,7 +122,8 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-02. Fonti ed esiti della lettu
 | [REP-20261002-001](reports/REP-20261002-001-audit-product.md) | Lettura e audit del PRD originale | Completato; risultati documentati. |
 | [REP-20261002-002](reports/REP-20261002-002-documentazione.md) | Documentazione e storico Git locale | Completato; verifiche documentali e storico locale registrati. |
 | [REP-20261002-003](reports/REP-20261002-003-organizzazione-cartelle.md) | Separazione di documentazione, backup e progetto | Completato; percorsi, integrità e storico verificati. |
+| [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md) | Direzione di prodotto e primo pilota in ufficio | Completato; direzione documentata, integrità e coerenza verificate, senza sviluppo. |
 
-**Incarico attivo:** nessuno. La documentazione e la separazione delle cartelle sono completate. Il prossimo intervento richiede una richiesta umana che ne identifichi obiettivo e perimetro; nessun lavoro applicativo o di provisioning è avviato. L'area backup è predisposta senza copie o automazioni.
+**Incarico attivo:** nessuno. Allineamento della progettazione alle risposte umane completato con DOC-11–DOC-13. Fase 1 e obiettivi successivi sono documentati; nessuno sviluppo, acquisto o provisioning avviato. Il prossimo incarico deve avere un perimetro identificabile. L'area backup resta predisposta senza copie o automazioni.
 
-**Backlog proposto, non assegnato:** chiarire vincoli delle dipendenze frontend; progettare identità/permessi/offline; delimitare primo rilascio e infrastruttura. L'ordine finale richiede il prossimo incarico umano.
+**Backlog proposto, non assegnato:** analisi tecnica Tunet e schermate della fase 1; inventario dell'ufficio e metodo HA; autenticazione/setup/offline; remoto e isolamento condominiale nei rispettivi incarichi. Il prossimo incarico deve precisare risultato e perimetro.
