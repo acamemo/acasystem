@@ -1,3 +1,4 @@
+import { Skeleton } from '../../primitives/components/Skeleton';
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { Circle, CheckCircle2, Plus, AlertCircle, ListChecks, Trash2 } from 'lucide-react';
 import { getIconComponent } from '../../icons';
@@ -193,9 +194,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
               Error: {error}
             </p>
           ) : loading && items.length === 0 ? (
-            <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-              {t('common.loading') || 'Loading...'}
-            </p>
+            <Skeleton variant="compact" rows={1} style={{ width: 120 }} />
           ) : (
             <>
               <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
@@ -275,12 +274,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
             <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">{error}</p>
           </div>
         ) : loading && items.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)]">
-            <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--status-success-fg)]" />
-            <p className="text-xs font-bold tracking-widest uppercase">
-              {t('common.loading') || 'Loading...'}
-            </p>
-          </div>
+          <Skeleton className="min-h-0 flex-1" />
         ) : pendingItems.length === 0 && completedItems.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
             <CheckCircle2 className="mb-2 h-8 w-8 text-[var(--status-success-fg)]" />

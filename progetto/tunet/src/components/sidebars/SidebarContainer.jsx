@@ -25,7 +25,8 @@ export default function SidebarContainer({
   // Close on escape key
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape' && open) onClose();
+      if (e.key === 'Escape' && open && !panelRef.current?.closest('[data-panel-state="exiting"]'))
+        onClose();
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);

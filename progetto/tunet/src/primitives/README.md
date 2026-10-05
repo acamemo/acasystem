@@ -4,7 +4,7 @@ La schermata HOME viene migrata progressivamente a TypeScript secondo [ADR-0004]
 
 | Gruppo | Primitive disponibili | Contratto |
 |---|---|---|
-| Componenti | Button, Container, Icon, Input, Choice, Switch, Modal | Proprietà native React; Button ha varianti plain/primary/secondary/control e type button iniziale. Container espone surface raised/inset. Icon espone soltanto i nomi mx-icons selezionati, con currentColor. Input conserva proprietà native; Choice comunica aria-pressed; Switch è un button con role switch/aria-checked. Modal compone titolo, chiusura, corpo scorrevole e footer, riusando AccessibleModalShell. |
+| Componenti | Button, Container, Icon, Input, Choice, Switch, Modal, PanelPresence, Skeleton | Proprietà native React; Button ha varianti plain/primary/secondary/control e type button iniziale. Container espone surface raised/inset. Icon espone soltanto i nomi mx-icons selezionati, con currentColor. Input conserva proprietà native; Choice comunica aria-pressed; Switch è un button con role switch/aria-checked. Modal compone titolo, chiusura, corpo scorrevole e footer, riusando AccessibleModalShell. |
 | Tipografia | Heading, Text | Heading richiede livello 1–6; Text usa span o p. Semantica HTML preservata. |
 | Layout | Flex | Contenitore div con display flex e proprietà native. |
 
@@ -22,3 +22,5 @@ npm test
 ```
 
 La build esegue typecheck:home prima di Vite. tsconfig.home.json controlla rigorosamente primitive, contratti, componenti migrati e i test HOME/gestione; allowJs consente il confine con il codice precedente, che non diventa per questo rigorosamente tipizzato. ESLint controlla anche TSX e regole React/hooks. Il parser Babel serve soltanto al lint: non cambia la pipeline Vite.
+
+PanelPresence conserva il contenuto durante l'uscita ed elimina i controlli dal percorso interattivo con inert/aria-hidden. Skeleton non accede ai dati: liste/grafici/riepiloghi riservano spazio mentre le interfacce gestiscono fetch, errore e risultato vuoto. L'orchestrazione e i comportamenti di regressione sono verificati in PanelLoading.test.jsx.

@@ -1,3 +1,4 @@
+import { Skeleton } from '../primitives/components/Skeleton';
 import { useState, useEffect } from 'react';
 import { X, Calendar, Check, ChevronDown, ChevronUp } from '../icons';
 import { getCalendarEvents } from '../services';
@@ -203,12 +204,8 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
           >
             {/* Calendar Events */}
             <div className="scrollbar-hide min-h-0 overflow-y-auto pr-1 sm:pr-3">
-              {loading ? (
-                <div className="flex items-center justify-center py-20">
-                  <p className="text-sm tracking-widest text-[var(--text-secondary)] uppercase">
-                    {translate('common.loading')}
-                  </p>
-                </div>
+              {loading && sortedDates.length === 0 ? (
+                <Skeleton rows={4} label="Caricamento del calendario…" />
               ) : sortedDates.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <Calendar className="mb-4 h-16 w-16 text-[var(--text-muted)] opacity-30" />

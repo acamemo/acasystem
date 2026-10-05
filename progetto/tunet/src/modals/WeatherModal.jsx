@@ -1,3 +1,4 @@
+import { Skeleton } from '../primitives/components/Skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import {
   X,
@@ -509,9 +510,7 @@ export default function WeatherModal({
               </div>
               <div className="mt-4">
                 {graphLoading ? (
-                  <div className="flex h-[140px] items-center justify-center text-sm text-[var(--text-secondary)]">
-                    {translate('common.loading')}
-                  </div>
+                  <Skeleton variant="chart" style={{ height: 140 }} label="Caricamento delle temperature…" />
                 ) : graphSeries.length === 0 ? (
                   <div className="flex h-[140px] items-center justify-center text-sm text-[var(--text-secondary)]">
                     {hasTempSensor

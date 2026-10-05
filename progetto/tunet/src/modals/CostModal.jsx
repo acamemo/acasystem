@@ -1,3 +1,4 @@
+import { Skeleton } from '../primitives/components/Skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import { Coins, X, TrendingUp, BarChart3 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
@@ -478,11 +479,9 @@ export default function CostModal({
         </div>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
-          <div className="popup-surface rounded-2xl p-4 lg:col-span-3">
+          <div className="popup-surface min-h-[352px] rounded-2xl p-4 lg:col-span-3">
             {loading ? (
-              <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]">
-                {translate('common.loading')}
-              </div>
+              <Skeleton variant="chart" style={{ height: 320 }} label="Caricamento dei consumi…" />
             ) : series.length === 0 ? (
               <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]">
                 {translate('cost.noData')}

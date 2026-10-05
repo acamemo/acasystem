@@ -164,6 +164,20 @@ Evidenze in [REP-20261005-009](reports/REP-20261005-009-gestione-schede-pagine.m
 | Movimento ridotto | Implementato | Media query estesa ai dialoghi e discendenti; posizione dello switch conserva lo stato. Preferenza OS non modificata/emulata. Non conformità globale. |
 | Integrità e link | Superato | 407 file baseline e ZIP integri; 23 fonti protette; 39 documenti, 320 link locali validi e 32 percorsi nel perimetro. |
 
+## Transizioni e skeleton
+
+[REP-20261005-010](reports/REP-20261005-010-pannelli-skeleton.md) registra il perimetro e le evidenze.
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Tipi/lint/temi | Superato | typecheck precedente + strict primitive; ESLint senza errori/warning; lint colori 43 file. |
+| Regressioni | Superato | 94 file / 740 test nel builder Node 26 isolato; 12 casi nuovi su uscita, riapertura, Escape ripetuto, focus/scroll sovrapposti, timer/evento di fine, movimento ridotto, lazy fallback, fetch stanze e refresh attività. |
+| Build/budget | Superato | Index 886,7 KB, sotto 900 KB; tutte le soglie invariate e rispettate. |
+| Browser reale | Superato, limitato | Apertura/chiusura desktop: aca-panel-in 0,36 s, uscita aca-panel-out con inert; passaggio Aspetto→Disposizione; fallback lazy osservato. Aggiunta scheda 390×844: stato di caricamento stanze osservato, lista HA poi disponibile, ingombro minimo 216 px, nessun overflow orizzontale. Viewport finale 778×710, un dialogo aperto; nessun comando HA o salvataggio pagina/profilo. |
+| Movimento ridotto | Implementato e testato nel ciclo di presenza | Media query disattiva pannelli/backdrop/shimmer; test matchMedia per uscita immediata. Preferenza OS non modificata/emulata nel browser. |
+| Servizio locale | Superato | Runtime healthy; root, health e 23 asset iniziali HTTP 200. Stesso volume e stesso container HA; non prova collaudo dei dispositivi, offline o ripristino. |
+| Integrità e link | Superato | 407 file baseline e ZIP integri; 24 fonti protette, 40 documenti / 330 link locali, 32 file nel perimetro. |
+
 ## Regressioni da conservare quando esiste codice
 
 Una modifica a identità, permessi, trasporto, esecuzione locale o distribuzione degli scenari deve conservare verifiche dei relativi confini. Per un difetto riproducibile registrare il caso, il comportamento atteso e una verifica pertinente dopo la correzione.

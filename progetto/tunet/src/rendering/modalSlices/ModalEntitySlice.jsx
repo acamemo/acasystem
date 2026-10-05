@@ -1,3 +1,4 @@
+import { PanelPresence } from '../../primitives';
 import { lazy } from 'react';
 import { ModalSuspense } from '../../components';
 import { prepareNordpoolData } from '../../services';
@@ -87,7 +88,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
 
   return (
     <>
-      {showNordpoolModal &&
+      <PanelPresence>{showNordpoolModal &&
         (() => {
           const data = prepareNordpoolData(showNordpoolModal, {
             getCardSettingsKey,
@@ -114,9 +115,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showCostModal &&
+      <PanelPresence>{showCostModal &&
         (() => {
           const settingsKey = getCardSettingsKey(showCostModal);
           const settings = cardSettings[settingsKey] || cardSettings[showCostModal] || {};
@@ -138,9 +139,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {activeClimateEntityModal &&
+      <PanelPresence>{activeClimateEntityModal &&
         (() => {
           const target =
             typeof activeClimateEntityModal === 'string'
@@ -170,9 +171,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showLightModal && (
+      <PanelPresence>{showLightModal && (
         <ModalSuspense>
           <LightModal
             show={!!showLightModal}
@@ -187,9 +188,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             t={t}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showAndroidTVModal &&
+      <PanelPresence>{showAndroidTVModal &&
         (() => {
           const settings = cardSettings[getCardSettingsKey(showAndroidTVModal)] || {};
           return (
@@ -209,9 +210,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showAppleTVModal &&
+      <PanelPresence>{showAppleTVModal &&
         (() => {
           const settings = cardSettings[getCardSettingsKey(showAppleTVModal)] || {};
           return (
@@ -232,9 +233,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showVacuumModal && (
+      <PanelPresence>{showVacuumModal && (
         <ModalSuspense>
           {(() => {
             const vacuumSettingsKey = getCardSettingsKey(activeVacuumId);
@@ -260,9 +261,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             );
           })()}
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showMowerModal && activeMowerId && entities[activeMowerId] && (
+      <PanelPresence>{showMowerModal && activeMowerId && entities[activeMowerId] && (
         <ModalSuspense>
           <MowerModal
             show={showMowerModal}
@@ -277,9 +278,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             mowerId={activeMowerId}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showFanModal && entities[showFanModal] && (
+      <PanelPresence>{showFanModal && entities[showFanModal] && (
         <ModalSuspense>
           <GenericFanModal
             show={true}
@@ -290,9 +291,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             t={t}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {activeCarModal &&
+      <PanelPresence>{activeCarModal &&
         (() => {
           const settingsKey = getCardSettingsKey(activeCarModal);
           const settings = resolveCarSettings(
@@ -314,9 +315,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showWeatherModal &&
+      <PanelPresence>{showWeatherModal &&
         (() => {
           const settingsKey = getCardSettingsKey(showWeatherModal);
           const settings = cardSettings[settingsKey] || cardSettings[showWeatherModal] || {};
@@ -336,9 +337,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showCalendarModal && (
+      <PanelPresence>{showCalendarModal && (
         <ModalSuspense>
           <CalendarModal
             show={showCalendarModal}
@@ -349,9 +350,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             t={t}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showTodoModal &&
+      <PanelPresence>{showTodoModal &&
         (() => {
           const todoSettingsKey = getCardSettingsKey(showTodoModal);
           const todoSettings = cardSettings[todoSettingsKey] || cardSettings[showTodoModal] || {};
@@ -367,9 +368,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showRoomModal &&
+      <PanelPresence>{showRoomModal &&
         (() => {
           const roomSettingsKey = getCardSettingsKey(showRoomModal);
           const roomSettings = cardSettings[roomSettingsKey] || cardSettings[showRoomModal] || {};
@@ -387,9 +388,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showCoverModal &&
+      <PanelPresence>{showCoverModal &&
         (() => {
           const coverSettingsKey = getCardSettingsKey(showCoverModal);
           const coverSettings =
@@ -410,9 +411,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showAlarmModal &&
+      <PanelPresence>{showAlarmModal &&
         (() => {
           const isDirectEntityId =
             typeof showAlarmModal === 'string' && showAlarmModal.startsWith('alarm_control_panel.');
@@ -437,9 +438,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showAlarmActionModal &&
+      <PanelPresence>{showAlarmActionModal &&
         (() => {
           const actionCardId = showAlarmActionModal.cardId;
           const actionKey = showAlarmActionModal.actionKey;
@@ -462,9 +463,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showCameraModal &&
+      <PanelPresence>{showCameraModal &&
         (() => {
           const cameraSettingsKey = getCardSettingsKey(showCameraModal);
           const cameraSettings =
@@ -488,9 +489,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showSensorInfoModal &&
+      <PanelPresence>{showSensorInfoModal &&
         (() => {
           const target =
             typeof showSensorInfoModal === 'string'
@@ -514,9 +515,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               />
             </ModalSuspense>
           );
-        })()}
+        })()}</PanelPresence>
 
-      {showPersonModal && (
+      <PanelPresence>{showPersonModal && (
         <ModalSuspense>
           <PersonModal
             show={!!showPersonModal}
@@ -537,7 +538,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             }
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
     </>
   );
 }

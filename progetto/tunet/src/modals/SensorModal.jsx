@@ -1,3 +1,4 @@
+import { Skeleton } from '../primitives/components/Skeleton';
 import { useState, useEffect, useRef } from 'react';
 import { X, Activity, List } from 'lucide-react';
 import { logger } from '../utils/logger';
@@ -545,9 +546,7 @@ export default function SensorModal({
               {isNumeric && !hasActivity ? (
                 <div className="relative h-full min-h-[250px] w-full">
                   {loading ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--text-primary)] opacity-20"></div>
-                    </div>
+                    <Skeleton variant="chart" style={{ height: 350 }} label="Caricamento della cronologia…" />
                   ) : (
                     <div className="-mr-4 -ml-4 h-full md:mr-0">
                       <SensorHistoryGraph
@@ -563,9 +562,7 @@ export default function SensorModal({
               ) : (
                 <div className="custom-scrollbar -mr-2 flex-1 overflow-y-auto pr-2">
                   {loading && (
-                    <div className="flex h-[100px] items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--text-primary)] opacity-20"></div>
-                    </div>
+                    <Skeleton label="Caricamento delle attività…" />
                   )}
 
                   {!loading && hasActivity && (

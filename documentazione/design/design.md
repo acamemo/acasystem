@@ -128,6 +128,16 @@ Questi risultati non provano il contrasto delle reference, dei componenti futuri
 
 **Controlli da pianificare nel futuro incarico UI:** entrambi i temi e l'accento, contrasto delle varianti effettive, chiarezza degli stati, focus/touch, alternativa senza trascinamento, movimento ridotto, anteprima dell'icona e percentuale durante la regolazione, aggiornamento della luce con frequenza limitata e conferma HA, errore/indisponibilità, leggibilità sul client e nell'illuminazione dell'ufficio, adattamento alle dimensioni concordate e conservazione dei comandi previsti. Sono Non eseguiti; evidenze future in [verification.md](../verification.md) e report pertinenti.
 
+## Pannelli e caricamenti implementati
+
+Richiesta umana del 2026-10-05, [REP-20261005-010](../reports/REP-20261005-010-pannelli-skeleton.md): apertura stile macOS con scala iniziale 0,96, dissolvenza, piccolo superamento 1,008 e assestamento a 1 in 360 ms; chiusura con scala 0,97 e opacità zero in 180 ms. Sono scelte esecutive entro la direzione spring richiesta. Il backdrop sfuma separatamente. Copertura: 31 slot dell'orchestrazione, inclusi dialoghi dispositivi e pannelli Aspetto/Disposizione/Intestazione; il menu impostazioni conserva la propria transizione precedente.
+
+Skeleton condiviso in TypeScript per liste, riepiloghi compatti, grafici e caricamento lazy dei pannelli, con shimmer delle forme decorative e un solo stato annunciato in italiano. Sono applicati a stanze/dispositivi dell'area, profili, attività, calendario, cronologia sensori, consumi e temperature. I selettori multimediali avevano già placeholder: aggiunta la variante senza movimento. Gli indicatori di scrittura, aggiornamento firmware e dispositivo in azione restano distinti dai fetch di contenuti.
+
+Le liste già disponibili restano visibili durante il refresh; stanze e profili riservano almeno 216 px anche a risultato vuoto o errore. Grafici placeholder: sensore 350 px, consumi 320 px (contenitore minimo 352 px con padding anche per le barre da 220 px), temperature 140 px, corrispondenti agli ingombri dei rispettivi contenuti. Il numero effettivo di elementi può estendere le liste: non è dichiarato CLS nullo in ogni schermata. Il fallback lazy è un telaio generico, non una replica esatta di ogni pannello legacy.
+
+Con movimento ridotto le animazioni di pannello/backdrop e lo shimmer sono disattivati; l'uscita viene completata senza attesa animata. Durante l'uscita il contenuto è inert e aria-hidden; focus e scroll sono preservati anche nel passaggio tra dialoghi. Le prove e i loro limiti sono in [verification.md](../verification.md).
+
 ## Questioni aperte e continuità
 
 Logo, font, palette completa, scala delle spaziature, geometria e ombre, schermate, client e librerie restano aperti ([ISSUE-012](../project-status.md#issue-012)). Nessuna nuova dipendenza è adottata dalla sola scelta dello stile.

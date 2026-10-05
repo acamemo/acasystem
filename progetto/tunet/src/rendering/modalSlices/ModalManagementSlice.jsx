@@ -1,3 +1,4 @@
+import { PanelPresence } from '../../primitives';
 import { lazy } from 'react';
 import { ModalSuspense, getServerInfo } from '../../components';
 import { formatDuration } from '../../utils';
@@ -119,7 +120,7 @@ export function ModalManagementSlice({
 
   return (
     <>
-      {showAddCardModal && (
+      <PanelPresence>{showAddCardModal && (
         <ModalSuspense>
           <AddCardContent
             onClose={() => setShowAddCardModal(false)}
@@ -187,9 +188,9 @@ export function ModalManagementSlice({
             t={t}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {editingPage && (
+      <PanelPresence>{editingPage && (
         <ModalSuspense>
           <EditPageModal
             isOpen={!!editingPage}
@@ -202,9 +203,9 @@ export function ModalManagementSlice({
             onDelete={deletePage}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showAddPageModal && (
+      <PanelPresence>{showAddPageModal && (
         <ModalSuspense>
           <AddPageModal
             isOpen={showAddPageModal}
@@ -222,9 +223,9 @@ export function ModalManagementSlice({
             onCreateRoomExplorer={createRoomExplorerPage}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showEditCardModal && (
+      <PanelPresence>{showEditCardModal && (
         <ModalSuspense>
           <EditCardModal
             isOpen={!!showEditCardModal}
@@ -249,9 +250,9 @@ export function ModalManagementSlice({
             {...editModalProps}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {activeMediaModal && (
+      <PanelPresence>{activeMediaModal && (
         <ModalSuspense>
           <MediaModal
             show={!!activeMediaModal}
@@ -282,9 +283,9 @@ export function ModalManagementSlice({
             getServerInfo={getServerInfo}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showStatusGroupModal && (
+      <PanelPresence>{showStatusGroupModal && (
         <ModalSuspense>
           <StatusGroupPillModal
             show={!!showStatusGroupModal}
@@ -295,9 +296,9 @@ export function ModalManagementSlice({
             t={t}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showStatusPillsConfig && (
+      <PanelPresence>{showStatusPillsConfig && (
         <ModalSuspense>
           <StatusPillsConfigModal
             show={showStatusPillsConfig}
@@ -308,7 +309,7 @@ export function ModalManagementSlice({
             t={t}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
     </>
   );
 }

@@ -1,3 +1,4 @@
+import { Skeleton } from '../primitives/components/Skeleton';
 import { SUPPORTED_LANGUAGES } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
@@ -610,7 +611,9 @@ export default function ConfigModal({
           {loadSummary && <p className="text-xs font-bold text-amber-300">{loadSummary}</p>}
 
           {/* Profile list */}
-          {profileList.length === 0 ? (
+          <div className="min-h-[216px]" aria-busy={loading}>{loading && profileList.length === 0 ? (
+            <Skeleton label="Caricamento dei profili…" />
+          ) : profileList.length === 0 ? (
             <p className="text-sm text-[var(--text-secondary)]">{t('profiles.noProfiles')}</p>
           ) : (
             <div className="mt-2 space-y-2">
@@ -715,7 +718,7 @@ export default function ConfigModal({
                 </div>
               ))}
             </div>
-          )}
+          )}</div>
         </div>
       );
     }

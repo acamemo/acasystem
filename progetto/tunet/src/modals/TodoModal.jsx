@@ -1,3 +1,4 @@
+import { Skeleton } from '../primitives/components/Skeleton';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Plus, Circle, CheckCircle2, Trash2, ListChecks, AlertCircle } from 'lucide-react';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../services/haClient';
@@ -218,12 +219,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
               </p>
             </div>
           ) : loading && items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)]">
-              <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--status-success-fg)]" />
-              <p className="text-xs font-bold tracking-widest uppercase">
-                {translate('common.loading') || 'Loading...'}
-              </p>
-            </div>
+            <Skeleton rows={3} />
           ) : pendingItems.length === 0 && completedItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)] opacity-60">
               <CheckCircle2 className="mb-3 h-10 w-10 text-[var(--status-success-fg)]" />

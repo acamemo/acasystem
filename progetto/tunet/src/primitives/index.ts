@@ -8,3 +8,5 @@ export { Input } from './components/Input';
 export { Choice } from './components/Choice';
 export { Switch } from './components/Switch';
 export { Modal } from './components/Modal';
+export { PanelPresence } from './components/PanelPresence';
+export { Skeleton } from './components/Skeleton';

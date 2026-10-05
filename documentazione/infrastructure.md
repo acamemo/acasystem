@@ -30,7 +30,7 @@ Le porte, i record DNS e i percorsi proposti nel PRD non costituiscono la config
 ## Banco prova verificato il 2026-10-05
 
 - HA preesistente: container homeassistant, porta host 8123 su tutte le interfacce come installato dall'utente, dati `C:\homeassistant\config` → `/config`. Questa configurazione esterna al repository non è stata modificata né importata in Git.
-- Tunet: [compose.tunet.yaml](../progetto/compose.tunet.yaml), progetto Compose aca-tunet, immagine locale aca-tunet:1.22.1-aca-management-neu1 dopo REP-20261005-009 (precedenti immagini HOME Neumorphism, HOME TS e baseline aca-tunet:1.22.1-5dec995 conservate), container aca-tunet-tunet-1; ascolto host `127.0.0.1:3002`.
+- Tunet: [compose.tunet.yaml](../progetto/compose.tunet.yaml), progetto Compose aca-tunet, immagine locale aca-tunet:1.22.1-aca-panels-neu1 dopo REP-20261005-010 (precedenti immagini gestione, HOME Neumorphism, HOME TS e baseline aca-tunet:1.22.1-5dec995 conservate), container aca-tunet-tunet-1; ascolto host `127.0.0.1:3002`.
 - Browser → HA: `http://localhost:8123`, OAuth2 completato dall'utente; Tunet mostra CONNECTED e Authenticated via OAuth2. Non esiste un nuovo account remoto ACA/Tunet.
 - Backend → HA: `http://host.docker.internal:8123`; challenge WebSocket auth_required ricevuta e schermata profili senza errore. Le credenziali non sono state lette o registrate dall'agente.
 - Tunet → dati: volume Docker aca-tunet_tunet-data → `/app/data`; SQLite/profili, cifratura upstream off. Layout e sessione browser sono separati dal volume.
@@ -65,3 +65,5 @@ Progettare il primo setup con sessione admin aperta soltanto inizialmente e cons
 ## Regola per i futuri interventi
 
 Ogni operazione necessita di un incarico umano che identifichi ambiente e risultato. Prima del cambiamento acquisire lo stato necessario; dopo registrarne configurazione osservata, verifiche e limiti in un report. Una procedura passa da progettata a provata solo con evidenza; i controlli automatici e i runbook eseguibili saranno introdotti nei relativi incarichi.
+
+Aggiornamento locale REP-20261005-010: runtime osservato sha256:a6b097e6f92effd06948b45beedfaa6e2f6aafce4c54e2a6d37829cf50483b47, healthy. Dopo un tentativo di rebuild offline del Dockerfile upstream fallito sul passaggio apk non presente in cache, il builder e il runtime sono stati derivati dalle immagini locali dell'intervento precedente, copiando i sorgenti/build attuali, senza reinstallare pacchetti. Dockerfile temporanei ed evidenze restano in backup/panels-skeleton-20261005, esclusi da Git. Dockerfile upstream, lockfile, HA e volume dati invariati; resta valido il limite del tag base mobile per ricostruzioni future.

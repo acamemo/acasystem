@@ -15,8 +15,8 @@ Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](..
 | [REP-20261005-006](REP-20261005-006-migrazione-home-typescript.md) | Prima migrazione HOME a TypeScript | Primitive, contratti rigorosi, lingua italiana, mx-icons e regressioni della schermata. |
 | [REP-20261005-007](REP-20261005-007-conversione-neumorphism.md) | Conversione dell'applicativo a Neumorphism | Fonte Antigravity conservata; esecuzione interrotta dall'utente. Ripresa circoscritta alla HOME in REP-008; card e conversione integrale non completate. |
 | [REP-20261005-008](REP-20261005-008-home-neumorphism.md) | Ripresa del design HOME | Materiale Neumorphism nei due temi, controlli condivisi, regressioni e passaggio da Antigravity. |
-
 | [REP-20261005-009](REP-20261005-009-gestione-schede-pagine.md) | Gestione schede e pagine | Primo gruppo dopo HOME: finestre TS/italiano, primitive Input/Choice/Switch/Modal, icone compatibili e verifiche. |
+| [REP-20261005-010](REP-20261005-010-pannelli-skeleton.md) | Pannelli e skeleton | Transizioni con uscita, movimento ridotto e caricamenti dinamici. |
 
 ## Regole
 

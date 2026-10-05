@@ -1852,7 +1852,7 @@ export default function MediaModal({
                   {[0, 1, 2, 3].map((item) => (
                     <div
                       key={item}
-                      className="animate-pulse rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2.5"
+                      className="animate-pulse motion-reduce:animate-none rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2.5"
                     >
                       <div className="aspect-square rounded-xl bg-[var(--glass-bg-hover)]" />
                       <div className="mt-2 h-3 w-4/5 rounded-full bg-[var(--glass-bg-hover)]" />

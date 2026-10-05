@@ -3,6 +3,9 @@ import { normalizeModalOverlayStyle } from './modalStyles';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+let scrollLocks = 0;
+let originalOverflow = '';
+
 const PRIORITY_FOCUS_SELECTOR =
   '[data-autofocus], [autofocus], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]';
 
@@ -54,8 +57,10 @@ export default function AccessibleModalShell({
       previousActiveRef.current = document.activeElement;
     }
 
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    if (scrollLocks++ === 0) {
+      originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
 
     const panel = panelRef.current;
     if (openedNow && panel) {
@@ -67,7 +72,7 @@ export default function AccessibleModalShell({
     }
 
     const handleKeyDown = (event) => {
-      if (!panelRef.current) return;
+      if (!panelRef.current || panelRef.current.closest('[data-panel-state="exiting"]')) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         onCloseRef.current?.();
@@ -99,9 +104,13 @@ export default function AccessibleModalShell({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = prevOverflow;
+      if (--scrollLocks === 0) document.body.style.overflow = originalOverflow;
       const previous = previousActiveRef.current;
-      if (previous instanceof HTMLElement) previous.focus();
+      if (
+        previous instanceof HTMLElement &&
+        (document.activeElement === document.body || panel?.contains(document.activeElement))
+      )
+        previous.focus();
     };
   }, [open]);
 

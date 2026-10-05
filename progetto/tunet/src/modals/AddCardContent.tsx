@@ -29,7 +29,7 @@ import {
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { isSonosMediaEntity, isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
-import { Button, Choice, Container, Heading, Input, Modal } from '../primitives';
+import { Button, Choice, Container, Heading, Input, Modal, Skeleton } from '../primitives';
 import type {
   AddCardProps,
   RoomSectionProps,
@@ -63,6 +63,8 @@ function RoomSection({
 }: RoomSectionProps) {
   const [areas, setAreas] = useState<Area[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [entityErrors, setEntityErrors] = useState<Record<string, boolean>>({});
   const [loadingEntitiesByAreaId, setLoadingEntitiesByAreaId] = useState<Record<string, boolean>>(
     {}
   );
@@ -73,6 +75,8 @@ function RoomSection({
       return;
     }
     let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
     (async () => {
       try {
         const result: Area[] = await getAreas(conn);
@@ -81,6 +85,7 @@ function RoomSection({
         }
       } catch (err) {
         console.error('Failed to load areas:', err);
+        if (!cancelled) setLoadError(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -95,11 +100,13 @@ function RoomSection({
     if (Array.isArray(selectedAreaEntitiesById?.[areaId])) return;
 
     setLoadingEntitiesByAreaId((prev) => ({ ...prev, [areaId]: true }));
+    setEntityErrors((prev) => ({ ...prev, [areaId]: false }));
     try {
       const result = await getEntitiesForArea(conn, areaId);
       setSelectedAreaEntitiesById((prev) => ({ ...prev, [areaId]: result }));
     } catch (err) {
       console.error('Failed to load area entities:', err);
+      setEntityErrors((prev) => ({ ...prev, [areaId]: true }));
     } finally {
       setLoadingEntitiesByAreaId((prev) => ({ ...prev, [areaId]: false }));
     }
@@ -126,17 +133,14 @@ function RoomSection({
       <p className="ml-4 text-xs font-bold text-[var(--text-secondary)] uppercase">
         {t('addCard.selectArea')}
       </p>
-      {loading && (
-        <p className="py-4 text-center text-sm text-[var(--text-secondary)]">
-          {t('addCard.loadingAreas')}
-        </p>
-      )}
-      {!loading && filteredAreas.length === 0 && (
-        <p className="py-4 text-center text-sm text-[var(--text-secondary)] italic">
-          {t('addCard.noAreas')}
-        </p>
-      )}
-      <div className="space-y-3">
+      <div className="min-h-[216px] space-y-3" aria-busy={loading}>
+        {!loading && loadError && <p role="alert">Impossibile caricare le stanze.</p>}
+        {!loading && !loadError && filteredAreas.length === 0 && (
+          <p className="py-4 text-center text-sm text-[var(--text-secondary)] italic">
+            {t('addCard.noAreas')}
+          </p>
+        )}
+        {loading && areas.length === 0 && <Skeleton label="Caricamento delle stanze…" />}
         {filteredAreas.map((area) => {
           const isSelected = selectedAreas.some((item) => item.area_id === area.area_id);
           const areaEntities = selectedAreaEntitiesById?.[area.area_id] || [];
@@ -150,6 +154,7 @@ function RoomSection({
                 void toggleAreaSelection(area);
               }}
               aria-pressed={isSelected}
+              aria-busy={loadingEntities}
               className={`group entity-item flex w-full items-center justify-between rounded-2xl border p-3 text-left transition-colors ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}
             >
               <div className="mr-4 flex flex-col overflow-hidden">
@@ -162,8 +167,16 @@ function RoomSection({
                   className={`truncate text-[11px] font-medium ${isSelected ? SELECTED_SUBTEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-secondary)]'}`}
                 >
                   {area.area_id}
+                  {isSelected && loadingEntities && (
+                    <span className="aca-skeleton__line inline-block" aria-hidden="true" />
+                  )}
                   {isSelected &&
                     !loadingEntities &&
+                    entityErrors[area.area_id] &&
+                    ' — Dispositivi non disponibili'}
+                  {isSelected &&
+                    !loadingEntities &&
+                    !entityErrors[area.area_id] &&
                     ` — ${areaEntities.length} ${t('addCard.roomEntitiesFound')}`}
                 </span>
               </div>

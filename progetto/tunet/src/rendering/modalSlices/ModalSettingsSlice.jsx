@@ -1,3 +1,4 @@
+import { PanelPresence } from '../../primitives';
 import { lazy } from 'react';
 import { ModalSuspense } from '../../components';
 import { themes } from '../../config/themes';
@@ -101,7 +102,7 @@ export function ModalSettingsSlice({
 
   return (
     <>
-      {(showConfigModal || showOnboarding) && (
+      <PanelPresence>{(showConfigModal || showOnboarding) && (
         <ModalSuspense>
           <ConfigModal
             open={showConfigModal || showOnboarding}
@@ -143,9 +144,9 @@ export function ModalSettingsSlice({
             profiles={profiles}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showThemeSidebar && (
+      <PanelPresence>{showThemeSidebar && (
         <ModalSuspense>
           <ThemeSidebar
             open={true}
@@ -176,9 +177,9 @@ export function ModalSettingsSlice({
             setInactivityTimeout={setInactivityTimeout}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showLayoutSidebar && (
+      <PanelPresence>{showLayoutSidebar && (
         <ModalSuspense>
           <LayoutSidebar
             open={true}
@@ -221,9 +222,9 @@ export function ModalSettingsSlice({
             savePageSetting={core.savePageSetting}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
 
-      {showHeaderEditModal && (
+      <PanelPresence>{showHeaderEditModal && (
         <ModalSuspense>
           <HeaderSidebar
             open={true}
@@ -247,7 +248,7 @@ export function ModalSettingsSlice({
             t={t}
           />
         </ModalSuspense>
-      )}
+      )}</PanelPresence>
     </>
   );
 }
