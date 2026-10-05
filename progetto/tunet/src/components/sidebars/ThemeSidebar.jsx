@@ -1,3 +1,4 @@
+import { SUPPORTED_LANGUAGES } from '../../i18n';
 // Similar imports to ConfigModal
 import React, { useState } from 'react';
 import ModernDropdown from '../ui/ModernDropdown';
@@ -162,10 +163,11 @@ export default function ThemeSidebar({
           <ModernDropdown
             label={t('settings.language')}
             icon={Globe}
-            options={['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr']}
+            options={SUPPORTED_LANGUAGES}
             current={language}
             onChange={setLanguage}
             map={{
+              it: 'Italiano',
               en: t('language.en'),
               nb: t('language.nb'),
               nn: t('language.nn'),

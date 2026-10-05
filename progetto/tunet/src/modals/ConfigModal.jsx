@@ -1,3 +1,4 @@
+import { SUPPORTED_LANGUAGES } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import ModernDropdown from '../components/ui/ModernDropdown';
@@ -1107,10 +1108,11 @@ export default function ConfigModal({
             <ModernDropdown
               label={t('settings.language')}
               icon={Globe}
-              options={['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr']}
+              options={SUPPORTED_LANGUAGES}
               current={language}
               onChange={setLanguage}
               map={{
+                it: 'Italiano',
                 en: t('language.en'),
                 nb: t('language.nb'),
                 nn: t('language.nn'),
@@ -2072,10 +2074,11 @@ export default function ConfigModal({
                           <ModernDropdown
                             label={t('settings.language')}
                             icon={Globe}
-                            options={['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr']}
+                            options={SUPPORTED_LANGUAGES}
                             current={language}
                             onChange={setLanguage}
                             map={{
+                              it: 'Italiano',
                               en: t('language.en'),
                               nb: t('language.nb'),
                               nn: t('language.nn'),

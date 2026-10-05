@@ -1,6 +1,6 @@
 # ACA SYSTEM — Specifica di design
 
-Aggiornato: 2026-10-05. Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). Nessuna interfaccia è implementata o collaudata.
+Aggiornato: 2026-10-05. Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME è il primo incremento di migrazione TS/primitive e italiano; Neumorphism e microinterazioni ACA non sono ancora implementati o collaudati.
 
 ## Scopo e responsabilità
 
@@ -22,6 +22,10 @@ La fase 1 minima è Home Assistant personalizzato graficamente, con Tunet come p
 | Microinterazioni | Priorità esplicita, con feedback durante il gesto | Indicazioni e risposte umane riprese nel piano approvato. |
 | Reference | [Articolo Clay](https://clay.global/blog/neumorphism-ui) e tre immagini fornite in chat | Ispirazione estetica; non schermate ACA approvate. |
 | Logo | Non ancora disponibile | Da definire; nessun logo generato o adottato. |
+| Lingua delle nuove interfacce | Italiano | Precisazione umana durante REP-20261005-006; data/ora nel locale it-IT. Traduzione legacy ancora parziale. |
+| Icone dei componenti migrati | mx-icons | Pacchetto npm confermato dall'utente; prima adozione 1.1.2 in HOME, currentColor per seguire i temi. |
+
+La prima [migrazione HOME](../reports/REP-20261005-006-migrazione-home-typescript.md) conserva l'aspetto Tunet per isolare la conversione; testi e icone sono gli adattamenti richiesti. [ADR-0005](../decisions/ADR-0005-typescript-italiano-icone.md) delimita questa adozione. Button/Container/Icon, Heading/Text e Flex costituiscono il primo strato condiviso; varianti, token e materiale Neumorphism completi restano da progettare nel relativo incarico.
 
 La separazione in moduli e la creazione di questo file sono richieste dall'utente nel presente [incarico](../reports/REP-20261005-002-moduli-documentali-design.md). Le indicazioni precedenti e i calcoli sui colori sono conservati nell'[annotazione del report del pilota](../reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico).
 

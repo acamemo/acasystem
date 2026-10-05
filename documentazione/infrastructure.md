@@ -30,11 +30,11 @@ Le porte, i record DNS e i percorsi proposti nel PRD non costituiscono la config
 ## Banco prova verificato il 2026-10-05
 
 - HA preesistente: container homeassistant, porta host 8123 su tutte le interfacce come installato dall'utente, dati `C:\homeassistant\config` → `/config`. Questa configurazione esterna al repository non è stata modificata né importata in Git.
-- Tunet: [compose.tunet.yaml](../progetto/compose.tunet.yaml), progetto Compose aca-tunet, immagine locale aca-tunet:1.22.1-5dec995, container aca-tunet-tunet-1; ascolto host `127.0.0.1:3002`.
+- Tunet: [compose.tunet.yaml](../progetto/compose.tunet.yaml), progetto Compose aca-tunet, immagine locale aca-tunet:1.22.1-aca-home-ts1 dopo REP-20261005-006 (baseline aca-tunet:1.22.1-5dec995 conservata), container aca-tunet-tunet-1; ascolto host `127.0.0.1:3002`.
 - Browser → HA: `http://localhost:8123`, OAuth2 completato dall'utente; Tunet mostra CONNECTED e Authenticated via OAuth2. Non esiste un nuovo account remoto ACA/Tunet.
 - Backend → HA: `http://host.docker.internal:8123`; challenge WebSocket auth_required ricevuta e schermata profili senza errore. Le credenziali non sono state lette o registrate dall'agente.
 - Tunet → dati: volume Docker aca-tunet_tunet-data → `/app/data`; SQLite/profili, cifratura upstream off. Layout e sessione browser sono separati dal volume.
-- Build: Dockerfile upstream node:26-alpine e npm ci; sorgenti e lockfile acquisiti senza modifiche. Il tag base è mobile; digest/versioni osservati nel report. Nessuna CI è attiva.
+- Build: Dockerfile upstream node:26-alpine e npm ci; baseline upstream registrata e primo incremento HOME TS/italiano/mx-icons applicato. Lockfile corrente conserva le versioni preesistenti e aggiunge le dipendenze del report di migrazione. Il tag base è mobile; digest/versioni osservati nel report. Nessuna CI è attiva.
 
 Procedura di avvio eseguita e comandi di gestione pianificati in [progetto/README.md](../progetto/README.md). Il comando Compose riguarda Tunet e non ricrea HA. Persone/client della LAN, remoto, TLS, backup e riavvio offline non sono stati collaudati; la porta Tunet è riservata alla macchina corrente.
 

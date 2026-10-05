@@ -1,6 +1,6 @@
 # Banco prova locale ACA SYSTEM
 
-Tunet 1.22.1 è installato in Docker, da upstream [oyvhov/Tunet](https://github.com/oyvhov/Tunet), revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`. I 407 file acquisiti in [tunet/](tunet/README.md) sono conservati senza adattamenti; [tunet-origin.json](tunet-origin.json) registra provenienza e SHA-256 dei singoli file. La [licenza GPL-3.0 originale](tunet/LICENSE) è inclusa. Le condizioni della futura distribuzione ACA restano da valutare.
+Tunet 1.22.1 è installato in Docker, da upstream [oyvhov/Tunet](https://github.com/oyvhov/Tunet), revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`. La baseline di 407 file è conservata nel commit 14ff7f4 e nello ZIP di acquisizione; [tunet-origin.json](tunet-origin.json) registra gli hash della baseline. La cartella corrente include la prima migrazione ACA di HOME a TypeScript, primitive e italiano, documentata in [REP-20261005-006](../documentazione/reports/REP-20261005-006-migrazione-home-typescript.md). Il manifest originale non descrive gli hash del codice modificato. La [licenza GPL-3.0 originale](tunet/LICENSE) è inclusa. Le condizioni della futura distribuzione ACA restano da valutare.
 
 ## Avvio e controllo
 
@@ -12,7 +12,7 @@ docker compose -f progetto/compose.tunet.yaml ps
 Invoke-RestMethod http://localhost:3002/api/health
 ```
 
-Questa procedura è stata eseguita il 2026-10-05. La build usa il Dockerfile upstream e `npm ci` con il lockfile acquisito. La base `node:26-alpine` resta un tag mobile upstream: il digest usato e la versione effettiva sono registrati nel [report](../documentazione/reports/REP-20261005-004-installazione-tunet.md), non è garantita identità binaria di una futura rebuild. Le modifiche ai sorgenti richiedono una nuova build per apparire nel container; il server Vite con ricaricamento automatico non è stato avviato.
+Questa procedura è stata eseguita il 2026-10-05. La build usa il Dockerfile upstream e npm ci con il lockfile corrente; il controllo strict HOME precede Vite. La baseline e le nuove dipendenze sono distinte nel report di migrazione. La base `node:26-alpine` resta un tag mobile upstream: il digest usato e la versione effettiva sono registrati nel [report](../documentazione/reports/REP-20261005-004-installazione-tunet.md), non è garantita identità binaria di una futura rebuild. Le modifiche ai sorgenti richiedono una nuova build per apparire nel container; il server Vite con ricaricamento automatico non è stato avviato.
 
 Aprire [Tunet](http://localhost:3002), scegliere OAuth2 e inserire `http://localhost:8123` come URL HA. Eseguire personalmente il login nel proprio Home Assistant. Non occorre creare un account Tunet o incollare un token nei file. Il backend usa `http://host.docker.internal:8123`, perché localhost dentro il container indica il container stesso. Login completato dall'utente il 2026-10-05: Tunet mostra CONNECTED / Authenticated via OAuth2; pannello profili con auto-sync e ultima sincronizzazione. Letture/comandi sui dispositivi e salvataggio/caricamento manuale profili restano da collaudare.
 
@@ -36,4 +36,4 @@ Sono comandi di gestione previsti, non una prova eseguita di recupero dopo arres
 
 ## Perimetro
 
-È installata la base upstream; personalizzazione ACA, microinterazioni, ruoli e dispositivi fisici non sono realizzati. Seguire [AGENTS.md](../AGENTS.md), il [pilota](../documentazione/funzionalita/pilot-scope.md) e il report corrente prima delle modifiche. I workflow upstream sotto `tunet/.github/` sono sorgenti importati, non CI attiva di questo repository. Git resta locale, senza remote.
+La prima porzione HOME è migrata a TSX con primitive condivise, italiano e mx-icons, mantenendo la grafica Tunet. Immagine locale aca-tunet:1.22.1-aca-home-ts1; il resto del codice rimane prevalentemente JS. Neumorphism ACA, microinterazioni fisiche e ruoli non sono realizzati. Seguire [AGENTS.md](../AGENTS.md), il [pilota](../documentazione/funzionalita/pilot-scope.md) e il report corrente prima delle modifiche. I workflow upstream sotto `tunet/.github/` sono sorgenti importati, non CI attiva di questo repository. Git resta locale, senza remote.

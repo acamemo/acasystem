@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { LayoutGrid, Plus, UserCircle2 } from '../icons';
+import HomeEmptyState from '../components/pages/home/HomeEmptyState';
 import CardErrorBoundary from '../components/ui/CardErrorBoundary';
 import { formatDuration } from '../utils';
 
@@ -144,43 +144,16 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
       (pagesConfig.header || []).length;
 
     return (
-      <div
+      <HomeEmptyState
         key={`${activePage}-empty`}
-        className="animate-in fade-in zoom-in flex min-h-[60vh] flex-col items-center justify-center p-8 text-center font-sans opacity-90 duration-500"
-      >
-        <div className="mb-6 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-5 shadow-lg shadow-black/5">
-          <LayoutGrid className="h-12 w-12 text-[var(--text-primary)] opacity-80" />
-        </div>
-
-        <h2 className="mb-3 text-3xl font-light tracking-tight text-[var(--text-primary)] uppercase">
-          {t('welcome.title')}
-        </h2>
-        <p className="mb-8 max-w-md text-lg leading-relaxed text-[var(--text-secondary)]">
-          {t('welcome.subtitle')}
-        </p>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            onClick={() => setShowAddCardModal(true)}
-            className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-8 py-4 text-sm font-bold tracking-widest text-white uppercase shadow-lg transition-all duration-200 hover:bg-[var(--accent-color)] active:scale-95"
-          >
-            <Plus className="h-5 w-5" />
-            {t('welcome.addCard')}
-          </button>
-          {totalCards > 0 ? null : (
-            <button
-              onClick={() => {
-                setConfigTab('profiles');
-                setShowConfigModal(true);
-              }}
-              className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-8 py-4 text-sm font-bold tracking-widest text-[var(--text-primary)] uppercase shadow-lg transition-all duration-200 hover:bg-[var(--glass-bg-hover)] active:scale-95"
-            >
-              <UserCircle2 className="h-5 w-5" />
-              {t('welcome.restoreProfile')}
-            </button>
-          )}
-        </div>
-      </div>
+        totalCards={totalCards}
+        onAddCard={() => setShowAddCardModal(true)}
+        onLoadProfile={() => {
+          setConfigTab('profiles');
+          setShowConfigModal(true);
+        }}
+        t={t}
+      />
     );
   }
 

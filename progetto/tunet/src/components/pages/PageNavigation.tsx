@@ -1,5 +1,6 @@
+import { Icon as AcaIcon, Button, Container, Flex, Text } from '../../primitives';
+import type { PageNavigationProps, PageManagerProps } from '../../types/home';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Edit2, ChevronDown } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useModalActions, usePages } from '../../contexts';
 
@@ -16,17 +17,17 @@ function PageManagerPopover({
   setShowAddPageModal,
   onClose,
   t,
-}) {
-  const ref = useRef(null);
-  const [dragIdx, setDragIdx] = useState(null);
-  const [overIdx, setOverIdx] = useState(null);
+}: PageManagerProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
   const pageOrder = pagesConfig?.pages || [];
 
   useEffect(() => {
-    const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) onClose();
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
-    const handleKey = (e) => {
+    const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('mousedown', handleClick);
@@ -37,7 +38,7 @@ function PageManagerPopover({
     };
   }, [onClose]);
 
-  const movePage = (fromIndex, toIndex) => {
+  const movePage = (fromIndex: number, toIndex: number) => {
     if (!persistConfig || fromIndex === toIndex) return;
     const next = [...pageOrder];
     const [item] = next.splice(fromIndex, 1);
@@ -46,12 +47,12 @@ function PageManagerPopover({
   };
 
   return (
-    <div
+    <Container
       ref={ref}
       className={`absolute top-full left-0 z-50 mt-2 w-52 origin-top-left translate-y-0 scale-100 transform rounded-2xl border border-white/10 p-1.5 opacity-100 shadow-2xl transition-all duration-200`}
       style={{ backgroundColor: 'var(--card-bg)', backdropFilter: 'blur(20px)' }}
     >
-      <div className="max-h-72 space-y-0.5 overflow-y-auto">
+      <Container className="max-h-72 space-y-0.5 overflow-y-auto">
         {pages.map((page, idx) => {
           const settings = pageSettings[page.id] || {};
           const label = settings.label || page.label;
@@ -61,7 +62,7 @@ function PageManagerPopover({
           const isOver = overIdx === idx && dragIdx !== idx;
 
           return (
-            <div
+            <Flex
               key={page.id}
               draggable
               onDragStart={() => setDragIdx(idx)}
@@ -83,7 +84,7 @@ function PageManagerPopover({
                 isOver ? 'bg-[var(--accent-color)]/10' : ''
               } ${isHidden ? 'opacity-50' : ''}`}
             >
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setActivePage(page.id);
@@ -91,7 +92,7 @@ function PageManagerPopover({
                 }}
                 className="flex min-w-0 flex-1 items-center gap-2.5"
               >
-                <div
+                <Container
                   className={`shrink-0 rounded-md p-1.5 transition-colors ${
                     isActive
                       ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
@@ -99,9 +100,10 @@ function PageManagerPopover({
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <p
+                </Container>
+                <Container className="min-w-0">
+                  <Text
+                    as="p"
                     className={`truncate text-xs font-semibold ${
                       isActive
                         ? 'text-[var(--text-primary)]'
@@ -109,15 +111,18 @@ function PageManagerPopover({
                     }`}
                   >
                     {label}
-                  </p>
+                  </Text>
                   {isHidden && (
-                    <p className="text-[9px] tracking-wider text-[var(--text-muted)] uppercase">
+                    <Text
+                      as="p"
+                      className="text-[9px] tracking-wider text-[var(--text-muted)] uppercase"
+                    >
                       {t('nav.hidden') || 'Hidden'}
-                    </p>
+                    </Text>
                   )}
-                </div>
-              </button>
-              <button
+                </Container>
+              </Button>
+              <Button
                 type="button"
                 onClick={() => {
                   setEditingPage(page.id);
@@ -126,16 +131,16 @@ function PageManagerPopover({
                 className="shrink-0 rounded-md p-1 text-[var(--accent-color)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
                 title={t('nav.editPage') || 'Edit page'}
               >
-                <Edit2 className="h-3 w-3" />
-              </button>
-            </div>
+                <AcaIcon name="edit" className="h-3 w-3" />
+              </Button>
+            </Flex>
           );
         })}
-      </div>
+      </Container>
 
-      <div className="mx-2 my-0.5 h-px bg-white/5" />
+      <Container className="mx-2 my-0.5 h-px bg-white/5" />
 
-      <button
+      <Button
         type="button"
         onClick={() => {
           setShowAddPageModal(true);
@@ -143,14 +148,17 @@ function PageManagerPopover({
         }}
         className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-white/10"
       >
-        <div className="rounded-md bg-[var(--accent-bg)] p-1.5 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
-          <Plus className="h-3.5 w-3.5" />
-        </div>
-        <p className="text-xs font-semibold text-[var(--text-primary)] group-hover:text-white">
+        <Container className="rounded-md bg-[var(--accent-bg)] p-1.5 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
+          <AcaIcon name="add" className="h-3.5 w-3.5" />
+        </Container>
+        <Text
+          as="p"
+          className="text-xs font-semibold text-[var(--text-primary)] group-hover:text-white"
+        >
           {t('nav.addPage')}
-        </p>
-      </button>
-    </div>
+        </Text>
+      </Button>
+    </Container>
   );
 }
 
@@ -170,11 +178,11 @@ export default function PageNavigation({
   editMode,
   setEditingPage,
   t,
-}) {
+}: PageNavigationProps) {
   const { pagesConfig, persistConfig, pageSettings, headerSettings } = usePages();
   const { setShowAddPageModal } = useModalActions();
   const showLabelsOnMobile = headerSettings?.showPagePillLabelsOnMobile ?? false;
-  const [dragOverId, setDragOverId] = useState(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [showManager, setShowManager] = useState(false);
   const pageOrder = pagesConfig?.pages || [];
   const isSinglePage = pages.length === 1;
@@ -187,7 +195,7 @@ export default function PageNavigation({
     if (!editMode) setShowManager(false);
   }, [editMode]);
 
-  const movePage = (sourceId, targetId) => {
+  const movePage = (sourceId: string, targetId: string) => {
     if (!persistConfig) return;
     if (!sourceId || !targetId || sourceId === targetId) return;
     const nextPages = [...pageOrder];
@@ -200,9 +208,9 @@ export default function PageNavigation({
   };
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2">
+    <Flex className="flex min-w-0 flex-1 items-center gap-2">
       {/* Scrollable page pills */}
-      <div className="scrollbar-hide flex min-w-0 flex-1 items-center gap-4 overflow-x-auto pb-2">
+      <Flex className="scrollbar-hide flex min-w-0 flex-1 items-center gap-4 overflow-x-auto pb-2">
         {pages.map((page) => {
           const settings = pageSettings[page.id] || {};
           const label = settings.label || page.label;
@@ -215,7 +223,7 @@ export default function PageNavigation({
           if (!editMode && isSinglePage && hideSinglePagePill) return null;
 
           return (
-            <button
+            <Button
               key={page.id}
               aria-label={label}
               draggable={editMode}
@@ -252,30 +260,32 @@ export default function PageNavigation({
               <Icon
                 className={`h-5 w-5 sm:h-4 sm:w-4 ${editMode && isHidden ? 'animate-pulse' : ''}`}
               />
-              <span className={showLabelsOnMobile ? undefined : 'hidden sm:inline'}>{label}</span>
-            </button>
+              <Text className={showLabelsOnMobile ? undefined : 'hidden sm:inline'}>{label}</Text>
+            </Button>
           );
         })}
-      </div>
+      </Flex>
 
       {/* Pinned edit-mode page manager trigger — always visible */}
       {editMode && (
-        <div className="relative shrink-0 pb-2">
-          <button
+        <Container className="relative shrink-0 pb-2">
+          <Button
             type="button"
             onClick={toggleManager}
+            aria-label={t('nav.addPage')}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-all sm:px-4 sm:py-2.5 sm:text-xs ${
               showManager
                 ? 'border-[var(--accent-color)] bg-[var(--glass-bg-hover)] text-[var(--accent-color)]'
                 : 'border-dashed border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t('nav.addPage')}</span>
-            <ChevronDown
+            <AcaIcon name="add" className="h-3.5 w-3.5" />
+            <Text className="hidden sm:inline">{t('nav.addPage')}</Text>
+            <AcaIcon
+              name="chevronDown"
               className={`h-3 w-3 transition-transform ${showManager ? 'rotate-180' : ''}`}
             />
-          </button>
+          </Button>
 
           {showManager && (
             <PageManagerPopover
@@ -291,8 +301,8 @@ export default function PageNavigation({
               t={t}
             />
           )}
-        </div>
+        </Container>
       )}
-    </div>
+    </Flex>
   );
 }

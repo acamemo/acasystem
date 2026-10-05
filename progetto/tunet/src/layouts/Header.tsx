@@ -1,4 +1,6 @@
-import { Edit2 } from '../icons';
+import type { CSSProperties } from 'react';
+import { Icon as AcaIcon, Button, Container, Flex, Heading, Text } from '../primitives';
+import type { HeaderProps } from '../types/home';
 import { getLocaleForLanguage } from '../i18n';
 import { useConfig } from '../contexts';
 import BatteryBar from '../components/ui/BatteryBar';
@@ -21,20 +23,6 @@ const MOBILE_ALIGNMENT_CLASSES = {
   },
 };
 
-/**
- * Header component with title, time and edit controls
- * @param {Object} props
- * @param {Date} props.now - Current time
- * @param {string} props.headerTitle - Main title
- * @param {number} props.headerScale - Scale factor for header size
- * @param {boolean} props.editMode - Whether in edit mode
- * @param {Object} [props.headerSettings] - Header visibility settings
- * @param {Function} props.setShowHeaderEditModal - Show header edit modal
- * @param {Function} props.t - Translation function
- * @param {boolean} [props.isMobile] - Whether on mobile viewport
- * @param {import('../types/dashboard.js').SectionSpacing} [props.sectionSpacing] - Section spacing
- * @param {React.ReactNode} [props.children] - Optional children content
- */
 export default function Header({
   now,
   headerTitle,
@@ -46,18 +34,18 @@ export default function Header({
   children,
   isMobile,
   sectionSpacing,
-}) {
+}: HeaderProps) {
   const { language } = useConfig();
 
   const headerBottom = Number.isFinite(sectionSpacing?.statusToNav)
-    ? sectionSpacing.statusToNav
+    ? sectionSpacing?.statusToNav
     : isMobile
       ? 8
       : 40;
 
   const fontWeight = headerSettings?.fontWeight || '300';
   const selectedFontFamily = headerSettings?.fontFamily || headerSettings?.headerFont || 'sans';
-  const fontFamilyMap = {
+  const fontFamilyMap: Record<string, string> = {
     sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
     serif: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
     mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
@@ -77,8 +65,13 @@ export default function Header({
     verdana: 'Verdana, sans-serif',
   };
   const resolvedFontFamily = fontFamilyMap[selectedFontFamily] || fontFamilyMap.sans;
-  const letterSpacingMap = { tight: '0.05em', normal: '0.2em', wide: '0.5em', extraWide: '0.8em' };
-  const letterSpacingMobile = {
+  const letterSpacingMap: Record<string, string> = {
+    tight: '0.05em',
+    normal: '0.2em',
+    wide: '0.5em',
+    extraWide: '0.8em',
+  };
+  const letterSpacingMobile: Record<string, string> = {
     tight: '0.05em',
     normal: '0.2em',
     wide: '0.3em',
@@ -94,8 +87,7 @@ export default function Header({
   const dateScale = headerSettings?.dateScale ?? 1.0;
   const locale = getLocaleForLanguage(language);
 
-  /** @type {Intl.DateTimeFormatOptions} */
-  const timeOptions = is12h
+  const timeOptions: Intl.DateTimeFormatOptions = is12h
     ? { hour: 'numeric', minute: '2-digit', hour12: true }
     : { hour: '2-digit', minute: '2-digit', hour12: false };
 
@@ -110,14 +102,19 @@ export default function Header({
   const isBattery = headerSettings?.headerStyle === 'battery';
   const batteryVariant = headerSettings?.batteryVariant || 'glass';
   const showBatteryNub = headerSettings?.showBatteryNub ?? true;
-  const mobileAlignment = MOBILE_ALIGNMENT_CLASSES[headerSettings?.mobileAlignment]
-    ? headerSettings.mobileAlignment
-    : 'center';
+  const mobileAlignment =
+    headerSettings?.mobileAlignment && MOBILE_ALIGNMENT_CLASSES[headerSettings.mobileAlignment]
+      ? headerSettings.mobileAlignment
+      : 'center';
   const mobileAlignmentClasses = MOBILE_ALIGNMENT_CLASSES[mobileAlignment];
 
-  const dateStr = now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateStr = now.toLocaleDateString(locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
-  const titleStyle = {
+  const titleStyle: CSSProperties = {
     color: 'var(--text-muted)',
     fontSize: headingFontSize,
     fontWeight: fontWeight,
@@ -127,7 +124,7 @@ export default function Header({
     fontFamily: resolvedFontFamily,
   };
 
-  const clockStyle = {
+  const clockStyle: CSSProperties = {
     fontSize: clockFontSize,
     color: 'var(--text-muted)',
     fontFamily: resolvedFontFamily,
@@ -143,17 +140,17 @@ export default function Header({
         style={{ marginBottom: `${headerBottom}px` }}
       >
         {editMode && !headerSettings.showTitle && setShowHeaderEditModal && (
-          <div className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
-            <button
+          <Container className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
+            <Button
               onClick={() => setShowHeaderEditModal(true)}
               className="flex items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
             >
-              <Edit2 className="h-4 w-4 animate-pulse" />
-              <span className="text-xs font-bold tracking-widest uppercase">
+              <AcaIcon name="edit" className="h-4 w-4 animate-pulse" />
+              <Text className="text-xs font-bold tracking-widest uppercase">
                 {t('header.addHeader')}
-              </span>
-            </button>
-          </div>
+              </Text>
+            </Button>
+          </Container>
         )}
 
         <BatteryBar
@@ -164,14 +161,19 @@ export default function Header({
         >
           {/* Left: Title */}
           {headerSettings.showTitle && (
-            <h1 className="leading-none select-none whitespace-nowrap" style={titleStyle}>
+            <Heading
+              level={1}
+              className="leading-none whitespace-nowrap select-none"
+              style={titleStyle}
+            >
               {headerTitle || 'Tunet'}
-            </h1>
+            </Heading>
           )}
 
           {/* Center: Date */}
           {headerSettings.showDate && !isMobile && (
-            <p
+            <Text
+              as="p"
               className="leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50 md:tracking-[0.4em]"
               style={{
                 fontSize: `calc(0.75rem * ${dateScale})`,
@@ -179,23 +181,25 @@ export default function Header({
               }}
             >
               {dateStr}
-            </p>
+            </Text>
           )}
 
           {/* Right: Clock */}
           {showClock && (
-            <h2
-              className="leading-none font-light tracking-[0.1em] select-none whitespace-nowrap"
+            <Heading
+              level={2}
+              className="leading-none font-light tracking-[0.1em] whitespace-nowrap select-none"
               style={clockStyle}
             >
               {timeStr}
-            </h2>
+            </Heading>
           )}
         </BatteryBar>
 
         {/* Mobile date below battery bar */}
         {headerSettings.showDate && isMobile && (
-          <p
+          <Text
+            as="p"
             className={`mt-2 leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50 ${mobileAlignmentClasses.date}`}
             style={{
               fontSize: `calc(0.75rem * ${dateScale})`,
@@ -203,10 +207,10 @@ export default function Header({
             }}
           >
             {dateStr}
-          </p>
+          </Text>
         )}
 
-        <div className="flex w-full flex-col gap-6 pt-6 md:gap-3 md:pt-3">{children}</div>
+        <Flex className="flex w-full flex-col gap-6 pt-6 md:gap-3 md:pt-3">{children}</Flex>
       </header>
     );
   }
@@ -218,57 +222,60 @@ export default function Header({
       style={{ marginBottom: `${headerBottom}px` }}
     >
       {editMode && !headerSettings.showTitle && setShowHeaderEditModal && (
-        <div className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
-          <button
+        <Container className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
+          <Button
             onClick={() => setShowHeaderEditModal(true)}
             className="flex items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
           >
-            <Edit2 className="h-4 w-4 animate-pulse" />
-            <span className="text-xs font-bold tracking-widest uppercase">
+            <AcaIcon name="edit" className="h-4 w-4 animate-pulse" />
+            <Text className="text-xs font-bold tracking-widest uppercase">
               {t('header.addHeader')}
-            </span>
-          </button>
-        </div>
+            </Text>
+          </Button>
+        </Container>
       )}
 
-      <div
+      <Flex
         className={`flex items-start justify-between leading-none ${
           isMobile ? `flex-col gap-4 ${mobileAlignmentClasses.container}` : 'gap-10'
         }`}
       >
-        <div
+        <Flex
           className={`flex items-center gap-4 ${
             isMobile ? `w-full ${mobileAlignmentClasses.title}` : ''
           }`}
         >
           {headerSettings.showTitle && (
-            <h1 className="leading-none select-none" style={titleStyle}>
+            <Heading level={1} className="leading-none select-none" style={titleStyle}>
               {headerTitle || 'Tunet'}
-            </h1>
+            </Heading>
           )}
-        </div>
+        </Flex>
 
         {headerSettings.showClock && !isMobile && (
-          <h2
+          <Heading
+            level={2}
             className="leading-none font-light tracking-[0.1em] select-none"
             style={clockStyle}
           >
             {timeStr}
-          </h2>
+          </Heading>
         )}
 
         {headerSettings.showClock && isMobile && showClockOnMobile && (
-          <h2
+          <Heading
+            level={2}
             className="leading-none font-light tracking-[0.08em] select-none"
             style={clockStyle}
           >
             {timeStr}
-          </h2>
+          </Heading>
         )}
-      </div>
+      </Flex>
 
       {headerSettings.showDate && !isMobile && (
-        <p
+        <Text
+          as="p"
           className="mt-1 leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50 md:tracking-[0.6em]"
           style={{
             fontSize: `calc(0.75rem * ${dateScale})`,
@@ -276,16 +283,16 @@ export default function Header({
           }}
         >
           {dateStr}
-        </p>
+        </Text>
       )}
 
-      <div
+      <Flex
         className={`flex w-full flex-col ${
           isMobile ? 'gap-4 pt-4' : 'gap-6 pt-6 md:gap-3 md:pt-3'
         }`}
       >
         {children}
-      </div>
+      </Flex>
     </header>
   );
 }

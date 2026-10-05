@@ -20,7 +20,7 @@ const filesToCheck = [
   'src/components/cards/TodoCard.jsx',
   'src/components/cards/VacuumCard.jsx',
   'src/components/ui/ConditionBuilder.jsx',
-  'src/components/ui/SettingsDropdown.jsx',
+  'src/components/ui/SettingsDropdown.tsx',
   'src/components/ui/CustomIcons.jsx',
   'src/components/charts/SparkLine.jsx',
   'src/components/charts/InteractivePowerGraph.jsx',

@@ -74,7 +74,7 @@ Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. 
 
 ## 4. Frontend & UI/UX Stack
 * **4.1 Stack Tecnologico Frontend:**
-  * **Framework & Bundler:** React tramite il riferimento Tunet confermato. Bundler, linguaggi e versioni vanno verificati nella revisione da adottare. React 18 e HAKit erano proposte originali; la compatibilità HAKit resta pertinente soltanto se l'SDK viene scelto ([ISSUE-003](../project-status.md#issue-003)).
+  * **Framework & Bundler:** React tramite il riferimento Tunet confermato; banco prova React 19/Vite. [ADR-0005](../decisions/ADR-0005-typescript-italiano-icone.md) avvia TypeScript progressivo dalla schermata HOME, con primitive secondo ADR-0004 e italiano per le nuove interfacce. Versioni e stato effettivo nei report; non è una migrazione integrale già completata. React 18 e HAKit erano proposte originali; la compatibilità HAKit resta pertinente soltanto se l'SDK viene scelto ([ISSUE-003](../project-status.md#issue-003)).
   * **Styling & Design System:** Specifica visiva nel [modulo design](../design/design.md): Neumorphism e colori principali confermati. Componenti e dettagli restano da definire sulla base Tunet. Tailwind era il candidato originale; compatibilità e versione vanno verificate prima di adottarlo come vincolo.
   * **Motore Reattivo & Connessione Real-Time:** 
     * WebSocket bidirezionale ad alta velocità tramite libreria `home-assistant-js-websocket`.

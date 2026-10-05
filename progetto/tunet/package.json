@@ -29,14 +29,16 @@
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit && npm run typecheck:home",
     "i18n:check": "vitest run src/__tests__/i18n.test.js",
     "test:watch": "vitest",
     "release:prep": "node scripts/release.mjs prep",
     "release:check": "node scripts/release.mjs check",
     "release:cut": "node scripts/release.mjs cut",
     "release:publish": "node scripts/release.mjs publish",
-    "release": "npm run release:check ; npm run test ; npm run build ; npm run release:publish"
+    "release": "npm run release:check ; npm run test ; npm run build ; npm run release:publish",
+    "typecheck:home": "tsc -p tsconfig.home.json --noEmit",
+    "prebuild": "npm run typecheck:home"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
@@ -48,6 +50,7 @@
     "home-assistant-js-websocket": "^9.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.41.0",
+    "mx-icons": "1.1.2",
     "prop-types": "^15.8.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -56,6 +59,8 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@babel/eslint-parser": "7.29.9",
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",

@@ -4,13 +4,17 @@ Aggiornato: 2026-10-05. Fonte dell'intento: [product.md](funzionalita/product.md
 
 ## Stato e confini
 
-Sono disponibili documentazione, Git locale e banco prova HA Container/Tunet 1.22.1, installato su richiesta umana del 2026-10-05 ([report](reports/REP-20261005-004-installazione-tunet.md)). La UI ACA non è ancora realizzata. [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) approva Home Assistant come base, Tunet come riferimento React e fase 1 grafica in ufficio. Linux a 64 bit ammette ARM64/x86-64; Hetzner è escluso. Il [perimetro del pilota](funzionalita/pilot-scope.md) delimita il primo risultato e le estensioni.
+Sono disponibili documentazione, Git locale e banco prova HA Container/Tunet 1.22.1, installato su richiesta umana del 2026-10-05 ([report](reports/REP-20261005-004-installazione-tunet.md)). HOME è il primo incremento TS/primitive/italiano; il design Neumorphism ACA non è ancora realizzato. [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) approva Home Assistant come base, Tunet come riferimento React e fase 1 grafica in ufficio. Linux a 64 bit ammette ARM64/x86-64; Hetzner è escluso. Il [perimetro del pilota](funzionalita/pilot-scope.md) delimita il primo risultato e le estensioni.
 
 La direzione è locale, con massimo uso possibile senza internet e obiettivo remoto online. Nel banco prova: browser → Tunet Express/asset locali su porta 3002; browser → HA WebSocket/OAuth su 8123; backend Tunet → HA per validare l'identità; SQLite in volume Docker per profili/snapshot. Il server interno HA è host.docker.internal; nessun sorgente HA è modificato. Versioni e dati in [infrastructure.md](infrastructure.md). Queste scelte esecutive autorizzate per il banco prova non definiscono ruoli ACA, disponibilità offline o architettura del prodotto distribuito.
 
 ## Organizzazione frontend richiesta
 
-[ADR-0004](decisions/ADR-0004-principi-frontend.md) registra i principi esplicitati dall'utente: primitive condivise per componenti, tipografia e layout, interfacce composte principalmente con queste e componenti specifici per pagina. L'[audit Tunet](reports/REP-20261005-005-audit-struttura-tunet.md) confronta il codice con questi criteri. Non sono scelti una nuova libreria, il layout delle cartelle ACA o la futura infrastruttura; il banco prova mantiene l'organizzazione upstream.
+[ADR-0004](decisions/ADR-0004-principi-frontend.md) registra primitive condivise per componenti, tipografia e layout, interfacce composte principalmente con queste e componenti specifici per pagina. L'[audit Tunet](reports/REP-20261005-005-audit-struttura-tunet.md) fotografa la baseline. [ADR-0005](decisions/ADR-0005-typescript-italiano-icone.md) e [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md) avviano la migrazione TS/italiano con mx-icons della prima schermata.
+
+Struttura implementata in src/primitives: components (Button, Container, Icon), typography (Heading, Text), layout (Flex). src/components/pages/home contiene HomeEmptyState e HomePageIcon; Header, PageNavigation, EditToolbar, SettingsMenuControl e SettingsDropdown sono TSX nei percorsi esistenti. App, DashboardLayout e DashboardGrid restano adattatori JS alla porzione migrata, senza conversione del backend o delle card. Contratti in src/types/home.ts; strict e test HOME in tsconfig.home.json, controllo obbligatorio prima della build. Il confine con il JS legacy non diventa completamente tipizzato.
+
+Le primitive sono indipendenti da HA; interfacce e adattatori mantengono le callback esistenti. Nessun cambiamento a flussi HA/API/persistenza. Aspetto Tunet conservato, sistema Neumorphism completo ancora da realizzare. Cartelle nuove e parser lint sono scelte esecutive dell'incarico, non decisioni sulla futura infrastruttura di produzione.
 
 ## Componenti e responsabilità previste
 

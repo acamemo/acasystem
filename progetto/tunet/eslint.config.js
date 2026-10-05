@@ -1,11 +1,12 @@
 import js from '@eslint/js';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import babelParser from '@babel/eslint-parser';
 
 export default [
   js.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx}'],
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
     plugins: { react, 'react-hooks': reactHooks },
     languageOptions: {
       ecmaVersion: 2022,
@@ -52,6 +53,23 @@ export default [
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'scripts/', 'src/__tests__/'],
+    files: ['src/**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: babelParser,
+      parserOptions: {
+        requireConfigFile: false,
+        babelOptions: {
+          babelrc: false,
+          configFile: false,
+          parserOpts: { plugins: ['typescript', 'jsx'] },
+        },
+      },
+    },
+    // TypeScript checks identifiers and unused declarations in the migrated scope.
+    // React and hook rules still run on the original TSX source.
+    rules: { 'no-undef': 'off', 'no-unused-vars': 'off' },
+  },
+  {
+    ignores: ['dist/', 'node_modules/', 'scripts/', 'src/__tests__/', 'src/**/*.d.ts'],
   },
 ];

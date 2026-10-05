@@ -121,6 +121,21 @@ Esiti in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md), 
 | AUD-07 | E2E, coverage, profilazione, WAN assente, audit sicurezza completo | Non eseguito | Da delimitare nei relativi incarichi. |
 | AUD-08 | Integrità, perimetro e collegamenti | Superato | 407 sorgenti integri, 20 file storici invariati, 33 documenti / 279 collegamenti validi; soltanto otto documenti interessati. |
 
+## Prima migrazione HOME — 2026-10-05
+
+Evidenze e comandi in [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md); criteri umani in ADR-0004/0005. I controlli strict riguardano la porzione migrata, non l'intero frontend.
+
+| ID | Controllo | Esito | Evidenza / limite |
+|---|---|---|---|
+| MIG-01 | Typecheck precedente + HOME strict e relativo test | Superato | Compilatore upstream mantenuto, niente soppressioni/any nei nuovi contratti. Il confine JS resta parzialmente tipizzato. |
+| MIG-02 | ESLint JS/TSX con regole React/hooks | Superato | 233 file, 0 errori/warning; no-undef/unused TS demandati a tsc nella porzione strict. |
+| MIG-03 | Suite regressioni nel builder isolato | Superato | 91 file / 712 test, sette casi nuovi per HOME e lingua. Nessun volume reale o rete esterna nei container di verifica. |
+| MIG-04 | Colori e budget bundle | Superato | 43 file per i colori; budget upstream rispettati. Non benchmark sul pilota. |
+| MIG-05/06 | Build, avvio locale, health, asset e mount | Superato | Servizio healthy, HTTP 200, stesso volume; HA non ricreato. Non prova di backup/ripristino. |
+| MIG-07 | Browser desktop/mobile, italiano e azioni | Superato | Locale it-IT, preferenza persistente dopo reload, apertura pannelli, modifica/menu/Escape; viewport 390×844 senza overflow orizzontale, ripristinato. Nessun dispositivo o profilo creato. |
+| MIG-08 | Baseline, storico, link e diff | Superato | 407 file baseline e ZIP integri, 20 fonti protette immutate, 301 collegamenti locali validi e 48 percorsi nel perimetro; evidenze nel report. |
+| MIG-09 | Fisico, offline, ruoli, salvataggio/caricamento profili, benchmark | Non eseguito | Restano nei futuri incarichi pertinenti. |
+
 ## Regressioni da conservare quando esiste codice
 
 Una modifica a identità, permessi, trasporto, esecuzione locale o distribuzione degli scenari deve conservare verifiche dei relativi confini. Per un difetto riproducibile registrare il caso, il comportamento atteso e una verifica pertinente dopo la correzione.

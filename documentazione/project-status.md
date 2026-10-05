@@ -10,7 +10,7 @@ La [raccolta UI](design/componenti/README.md) contiene ora sette campioni di cod
 
 Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in questo incarico. Disponibilità di eventuali risorse esterne: non verificata. Non esistono evidenze di operatività, prestazioni o conformità del prodotto. Nessuna CI è configurata.
 
-La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Progetto contiene ora i sorgenti upstream e il banco prova Tunet. Backup contiene una copia ZIP/estratta dell'acquisizione, esclusa da Git; nessun backup dei dati HA/Tunet o ripristino è stato eseguito.
+La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Progetto contiene la baseline Tunet adattata nel primo incremento HOME TS/primitive/italiano; gli originali restano nello storico e nello ZIP. Backup contiene una copia ZIP/estratta dell'acquisizione, esclusa da Git; nessun backup dei dati HA/Tunet o ripristino è stato eseguito.
 
 Su richiesta umana del 2026-10-05, la documentazione comprende due moduli: [funzionalità](funzionalita/README.md) per PRD e pilota, e [design](design/README.md) con design.md come fonte visiva. Stato, aspetti tecnici, verifiche e storico restano comuni. La separazione non cambia approvazioni o stato di realizzazione dei requisiti.
 
@@ -135,9 +135,13 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 
 **Composizione frontend con primitive — Aperto, disallineamento progettuale.** L'utente richiede primitive condivise per componenti, tipografia e layout, con pagine composte principalmente da queste e componenti locali alla pagina (ADR-0004). Tunet 1.22.1 è parzialmente allineato nel riuso UI, ma markup/stile e organizzazione delle interfacce restano distribuiti. REQ-03; evidenze in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md). Proposta: definire API e composizione delle primitive nel prossimo incarico UI, preservando le funzioni HA concordate. Nessun refactor applicato. Chiusura con struttura concordata e verifica delle interfacce migrate.
 
+Primo incremento REP-20261005-006: primitive componenti/tipografia/Flex e HOME vuota, header, navigazione e toolbar/menu migrati. ISSUE-017 resta aperto per il resto delle interfacce e il sistema visivo ACA completo; la prima migrazione non certifica tutto il frontend.
+
 ### ISSUE-018
 
-**Manutenibilità dell'orchestrazione — Aperto, valutazione tecnica.** App e alcune modali hanno dimensioni elevate, molti parametri e contratti JS/JSDoc poco restrittivi. Lint/typecheck e 705 test passano: non è un guasto dimostrato. REQ-03; evidenze e conteggi nel report di audit. Proposta: delimitare responsabilità/contratti nell'incarico di organizzazione frontend, valutare la tipizzazione e misurare render/carico sul pilota. L'utente non ha imposto TypeScript o uno store alternativo; nessuna migrazione scelta. Chiusura con confini concordati e controlli pertinenti, non con la sola riduzione delle righe.
+**Manutenibilità dell'orchestrazione — Aperto, valutazione tecnica.** App e alcune modali hanno dimensioni elevate, molti parametri e contratti JS/JSDoc poco restrittivi. Lint/typecheck e 705 test passano: non è un guasto dimostrato. REQ-03; evidenze e conteggi nel report di audit. Proposta: delimitare responsabilità/contratti nell'incarico di organizzazione frontend, valutare la tipizzazione e misurare render/carico sul pilota. Al momento dell'audit non era stata scelta una migrazione. La successiva richiesta umana autorizza il primo incremento TypeScript della HOME (ADR-0005); nessuno store alternativo è stato scelto. Chiusura con confini concordati e controlli pertinenti, non con la sola riduzione delle righe.
+
+tsconfig.home.json ora applica strict e controllo dichiarazioni inutilizzate alla porzione migrata e al relativo test. Il resto delle orchestrazioni/card resta JS; questa mitigazione circoscritta non chiude ISSUE-018.
 
 ### ISSUE-019
 
@@ -146,6 +150,10 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 ### ISSUE-020
 
 **Guide upstream per agenti — Aperto, discrepanza verificata.** copilot-instructions.md cita React 18 e immagine hassen-app:latest; lockfile e banco prova sono rispettivamente React 19.2.8 e Compose ACA. Fonte immutata conservata, regole ACA nella radice. Proposta: mantenere una guida operativa ACA verificata e distinguere i riferimenti upstream quando saranno avviati gli incarichi UI; non copiare indicazioni storiche come decisioni correnti. Nessuna fonte upstream modificata. Chiusura con percorso operativo coerente e verificato per i futuri agenti. Evidenze in REP-20261005-005; continuità ADR-0001.
+
+### ISSUE-021
+
+**Traduzione delle interfacce precedenti — Aperto.** Italiano richiesto per le nuove interfacce (ADR-0005); HOME migrata e menu sono tradotti, data/ora usa it-IT. La traduzione delle schermate precedenti, inclusi pannelli aggiunta scheda/profili/aspetto, è parziale e usa fallback inglese. Proposta: completare i testi insieme alle schermate assegnate, verificando etichette, errori e accessibilità. Non è dichiarata l'app interamente tradotta né assegnata una traduzione integrale.
 
 ## Incarichi e punto di ripresa
 
@@ -159,7 +167,8 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 | [REP-20261005-003](reports/REP-20261005-003-raccolta-componenti-microinterazioni.md) | Raccolta componenti e microinterazioni | Completato; sette originali, catalogo e specifiche verificati senza implementazione. |
 | [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) | Installazione locale Tunet | Completato; sorgenti integri, servizio healthy, OAuth collegato e limiti documentati. |
 | [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md) | Audit della struttura Tunet | Completato; confronto, controlli isolati, integrità e documentazione verificati. |
+| [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md) | Prima migrazione HOME a TypeScript | Completato; primitive/TSX, italiano, mx-icons e controlli applicativi/documentali verificati. |
 
-**Incarico attivo:** nessuno. Audit [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md) completato. Principi umani registrati in ADR-0004; nessuna personalizzazione o migrazione avviata. Lint, typecheck, colori, bundle e 705 test passano in ambiente isolato; infrastruttura futura da indicare dall'utente.
+**Incarico attivo:** nessuno. [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md) concluso: prima HOME migrata e disponibile sul banco locale. Nessuna conversione del resto delle interfacce assegnata.
 
-**Punto di ripresa:** ricevere la futura infrastruttura/organizzazione concreta dall'utente. Base Tunet installata e OAuth confermato; primitive/pagine secondo ADR-0004 nei successivi incarichi. Inventario, dispositivi, profili manuali, offline, ruoli, remoto e isolamento conservano i loro limiti.
+**Punto di ripresa:** per le prossime schermate usare ADR-0004/0005 e le primitive esistenti, soltanto con incarico dedicato. Neumorphism, traduzione legacy completa e migrazione del resto del frontend restano da realizzare; infrastruttura finale da indicare dall'utente. Inventario, dispositivi, profili manuali, offline, ruoli, remoto e isolamento conservano i loro limiti.

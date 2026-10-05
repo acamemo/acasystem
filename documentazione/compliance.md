@@ -24,6 +24,9 @@ Il committente approva il perimetro e individua i responsabili. Ruoli specifici 
 | C-08 | Log, backup e ripristino | Procedure non definite o provate. Da valutare. | Descrivere dati raccolti, accessi, conservazione, anonimizzazione delle evidenze e prove di recupero. | ISSUE-011/014 |
 | C-09 | Trasporto e credenziali | Nessun endpoint o schema TLS ACA verificato. Da valutare. | Documentare confini di fiducia, certificati, segreti fuori Git e proprietà di cifratura effettivamente dimostrate. | ISSUE-013 |
 | C-10 | Reference UI raccolte | Sette esempi forniti dall'utente; autore originale, URL e licenza sconosciuti. Raccolti senza adattamento o integrazione. | Prima del riuso applicativo acquisire provenienza, licenza e condizioni per i singoli esempi; gli import React/styled-components non definiscono licenza dei campioni né dipendenze adottate. [Catalogo e fonti](design/componenti/README.md#provenienza). | ISSUE-014 |
+| C-11 | mx-icons e strumenti lint TS | mx-icons 1.1.2 adottato su indicazione umana; MIT verificata nel pacchetto. @babel/core 7.29.7 e @babel/eslint-parser 7.29.9 sono strumenti di sviluppo per lint TSX; versioni precedenti delle altre dipendenze conservate. | Conservare notice/licenze degli artefatti effettivamente distribuiti; includere queste dipendenze nell'inventario prima della consegna. Non è una certificazione del prodotto. | ISSUE-014 |
+
+Fonti del 2026-10-05: [repository mx-icons](https://github.com/ig-imanish/mx-icons), metadata npm e LICENSE inclusa nel pacchetto 1.1.2; [parser Babel](https://babeljs.io/docs/babel-eslint-parser). Evidenze e limiti della prima adozione in [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md).
 
 ## Fonti e revisioni già esaminate
 
@@ -33,7 +36,7 @@ Tunet: revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`, [licenza](https://g
 
 Fonti consultate il 2026-10-02; metodi ed esiti nell'[audit iniziale](reports/REP-20261002-001-audit-product.md). La verifica delle condizioni di un impiego concreto resta distinta dalla lettura delle licenze.
 
-Il 2026-10-05 `git ls-remote` conferma per Tunet main la stessa revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`; README e licenza sono stati riletti. Non è una versione adottata nell'applicazione, che non esiste ancora. Distribuzione su hardware negli immobili confermata dall'utente; verifiche nel [report del pilota](reports/REP-20261005-001-direzione-pilota.md).
+Il 2026-10-05 `git ls-remote` conferma per Tunet main la stessa revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`; README e licenza sono stati riletti. Alla prima lettura non era ancora adottata; gli incarichi successivi hanno acquisito la baseline nel banco prova e avviato la prima migrazione HOME. Distribuzione su hardware negli immobili confermata dall'utente; verifiche nel [report del pilota](reports/REP-20261005-001-direzione-pilota.md).
 
 ## Inventario dei dati da compilare
 

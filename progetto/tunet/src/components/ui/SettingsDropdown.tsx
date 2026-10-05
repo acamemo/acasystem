@@ -1,6 +1,7 @@
+import { Icon as AcaIcon, Button, Container, Text } from '../../primitives';
+import type { SettingsDropdownProps } from '../../types/home';
 // Dropdown Menu Component that looks nice
-import React, { memo, useState, useRef, useEffect } from 'react';
-import { Settings, Palette, LayoutGrid, Server, Type, Edit2, Plus, Check } from '../../icons';
+import { memo, useState, useRef, useEffect } from 'react';
 
 function SettingsDropdown({
   onOpenSettings,
@@ -13,15 +14,15 @@ function SettingsDropdown({
   isMobile,
   floating = false,
   t,
-}) {
+}: SettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const isFloatingDone = Boolean(floating && isMobile && editMode && onToggleEdit);
 
   // Close when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -32,7 +33,7 @@ function SettingsDropdown({
   useEffect(() => {
     if (!isOpen) return undefined;
 
-    const handleEscape = (event) => {
+    const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
 
@@ -40,7 +41,7 @@ function SettingsDropdown({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen]);
 
-  const handleSelect = (action) => {
+  const handleSelect = (action?: () => void) => {
     setIsOpen(false);
     if (typeof action === 'function') action();
   };
@@ -48,7 +49,7 @@ function SettingsDropdown({
   const handleTrigger = () => {
     if (isFloatingDone) {
       setIsOpen(false);
-      onToggleEdit();
+      onToggleEdit?.();
       return;
     }
     setIsOpen((open) => !open);
@@ -57,7 +58,7 @@ function SettingsDropdown({
   return (
     <>
       {floating && isOpen && (
-        <div
+        <Container
           className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
@@ -65,8 +66,8 @@ function SettingsDropdown({
         />
       )}
 
-      <div className="relative z-50" ref={dropdownRef}>
-        <button
+      <Container className="relative z-50" ref={dropdownRef}>
+        <Button
           onClick={handleTrigger}
           className={`group relative z-50 flex flex-shrink-0 items-center justify-center border transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)] focus-visible:outline-none ${
             floating
@@ -79,24 +80,33 @@ function SettingsDropdown({
                 ? 'h-11 w-11 rounded-full border-transparent'
                 : 'rounded-full border-transparent p-2'
           } ${!floating ? (isOpen ? 'scale-105 border-[var(--accent-color)] bg-[var(--accent-color)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]') : ''} ${floating && isOpen ? 'scale-105' : ''}`}
-          aria-label={isFloatingDone ? t('nav.done') : floating ? t('menu.edit') : t('menu.settings')}
+          aria-label={
+            isFloatingDone ? t('nav.done') : floating ? t('menu.edit') : t('menu.settings')
+          }
           aria-expanded={isFloatingDone ? undefined : isOpen}
           aria-controls={isFloatingDone ? undefined : 'settings-dropdown-menu'}
           data-testid="settings-dropdown-trigger"
         >
           {isFloatingDone ? (
-            <Check className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+            <AcaIcon
+              name="done"
+              className="h-6 w-6 transition-transform duration-300 group-hover:scale-110"
+            />
           ) : floating ? (
-            <Edit2 className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+            <AcaIcon
+              name="edit"
+              className="h-6 w-6 transition-transform duration-300 group-hover:scale-110"
+            />
           ) : (
-            <Settings
+            <AcaIcon
+              name="settings"
               className={`h-5 w-5 transition-transform duration-500 ${isOpen ? 'rotate-90' : 'group-hover:rotate-45'}`}
             />
           )}
-        </button>
+        </Button>
 
         {/* Dropdown Menu */}
-        <div
+        <Container
           id="settings-dropdown-menu"
           className={`absolute right-0 z-50 w-60 transform rounded-3xl border border-[var(--glass-border)] p-2.5 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
             floating ? 'bottom-full mb-3 origin-bottom-right' : 'top-full mt-2 origin-top-right'
@@ -110,102 +120,108 @@ function SettingsDropdown({
           aria-hidden={!isOpen}
           data-testid="settings-dropdown-menu"
         >
-          <div className="space-y-1">
+          <Container className="space-y-1">
             {isMobile && onAddCard && (
-              <button
+              <Button
                 onClick={() => handleSelect(onAddCard)}
                 className="group flex w-full items-center gap-3 rounded-2xl bg-[var(--accent-bg)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
                 aria-label={t('nav.addCard')}
                 role="menuitem"
                 data-testid="settings-menu-add-card"
               >
-                <div className="rounded-xl bg-[var(--accent-color)] p-2 text-white shadow-sm transition-transform group-hover:scale-105">
-                  <Plus className="h-4 w-4" />
-                </div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">{t('nav.addCard')}</p>
-              </button>
+                <Container className="rounded-xl bg-[var(--accent-color)] p-2 text-white shadow-sm transition-transform group-hover:scale-105">
+                  <AcaIcon name="add" className="h-4 w-4" />
+                </Container>
+                <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
+                  {t('nav.addCard')}
+                </Text>
+              </Button>
             )}
 
             {isMobile && onToggleEdit && !editMode && (
               <>
-                <button
+                <Button
                   onClick={() => handleSelect(onToggleEdit)}
                   className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
                   aria-label={t('menu.edit')}
                   role="menuitem"
                   data-testid="settings-menu-edit"
                 >
-                  <div className="rounded-xl bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] transition-colors">
-                    <Edit2 className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm font-bold text-[var(--text-primary)]">{t('menu.edit')}</p>
-                </button>
-                <div className="mx-2 my-1.5 h-px bg-[var(--glass-border)]" />
+                  <Container className="rounded-xl bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] transition-colors">
+                    <AcaIcon name="edit" className="h-4 w-4" />
+                  </Container>
+                  <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
+                    {t('menu.edit')}
+                  </Text>
+                </Button>
+                <Container className="mx-2 my-1.5 h-px bg-[var(--glass-border)]" />
               </>
             )}
 
-            <button
+            <Button
               onClick={() => handleSelect(onOpenTheme)}
               className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openAppearance')}
               role="menuitem"
               data-testid="settings-menu-theme"
             >
-              <div className="rounded-xl bg-pink-500/10 p-2 text-pink-400 transition-colors group-hover:bg-pink-500 group-hover:text-white">
-                <Palette className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-bold text-[var(--text-primary)]">
+              <Container className="rounded-xl bg-pink-500/10 p-2 text-pink-400 transition-colors group-hover:bg-pink-500 group-hover:text-white">
+                <AcaIcon name="appearance" className="h-4 w-4" />
+              </Container>
+              <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
                 {t('system.tabAppearance')}
-              </p>
-            </button>
+              </Text>
+            </Button>
 
-            <button
+            <Button
               onClick={() => handleSelect(onOpenLayout)}
               className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openLayout')}
               role="menuitem"
               data-testid="settings-menu-layout"
             >
-              <div className="rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
-                <LayoutGrid className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-bold text-[var(--text-primary)]">
+              <Container className="rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
+                <AcaIcon name="grid" className="h-4 w-4" />
+              </Container>
+              <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
                 {t('system.tabLayout')}
-              </p>
-            </button>
+              </Text>
+            </Button>
 
-            <button
+            <Button
               onClick={() => handleSelect(onOpenHeader)}
               className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openHeader')}
               role="menuitem"
               data-testid="settings-menu-header"
             >
-              <div className="rounded-xl bg-indigo-500/10 p-2 text-indigo-400 transition-colors group-hover:bg-indigo-500 group-hover:text-white">
-                <Type className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-bold text-[var(--text-primary)]">
+              <Container className="rounded-xl bg-indigo-500/10 p-2 text-indigo-400 transition-colors group-hover:bg-indigo-500 group-hover:text-white">
+                <AcaIcon name="text" className="h-4 w-4" />
+              </Container>
+              <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
                 {t('system.tabHeader')}
-              </p>
-            </button>
+              </Text>
+            </Button>
 
-            <div className="mx-2 my-1.5 h-px bg-[var(--glass-border)]" />
+            <Container className="mx-2 my-1.5 h-px bg-[var(--glass-border)]" />
 
-            <button
+            <Button
               onClick={() => handleSelect(onOpenSettings)}
               className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openSystem')}
               role="menuitem"
               data-testid="settings-menu-system"
             >
-              <div className="rounded-xl bg-[var(--status-success-bg)] p-2 text-[var(--status-success-fg)] transition-colors group-hover:opacity-90">
-                <Server className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-bold text-[var(--text-primary)]">{t('menu.system')}</p>
-            </button>
-          </div>
-        </div>
-      </div>
+              <Container className="rounded-xl bg-[var(--status-success-bg)] p-2 text-[var(--status-success-fg)] transition-colors group-hover:opacity-90">
+                <AcaIcon name="server" className="h-4 w-4" />
+              </Container>
+              <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
+                {t('menu.system')}
+              </Text>
+            </Button>
+          </Container>
+        </Container>
+      </Container>
     </>
   );
 }
