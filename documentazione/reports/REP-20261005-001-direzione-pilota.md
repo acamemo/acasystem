@@ -40,7 +40,7 @@ Definire il pilota e aggiornare PRD, stato, architettura, infrastruttura e verif
 
 Letti documenti e regole; acquisite le precisazioni e verificate le fonti pubbliche.
 
-- Creati [pilot-scope.md](../pilot-scope.md) e [ADR-0003](../decisions/ADR-0003-home-assistant-locale-fase1.md), distinguendo minimo grafico, direzione di prodotto, dettagli aperti e sviluppo non autorizzato.
+- Creati [pilot-scope.md](../funzionalita/pilot-scope.md) e [ADR-0003](../decisions/ADR-0003-home-assistant-locale-fase1.md), distinguendo minimo grafico, direzione di prodotto, dettagli aperti e sviluppo non autorizzato.
 - Allineati PRD, stato, architettura, infrastruttura, vincoli e scenari. Conservati REQ-00–REQ-16 e priorità originali; REQ-01 Ritirato, REQ-00/02/03/06 approvati nei vincoli/comportamenti specificati, aggiunto REQ-17 Approvato per il ruolo condominiale.
 - Aggiunti AC-17/V-17 e ISSUE-015 per la valutazione di molti utenti su hardware condiviso. Gli altri problemi restano aperti: chiarire un obiettivo non dimostra una soluzione.
 - Aggiornati indici, README e percorso di lettura AGENTS. Archivio, ADR e report chiusi non modificati; cartelle progetto/backup con il solo README.
@@ -86,7 +86,7 @@ Integrazione documentale successiva alla chiusura; il resoconto e le verifiche p
 
 **Fatti dichiarati dall'utente:** Home Assistant non è installato in ufficio; logo non ancora disponibile; stile desiderato Neumorphism. Sono forniti [l'articolo Clay](https://clay.global/blog/neumorphism-ui) e tre immagini: chiara neutra, scura grafite e chiara lilla. Alla domanda sulla reference l'utente precisa: «il colore main dell'app deve essere #222222 e il secondo colore un arancione #ef8231». I due colori sono confermati, mentre la palette completa e i dettagli dei componenti restano da definire. Le immagini sono reference ricevute in chat, non artefatti di prodotto; questa annotazione ne conserva la descrizione, senza copiarle nel repository.
 
-**Valutazione e proposte:** nelle immagini chiare diversi controlli appaiono poco distinguibili dallo sfondo; è un'osservazione visiva, senza misurazione del contrasto. Si propone di preservare il rilievo neumorfico con testi leggibili e indicazioni esplicite degli stati. Le proposte e i riferimenti WCAG sono nel [perimetro del pilota](../pilot-scope.md#direzione-grafica-confermata-e-proposte); non costituiscono una nuova libreria selezionata, un design definitivo o una conformità raggiunta.
+**Valutazione e proposte:** nelle immagini chiare diversi controlli appaiono poco distinguibili dallo sfondo; è un'osservazione visiva, senza misurazione del contrasto. Si propone di preservare il rilievo neumorfico con testi leggibili e indicazioni esplicite degli stati. Le proposte e i riferimenti WCAG sono nel [perimetro del pilota](../funzionalita/pilot-scope.md#direzione-grafica-confermata-e-proposte); non costituiscono una nuova libreria selezionata, un design definitivo o una conformità raggiunta.
 
 **Fonti consultate il 2026-10-05:** articolo Clay aggiornato il 2026-03-05, sul rilievo e sui limiti del basso contrasto; documentazione primaria W3C per contrasto del [testo](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [controlli e stati](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html) e [uso del colore](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html). Per il chiarimento precedente sui sorgenti, [Tunet README](https://github.com/oyvhov/Tunet/blob/5dec99587b4fcc2fb1f831a0a0002c9b90e6958e/README.md) descrive una dashboard React collegata a HA; la documentazione ufficiale distingue [frontend HA](https://developers.home-assistant.io/docs/frontend/development/) e [ambiente Core](https://developers.home-assistant.io/docs/development_environment/). La valutazione proposta è partire dalla UI Tunet e da HA standard; nessun fork Core è stato deciso o creato.
 
@@ -97,3 +97,7 @@ Integrazione documentale successiva alla chiusura; il resoconto e le verifiche p
 Controllo documentale finale in memoria con `node` e comandi Git: Superato, 24 Markdown e 156 link locali validi; archivio identico ai 20.910 byte del primo commit, SHA-256 invariato, testo preesistente del report preservato, progetto/backup con il solo README. `git diff --check` superato e diff revisionato: soltanto i tre documenti indicati, colori richiesti presenti e proposte distinte dalle indicazioni umane. Gli script temporanei non aggiungono codice o CI al repository.
 
 **Punto di ripresa:** definire schermate e componenti della fase 1 con Neumorphism e colori `#222222`/`#ef8231`; l'analisi tecnica Tunet e la preparazione di HA restano proposte da incaricare.
+
+## Annotazione del 2026-10-05 — Collegamenti dopo la separazione dei moduli
+
+Aggiornate esclusivamente le destinazioni dei collegamenti locali verso product.md e pilot-scope.md, trasferiti in `documentazione/funzionalita/` su richiesta umana. Testo, risultati, conteggi e affermazioni precedenti restano riferiti alla loro versione storica. Il nuovo modulo grafico è in [design.md](../design/design.md); riorganizzazione e verifiche nel [report REP-20261005-002](REP-20261005-002-moduli-documentali-design.md).

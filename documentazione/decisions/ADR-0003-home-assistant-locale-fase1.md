@@ -8,7 +8,7 @@
 | Autorizzazione | Risposte alle domande progettuali e successive precisazioni riportate in [REP-20261005-001](../reports/REP-20261005-001-direzione-pilota.md). |
 | Citazioni determinanti | «Home assistant base è irrinunciabile»; «Hetzner è inutile»; «L'obiettivo minimo, che per me sarebbe ideale come fase 1, è home assistant personalizzato graficamente». |
 | Precisazioni | Tunet confermato; Linux 64 bit ARM64/x86-64; sessione admin aperta solo per il primo setup. |
-| Collegamenti | [Perimetro del pilota](../pilot-scope.md), REQ-00/01/02/03/06/17, ISSUE-005/006/007/008/012/015. |
+| Collegamenti | [Perimetro del pilota](../funzionalita/pilot-scope.md), REQ-00/01/02/03/06/17, ISSUE-005/006/007/008/012/015. |
 | Sostituisce / sostituita da | Nessuna ADR precedente; aggiorna le proposte iniziali del PRD. ADR-0001 e ADR-0002 restano valide. |
 
 ## Contesto

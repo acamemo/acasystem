@@ -6,15 +6,18 @@ Direzione corrente: Home Assistant locale con frontend personalizzato a partire 
 
 1. Leggere [le regole di lavoro](../AGENTS.md).
 2. Consultare [lo stato effettivo](project-status.md) e il report dell'incarico da riprendere.
-3. Leggere [la specifica evolutiva](product.md) e i documenti pertinenti al lavoro richiesto.
+3. Leggere il [modulo funzionalità](funzionalita/README.md) per requisiti e comportamenti e il [modulo design](design/README.md) per presentazione e interazione, secondo l'incarico.
 4. Verificare [le decisioni approvate](decisions/README.md). Le proposte non autorizzano modifiche.
 
 ## Mappa dei documenti
 
+La documentazione è divisa in due moduli: **funzionalità**, con product.md e pilot-scope.md, e **design**, con design.md. I documenti seguenti su stato, aspetti tecnici, verifiche e storico sono comuni: ciascuno mantiene una sola responsabilità e non viene copiato nei due moduli.
+
 | Fonte | Responsabilità |
 |---|---|
-| [product.md](product.md) | Visione, requisiti proposti/approvati/ritirati, priorità storiche e criteri di accettazione proposti. |
-| [Pilota e fase 1](pilot-scope.md) | Indicazioni umane, perimetro minimo grafico, obiettivi successivi e informazioni mancanti. |
+| [product.md](funzionalita/product.md) | Visione, requisiti proposti/approvati/ritirati, priorità storiche e criteri di accettazione proposti. |
+| [Pilota e fase 1](funzionalita/pilot-scope.md) | Indicazioni umane, perimetro minimo grafico, obiettivi successivi e informazioni mancanti. |
+| [design.md](design/design.md) | Stile Neumorphism, colori confermati, spiegazione, proposte sui componenti e verifiche visive previste. |
 | [Stato del progetto](project-status.md) | Stato reale dei requisiti, problemi e punto di ripresa. |
 | [Architettura](architecture.md) | Responsabilità e flussi proposti, decisioni tecniche aperte. |
 | [Infrastruttura](infrastructure.md) | Ambienti previsti, inventario verificato e procedure operative da definire. |

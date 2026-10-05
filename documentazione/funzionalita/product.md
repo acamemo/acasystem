@@ -1,21 +1,21 @@
 # ACA SYSTEM 2.0 – Product Requirements Document (PRODUCT.MD)
 **Documento di Requisiti di Prodotto, Specifiche Hardware e Architettura Funzionale**
 
-**Specifica evolutiva — aggiornata il 2026-10-05.** [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) approva la direzione corrente: Home Assistant locale, Tunet come punto di partenza React, pilota in ufficio e fase 1 minima di personalizzazione grafica. Hetzner è escluso. Linux è a 64 bit, ARM64 oppure x86-64. Il [perimetro del pilota](pilot-scope.md) distingue risultato minimo, obiettivi successivi e criteri proposti.
+**Specifica evolutiva — aggiornata il 2026-10-05.** [ADR-0003](../decisions/ADR-0003-home-assistant-locale-fase1.md) approva la direzione corrente: Home Assistant locale, Tunet come punto di partenza React, pilota in ufficio e fase 1 minima di personalizzazione grafica. Hetzner è escluso. Linux è a 64 bit, ARM64 oppure x86-64. Il [perimetro del pilota](pilot-scope.md) distingue risultato minimo, obiettivi successivi e criteri proposti.
 
-La [copia originale](archive/product-original-2026-10-02.md) resta immutata. [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md) restano valide per documentazione e storico. Lo [stato reale](project-status.md), il [registro dei vincoli](compliance.md) e i [report](reports/README.md) registrano decisioni, evidenze e problemi.
+La [copia originale](../archive/product-original-2026-10-02.md) resta immutata. [ADR-0001](../decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](../decisions/ADR-0002-organizzazione-cartelle.md) restano valide per documentazione e storico. Lo [stato reale](../project-status.md), il [registro dei vincoli](../compliance.md) e i [report](../reports/README.md) registrano decisioni, evidenze e problemi.
 
-Gli ID `REQ-00`–`REQ-16` sono conservati, incluso REQ-01 ritirato; REQ-17 aggiunge il ruolo condominiale richiesto dall'utente. Approvato indica la direzione o il comportamento autorizzato, non versioni, licenze o realizzazione già verificate. L'incarico corrente è progettuale: nessuno sviluppo o provisioning è avviato. Le [verifiche](verification.md) distinguono controlli documentali e scenari applicativi non eseguiti.
+Gli ID `REQ-00`–`REQ-16` sono conservati, incluso REQ-01 ritirato; REQ-17 aggiunge il ruolo condominiale richiesto dall'utente. Approvato indica la direzione o il comportamento autorizzato, non versioni, licenze o realizzazione già verificate. L'incarico corrente è progettuale: nessuno sviluppo o provisioning è avviato. Le [verifiche](../verification.md) distinguono controlli documentali e scenari applicativi non eseguiti.
 
 ---
 
 ## 1. Hardware Locale e Accesso Remoto
-Il pilota è in ufficio; il prodotto verrà fornito su mini PC o Raspberry nelle abitazioni, negli uffici e nelle aziende. È approvato Linux a 64 bit (ARM64 o x86-64). La distinta seguente resta una proposta storica da adattare al pilota; non è un inventario di materiale disponibile. Modelli, compatibilità, disponibilità e dimensionamento richiedono verifica prima di acquisti o installazioni; non costituiscono una garanzia di stabilità. Questioni aperte: [ISSUE-005](project-status.md#issue-005), [ISSUE-011](project-status.md#issue-011) e [ISSUE-012](project-status.md#issue-012). La conformità delle installazioni fisiche resta un ambito separato da questo registro software/cloud.
+Il pilota è in ufficio; il prodotto verrà fornito su mini PC o Raspberry nelle abitazioni, negli uffici e nelle aziende. È approvato Linux a 64 bit (ARM64 o x86-64). La distinta seguente resta una proposta storica da adattare al pilota; non è un inventario di materiale disponibile. Modelli, compatibilità, disponibilità e dimensionamento richiedono verifica prima di acquisti o installazioni; non costituiscono una garanzia di stabilità. Questioni aperte: [ISSUE-005](../project-status.md#issue-005), [ISSUE-011](../project-status.md#issue-011) e [ISSUE-012](../project-status.md#issue-012). La conformità delle installazioni fisiche resta un ambito separato da questo registro software/cloud.
 
 ### 1.1 Distinta Base Hardware (Cosa va acquistato per una configurazione tipo d'impianto)
 
 #### A. Gateway Locale d'Impianto (Edge Controller da Quadro Elettrico)
-Il gateway locale proposto esegue **Home Assistant Container** (Core in Docker) e gestisce i collegamenti con sensori, contatori e relè. Modalità d'installazione e servizi complementari restano da approvare ([ISSUE-004](project-status.md#issue-004)).
+Il gateway locale proposto esegue **Home Assistant Container** (Core in Docker) e gestisce i collegamenti con sensori, contatori e relè. Modalità d'installazione e servizi complementari restano da approvare ([ISSUE-004](../project-status.md#issue-004)).
 * **Opzione Proposta (Residenziale standard & Hotel):**
   * **Raspberry Pi Compute Module 4 (CM4)** con memoria **eMMC integrata** (8GB/16GB/32GB). Preferenza iniziale da valutare rispetto a carico, storage e recupero; la durata delle microSD non è stata misurata.
   * Baseboard industriale con montaggio su **barra DIN** (es. Waveshare CM4-IO-BASE-BOX-B o baseboard Edatec); disponibilità di RS485 e isolamento da verificare sul modello esatto.
@@ -23,7 +23,7 @@ Il gateway locale proposto esegue **Home Assistant Container** (Core in Docker) 
 * **Opzione Alternativa per Grandi Strutture (B2B / Ristoranti / Centri Direzionali):**
   * **Mini PC Fanless Industriale x86:** Processore Intel N100 / N97 quad-core, 8GB/16GB RAM DDR5, SSD NVMe M.2 128GB+, doppia porta Gigabit Ethernet RJ45.
 * **Radio Zigbee e supporto Thread/Matter da Definire:**
-  * **1x Dongle USB Coordinatore Zigbee 3.0 proposto:** Modello con antenna esterna (es. *Sonoff Zigbee 3.0 USB Dongle Plus-E* oppure *Nabu Casa SkyConnect/ZBT-1*). Il supporto Thread/Matter richiede una configurazione distinta da precisare; il funzionamento simultaneo Zigbee/Thread sullo stesso ZBT-1 non è assunto come soluzione di produzione ([ISSUE-005](project-status.md#issue-005)).
+  * **1x Dongle USB Coordinatore Zigbee 3.0 proposto:** Modello con antenna esterna (es. *Sonoff Zigbee 3.0 USB Dongle Plus-E* oppure *Nabu Casa SkyConnect/ZBT-1*). Il supporto Thread/Matter richiede una configurazione distinta da precisare; il funzionamento simultaneo Zigbee/Thread sullo stesso ZBT-1 non è assunto come soluzione di produzione ([ISSUE-005](../project-status.md#issue-005)).
   * Prolunga cavo USB schermato da 1 metro (indispensabile per allontanare l'antenna dalle interferenze elettromagnetiche del processore e del quadro elettrico).
 * **Interfaccia Seriale per Contatori e Pompe di Calore:**
   * **1x Adattatore USB-to-RS485 isolato industrial grade** (chip FTDI FT232R o CP2102) con protezione da sovratensioni (TVS).
@@ -49,7 +49,7 @@ Il kit seguente è candidato per le estensioni e i collaudi successivi. Il mater
 
 Hetzner e il suo provisioning sono ritirati dalla direzione corrente (REQ-01, ADR-0003). Il prodotto deve operare localmente con il massimo funzionamento possibile senza internet. La gestione da fuori casa resta un obiettivo quando la connettività è disponibile.
 
-Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. Le proposte originali su identità centrale, database e hosting AI non sono dipendenze obbligatorie della fase 1. Budget, rete e manutenzione restano da progettare in [infrastructure.md](infrastructure.md).
+Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. Le proposte originali su identità centrale, database e hosting AI non sono dipendenze obbligatorie della fase 1. Budget, rete e manutenzione restano da progettare in [infrastructure.md](../infrastructure.md).
 
 ---
 
@@ -57,7 +57,7 @@ Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. 
 
 * **2.1 Scopo:** Sistema domotico installato su hardware locale fornito negli immobili, con Home Assistant come base obbligatoria e interfaccia personalizzata.
 * **2.2 Direzione Locale:** Automazioni, stati, comandi e asset necessari al frontend devono privilegiare il funzionamento locale. La gestione remota è un'estensione online; le integrazioni dipendenti da servizi esterni vanno identificate.
-* **2.3 Conservazione delle Funzionalità:** Obiettivo originale conservato: mantenere le capacità Home Assistant. Copertura della UI React e accesso alle funzioni HA restanti devono essere concordati; una dashboard personalizzata non dimostra da sola la copertura di ogni funzione nativa. Metodo HA e servizi complementari restano aperti ([ISSUE-004](project-status.md#issue-004)).
+* **2.3 Conservazione delle Funzionalità:** Obiettivo originale conservato: mantenere le capacità Home Assistant. Copertura della UI React e accesso alle funzioni HA restanti devono essere concordati; una dashboard personalizzata non dimostra da sola la copertura di ogni funzione nativa. Metodo HA e servizi complementari restano aperti ([ISSUE-004](../project-status.md#issue-004)).
 * **2.4 Primo Risultato:** Fase 1 minima: Home Assistant personalizzato graficamente, provato in ufficio. Funzioni aggiuntive e ruoli avanzati richiedono successivi incarichi; dettagli in [pilot-scope.md](pilot-scope.md).
 
 ---
@@ -66,25 +66,25 @@ Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. 
 
 * **3.1 Gateway Locale:** Home Assistant su mini PC o Raspberry Linux a 64 bit. Container è un candidato originale, non il metodo già scelto. Inventario, versioni e protocolli fisici sono da verificare.
 * **3.2 Frontend Locale:** Tunet confermato come punto di partenza React. Hosting degli asset, servizi richiesti dal repository, autenticazione e riavvio senza internet devono essere progettati.
-* **3.3 Continuità Offline:** Obiettivo: massimo uso possibile delle funzionalità locali, inclusi UI e comandi, con rete locale e alimentazione disponibili. Dipendenze cloud, sessioni e riavvii devono avere comportamenti verificabili ([ISSUE-007](project-status.md#issue-007)).
-* **3.4 Remoto:** Accesso fuori casa da progettare senza dipendenza obbligatoria Hetzner. Nessuna soluzione VPN, relay o backend centrale è selezionata ([ISSUE-013](project-status.md#issue-013)).
-* **3.5 Più Utenti:** Valutare molti utenti su una macchina. Distinguere uno stesso impianto condiviso da abitazioni separate e dispositivi condominiali; capacità e isolamento non sono dimostrati ([ISSUE-015](project-status.md#issue-015)).
+* **3.3 Continuità Offline:** Obiettivo: massimo uso possibile delle funzionalità locali, inclusi UI e comandi, con rete locale e alimentazione disponibili. Dipendenze cloud, sessioni e riavvii devono avere comportamenti verificabili ([ISSUE-007](../project-status.md#issue-007)).
+* **3.4 Remoto:** Accesso fuori casa da progettare senza dipendenza obbligatoria Hetzner. Nessuna soluzione VPN, relay o backend centrale è selezionata ([ISSUE-013](../project-status.md#issue-013)).
+* **3.5 Più Utenti:** Valutare molti utenti su una macchina. Distinguere uno stesso impianto condiviso da abitazioni separate e dispositivi condominiali; capacità e isolamento non sono dimostrati ([ISSUE-015](../project-status.md#issue-015)).
 
 ---
 
 ## 4. Frontend & UI/UX Stack
 * **4.1 Stack Tecnologico Frontend:**
-  * **Framework & Bundler:** React tramite il riferimento Tunet confermato. Bundler, linguaggi e versioni vanno verificati nella revisione da adottare. React 18 e HAKit erano proposte originali; la compatibilità HAKit resta pertinente soltanto se l'SDK viene scelto ([ISSUE-003](project-status.md#issue-003)).
-  * **Styling & Design System:** Personalizzazione grafica da concordare sulla base Tunet. Tailwind era il candidato originale; compatibilità e versione vanno verificate prima di adottarlo come vincolo.
+  * **Framework & Bundler:** React tramite il riferimento Tunet confermato. Bundler, linguaggi e versioni vanno verificati nella revisione da adottare. React 18 e HAKit erano proposte originali; la compatibilità HAKit resta pertinente soltanto se l'SDK viene scelto ([ISSUE-003](../project-status.md#issue-003)).
+  * **Styling & Design System:** Specifica visiva nel [modulo design](../design/design.md): Neumorphism e colori principali confermati. Componenti e dettagli restano da definire sulla base Tunet. Tailwind era il candidato originale; compatibilità e versione vanno verificate prima di adottarlo come vincolo.
   * **Motore Reattivo & Connessione Real-Time:** 
     * WebSocket bidirezionale ad alta velocità tramite libreria `home-assistant-js-websocket`.
     * L'eventuale adozione di **`@hakit/core`** deve essere valutata rispetto alla base Tunet, a licenze e versioni; non è richiesta dalla conferma di Tunet.
     * *In Rete Locale (LAN):* Connessione diretta proposta tra tablet e gateway. Il valore <30ms è un obiettivo iniziale da definire e misurare su un ambiente dichiarato.
-    * *Da Remoto:* Meccanismo ancora da scegliere; percorso, autenticazione, certificati e terminazione TLS vanno progettati e verificati ([ISSUE-013](project-status.md#issue-013)).
+    * *Da Remoto:* Meccanismo ancora da scegliere; percorso, autenticazione, certificati e terminazione TLS vanno progettati e verificati ([ISSUE-013](../project-status.md#issue-013)).
 
 * **4.2 Progetti di Riferimento:**
-  * **Tunet — punto di partenza confermato:** [oyvhov/Tunet](https://github.com/oyvhov/Tunet). È la base React indicata dall'utente per il frontend; l'integrazione concreta e le condizioni degli artefatti distribuiti restano da verificare. GPL-3.0 nella revisione esaminata ([ISSUE-002](project-status.md#issue-002)).
-  * **HAKit — candidato eventuale:** [shannonhochkins/ha-component-kit](https://github.com/shannonhochkins/ha-component-kit). Non è obbligatorio per la fase 1. Le licenze esaminate richiedono una licenza commerciale separata; fonti in [compliance.md](compliance.md#fonti-e-revisioni-già-esaminate).
+  * **Tunet — punto di partenza confermato:** [oyvhov/Tunet](https://github.com/oyvhov/Tunet). È la base React indicata dall'utente per il frontend; l'integrazione concreta e le condizioni degli artefatti distribuiti restano da verificare. GPL-3.0 nella revisione esaminata ([ISSUE-002](../project-status.md#issue-002)).
+  * **HAKit — candidato eventuale:** [shannonhochkins/ha-component-kit](https://github.com/shannonhochkins/ha-component-kit). Non è obbligatorio per la fase 1. Le licenze esaminate richiedono una licenza commerciale separata; fonti in [compliance.md](../compliance.md#fonti-e-revisioni-già-esaminate).
   * **Personalizzazione grafica:** identità, schermate e layout vanno concordati. La combinazione Tunet/HAKit/Tailwind originale non è una dipendenza tecnica approvata; il risparmio di sviluppo >70% non è misurato.
 
 ---
@@ -92,22 +92,22 @@ Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. 
 ## 5. Account, Ruoli e Configurazione
 
 * **5.1 Autenticazione Locale e Primo Setup:**
-  * Identità, sessioni HA e accesso del frontend devono sostenere l'operatività locale; modalità e gestione delle credenziali restano da progettare ([ISSUE-006](project-status.md#issue-006)).
+  * Identità, sessioni HA e accesso del frontend devono sostenere l'operatività locale; modalità e gestione delle credenziali restano da progettare ([ISSUE-006](../project-status.md#issue-006)).
   * Flusso confermato: admin già collegato **soltanto nel primo setup**, configurazione e associazione dei dispositivi, logout admin, login con account cliente. Attivazione, durata e chiusura della sessione iniziale devono essere verificate.
   * Google OAuth, email/Resend e token exchange erano proposte iniziali, non prerequisiti della fase grafica. Nessun Identity Provider centrale è scelto.
 * **5.2 Ruoli Richiesti:**
   * **Admin:** configura l'impianto in lavorazione e associa i dispositivi. La regola automatica `@fourmemo.com` dell'originale non è confermata; assegnazione e revoca dei privilegi vanno definite.
   * **Cliente:** utilizza il sistema con il proprio account dopo la consegna. Personalizzazione e operazioni consentite sono da precisare per le funzioni comprese nel relativo incarico.
   * **Amministratore di Condominio (REQ-17):** configura i dispositivi comuni, per esempio la caldaia condivisa, senza poter configurare i dispositivi delle singole abitazioni. Visibilità, letture e comandi devono essere precisati; traduzione in permessi HA e isolamento sono da progettare.
-  * **Confini:** verificare letture, comandi e configurazione anche su API e dati, oltre che sulla UI. Accesso remoto permanente del sistemista, organizzazione delle istanze e privilegi su più impianti non sono approvati implicitamente ([ISSUE-008](project-status.md#issue-008), [ISSUE-015](project-status.md#issue-015)).
+  * **Confini:** verificare letture, comandi e configurazione anche su API e dati, oltre che sulla UI. Accesso remoto permanente del sistemista, organizzazione delle istanze e privilegi su più impianti non sono approvati implicitamente ([ISSUE-008](../project-status.md#issue-008), [ISSUE-015](../project-status.md#issue-015)).
   * Personalizzazione delle card, piantina, moduli e scenari restano estensioni del prodotto, con perimetro da assegnare.
 
 * **5.3 Definizione dei "Plugin" come Feature Modules di Frontend:**
-  * **Confine da Precisare:** Il widget è la parte di interfaccia. Moduli come distacco carichi e clima richiedono anche logiche locali, configurazioni e limiti operativi da progettare; l'etichetta frontend non elimina queste responsabilità ([ISSUE-009](project-status.md#issue-009)).
+  * **Confine da Precisare:** Il widget è la parte di interfaccia. Moduli come distacco carichi e clima richiedono anche logiche locali, configurazioni e limiti operativi da progettare; l'etichetta frontend non elimina queste responsabilità ([ISSUE-009](../project-status.md#issue-009)).
   * I "Plugin" sono definiti a livello architetturale come **Feature Modules / Widget di Frontend** gestiti a licenza e permessi (es. *Modulo Piantina Interattiva*, *Modulo Clima & Zone*, *Modulo Monitoraggio Energetico / Distacco Carichi*, *Modulo Videosorveglianza*).
   * Non richiedono l'installazione di codice Python instabile a caldo su Home Assistant né riavvii di sistema.
 * **5.4 Distribuzione e Aggiornamento "One-Click":**
-  * **Ciclo da Progettare:** Sincronizzazione client e attivazione degli scenari sul gateway sono fasi distinte. Versioni, conferma di attivazione, errori parziali e ripristino richiedono una decisione e collaudo ([ISSUE-009](project-status.md#issue-009)).
+  * **Ciclo da Progettare:** Sincronizzazione client e attivazione degli scenari sul gateway sono fasi distinte. Versioni, conferma di attivazione, errori parziali e ripristino richiedono una decisione e collaudo ([ISSUE-009](../project-status.md#issue-009)).
   * Quando l'amministratore abilita un nuovo Feature Module o rilascia nuovi scenari per un impianto, sull'interfaccia dell'utente (e sui tablet a muro) compare un **pulsante di aggiornamento rapido** (*"Aggiorna configurazione / Sincronizza"*).
   * Con un singolo tocco, il frontend ricarica i permessi e attiva istantaneamente le nuove schermate e funzioni.
 
@@ -116,7 +116,7 @@ Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. 
 ## 6. Mappatura Interattiva della Casa (Floorplan & Piantina)
 * **6.1 Caricamento Planimetria Personalizzata:**
   * Utente e sistemista possono caricare liberamente l'immagine della piantina (PNG, JPG, SVG).
-  * Formati ammessi, gestione dei file, accessi e conservazione saranno definiti nell'incarico pertinente ([ISSUE-014](project-status.md#issue-014)).
+  * Formati ammessi, gestione dei file, accessi e conservazione saranno definiti nell'incarico pertinente ([ISSUE-014](../project-status.md#issue-014)).
 * **6.2 Posizionamento Dispositivi con Drag & Drop:**
   * Interfaccia visuale intuitiva: i dispositivi dell'impianto vengono selezionati da un drawer laterale e posizionati con Drag & Drop direttamente sulla planimetria.
   * Memorizzazione delle coordinate relative in percentuale (X%, Y%) rispetto alla risoluzione dell'immagine per garantire un rendering perfetto e reattivo su schermi di ogni dimensione (smartphone, tablet 8", 10", 15").
@@ -133,9 +133,9 @@ Provider, VPN/tunnel, certificati e modalità di pubblicazione non sono scelti. 
   * Permette di creare o modificare scenari dialogando in linguaggio naturale (es. *"Crea uno scenario per la notte: spegni tutte le luci tranne il corridoio al 10%, chiudi le tapparelle e metti il clima a 19.5°C se non c'è presenza per 20 minuti"*).
 * **7.2 Hosting del Modello AI da Valutare (SLM / LLM, Estensione Futura):**
   * Modello e motore (es. Llama 3.2 3B o Mistral 7B via Ollama / vLLM) restano candidati. La sede di esecuzione è da valutare rispetto a hardware locale, licenze, carico e obiettivo offline; Hetzner è escluso dalla direzione corrente.
-  * Obiettivo: valutare la generazione degli scenari rispetto a risorse disponibili e funzionamento locale. Sede e hardware del modello non sono scelti. Il valore <2s è una stima iniziale da verificare con modello, hardware, contesto e concorrenza dichiarati ([ISSUE-010](project-status.md#issue-010)); licenze e dati trattati sono da valutare.
+  * Obiettivo: valutare la generazione degli scenari rispetto a risorse disponibili e funzionamento locale. Sede e hardware del modello non sono scelti. Il valore <2s è una stima iniziale da verificare con modello, hardware, contesto e concorrenza dichiarati ([ISSUE-010](../project-status.md#issue-010)); licenze e dati trattati sono da valutare.
 * **7.3 Middleware di Validazione Deterministico (Anti-Allucinazione):**
-  * **Limite da Gestire:** Schema e riferimenti alle entità verificano struttura e identificativi; la correttezza funzionale e i limiti delle azioni richiedono ulteriori regole e prove. Le correzioni devono essere visibili nella bozza sottoposta ad approvazione ([ISSUE-010](project-status.md#issue-010)).
+  * **Limite da Gestire:** Schema e riferimenti alle entità verificano struttura e identificativi; la correttezza funzionale e i limiti delle azioni richiedono ulteriori regole e prove. Le correzioni devono essere visibili nella bozza sottoposta ad approvazione ([ISSUE-010](../project-status.md#issue-010)).
   * Per evitare che il modello inventi entità inesistenti o sintassi errata:
     1. **Iniezione del Contesto Reale:** Il sistema passa al prompt solo l'elenco delle entità reali registrate sul gateway dell'impianto.
     2. **Guida Skill Markdown:** Il modello segue una skill in formato Markdown che codifica le regole sintattiche rigorose di Home Assistant (trigger, condition, action ammessi).
@@ -198,7 +198,7 @@ Sprint, budget e scadenze non sono definiti. Il flusso di primo setup e il ruolo
 
 ## 11. Criteri di Accettazione Proposti
 
-Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma e precisazione nel relativo incarico. Non approvano nuove funzionalità e non riportano test già superati. La matrice degli scenari V corrispondenti è in [verification.md](verification.md#scenari-di-prodotto-previsti).
+Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma e precisazione nel relativo incarico. Non approvano nuove funzionalità e non riportano test già superati. La matrice degli scenari V corrispondenti è in [verification.md](../verification.md#scenari-di-prodotto-previsti).
 
 | Criterio | Requisito | Risultato osservabile proposto |
 |---|---|---|
@@ -221,4 +221,4 @@ Questi criteri rendono osservabili gli obiettivi originali; richiedono conferma 
 | AC-16 | REQ-16 | Valutazione R&D con misure e limiti sui dispositivi scelti, prima di una decisione esplicita sul supporto 3D. |
 | AC-17 | REQ-17 | Amministratore di condominio configura dispositivi comuni autorizzati; configurazioni delle abitazioni private rifiutate anche via API. Letture/comandi verificati secondo la policy da approvare. |
 
-Per aggiornare un requisito conservare ID e motivazione; collegare l'autorizzazione, le decisioni e le verifiche pertinenti. Problemi, vincoli e nuove idee restano nel [registro corrente](project-status.md#registro-dei-problemi-e-limiti) fino a un incarico autorizzato.
+Per aggiornare un requisito conservare ID e motivazione; collegare l'autorizzazione, le decisioni e le verifiche pertinenti. Problemi, vincoli e nuove idee restano nel [registro corrente](../project-status.md#registro-dei-problemi-e-limiti) fino a un incarico autorizzato.

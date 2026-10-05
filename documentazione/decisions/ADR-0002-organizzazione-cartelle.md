@@ -35,3 +35,7 @@ Le cartelle `backup/` e `progetto/` sono predisposte. Non esistono ancora copie 
 ## Verifiche e revisione
 
 Integrità dell'archivio, collegamenti, identificativi, esclusioni e perimetro sono controllati nel [report](../reports/REP-20261002-003-organizzazione-cartelle.md). Le future modifiche della struttura devono aggiornare percorsi e fonti correnti, preservando evidenze e storico.
+
+### Aggiornamento della collocazione — 2026-10-05
+
+Su richiesta umana la documentazione comprende [funzionalità](../funzionalita/README.md) e [design](../design/README.md), con il PRD in funzionalita/product.md. Rimangono un unico repository in radice e le tre aree documentazione, backup e progetto. Riorganizzazione e verifiche in [REP-20261005-002](../reports/REP-20261005-002-moduli-documentali-design.md).

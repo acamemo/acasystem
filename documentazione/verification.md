@@ -42,9 +42,21 @@ Evidenze in [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md). Gl
 | DOC-12 | Direzione umana tracciata, fase minima distinta dalle estensioni e dalla realizzazione | Superato, 2026-10-05, revisione documentale | Risposte e ADR-0003 tracciabili; fase minima grafica, ruoli/estensioni e dettaglio tecnico distinti. Nessun risultato applicativo inventato. |
 | DOC-13 | Diff documentale, storico conservato e commit locale coerente | Superato, 2026-10-05 | 15 file Markdown modificati/aggiunti, 26 file versionati, 4 commit con storico preesistente preservato, working tree pulita, 0 remote e archivio versionato integro; esclusioni dei backup conservate. |
 
+### Moduli funzionalità e design — 2026-10-05
+
+Evidenze e limiti in [REP-20261005-002](reports/REP-20261005-002-moduli-documentali-design.md). La separazione documentale non cambia requisiti o stato degli scenari applicativi.
+
+| ID | Criterio | Esito | Evidenza |
+|---|---|---|---|
+| DOC-14 | Originale integro, requisiti e stati preservati | Superato, 2026-10-05 | Confronto byte/hash con il primo commit; 18 righe REQ e ID REQ/AC invariati, stati dei requisiti identici al commit di partenza. |
+| DOC-15 | Moduli distinti, fonti e collegamenti validi | Superato, 2026-10-05 | 28 Markdown; verifica temporanea delle destinazioni e ancore locali. Indici di funzionalità e design, fonte visiva unica design.md e documenti comuni. |
+| DOC-16 | Diff pertinente e storico preservato | Superato, 2026-10-05 | Diff senza errori di whitespace; quattro report storici preservati salvo destinazioni di link annotate; progetto e backup con i soli README, nessun codice o installazione aggiunti. |
+
+Le verifiche UI di design.md sono previste e Non eseguite. I calcoli numerici dei colori rimangono evidenze limitate del report precedente; nessuna conformità del frontend è dichiarata.
+
 ## Scenari di prodotto previsti
 
-**Gli scenari applicativi attivi sono Non eseguiti; V-01 è Non applicabile perché REQ-01 è Ritirato.** V-00–V-17 conservano la mappatura dei requisiti, incluso quello ritirato. Criteri da precisare nell'incarico pertinente; nessun ambiente applicativo è disponibile. La fase 1 è delimitata in [pilot-scope.md](pilot-scope.md).
+**Gli scenari applicativi attivi sono Non eseguiti; V-01 è Non applicabile perché REQ-01 è Ritirato.** V-00–V-17 conservano la mappatura dei requisiti, incluso quello ritirato. Criteri da precisare nell'incarico pertinente; nessun ambiente applicativo è disponibile. La fase 1 è delimitata in [pilot-scope.md](funzionalita/pilot-scope.md).
 
 | ID | Requisito | Scenario proposto e risultato atteso |
 |---|---|---|

@@ -1,6 +1,6 @@
 # Infrastruttura e operazioni
 
-Aggiornato: 2026-10-05. Documento progettuale; nessun provisioning è stato eseguito. Direzione locale in [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md), pilota in [pilot-scope.md](pilot-scope.md); problemi ISSUE-005/011/013/014/015 nello [stato del progetto](project-status.md).
+Aggiornato: 2026-10-05. Documento progettuale; nessun provisioning è stato eseguito. Direzione locale in [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md), pilota in [pilot-scope.md](funzionalita/pilot-scope.md); problemi ISSUE-005/011/013/014/015 nello [stato del progetto](project-status.md).
 
 ## Inventario verificato e previsto
 

@@ -1,6 +1,6 @@
 # Pilota in ufficio e perimetro della fase 1
 
-Aggiornato: 2026-10-05. Direzione umana in [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md); risposte di riferimento nel [report](reports/REP-20261005-001-direzione-pilota.md). Stato di realizzazione in [project-status.md](project-status.md): nessuna applicazione o installazione realizzata.
+Aggiornato: 2026-10-05. Direzione umana in [ADR-0003](../decisions/ADR-0003-home-assistant-locale-fase1.md); risposte di riferimento nel [report](../reports/REP-20261005-001-direzione-pilota.md). Stato di realizzazione in [project-status.md](../project-status.md): nessuna applicazione o installazione realizzata.
 
 ## Risultato minimo confermato
 
@@ -27,21 +27,9 @@ L'obiettivo minimo non assegna lo sviluppo delle estensioni. Il perimetro grafic
 
 ## Direzione grafica confermata e proposte
 
-Fonte umana del 2026-10-05: «Neumorphism si chiama lo stile», con [articolo Clay](https://clay.global/blog/neumorphism-ui) e tre immagini di riferimento. Le immagini mostrano una variante chiara neutra con accento viola, una scura grafite con accento verde e una chiara lilla con accenti colorati. Sono riferimenti estetici; non sono schermate ACA SYSTEM approvate o componenti collaudati.
+La specifica visiva è in [design.md](../design/design.md), fonte unica per Neumorphism, colori principali `#222222`/`#ef8231`, spiegazione dello stile, proposte UI e calcoli di contrasto. Questo documento mantiene il perimetro e i comportamenti del pilota; le decisioni grafiche non aggiungono funzionalità o permessi.
 
-Il riferimento comune comprende superfici vicine al colore dello sfondo, ombre chiare/scure, comandi in rilievo o incassati e forme arrotondate. Nella precisazione successiva l'utente richiede colore principale dell'app `#222222` e secondo colore arancione `#ef8231`. Sono vincoli grafici confermati; la proposta dell'agente è usare il primo come base scura e il secondo come accento per azioni e selezione. Toni delle superfici, testi, colori semantici, eventuali altri temi e librerie restano da definire. Il logo resta da definire; le interfacce delle reference non vengono adottate integralmente.
-
-**Proposte dell'agente, da precisare nel progetto grafico:**
-
-- Applicare il rilievo soprattutto ai controlli principali e alle superfici delle stanze, preservando la leggibilità dei dati e dei messaggi.
-- Usare testo `#222222` sui comandi con riempimento arancione `#ef8231`, e testo chiaro sulle superfici scure; definire e verificare le varianti effettive prima dell'implementazione.
-- Usare testi e icone distinguibili dallo sfondo; associare agli stati diciture esplicite, come «Accesa», «Spenta», «Comando in corso» e «Non disponibile». Il rilievo del pulsante non costituisce conferma dello stato reale del dispositivo.
-- Definire varianti per selezione, focus, disabilitazione, attesa ed errore; verificare il risultato sul client del pilota nelle condizioni d'illuminazione reali.
-- Valutare lo stile negli strumenti già presenti in Tunet, prima di proporre nuove librerie o modifiche al backend HA.
-
-Come riferimenti per verifiche future: WCAG 2.2 prevede contrasto di almeno 4,5:1 per testo ordinario e 3:1 per testo grande, con le eccezioni previste dal criterio [1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html); le informazioni visive necessarie a identificare controlli e stati seguono il criterio [1.4.11](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html). Il significato non deve dipendere soltanto dal colore ([1.4.1](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html)). Fonti consultate il 2026-10-05; nessuna misurazione sulle reference o verifica di conformità ACA è stata eseguita.
-
-Calcolo numerico del 2026-10-05 sulle coppie sRGB opache: `#ef8231`/`#222222` = circa 5,99:1; `#ffffff`/`#ef8231` = circa 2,66:1; `#ffffff`/`#222222` = circa 15,91:1. La prima e la terza coppia superano la soglia 4,5:1 per testo ordinario, la seconda no. Sono calcoli sui valori dichiarati, non prove di rendering, trasparenze, stati del componente o accessibilità complessiva. Procedura ed esiti nell'annotazione del [report](reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico).
+Logo, palette completa, componenti e schermate restano da definire nei rispettivi ambiti.
 
 ## Ruoli richiesti e primo setup
 

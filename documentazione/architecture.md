@@ -1,10 +1,10 @@
 # Architettura proposta e decisioni
 
-Aggiornato: 2026-10-05. Fonte dell'intento: [product.md](product.md). Stato reale e questioni aperte: [project-status.md](project-status.md).
+Aggiornato: 2026-10-05. Fonte dell'intento: [product.md](funzionalita/product.md). Stato reale e questioni aperte: [project-status.md](project-status.md).
 
 ## Stato e confini
 
-Sono realizzati soltanto documentazione e Git locale. [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) approva Home Assistant come base, Tunet come riferimento React e fase 1 grafica in ufficio. Linux a 64 bit ammette ARM64/x86-64; Hetzner è escluso. Il [perimetro del pilota](pilot-scope.md) delimita il primo risultato e le estensioni.
+Sono realizzati soltanto documentazione e Git locale. [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) approva Home Assistant come base, Tunet come riferimento React e fase 1 grafica in ufficio. Linux a 64 bit ammette ARM64/x86-64; Hetzner è escluso. Il [perimetro del pilota](funzionalita/pilot-scope.md) delimita il primo risultato e le estensioni.
 
 La direzione è locale, con massimo uso possibile senza internet e obiettivo remoto online. Metodo HA, hosting concreto, versioni, sessioni e trasporto restano aperti. Le dipendenze fisiche sono segnalate senza definirne la conformità di installazione.
 

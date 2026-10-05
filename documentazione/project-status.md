@@ -10,6 +10,8 @@ Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in q
 
 La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Documenti e PRD sono in `documentazione/`; backup e progetto contengono soltanto i rispettivi README. Nessuna copia di backup è stata creata.
 
+Su richiesta umana del 2026-10-05, la documentazione comprende due moduli: [funzionalità](funzionalita/README.md) per PRD e pilota, e [design](design/README.md) con design.md come fonte visiva. Stato, aspetti tecnici, verifiche e storico restano comuni. La separazione non cambia approvazioni o stato di realizzazione dei requisiti.
+
 ## Direzione corrente approvata
 
 ADR-0003 e le risposte umane del 2026-10-05 stabiliscono Home Assistant locale, riferimento React Tunet, pilota in ufficio e fase 1 minima grafica. Hetzner è ritirato. Linux 64 bit ammette ARM64 e x86-64. Primo setup: admin aperto solo inizialmente, configurazione, logout e login cliente. Il ruolo condominiale e la valutazione di molti utenti su una macchina sono obiettivi successivi; meccanismi e sviluppo non sono avviati.
@@ -26,7 +28,7 @@ Un nuovo incarico umano può autorizzare un requisito proposto: registrare l'amb
 
 ## Stato per requisito
 
-Criteri nel [PRD](product.md#11-criteri-di-accettazione-proposti); scenari in [verification.md](verification.md#scenari-di-prodotto-previsti). Approvato riguarda il vincolo/comportamento riportato in ADR-0003, senza selezionare automaticamente tutte le tecnologie del documento originale. La fase minima è nel [perimetro del pilota](pilot-scope.md).
+Criteri nel [PRD](funzionalita/product.md#11-criteri-di-accettazione-proposti); scenari in [verification.md](verification.md#scenari-di-prodotto-previsti). Approvato riguarda il vincolo/comportamento riportato in ADR-0003, senza selezionare automaticamente tutte le tecnologie del documento originale. La fase minima è nel [perimetro del pilota](funzionalita/pilot-scope.md).
 
 | ID | Requisito | Approvazione | Realizzazione | Verifica prevista | Questioni collegate |
 |---|---|---|---|---|---|
@@ -101,7 +103,7 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 
 ### ISSUE-012
 
-**Perimetro del primo rilascio — chiarito in parte.** L'utente sceglie ufficio e minimo grafico su Home Assistant con Tunet. Nelle risposte successive del 2026-10-05 dichiara HA non ancora installato in ufficio e logo non disponibile; indica Neumorphism con un articolo Clay e tre reference, colore principale `#222222` e secondario arancione `#ef8231`. Restano schermate, palette completa e ruoli dei colori, logo, inventario, entità rappresentative, budget e tempi. Le estensioni non hanno un ordine assegnato e non entrano automaticamente nella fase 1; il 3D resta futuro/R&D. Dettagli in [pilot-scope.md](pilot-scope.md#direzione-grafica-confermata-e-proposte); fonti e limiti nell'annotazione del [report](reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico). Stato Aperto fino alla definizione del perimetro esecutivo.
+**Perimetro del primo rilascio — chiarito in parte.** L'utente sceglie ufficio e minimo grafico su Home Assistant con Tunet. Nelle risposte successive del 2026-10-05 dichiara HA non ancora installato in ufficio e logo non disponibile; indica Neumorphism con un articolo Clay e tre reference, colore principale `#222222` e secondario arancione `#ef8231`. Restano schermate, palette completa e ruoli dei colori, logo, inventario, entità rappresentative, budget e tempi. Le estensioni non hanno un ordine assegnato e non entrano automaticamente nella fase 1; il 3D resta futuro/R&D. Dettagli in [pilot-scope.md](funzionalita/pilot-scope.md#direzione-grafica-confermata-e-proposte); fonti e limiti nell'annotazione del [report](reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico). Stato Aperto fino alla definizione del perimetro esecutivo.
 
 ### ISSUE-013
 
@@ -123,7 +125,8 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 | [REP-20261002-002](reports/REP-20261002-002-documentazione.md) | Documentazione e storico Git locale | Completato; verifiche documentali e storico locale registrati. |
 | [REP-20261002-003](reports/REP-20261002-003-organizzazione-cartelle.md) | Separazione di documentazione, backup e progetto | Completato; percorsi, integrità e storico verificati. |
 | [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md) | Direzione di prodotto e primo pilota in ufficio | Completato; direzione documentata, integrità e coerenza verificate, senza sviluppo. |
+| [REP-20261005-002](reports/REP-20261005-002-moduli-documentali-design.md) | Separazione dei moduli funzionalità e design | Completato; design.md creato, moduli e collegamenti verificati. |
 
-**Incarico attivo:** nessuno. Allineamento della progettazione alle risposte umane completato con DOC-11–DOC-13. Fase 1 e obiettivi successivi sono documentati; nessuno sviluppo, acquisto o provisioning avviato. Il prossimo incarico deve avere un perimetro identificabile. L'area backup resta predisposta senza copie o automazioni.
+**Incarico attivo:** nessuno. REP-20261005-002 completato: moduli funzionalità e design separati, design.md creato e controlli DOC-14–DOC-16 superati. Dettagli visivi e prossimo lavoro applicativo restano da assegnare; sviluppo, acquisti e provisioning non sono avviati. L'area backup resta predisposta senza copie o automazioni.
 
 **Backlog proposto, non assegnato:** analisi tecnica Tunet e schermate della fase 1; inventario dell'ufficio e metodo HA; autenticazione/setup/offline; remoto e isolamento condominiale nei rispettivi incarichi. Il prossimo incarico deve precisare risultato e perimetro.

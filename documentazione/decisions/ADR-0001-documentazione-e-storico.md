@@ -42,3 +42,7 @@ Verifiche di accettazione in [verification.md](../verification.md), evidenze nel
 ## Annotazione del 2026-10-02 — Organizzazione delle cartelle
 
 [ADR-0002](ADR-0002-organizzazione-cartelle.md) integra la collocazione dei documenti: il PRD è ora `documentazione/product.md` e l'archivio è in `documentazione/archive/`. Le regole e le motivazioni di questa decisione restano valide; il contenuto dell'originale e i commit iniziali sono preservati.
+
+### Aggiornamento della collocazione — 2026-10-05
+
+La successiva richiesta umana separa i moduli funzionalità e design. Il PRD corrente è in [funzionalita/product.md](../funzionalita/product.md), con [design.md](../design/design.md) come fonte visiva distinta. Archivio e regole dello storico restano validi; l'indicazione precedente descrive la collocazione alla data di ADR-0002. Evidenze in [REP-20261005-002](../reports/REP-20261005-002-moduli-documentali-design.md).
