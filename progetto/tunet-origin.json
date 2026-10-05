@@ -1,0 +1,2045 @@
+{
+  "upstream": "https://github.com/oyvhov/Tunet",
+  "revision": "5dec99587b4fcc2fb1f831a0a0002c9b90e6958e",
+  "version": "1.22.1",
+  "acquired": "2026-10-05",
+  "archiveSha256": "2dbbd609ef8a6d591ea68ba80f1c970758a879be3fff39c81624bc0e3055809f",
+  "sourceFiles": 407,
+  "files": [
+    {
+      "path": ".dockerignore",
+      "bytes": 57,
+      "sha256": "c6adda73b8f3657ae5f69dfef0d6f06417d8ab880031b2bc3520e2041f7f5a19"
+    },
+    {
+      "path": ".editorconfig",
+      "bytes": 379,
+      "sha256": "3180ff616430ddafb0ae9c560c7fc7cced33a33fe818db4b4845e42397bb1fe4"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "bytes": 669,
+      "sha256": "c949f330f0123443c1b9022ca545d3fb939d0ed81a2bb85701ba5126631af312"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+      "bytes": 680,
+      "sha256": "f092d937ffad99fcfc4fda30e0c24b7aa31c62f04eb8aa0d2aa64980c0a2df06"
+    },
+    {
+      "path": ".github/copilot-instructions.md",
+      "bytes": 8792,
+      "sha256": "c9854e6d986aef0d8389634e18842f8b1b5b204b564dd1e87ea7391261b26ac1"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "bytes": 943,
+      "sha256": "15223ed69d37ac58011841f296d54a9e1597ba44148866eddf36550c32184650"
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "bytes": 1099,
+      "sha256": "e4bfff64f8077b7c62df4b677ac1100f6601899c9af61ace9ef93c9808e526a0"
+    },
+    {
+      "path": ".github/workflows/build.yml",
+      "bytes": 972,
+      "sha256": "77be01dfa2d4372f15ce9a78c8db1b0e824024d52fa30ebc5844dee4e3233e70"
+    },
+    {
+      "path": ".github/workflows/create-release.yml",
+      "bytes": 485,
+      "sha256": "c3271ff3114e64d75ec89f93573aac7048d788960f77668d2f3414cbc0fb138a"
+    },
+    {
+      "path": ".github/workflows/docker-publish.yml",
+      "bytes": 2500,
+      "sha256": "214d16267a0263499635a1bbd6ea61e6574b481ec34b71568046df8507e392f5"
+    },
+    {
+      "path": ".github/workflows/format-check.yml",
+      "bytes": 1615,
+      "sha256": "db7f527fa2fe3e7a09835483122e18973ef7e61268fee6896927f16b017f26c2"
+    },
+    {
+      "path": ".github/workflows/version-sync.yml",
+      "bytes": 494,
+      "sha256": "a0710a408c1e2e828337afa7fbb95cf3ddacab7237efe077dacb7b33cafcc126"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 1027,
+      "sha256": "03d1c18f31947ee52355636e3b075709df8190f33ae514fca37799f6a094c92b"
+    },
+    {
+      "path": ".prettierignore",
+      "bytes": 60,
+      "sha256": "b399b64b11dd26951910d352f3f0e67e63d2c4834e0a83ecd1300fda6b17ba5d"
+    },
+    {
+      "path": ".prettierrc",
+      "bytes": 220,
+      "sha256": "be5f127b85021cf5b3b1e2270f87f81e89ee3eb190169aa3c8cf5382056b0e70"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 45613,
+      "sha256": "75a00cf619f0a56900a8b53cd7993ae0296ce596da8c06cedb83c02687cdacef"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "bytes": 1651,
+      "sha256": "207ff8a8429b63c8718b12a54fdc2a8a03b3ec006898d48bb214205b3b86d490"
+    },
+    {
+      "path": "Dockerfile",
+      "bytes": 777,
+      "sha256": "8072d1db76f6bb23bd63ff6203fde86ac0641c629fbf3ebd4a5e07bf5a82cb53"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3004,
+      "sha256": "ef96720b170b55d6f2878435883d0854ca9d3a74c4dedf2bd4d17427f9c33d9b"
+    },
+    {
+      "path": "design-qa.md",
+      "bytes": 3627,
+      "sha256": "1c449cd18e4777832da0a51befea8a92bd279849c4bbd7095b8d965625cc1157"
+    },
+    {
+      "path": "docker-compose.yml",
+      "bytes": 808,
+      "sha256": "78f974a092f32f07dfe1699b4c37d9cd8d3ef730fe73aadc61c6e1a19b3ac675"
+    },
+    {
+      "path": "docs/CARD_OPTIONS.md",
+      "bytes": 8724,
+      "sha256": "3370175cc2bf1a2251fefd62cc723072dd9a20203beb6b2373d936ed59d03859"
+    },
+    {
+      "path": "docs/E2E_TESTS_SETUP.md",
+      "bytes": 7245,
+      "sha256": "212b043255e19d42b945db5cca87dea5bd60c637a14a5c5ba7eeb883a0a8fbbf"
+    },
+    {
+      "path": "docs/ROADMAP.md",
+      "bytes": 676,
+      "sha256": "5c07128506e86203eb7573213dfbefc7212563b1b3d47d589e6371eb71487c6e"
+    },
+    {
+      "path": "docs/SETUP.md",
+      "bytes": 10269,
+      "sha256": "74ccbfda9003a637fd464208f4db0bad308fe1ee3681768c764b95acfe7d926d"
+    },
+    {
+      "path": "docs/dashboard-idle-cpu-validation.md",
+      "bytes": 4388,
+      "sha256": "6e634926bd8f157f97c2751cc864c42927b29831de8bf8f3a110ec7db2e397e3"
+    },
+    {
+      "path": "e2e/README.md",
+      "bytes": 5241,
+      "sha256": "81f5b9a15a47742719f0a3787c78b6f1567ba3dbe82fcb03d075e64ef0592907"
+    },
+    {
+      "path": "e2e/appletv-add-card.e2e.js",
+      "bytes": 1320,
+      "sha256": "29cf73d4c82f7f5a7ba0cd838013cfe74f6e54d3aa841af52b7a80844bf66c94"
+    },
+    {
+      "path": "e2e/card-types.e2e.js",
+      "bytes": 24389,
+      "sha256": "a23bf0f3fd71071c9779fcca086be17d43ad1f2e429714fa604e04d187d95068"
+    },
+    {
+      "path": "e2e/drag-and-drop.e2e.js",
+      "bytes": 9913,
+      "sha256": "9aea535fa6ba57bade177c78b4e628801205992614ba6f1c0c9f987e8ec0035d"
+    },
+    {
+      "path": "e2e/fixtures.js",
+      "bytes": 12516,
+      "sha256": "f94435ea00a851aa00360b4ddd28edf9933e303c860f68a8089ae6807172db5c"
+    },
+    {
+      "path": "e2e/media-page.e2e.js",
+      "bytes": 4909,
+      "sha256": "2ce6e9d1cf97eb16c164d543848b156db70b64e55124d576e2d448d278988ddd"
+    },
+    {
+      "path": "e2e/modals.e2e.js",
+      "bytes": 22000,
+      "sha256": "ed301d86e8bf44e01691c044b04bfd892c6221e777bd70ef3d4259f5732748aa"
+    },
+    {
+      "path": "e2e/oauth-flow.e2e.js",
+      "bytes": 6652,
+      "sha256": "37f0d15035b4be8d2ba0fb70eed4a31335d17f6b3d4c3487a1cedad8f5a45da2"
+    },
+    {
+      "path": "e2e/power-feedback.e2e.js",
+      "bytes": 4606,
+      "sha256": "90a1a73feba7c6629b848850f2d9c38e336d6f785db5a0f7f43e12f894f783e0"
+    },
+    {
+      "path": "e2e/sensor-customization.e2e.js",
+      "bytes": 20101,
+      "sha256": "c16b5f8223a902643642cee0640489678c4b9aee5a32d99f73d687a96a12a5df"
+    },
+    {
+      "path": "eslint.config.js",
+      "bytes": 1704,
+      "sha256": "f329c2ee6575fd31b6b8740788438eafa0c32df7fd45029771a34a4b927621f2"
+    },
+    {
+      "path": "hassio-addon/CHANGELOG.md",
+      "bytes": 24125,
+      "sha256": "a7d49c13cde1fc051cd081b5fb967f491ef14cc646ed3e814e71a43364811537"
+    },
+    {
+      "path": "hassio-addon/DOCS.md",
+      "bytes": 3096,
+      "sha256": "734b119e9014419e67c602618e2b17ec68a65817fc9855937bb612de68885af5"
+    },
+    {
+      "path": "hassio-addon/Dockerfile",
+      "bytes": 1873,
+      "sha256": "14a28bf4f60ceb05ecebce4fde4f3a91f9a9029ddc68705788854e418880406b"
+    },
+    {
+      "path": "hassio-addon/config.yaml",
+      "bytes": 676,
+      "sha256": "c5a521adcca774013d9520d32a1e8b5d4f87f8b16a23101309dee6256fab4538"
+    },
+    {
+      "path": "hassio-addon/icon.png",
+      "bytes": 5318,
+      "sha256": "2f45a3202ff5fb1c101b36130aa49470bdc5fa4b03b73d5c8bc1db8364240c36"
+    },
+    {
+      "path": "hassio-addon/logo.png",
+      "bytes": 5204,
+      "sha256": "3aaec72278793b0293b9737c29f87ff015946104dfa04131589f3dd2ae1121c1"
+    },
+    {
+      "path": "hassio-addon/run.sh",
+      "bytes": 836,
+      "sha256": "b9b601e512ee7b131e1fef5bcfc23ae9b5ab7331166f51608464da91d4ec8dc2"
+    },
+    {
+      "path": "hassio-addon/translations/en.yaml",
+      "bytes": 18,
+      "sha256": "fae281e2c3fa0d25aa8c8ac84b8da2e3e860b088571db37f2907d2494e05f73f"
+    },
+    {
+      "path": "index.html",
+      "bytes": 1375,
+      "sha256": "eb6b5b1507debaf922cfca7e28f3e7bff0a794e0ccac7622b4a6dbbad48b498d"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 277521,
+      "sha256": "2d4128eddacced333d62a644da2e6302dc6969d9fd056d5fb8d5f02b71169f78"
+    },
+    {
+      "path": "package.json",
+      "bytes": 2763,
+      "sha256": "7f6afcbcadc07a6fdee70d7efea8fbce1e6723c70d44af50a05f81645fb31a17"
+    },
+    {
+      "path": "playwright.config.js",
+      "bytes": 924,
+      "sha256": "90dec5b0d6c0cca488894425ebf1785ee551735d9b640eed5aa7e64bd1052a67"
+    },
+    {
+      "path": "postcss.config.js",
+      "bytes": 92,
+      "sha256": "fe78f76eb483fdc486e5f0ba4aabe66c85575aeec3c2d3e89f7024fc4632e67f"
+    },
+    {
+      "path": "public/1.Main.jpg",
+      "bytes": 1060168,
+      "sha256": "7843441c978543add20e925e3dff5609bb2183d10b6bd44a0d35759311d86885"
+    },
+    {
+      "path": "public/Main.png",
+      "bytes": 411606,
+      "sha256": "e640a9a17119be410330ac914115949016b992bc4ec6c957b7eedb30a61de19f"
+    },
+    {
+      "path": "public/favicon.ico",
+      "bytes": 766,
+      "sha256": "03c7e240de2aedff86323c37ef570f0c685336abd24470ea64e41f3c6f7c9bcb"
+    },
+    {
+      "path": "public/favicon.svg",
+      "bytes": 651,
+      "sha256": "81c94aacd6586ea0cf0af0eedc94ee24adf119a9a1f3744c42136aa6f4c264d7"
+    },
+    {
+      "path": "public/icons/icon-192.png",
+      "bytes": 3769,
+      "sha256": "f920d243ff1a12d160c382386f4ec6978de088461becb57eaed50be95fe6ccc7"
+    },
+    {
+      "path": "public/icons/icon-512.png",
+      "bytes": 11524,
+      "sha256": "96d42b3150b780667b1cdc08032a877684b89da355c2a7db95c3f3b2c488c3d7"
+    },
+    {
+      "path": "public/icons/icon-maskable-192.png",
+      "bytes": 3227,
+      "sha256": "5033af9c9204c0fcc919a6f289be60f616865dede69ee9596c6d6609981dd04c"
+    },
+    {
+      "path": "public/icons/icon-maskable-512.png",
+      "bytes": 9229,
+      "sha256": "ed0e51d83b135eaeb5edeb24ccf52c06c62d266cf927fcdeafec431a657ab236"
+    },
+    {
+      "path": "public/icons/maskable-source.svg",
+      "bytes": 776,
+      "sha256": "16c8684187376e97ebe26c137419576a0ece4be7326255478a4a0290de85c985"
+    },
+    {
+      "path": "public/manifest.json",
+      "bytes": 910,
+      "sha256": "ca78bf5e2fe99c10a4545a947a9f2fcf7a2bf44715215bc51cf39019f31a400a"
+    },
+    {
+      "path": "public/release-assets/Pills.png",
+      "bytes": 7721,
+      "sha256": "820ebd6c4f29b617563e801ad77bbada1a02f963e77119e257c5dca3a5f9113d"
+    },
+    {
+      "path": "public/release-assets/image.png",
+      "bytes": 10383,
+      "sha256": "6d496992d4eb1dd62680fdb2cf13aa0cfa80227c2ca50b960d14a4781bc17df8"
+    },
+    {
+      "path": "public/sw.js",
+      "bytes": 1626,
+      "sha256": "21a46253aa2c68dfb52e31a3a0dffec1731ea6da79038ecf3a1ede71a9fbd9db"
+    },
+    {
+      "path": "repository.yaml",
+      "bytes": 78,
+      "sha256": "dc4de2f7f206b6e03fb4a620840b752ddbfdac9fb939d0b4492c7ca82b2c4447"
+    },
+    {
+      "path": "scripts/check-bundle-size.mjs",
+      "bytes": 1942,
+      "sha256": "6b7c9b9eb70a86bf3ea5f3d264424c0a27d24f43a3c71269686a3e641fba8d3e"
+    },
+    {
+      "path": "scripts/lint-theme-colors.mjs",
+      "bytes": 3321,
+      "sha256": "eafb039811a4bd09cc83d32265d55447bcec65d6f06d4be7562445c9110e315b"
+    },
+    {
+      "path": "scripts/postbuild.js",
+      "bytes": 594,
+      "sha256": "adb6561876b36dd1c051d76f5e63387805c7f753359d61c781e27fd7e1cd970c"
+    },
+    {
+      "path": "scripts/release.mjs",
+      "bytes": 14470,
+      "sha256": "cedfa3c04c0c140ddcc79fe9cd4eb3336c23b2b7cfc43896cfe1825908bc0e91"
+    },
+    {
+      "path": "scripts/translate_de.py",
+      "bytes": 2272,
+      "sha256": "92ab0589c81fa5d411d7a0d6290d49b199df7f8f085be0926b690ebb41d582c3"
+    },
+    {
+      "path": "server/__tests__/haAuth.test.js",
+      "bytes": 13718,
+      "sha256": "7d971fa3556d2ffb41ff242301e1ac1afe6b75de194d5f9d14a1692fade282c6"
+    },
+    {
+      "path": "server/__tests__/index.test.js",
+      "bytes": 2392,
+      "sha256": "10dca79214aee23856a540c9e663bd414df441fa5789bc37c7625e091cb4cdd4"
+    },
+    {
+      "path": "server/__tests__/routeAuth.test.js",
+      "bytes": 12312,
+      "sha256": "44db989f482e8fd6dcd851f73c3fbcba38e5266d2dc0bdc57d72c0a29ce36fbb"
+    },
+    {
+      "path": "server/__tests__/settings.test.js",
+      "bytes": 3315,
+      "sha256": "7b42360f8dacca607bcb68672faf37850523fe153dd6380ca1e3389c70eb5bcc"
+    },
+    {
+      "path": "server/db.js",
+      "bytes": 2273,
+      "sha256": "aff076c057cc552339da1be54eab37861dc67c04428cff8823c7ca0eb83935cb"
+    },
+    {
+      "path": "server/haAuth.js",
+      "bytes": 11874,
+      "sha256": "6805217d4407e3bd5011480a2022bf381740bbfe2b799370c2b5e8efe19569fa"
+    },
+    {
+      "path": "server/index.js",
+      "bytes": 7630,
+      "sha256": "aba4ee4579ec571669dc96b2113c652d6532bf69240522a44efba23c92a770df"
+    },
+    {
+      "path": "server/routes/icons.js",
+      "bytes": 1817,
+      "sha256": "e380d6bacccef3c57463ef6eea50e0e13cb5b3fd01b051a6a6e41cd5e5b8e3fd"
+    },
+    {
+      "path": "server/routes/profiles.js",
+      "bytes": 7385,
+      "sha256": "6d651e63a9800aa02e969f16ea08178eb9e2f13562177806dc78528a2f21dbd4"
+    },
+    {
+      "path": "server/routes/settings.js",
+      "bytes": 17489,
+      "sha256": "30e0af7d4129278dd0d7bba675d99bf0c99feee06ab73b2c5a4bd5eccc333925"
+    },
+    {
+      "path": "server/utils/dataCrypto.js",
+      "bytes": 4865,
+      "sha256": "82a157343104e3e601dee5408ddc21298c0d5f8b8d3d6de6d36297ce57a03c9e"
+    },
+    {
+      "path": "src/App.jsx",
+      "bytes": 25017,
+      "sha256": "de29bcc66231fd5a642faacff33f004481b8b4e9eac7f091f85900002658a72a"
+    },
+    {
+      "path": "src/__tests__/AddCardContent.sensor.test.jsx",
+      "bytes": 2398,
+      "sha256": "e08bdb6511781fb54206b8bee593017f87a305df572a9032ca20713d5bb945b2"
+    },
+    {
+      "path": "src/__tests__/BackgroundLayer.test.jsx",
+      "bytes": 1525,
+      "sha256": "39a58f11d86705e5a88b492a261d7e8593ccef224629745c8c269700604224f5"
+    },
+    {
+      "path": "src/__tests__/CalendarModal.test.jsx",
+      "bytes": 2776,
+      "sha256": "fa1124777d0c9d0965a52e7102d3df0b80a5922efe2524b421c7e8aab83082fc"
+    },
+    {
+      "path": "src/__tests__/CameraFeed.test.jsx",
+      "bytes": 8987,
+      "sha256": "ed7e3bf5354e228894dfe1a0510567536afe0aa19a7ce7734f3b69e0c99db2d0"
+    },
+    {
+      "path": "src/__tests__/ConnectionBanner.test.jsx",
+      "bytes": 2190,
+      "sha256": "e56aea396180071914fd0d92fb536b859c2072486872f574cd7d8d45967d8bc6"
+    },
+    {
+      "path": "src/__tests__/DashboardLayout.cardsOnly.test.jsx",
+      "bytes": 6501,
+      "sha256": "6c8f7da0ac0b02ed3261aff673d04019825a624649c1b2ba3970cb71f9ad53a5"
+    },
+    {
+      "path": "src/__tests__/EditCardModalSensorDisplay.test.jsx",
+      "bytes": 4297,
+      "sha256": "b78b2df1c5a826faffd9f781e01cd8d7eba4395b583cb734e5d15c998904e045"
+    },
+    {
+      "path": "src/__tests__/GenericAndroidTVModal.test.jsx",
+      "bytes": 2210,
+      "sha256": "a695cc2579ef9f5ce6c470d63445de46dcc5da7e7bc485d4505da471a459c8a3"
+    },
+    {
+      "path": "src/__tests__/GenericAppleTVCard.test.jsx",
+      "bytes": 6932,
+      "sha256": "057be1fc993d16cdfef4ebf166ba548e6390a623404bd149ef1a950aad9d2356"
+    },
+    {
+      "path": "src/__tests__/GenericAppleTVModal.test.jsx",
+      "bytes": 7960,
+      "sha256": "e3b2029cfe8070e97cc0e8d4490801f0a6327d98b8e8cd03dc306c0178ee457c"
+    },
+    {
+      "path": "src/__tests__/GenericClimateCard.test.jsx",
+      "bytes": 6211,
+      "sha256": "0b14cab480d9ef38374be1f25f27c63aa86aed3bc186a9180b53c7e0382583b1"
+    },
+    {
+      "path": "src/__tests__/GenericClimateModal.test.jsx",
+      "bytes": 3088,
+      "sha256": "76099b446ab7759bbde4f895c6255c0ca85f0294710aa984528e984cc7562473"
+    },
+    {
+      "path": "src/__tests__/Header.test.jsx",
+      "bytes": 1890,
+      "sha256": "a43a3e1b9a6eed7bad5f52d01316a91c4faf3649359b0f8defa1810456593fa7"
+    },
+    {
+      "path": "src/__tests__/HeaderSidebar.test.jsx",
+      "bytes": 1060,
+      "sha256": "5d03a8767033c83c92c1032ec28b518d286572f714abdbffeb72dda4f2f673bf"
+    },
+    {
+      "path": "src/__tests__/HomeAssistantWarnings.test.jsx",
+      "bytes": 2714,
+      "sha256": "c5e3d055148a57dbfd38c2147465ba13ba726fb4e24f2b9bed489aa803d51e54"
+    },
+    {
+      "path": "src/__tests__/LightModal.test.jsx",
+      "bytes": 1859,
+      "sha256": "6fe11668cfc1fd26441b3f78256b5b65a9ed1e19a06a41fbba6f17120eb4551b"
+    },
+    {
+      "path": "src/__tests__/LockCard.test.jsx",
+      "bytes": 5408,
+      "sha256": "d7b6a320e54e916091464083e9e2909f3cc420d8a5163df5861229694cf3a4e6"
+    },
+    {
+      "path": "src/__tests__/MediaCards.mobile.test.jsx",
+      "bytes": 2238,
+      "sha256": "b70438ec1dd2a3c3e7a0c882f38fdb15ef370bade150ba8c8a7bcdedc66e0fe4"
+    },
+    {
+      "path": "src/__tests__/MediaPage.test.jsx",
+      "bytes": 8686,
+      "sha256": "c90b328dc7db9e9b3ce4acf738ee82523c40cdd1e44c3fdf351d2a8895dbbdc0"
+    },
+    {
+      "path": "src/__tests__/MobileCardModalLayout.test.jsx",
+      "bytes": 2682,
+      "sha256": "a6144c19826a1412d6491d99051289ffcab77172b803aa944fa9fec0222c02ee"
+    },
+    {
+      "path": "src/__tests__/MobileGridControls.test.jsx",
+      "bytes": 2265,
+      "sha256": "69a7e949b3717e9db05edca34b7e3adbe4a08bd501adcebc2cfb7b43744612c2"
+    },
+    {
+      "path": "src/__tests__/ModalEntitySlice.sensor.test.jsx",
+      "bytes": 2416,
+      "sha256": "d2ffb7357b61cfcb3d08ac768ba9439ac7a988bb6a8027360c1fe2ed1dc1d5d9"
+    },
+    {
+      "path": "src/__tests__/ModernDropdown.modal.test.jsx",
+      "bytes": 2029,
+      "sha256": "d20231fcac95f50a493b6122ed57749d805f3d8721f0c36ac21356b42b96fffc"
+    },
+    {
+      "path": "src/__tests__/MowerCard.test.jsx",
+      "bytes": 3456,
+      "sha256": "c8ff01967583d0cb13fbb272eda254a2db1a3f66a58017bf802fd9231fa893f4"
+    },
+    {
+      "path": "src/__tests__/PageNavigation.test.jsx",
+      "bytes": 2645,
+      "sha256": "8c6b96f42d4c7dc707c7d0236eec9bb3bb45cb4ee5e4cc4094cd4d90e30507ce"
+    },
+    {
+      "path": "src/__tests__/PersonStatus.test.jsx",
+      "bytes": 1911,
+      "sha256": "11c910ebfedc962818865ecb70fcc50aeef41a8b16bc4b84ce28bc6d7214e684"
+    },
+    {
+      "path": "src/__tests__/SensorCard.test.jsx",
+      "bytes": 11040,
+      "sha256": "49530c436df422c533a8bd1f745fe22785253462ce0fc9f9b87c16df92e8e6df"
+    },
+    {
+      "path": "src/__tests__/SensorCardCustomization.test.jsx",
+      "bytes": 13624,
+      "sha256": "59ef428f49a8fe9938ac06c9cc84f039778fae26f187109d6ed21c0d574ea449"
+    },
+    {
+      "path": "src/__tests__/SensorCardPreview.test.jsx",
+      "bytes": 2916,
+      "sha256": "f89fd8fbee5a5a94bddc8c75198fdb1ae74834a4b5e59b75788143e1a070a47f"
+    },
+    {
+      "path": "src/__tests__/SensorCardSettings.test.jsx",
+      "bytes": 18721,
+      "sha256": "6d60794d9018a5192fa6911eddb879df7898a9cfbf3049bae2085b197c6537e7"
+    },
+    {
+      "path": "src/__tests__/SensorCharts.test.jsx",
+      "bytes": 4436,
+      "sha256": "9c4cae1a46da7062e004fc19e5e5279931d70b88abca50bca9834815c97cfd67"
+    },
+    {
+      "path": "src/__tests__/SensorModal.test.jsx",
+      "bytes": 2942,
+      "sha256": "e489c27528c9a9e55573da8112cfab66e4e507b985633569898a194368c8e26e"
+    },
+    {
+      "path": "src/__tests__/SettingsDropdown.test.jsx",
+      "bytes": 2275,
+      "sha256": "70ccf3e447962425c0ab2318b02c520800d6196670caaa88c76e35285458c9cc"
+    },
+    {
+      "path": "src/__tests__/SettingsMenuControl.test.jsx",
+      "bytes": 2756,
+      "sha256": "f5d13117ee4d0151c77c3017ad1f97aa89bdacb8260652e0041e8d030201949a"
+    },
+    {
+      "path": "src/__tests__/StatusPill.test.jsx",
+      "bytes": 6427,
+      "sha256": "9c81ce5ff25e5dbaab3209cbda8c65020b6843c7cfc17e68d1582d5309cb2373"
+    },
+    {
+      "path": "src/__tests__/StatusPillsConfigModal.test.jsx",
+      "bytes": 29039,
+      "sha256": "efd067dcb801a81ce3c00701e2e5137b562d0fc798d7dc3047948f13ee284e8e"
+    },
+    {
+      "path": "src/__tests__/VacuumModal.test.jsx",
+      "bytes": 5601,
+      "sha256": "6294882e3b522200dda2b0b15f9b2408bdb7863ff9c0160a3eef4f37bb9bc59e"
+    },
+    {
+      "path": "src/__tests__/WeatherModal.test.jsx",
+      "bytes": 2844,
+      "sha256": "970eff90f86b68ef7c201e24265abb98b4caaa4bd1f4754ff2af4baf024d2b82"
+    },
+    {
+      "path": "src/__tests__/WeatherTempCard.test.jsx",
+      "bytes": 6896,
+      "sha256": "ca08190dbe8bd29c868ada35532127a9c9c577e75b120e7820441146b764f078"
+    },
+    {
+      "path": "src/__tests__/apiAuth.test.js",
+      "bytes": 8461,
+      "sha256": "deaaea02979c52553ea447f06760a344b94a15ec5b8461ff7e7b0d2613cdafa2"
+    },
+    {
+      "path": "src/__tests__/appContent.orchestration.test.jsx",
+      "bytes": 13037,
+      "sha256": "ac2367d9e8d27922eaf1a7469c8ab28d7247ac1fe989d1c367a035b5cd8cab0d"
+    },
+    {
+      "path": "src/__tests__/cardActions.lock.test.js",
+      "bytes": 2638,
+      "sha256": "570bdbd60a8dcd35662b1095807d1b6d9b8ad8093af78bd9a8a5a1e5847926fb"
+    },
+    {
+      "path": "src/__tests__/cardActions.sensor.test.js",
+      "bytes": 3497,
+      "sha256": "e169f61f8e17bb5f95d4fb8ebdbbdc0c43dfc29916145c22de3f1b3a4c3f990a"
+    },
+    {
+      "path": "src/__tests__/cardUtils.test.js",
+      "bytes": 17124,
+      "sha256": "43308f6b65daf665b8ac2f2d92d07b855b14bfdf46b5f6ed6cd74c0f491a5be8"
+    },
+    {
+      "path": "src/__tests__/climateFavorites.test.js",
+      "bytes": 953,
+      "sha256": "d7822d339db7a8771a9134b94fa620736907e06d6f417ae59c52c89e1f27e5e3"
+    },
+    {
+      "path": "src/__tests__/connectionHealth.test.js",
+      "bytes": 2955,
+      "sha256": "867eee8b90a4d11432fc272eb22521b92b8c37c3613cf9c6b5fde7bbc849781a"
+    },
+    {
+      "path": "src/__tests__/constants.test.js",
+      "bytes": 794,
+      "sha256": "02bc6054ecd267b870d2d57456c79db46dc5370daa5cf89c80b0aca67eb08ae2"
+    },
+    {
+      "path": "src/__tests__/entityRegistryMetadata.test.js",
+      "bytes": 2520,
+      "sha256": "b6dd2886bff2074e16d8c9e3cff80539ded59e3975f959b75b6581af2c7678cc"
+    },
+    {
+      "path": "src/__tests__/gridLayout.test.js",
+      "bytes": 12406,
+      "sha256": "e7eccad2b90e447e7f8f756c994981d08c37263d5853789fb4ef01443fb1da84"
+    },
+    {
+      "path": "src/__tests__/i18n.test.js",
+      "bytes": 3683,
+      "sha256": "0ff173b35d028fa0f3efb8ccb3dc46a9af9fcb85dd630a2f5ad84d2ba55e89bb"
+    },
+    {
+      "path": "src/__tests__/lockRenderer.test.jsx",
+      "bytes": 1938,
+      "sha256": "0ddc80b70e931ec617a5373278898795fe50c813360b03eed90fbb38019f2829"
+    },
+    {
+      "path": "src/__tests__/mediaEntityClassification.test.js",
+      "bytes": 1286,
+      "sha256": "33e8c4d5612f0fff95045e850e4a5e5c987fdfd19ff4d346a10ac6cba43a589e"
+    },
+    {
+      "path": "src/__tests__/oauthStorage.test.js",
+      "bytes": 4513,
+      "sha256": "222fba8040fc3059f1f55d21d875036bdf50f8c9da598a3bdd90b058a4a1fc7e"
+    },
+    {
+      "path": "src/__tests__/onboarding.test.js",
+      "bytes": 747,
+      "sha256": "01131896093e177bab6037e118768d30901516968fe70e8f37c501b29cfb4c9f"
+    },
+    {
+      "path": "src/__tests__/pageContextPersistence.test.jsx",
+      "bytes": 5647,
+      "sha256": "4b55f2f057511300e0684c0ba909e29864d1e10eebb6d8b585edc0bcffe6a7a5"
+    },
+    {
+      "path": "src/__tests__/profileContextSetters.test.js",
+      "bytes": 2915,
+      "sha256": "96aca80efe90ff29bf1998cd3acdfa338450b831d2be892b0de114d70f3d3b51"
+    },
+    {
+      "path": "src/__tests__/renderingExports.test.js",
+      "bytes": 540,
+      "sha256": "665461c8039d590450de92f1e681943c22532edf7a5dd8a7442d7c34ba50a0e3"
+    },
+    {
+      "path": "src/__tests__/renderingRegistry.test.js",
+      "bytes": 7455,
+      "sha256": "20508ffdcb857dd30c7a9ceb6ae5fac2a6f27ca55f68f9d057f783eb67361f38"
+    },
+    {
+      "path": "src/__tests__/roomCardUtils.test.js",
+      "bytes": 1751,
+      "sha256": "889cc57bff6c87bd953c57b32da81b537d58035c34f3aee90436c84aba98aaea"
+    },
+    {
+      "path": "src/__tests__/roomEntities.test.js",
+      "bytes": 1029,
+      "sha256": "3ff6f6f8ca5706313e60ce3b11a33f1cf7551e0b666187e498cf75c5cfa02a8c"
+    },
+    {
+      "path": "src/__tests__/sensorCardConfig.test.js",
+      "bytes": 10899,
+      "sha256": "c7feff6cf2cf7443c12dd0c129e68760bb98897e1da2362f0d46520a9297a0ba"
+    },
+    {
+      "path": "src/__tests__/sensorCardInstances.persistence.test.jsx",
+      "bytes": 2984,
+      "sha256": "4ff058fe0791604cb89f5ba1ad6f7c0d5795ddb00d3a5a7d2e66c60094a266de"
+    },
+    {
+      "path": "src/__tests__/sensorHistory.test.js",
+      "bytes": 4657,
+      "sha256": "c50333c2e9fba865c7bb2ca64219df254e21343f62919538ea0dd8ec18b44ebe"
+    },
+    {
+      "path": "src/__tests__/settingsApi.test.js",
+      "bytes": 4272,
+      "sha256": "efdfe2350cc13f971a67e86a369125c95b19ed7d5f60b3f0b32f93067a4cb470"
+    },
+    {
+      "path": "src/__tests__/setup.js",
+      "bytes": 36,
+      "sha256": "a46d66851af2c056e805fdd574bf5ec3adb1181c43c5e41f0a1c592e338afe64"
+    },
+    {
+      "path": "src/__tests__/snapshot.test.js",
+      "bytes": 4523,
+      "sha256": "58cb7af679139c10772a3f9272933ff75687cc8bfb3af6dcc97d272a0fc0fd15"
+    },
+    {
+      "path": "src/__tests__/statusGroupPills.test.js",
+      "bytes": 5445,
+      "sha256": "69db07bb61971d3f3c2cf4ea1a5f68af9bdfd57e6bb7b0e15af4444b975b1718"
+    },
+    {
+      "path": "src/__tests__/themes.test.js",
+      "bytes": 607,
+      "sha256": "3eaffd18f50e199d6a4cdc4805d0a9b448ed3a96d3732c068fead9649be454f6"
+    },
+    {
+      "path": "src/__tests__/useAddCard.test.js",
+      "bytes": 10956,
+      "sha256": "bc6261b3ab1c96019d7ec53c960cbb16e0089ed4785c69a7618f89a8fb4010c9"
+    },
+    {
+      "path": "src/__tests__/useAppViewModels.test.js",
+      "bytes": 6669,
+      "sha256": "0e459675af3f579367306e5b1d297eb7d5e4a2e35ac51adbcc3ed3fb1ebf2b9e"
+    },
+    {
+      "path": "src/__tests__/useConnectionSetup.test.js",
+      "bytes": 12294,
+      "sha256": "4674fc8b68b30ca644d131ef0bbd5b3d26511859d7fae15dac383485860ae38b"
+    },
+    {
+      "path": "src/__tests__/useDashboardEffects.test.js",
+      "bytes": 8868,
+      "sha256": "a29464a78b91f89ee59c8dab92277664b4aa10a4694730bed21fc8478abbf151"
+    },
+    {
+      "path": "src/__tests__/useEditModalProps.test.js",
+      "bytes": 7022,
+      "sha256": "f29238801ce4af38b8a458cf7473ff28600dff3df57488fcb24a2c37fd2dbd0e"
+    },
+    {
+      "path": "src/__tests__/useEntityHelpers.test.js",
+      "bytes": 13676,
+      "sha256": "91d100f5402bb43014c1834e07d4887783dc6d9d3382a4ad830f5e531028a4f6"
+    },
+    {
+      "path": "src/__tests__/useMobileConnectionRecovery.test.js",
+      "bytes": 2969,
+      "sha256": "5fc03f28880d1f9258c9464d06528c6ef45f713dffb376a35c564fa206147e7d"
+    },
+    {
+      "path": "src/__tests__/usePageManagement.test.js",
+      "bytes": 11006,
+      "sha256": "b8be319a3090598d2527341b311679bc0378152772bc12079f7bccb491d0afba"
+    },
+    {
+      "path": "src/__tests__/usePageRouting.test.js",
+      "bytes": 1897,
+      "sha256": "b2ddb551e7a603261c7e5bf2b7e0d91c6e208c1a6e0e12d897db824e4f5df12c"
+    },
+    {
+      "path": "src/__tests__/usePopupTriggers.appletv.test.js",
+      "bytes": 1510,
+      "sha256": "63fa0e272c40731361231517825d741465e5ee5b69aff061f613334c91233c68"
+    },
+    {
+      "path": "src/__tests__/usePopupTriggers.sensor.test.js",
+      "bytes": 2708,
+      "sha256": "85a0932054b9864b0c0876097a452b4369120ddeb1c23cf5ee2956628da2dc1b"
+    },
+    {
+      "path": "src/__tests__/usePowerToggle.test.js",
+      "bytes": 3370,
+      "sha256": "2afb98b351402dd50dffe62e65601e3e697c2c5af06b85c5025fe88568db24f0"
+    },
+    {
+      "path": "src/__tests__/useProfiles.test.js",
+      "bytes": 4917,
+      "sha256": "eea2a36b89d71d4388e64df3699ec229d8e0a32b61fd8447e9f661f0cd973348"
+    },
+    {
+      "path": "src/__tests__/useResponsiveGrid.test.js",
+      "bytes": 6444,
+      "sha256": "1d7b026991f6c3637e59830791aa4ecf50761c3456f86d607718df6a00e73d85"
+    },
+    {
+      "path": "src/__tests__/useSensorCardAction.test.js",
+      "bytes": 9160,
+      "sha256": "3a384d0100c082b0bb61304d4325da2d957e2d8ceea15243f91fef6c8e8f84dd"
+    },
+    {
+      "path": "src/__tests__/useSettingsSync.test.js",
+      "bytes": 18189,
+      "sha256": "ebeba891df819905b0a1a831b2b43b2af68dd374bb37a117c77a2303e0aff2a3"
+    },
+    {
+      "path": "src/__tests__/useSmartTheme.test.js",
+      "bytes": 1507,
+      "sha256": "1ac8656a996b6584f6967730b96c89771cb55b2b3da7945d746a7d7257368a49"
+    },
+    {
+      "path": "src/__tests__/useWeatherForecast.test.js",
+      "bytes": 1991,
+      "sha256": "099b2fb28956e25063d0b4754bae128dd3322f51f02a9fa65f75205949f8aae6"
+    },
+    {
+      "path": "src/__tests__/utils.test.js",
+      "bytes": 2711,
+      "sha256": "58dc3ca753ac6a6f781acd6974d4caf240945a1e2a938f0507542d1c83794514"
+    },
+    {
+      "path": "src/components/camera/CameraFeed.jsx",
+      "bytes": 21445,
+      "sha256": "7b6d6c1200a208d627a0fe932436559f5e80ed56c1853a593ce3f753a2338ff0"
+    },
+    {
+      "path": "src/components/cards/AlarmCard.jsx",
+      "bytes": 12556,
+      "sha256": "28761849dff20502d6a5d280d7555376b3949a915d2e5995cfa0e71833151e38"
+    },
+    {
+      "path": "src/components/cards/CalendarCard.jsx",
+      "bytes": 28147,
+      "sha256": "95e2bb6a24f0d98b1190a62ef5c9ef697e37cffac1574ccdb6e0ddccee2a36b8"
+    },
+    {
+      "path": "src/components/cards/CameraCard.jsx",
+      "bytes": 7790,
+      "sha256": "da2f55ed22e4e141608277ba220bd653175c6769b2004a312c97b288d307c60e"
+    },
+    {
+      "path": "src/components/cards/CarCard.jsx",
+      "bytes": 11753,
+      "sha256": "a5dd0d3eb295199a406e93273921720f43aea97ef293a5d0702fe3a3d6765954"
+    },
+    {
+      "path": "src/components/cards/CoverCard.jsx",
+      "bytes": 18849,
+      "sha256": "f3c09b83ef160a252bf626edc646905d852c388d6a871bc91c9a7beea3313e70"
+    },
+    {
+      "path": "src/components/cards/FanCard.jsx",
+      "bytes": 12610,
+      "sha256": "4303810bc994002b2d9a4d991493bf6627abd4ba07a67b4bcdeb7bd8f418192d"
+    },
+    {
+      "path": "src/components/cards/GenericAndroidTVCard.jsx",
+      "bytes": 10833,
+      "sha256": "2a002c517854719670427c8590ebcdb92f7e2ba360e168820ea3b5c9ccc53c6d"
+    },
+    {
+      "path": "src/components/cards/GenericAppleTVCard.jsx",
+      "bytes": 13887,
+      "sha256": "12093eeb3466155067c7b2b1ff22002fdfc928c4ced0c0c00e0d746626fe10a6"
+    },
+    {
+      "path": "src/components/cards/GenericClimateCard.jsx",
+      "bytes": 14680,
+      "sha256": "2d55d6041ff86b53b9a58cbfd8af1dac8f2270dd06f2ebe6eca9ef3143bd3809"
+    },
+    {
+      "path": "src/components/cards/GenericEnergyCostCard.jsx",
+      "bytes": 7055,
+      "sha256": "6cfaacf0193e90f5e2528e7c4973121ee97d7ad203e8f12fbbfcb5328381964f"
+    },
+    {
+      "path": "src/components/cards/GenericNordpoolCard.jsx",
+      "bytes": 9514,
+      "sha256": "cd6f3e707488e5dc1e4810b874dac09d84ad20c1fa2074c2a7564287d5750014"
+    },
+    {
+      "path": "src/components/cards/LightCard.jsx",
+      "bytes": 10196,
+      "sha256": "ab73d667c5022ba9aafea0ae205b7c7b6345bb39653ab3561487e48a3b48449b"
+    },
+    {
+      "path": "src/components/cards/LockCard.jsx",
+      "bytes": 12864,
+      "sha256": "0c51a17fcef3c5ff558bfa3779f07eec40f45c953038260b11594f2020fb61e1"
+    },
+    {
+      "path": "src/components/cards/MediaCards.jsx",
+      "bytes": 26992,
+      "sha256": "35ada40d273de6216982157a0996d6ea0f6697c375f90344169d9a60d90f5c50"
+    },
+    {
+      "path": "src/components/cards/MissingEntityCard.jsx",
+      "bytes": 1271,
+      "sha256": "8abf367c929f0ea238b2205b063be6046313d0effe5c624cd8bcf6a3e00c42ca"
+    },
+    {
+      "path": "src/components/cards/MowerCard.jsx",
+      "bytes": 14900,
+      "sha256": "0a0198f53e3a5dbf5b91b5ae35b46fcc89e006173fd7eeef23a8d0d1a73a7a11"
+    },
+    {
+      "path": "src/components/cards/PersonStatus.jsx",
+      "bytes": 5920,
+      "sha256": "828b4923106e621c3e0ace4dd52c4cb8d7e0ceb9ad3c865cea3bcdb8ceb5bb7a"
+    },
+    {
+      "path": "src/components/cards/RoomCard.jsx",
+      "bytes": 20012,
+      "sha256": "787b9f84dbe7148988dfe952d00578f40aea58b633dd06a298587eb56c834154"
+    },
+    {
+      "path": "src/components/cards/SensorCard.jsx",
+      "bytes": 51376,
+      "sha256": "52bc0267203a1cc228de73ee64a200241682dc0cef64e76ebbed1af4ab07daae"
+    },
+    {
+      "path": "src/components/cards/SpacerCard.jsx",
+      "bytes": 2715,
+      "sha256": "adb48bd3de4d3de2d03652bdffbaec02882c8d72746a696f50b61b7b8b4e93a3"
+    },
+    {
+      "path": "src/components/cards/StatusPill.jsx",
+      "bytes": 25733,
+      "sha256": "9f74835a9db75aaaa93531811b0419cc7ecc82ce6e2b3ccca3084527b9c2874a"
+    },
+    {
+      "path": "src/components/cards/TodoCard.jsx",
+      "bytes": 16224,
+      "sha256": "05bfadc4e066ce07077b1b17fb6abc3a02b5f4e71892eaa974e25d23212347af"
+    },
+    {
+      "path": "src/components/cards/VacuumCard.jsx",
+      "bytes": 15040,
+      "sha256": "0f88c1808b93bccae7687b8770b44ced23cd7e1b6a412838a76e7a6bfa8bae3c"
+    },
+    {
+      "path": "src/components/cards/WeatherTempCard.jsx",
+      "bytes": 28274,
+      "sha256": "f2bbc74361f50bd1b7ddb3fa103369878a1694b14de47ea339267f733827c831"
+    },
+    {
+      "path": "src/components/cards/sensorIcon.js",
+      "bytes": 547,
+      "sha256": "99a18ba8061cf43e18db5d213a9224a2122a8bc994f26c4ad867023ad1d4b360"
+    },
+    {
+      "path": "src/components/charts/BinaryTimeline.jsx",
+      "bytes": 5341,
+      "sha256": "f90bb79471099ddfc14f06b72191f0f4d72fcfad1d613f054c0e726f5a5f408f"
+    },
+    {
+      "path": "src/components/charts/InteractivePowerGraph.jsx",
+      "bytes": 7710,
+      "sha256": "d76d868d68e338f2f1722091fcd45ec05c1d84c90dc98723ae97d35ffbc702c9"
+    },
+    {
+      "path": "src/components/charts/SensorGauge.jsx",
+      "bytes": 3287,
+      "sha256": "aec0e0a20bcc69eae491fcfa0ef66b8a9edefdb6ace06f212cd8a07a65140206"
+    },
+    {
+      "path": "src/components/charts/SensorHistoryGraph.jsx",
+      "bytes": 9662,
+      "sha256": "aff59fb1dd6d6d6dad48f10ca93e1b33d1ad342ffceb8cbc8ebd52aec04a3305"
+    },
+    {
+      "path": "src/components/charts/SparkLine.jsx",
+      "bytes": 9782,
+      "sha256": "abc589df1385fe9febd9c0adf58767e2ebc11805c73bcd4e3fd83f642a70fae6"
+    },
+    {
+      "path": "src/components/charts/WeatherGraph.jsx",
+      "bytes": 9028,
+      "sha256": "6ef77eb96d25c83a119f6f932c840a9d601e82fcfec740ff535fdbc208f01aaa"
+    },
+    {
+      "path": "src/components/effects/AuroraBackground.jsx",
+      "bytes": 4503,
+      "sha256": "8c76309b27641cfaec8e80524da7ee36de4f82fdcee24caf65475287ac2ccd3c"
+    },
+    {
+      "path": "src/components/effects/LavaLampBackground.jsx",
+      "bytes": 4230,
+      "sha256": "8a871d8d209ca19b8176a7573bd88a49d796607bad5fac6d137b593e1bb6a923"
+    },
+    {
+      "path": "src/components/effects/SilkBackground.jsx",
+      "bytes": 4378,
+      "sha256": "7a02718b4b507ca25425cae8dfae70761ed6fb09d8c4be30c0b7c1e061436e01"
+    },
+    {
+      "path": "src/components/effects/WeatherEffects.jsx",
+      "bytes": 4523,
+      "sha256": "9382524ffed810fe251387fb5660e3ff532355ea93f900b2446fc5749379a3f4"
+    },
+    {
+      "path": "src/components/index.js",
+      "bytes": 2841,
+      "sha256": "336b00aa060ab66ae17e68932f62672e559a8b105b6766cb4c47865ed96b3355"
+    },
+    {
+      "path": "src/components/pages/BatteryPage.jsx",
+      "bytes": 20551,
+      "sha256": "e3c47c64356806abbaea5755a73a972d651e24506a227704c648c1b5d1cb1a00"
+    },
+    {
+      "path": "src/components/pages/LightsPage.jsx",
+      "bytes": 27388,
+      "sha256": "07636edfa407c921b018a71663770fba36072e3456fe3007986c4facf9719afb"
+    },
+    {
+      "path": "src/components/pages/MediaPage.jsx",
+      "bytes": 64389,
+      "sha256": "3f35f8e47e6988e436af66007f04b9a25b34e0d84b185df99ff284a6fda8c0ca"
+    },
+    {
+      "path": "src/components/pages/PageNavigation.jsx",
+      "bytes": 11932,
+      "sha256": "9dd62379ecc92ef7e148c9ddfc416ef94c84197d529c8c974253223becd4cb36"
+    },
+    {
+      "path": "src/components/pages/RoomExplorerPage.jsx",
+      "bytes": 41228,
+      "sha256": "f3dae0787a7aa1b5b0c086bdf3a4f89c0569daa8463239034a4aaf08c5d81cc5"
+    },
+    {
+      "path": "src/components/pages/SonosPage.jsx",
+      "bytes": 131,
+      "sha256": "1fde609db83588eac63c67d98454930cd6690a1bd87d651261c61e51b1880ac8"
+    },
+    {
+      "path": "src/components/sidebars/HeaderSidebar.jsx",
+      "bytes": 17152,
+      "sha256": "ab343b35243945ef1a274dc82d099d36036a66b1424b797729fc32a561dcb8f4"
+    },
+    {
+      "path": "src/components/sidebars/LayoutSidebar.jsx",
+      "bytes": 26503,
+      "sha256": "6382b8b48705bc8452bca728663bc37ffb7676f934ef15aed51e832bf74f5974"
+    },
+    {
+      "path": "src/components/sidebars/SidebarContainer.jsx",
+      "bytes": 3839,
+      "sha256": "5a2fb13834973cc7cfbb7304004b4c3d53284b6a54808a61c53087f9581e6ee2"
+    },
+    {
+      "path": "src/components/sidebars/SidebarControls.jsx",
+      "bytes": 3876,
+      "sha256": "7beffc8a21ff5f2e633419ee41e215fc3bd736e61fb1c86bae7d5a2d2b0540be"
+    },
+    {
+      "path": "src/components/sidebars/ThemeSidebar.jsx",
+      "bytes": 18908,
+      "sha256": "744205e2b3e9854dd11200c57eb2d6edf45c2a139c2e4839c008dcf578e61692"
+    },
+    {
+      "path": "src/components/ui/AccessibleModalShell.jsx",
+      "bytes": 4117,
+      "sha256": "6202170c0189833f50747bd7fae9aa03110b699aa30d4ca3a2162b75e6abd595"
+    },
+    {
+      "path": "src/components/ui/BatteryBar.jsx",
+      "bytes": 967,
+      "sha256": "ee7c81715ca45f62e66a69cb6672b726ba3233c8f5fe405156c91d8c785583c1"
+    },
+    {
+      "path": "src/components/ui/CardErrorBoundary.jsx",
+      "bytes": 1596,
+      "sha256": "15ddfc3dbd1cb624cb717ff2e7652c236508a626079f192dd2a8f8b6b0c0e800"
+    },
+    {
+      "path": "src/components/ui/ConditionBuilder.jsx",
+      "bytes": 26560,
+      "sha256": "4284e24c3563e185a4387cfb955ec107b883d97f65ce0d90ed799815cc44566e"
+    },
+    {
+      "path": "src/components/ui/CustomIcons.jsx",
+      "bytes": 2697,
+      "sha256": "b6d195889e9d4c11f66a2f8f96f6f90dd71ac159cfd70dc00ce5450789834bae"
+    },
+    {
+      "path": "src/components/ui/EditOverlay.jsx",
+      "bytes": 7216,
+      "sha256": "9d15714938b7af04811def17d77a16162a4fc22d72b230de683381e4cdb803d3"
+    },
+    {
+      "path": "src/components/ui/IconPicker.jsx",
+      "bytes": 6405,
+      "sha256": "e1d86e6359e0e7bfa3c51d18ac1908430be08f85c7abf78b93c9a118b6e2cd6a"
+    },
+    {
+      "path": "src/components/ui/M3Slider.jsx",
+      "bytes": 7437,
+      "sha256": "3ca5352a54e355243689e5cdd2706fb71f884e9c74503757348fd81341e6de55"
+    },
+    {
+      "path": "src/components/ui/ModalSuspense.jsx",
+      "bytes": 855,
+      "sha256": "0ff2e61a02c3b9109dc01d75865db18a19d400b063fea3d79b15bc21132d0bca"
+    },
+    {
+      "path": "src/components/ui/ModernDropdown.jsx",
+      "bytes": 10644,
+      "sha256": "53a0ce315c20414310029b9357fee8429fc8b42572d9425b3938415ca16aa4e9"
+    },
+    {
+      "path": "src/components/ui/PinLockModal.jsx",
+      "bytes": 5317,
+      "sha256": "2ff12ef4906e93ef83df87a9657cca6150848bfe7c55c157fc2e500b2c564613"
+    },
+    {
+      "path": "src/components/ui/SafeImage.jsx",
+      "bytes": 629,
+      "sha256": "059ac6ecacdd1eb1ca8d9eb924be6a573b0958e4c9419cb53180af0f773e487a"
+    },
+    {
+      "path": "src/components/ui/SettingsDropdown.jsx",
+      "bytes": 9377,
+      "sha256": "881b1f667177ab790b16df84d43a2db1dfa425bb86fbd871f273322f3834e0cd"
+    },
+    {
+      "path": "src/components/ui/ToastContainer.jsx",
+      "bytes": 1342,
+      "sha256": "5de2a58f4dd4f90ce8bc36c29bf5a0a450911cc589689e730bffe7ba23435c0b"
+    },
+    {
+      "path": "src/components/ui/modalStyles.js",
+      "bytes": 687,
+      "sha256": "910d77dfaff61a07bf274ba5e6d8f96755c12fadda9d264df9979e869582f4a8"
+    },
+    {
+      "path": "src/config/constants.js",
+      "bytes": 967,
+      "sha256": "97da7cfd62fa93caf067dc5f4021234a1bceaab65cd8d5da0151535b66aebeb7"
+    },
+    {
+      "path": "src/config/defaults.js",
+      "bytes": 86,
+      "sha256": "b42416049e2489b1c68409812b410d09c4be3c5e3b787994e7e3825fc0a02642"
+    },
+    {
+      "path": "src/config/onboarding.js",
+      "bytes": 548,
+      "sha256": "5abb5d8fbeecacd3f6003557a9b792d62e046549aad276f8ad1dede81b4d0530"
+    },
+    {
+      "path": "src/config/themes.js",
+      "bytes": 7980,
+      "sha256": "2f502c4639338ddece00ea60f425f24bb242ad8a2ae073375d77637c53034338"
+    },
+    {
+      "path": "src/contexts/AppUiContext.jsx",
+      "bytes": 1342,
+      "sha256": "805e5ba9c8e8258df448494740797d4f9b208deb55f4f7daa5dc1d5b7ceb88d2"
+    },
+    {
+      "path": "src/contexts/ConfigContext.jsx",
+      "bytes": 20156,
+      "sha256": "2cfe079a8cad5dfa96c828fcd331ac340b1809abf50fac220dfe661f30d9418e"
+    },
+    {
+      "path": "src/contexts/HomeAssistantContext.jsx",
+      "bytes": 21949,
+      "sha256": "1144cb37b54329826fcd78c0fb06eaba45fda7c0a3bc340877a25cecc3337683"
+    },
+    {
+      "path": "src/contexts/ModalContext.jsx",
+      "bytes": 1152,
+      "sha256": "44acc4cb831ad634bc929f3f2a60914b9a495d3b78c41a84b0a6061a04894542"
+    },
+    {
+      "path": "src/contexts/PageContext.jsx",
+      "bytes": 19758,
+      "sha256": "ccc6052a6a9d15215ba4f09391c303fe6f5a5ae4e3f9aa675f431a7f8888c0e2"
+    },
+    {
+      "path": "src/contexts/ToastContext.jsx",
+      "bytes": 1187,
+      "sha256": "567be29ce65a5660d77fbe522022787d4b768aa778be9ae2e0a954b005b1daa0"
+    },
+    {
+      "path": "src/contexts/index.js",
+      "bytes": 452,
+      "sha256": "3163652122a1ff8ff03fd5b23354f797b3aacb004dac6018161b4a5f29544d09"
+    },
+    {
+      "path": "src/docs/CSS_VARIABLES.md",
+      "bytes": 2008,
+      "sha256": "bbadf075d88763d737c3eda0986b3693b0246584b36fc93f4da6f7aede7c7581"
+    },
+    {
+      "path": "src/hooks/index.js",
+      "bytes": 1026,
+      "sha256": "3ed2c3e3615fe1e444fecf288e0f15344aaffaab4213dc50b044ae4e47bf67f6"
+    },
+    {
+      "path": "src/hooks/useAddCard.js",
+      "bytes": 10304,
+      "sha256": "c88cbb572562f68f48e5b473df1241481669ae707c26f7c72a8853142f842643"
+    },
+    {
+      "path": "src/hooks/useAppViewModels.js",
+      "bytes": 13216,
+      "sha256": "c85a2dce7b9354893e9d8c2647e33fefe497401593167f01cfe69e382d98338f"
+    },
+    {
+      "path": "src/hooks/useCardRendering.jsx",
+      "bytes": 14990,
+      "sha256": "d38e1685ef23c35ada4afe6ad016d5ba413576dc07d4e11838910a3d46fd3cf0"
+    },
+    {
+      "path": "src/hooks/useConnectionSetup.js",
+      "bytes": 6207,
+      "sha256": "0f7fbd511fd6d83fca33eacecb62b9b41537f8e7b8aa3903bc2e9671f347baed"
+    },
+    {
+      "path": "src/hooks/useDashboardEffects.js",
+      "bytes": 6014,
+      "sha256": "c3b921985b2919e56f086fe4e93adf2f18cd590c75d35a682a9172567925aae4"
+    },
+    {
+      "path": "src/hooks/useDashboardStateCoordinator.js",
+      "bytes": 6828,
+      "sha256": "0204209de37995f862fb7237ec7c7b3d88e787581e0cb5e8c6ab09fac137fdc3"
+    },
+    {
+      "path": "src/hooks/useEnergyData.js",
+      "bytes": 1778,
+      "sha256": "5d2d6b07bf5ccea54de1f24a3cedc3681e143d10a5057ed6b1bae6c384c86f78"
+    },
+    {
+      "path": "src/hooks/useEntityHelpers.js",
+      "bytes": 4410,
+      "sha256": "64899f4d3de281ca8a8aceb3749f933f272e94b7bc1c28bb018903b9b4e31614"
+    },
+    {
+      "path": "src/hooks/useGuardedUiActions.js",
+      "bytes": 2853,
+      "sha256": "6726b3e79bceef632b9d4f2bf8e3a4bb0425011f29b70e4d1e2a87e38c34200a"
+    },
+    {
+      "path": "src/hooks/useLowPowerMotion.js",
+      "bytes": 1903,
+      "sha256": "b3b89c7a4d284478e6e59dbe3ead5ad2f0a3c3c2a98e45886127074845af672d"
+    },
+    {
+      "path": "src/hooks/useMobileConnectionRecovery.js",
+      "bytes": 2531,
+      "sha256": "c6484852dc4287d546bd431d2fdcad0ebc5a5b55cd506b3db8fb4002ae907630"
+    },
+    {
+      "path": "src/hooks/useModals.js",
+      "bytes": 5172,
+      "sha256": "9067cb26abbca222c4b4a582e58de9d8a465609bb63d1a4c4aa2f01226b6260e"
+    },
+    {
+      "path": "src/hooks/usePageManagement.js",
+      "bytes": 6367,
+      "sha256": "84caff91de80c708a89d48f099e49811fab4491d3d23ce6500275262c4567094"
+    },
+    {
+      "path": "src/hooks/usePageRouting.js",
+      "bytes": 1272,
+      "sha256": "3df3a3b56dc45132c8961383500e4116a88ce61ec34802a6d4a87097d406692d"
+    },
+    {
+      "path": "src/hooks/usePopupTriggers.js",
+      "bytes": 10910,
+      "sha256": "735f3a4a7234ef8c907c818cdd22937b8c8ce88fb4fe80dbf2b601f353b328fc"
+    },
+    {
+      "path": "src/hooks/usePowerToggle.js",
+      "bytes": 1282,
+      "sha256": "cfef966f573c4a7d8e278daca780d7b0fe6b28b1cc9c570285c40d3ee007cc5a"
+    },
+    {
+      "path": "src/hooks/useProfiles.js",
+      "bytes": 10639,
+      "sha256": "6ff60ba45da1c80c19fb6e73a46b9ed690738a24db2dfa59e4fc62d7014fae61"
+    },
+    {
+      "path": "src/hooks/useResponsiveGrid.js",
+      "bytes": 2133,
+      "sha256": "fa56606edc42e651510bc600327c9c637dbffa4ffa9605ffa308ca5f545678ce"
+    },
+    {
+      "path": "src/hooks/useSensorCardAction.js",
+      "bytes": 4210,
+      "sha256": "e3494acbfbd133b7d43b2495397854d4595f21e83ba658f33965f8c13f84eec4"
+    },
+    {
+      "path": "src/hooks/useSettingsAccessControl.js",
+      "bytes": 1592,
+      "sha256": "30b2e3bf2f1f791d04afb69b312c595ca7957267535d4c0f272b0cb4012cc85f"
+    },
+    {
+      "path": "src/hooks/useSettingsSync.js",
+      "bytes": 21149,
+      "sha256": "d04b9533f6258c693b8448c94c6946b7a382d0783253661b5574e3b3f225b5cc"
+    },
+    {
+      "path": "src/hooks/useSmartTheme.js",
+      "bytes": 3458,
+      "sha256": "d76dc72c45938d622b300b61b878c944df58598b45b58f8f7f2c4c53fdbdf5a8"
+    },
+    {
+      "path": "src/hooks/useTempHistory.js",
+      "bytes": 2673,
+      "sha256": "6826403675cb310c6f23b4a1c0020e7b93f2f7914a8213a8a5d3b8d2e1fc29b3"
+    },
+    {
+      "path": "src/hooks/useWeatherForecast.js",
+      "bytes": 2595,
+      "sha256": "a44460d4537267c8eda491323a2ec2f887a7afef3c5ec44568c81a19a5c9f688"
+    },
+    {
+      "path": "src/i18n/de.json",
+      "bytes": 73774,
+      "sha256": "556cfe1639433c490c204028db71c9f1f4dd95cbfa75a7ee83a51210d4a4d994"
+    },
+    {
+      "path": "src/i18n/en.json",
+      "bytes": 68442,
+      "sha256": "7c3bfe7dee171a684c0d6e96abb2e08851b124f3ebba4f76768c273afd4a9d8d"
+    },
+    {
+      "path": "src/i18n/fr.json",
+      "bytes": 76375,
+      "sha256": "8508be89dd2cbe94eea5a7b4f7f296cbe5002b25a3942c7c78fffe92a668b4e6"
+    },
+    {
+      "path": "src/i18n/index.js",
+      "bytes": 452,
+      "sha256": "a9309c2c838f00ce7662c74dee8250b5915b0676cafc28c19f2179775cb92108"
+    },
+    {
+      "path": "src/i18n/languageUtils.js",
+      "bytes": 874,
+      "sha256": "50ca9ab89dd919cb142f7aa9545bbb88f0d128dac228b26b0141ced47d5ef62e"
+    },
+    {
+      "path": "src/i18n/nb.json",
+      "bytes": 70184,
+      "sha256": "747e33c9cf1c4f8601193be86201ebd8917af5cbe24b785f66aeb7c54dbdca6a"
+    },
+    {
+      "path": "src/i18n/nn.json",
+      "bytes": 70109,
+      "sha256": "fc1be8241d87673fef94b017ebbae78b85044d79087bb368d5b6a7e72dcb724f"
+    },
+    {
+      "path": "src/i18n/sv.json",
+      "bytes": 70955,
+      "sha256": "1dc80cf7afd9751266cffa51c0574f69caa62f09d14c7c2a622424c46ee5ee87"
+    },
+    {
+      "path": "src/i18n/zh.json",
+      "bytes": 64790,
+      "sha256": "e16ce8a4369d5b87194f81d011a1506c6edb1e83b96eb211b1cb4799d1aa5390"
+    },
+    {
+      "path": "src/icons/iconMap.js",
+      "bytes": 16689,
+      "sha256": "9d8b69ee29c1aea016f83fcb3c3074729c8fba31ee0e81fa9b29fcdfd1caebf1"
+    },
+    {
+      "path": "src/icons/index.js",
+      "bytes": 1885,
+      "sha256": "8b320632d2f494143270b2ec0fb90a95ccd7e6ae3d1f06f233b03131ff162ec4"
+    },
+    {
+      "path": "src/icons/lucide.js",
+      "bytes": 1745,
+      "sha256": "4792ce1ab3f2c86f5b13de9ffb528fc2221880b7cc6a6ac7fea0b6793db01b77"
+    },
+    {
+      "path": "src/layouts/BackgroundLayer.jsx",
+      "bytes": 2069,
+      "sha256": "48c4f08b2c6857589fe0bf889401cbddc43cfe079caebe21838a35c6e75dbe43"
+    },
+    {
+      "path": "src/layouts/ConnectionBanner.jsx",
+      "bytes": 3993,
+      "sha256": "f5fe114ffeaa2beed24bf2486c8977eccb16e4b85290835f6993a88f77634648"
+    },
+    {
+      "path": "src/layouts/DashboardLayout.jsx",
+      "bytes": 11822,
+      "sha256": "608cd5c3fff89689e9d8dca43271fc5842dad768d8ee3ae1e42a15e598ca21ab"
+    },
+    {
+      "path": "src/layouts/DragOverlaySVG.jsx",
+      "bytes": 647,
+      "sha256": "312c2d481f864f554856eac3dd4600379a7b1971282476f7b01d7a6698330067"
+    },
+    {
+      "path": "src/layouts/EditToolbar.jsx",
+      "bytes": 3444,
+      "sha256": "a76e9ea0200a818b18f650c5d0ea1e5d2744b2974be33ccc950392eba1d62e97"
+    },
+    {
+      "path": "src/layouts/Header.jsx",
+      "bytes": 10685,
+      "sha256": "5af8edb43b4505db46fbd89a00906965a45715b38a4f532e35b4c6759c4df390"
+    },
+    {
+      "path": "src/layouts/SettingsMenuControl.jsx",
+      "bytes": 1679,
+      "sha256": "33ef92cafb06e8d6767d254ccbbd3a32f7faacbf5810b8aa53ea72a8d1091ed8"
+    },
+    {
+      "path": "src/layouts/StatusBar.jsx",
+      "bytes": 13195,
+      "sha256": "18929342d3a625f4bccde1e5c2be44e63125e6894631c8edccaef6e6b7b2fa8e"
+    },
+    {
+      "path": "src/layouts/index.js",
+      "bytes": 410,
+      "sha256": "be7de5d0f9a5a9ac21e390eadc9eec893eaca268c7930bbf64a73f871bba7305"
+    },
+    {
+      "path": "src/main.jsx",
+      "bytes": 4107,
+      "sha256": "28e39d4d809cca5517273969eeae268bdebf72e87701cceff7a15ded83bbc273"
+    },
+    {
+      "path": "src/modals/AddCardContent.jsx",
+      "bytes": 53483,
+      "sha256": "9292148819ef9c9a2807a1f71109cada070c00764fbf59e1150a3094f7ef5ea0"
+    },
+    {
+      "path": "src/modals/AddPageModal.jsx",
+      "bytes": 10483,
+      "sha256": "cd2b2c187473285938acba1e2949b17b88b2cf8f4b9e721ab31574dadce1c5ba"
+    },
+    {
+      "path": "src/modals/AlarmActionPinModal.jsx",
+      "bytes": 7531,
+      "sha256": "e7f044b8514d30b7b60942690db48b76447686fe6769843cdc2fb16779c88b9e"
+    },
+    {
+      "path": "src/modals/AlarmModal.jsx",
+      "bytes": 15685,
+      "sha256": "81716b3a52d63b9bedb6d607208601b499fbe0051cb0606368e619f706c74480"
+    },
+    {
+      "path": "src/modals/CalendarModal.jsx",
+      "bytes": 17417,
+      "sha256": "07ac38f3e52063ff64792e5af9ea96823b0510a7f807336384912435871c7e0a"
+    },
+    {
+      "path": "src/modals/CameraModal.jsx",
+      "bytes": 5924,
+      "sha256": "60d30ca3265ea14f27a979682a72cb77d4e43466be06a951bd945053c782de4a"
+    },
+    {
+      "path": "src/modals/ConfigModal.jsx",
+      "bytes": 110636,
+      "sha256": "117e5fb90dc1a04d03b8903a0fc2bf1698b5e64f99352e1a96837d2615372d15"
+    },
+    {
+      "path": "src/modals/CostModal.jsx",
+      "bytes": 21627,
+      "sha256": "5c980207f42a0454fc5bdf8f47bfc2d050129f284fa1a540569cabdf6bb1a1e1"
+    },
+    {
+      "path": "src/modals/CoverModal.jsx",
+      "bytes": 26680,
+      "sha256": "94e95e876bc40d7674ebd77dbd948fc8220d9fc2a43f7816530b26201f9bf3cd"
+    },
+    {
+      "path": "src/modals/EditCardModal.jsx",
+      "bytes": 152009,
+      "sha256": "466ddcc64b2c1572dc5ef6e9e995c7f98255f54d5f752eb195cbea0013a25b8e"
+    },
+    {
+      "path": "src/modals/EditPageModal.jsx",
+      "bytes": 7589,
+      "sha256": "4daf0411ebf0a2b0aa463d5c7f5771a03a2a8909c40141ab997799d3768411c8"
+    },
+    {
+      "path": "src/modals/GenericAndroidTVModal.jsx",
+      "bytes": 16489,
+      "sha256": "6650c4fcbddf36bd436211aa73d2df34650c156bc79e543d556b2ab5da57b4e8"
+    },
+    {
+      "path": "src/modals/GenericAppleTVModal.jsx",
+      "bytes": 20326,
+      "sha256": "663751d4a78dc2212f28519bcc95922945b3ff3ff98abaea181cd2a301f2fe62"
+    },
+    {
+      "path": "src/modals/GenericClimateModal.jsx",
+      "bytes": 15853,
+      "sha256": "4d9958232ee5abc90ee4d2f774510def34f856d225582f8df489894d39ee0e29"
+    },
+    {
+      "path": "src/modals/GenericFanModal.jsx",
+      "bytes": 10416,
+      "sha256": "ebfcaf6b8af46e544331efc76171bda56445dfe0ded769f8f48e99e53aebcdfe"
+    },
+    {
+      "path": "src/modals/LeafModal.jsx",
+      "bytes": 31448,
+      "sha256": "fdc7b0744a4fbb816e3952af1ddc84fc18f305a98e054fd2d8861eb3fd71d2cb"
+    },
+    {
+      "path": "src/modals/LightModal.jsx",
+      "bytes": 25809,
+      "sha256": "9a0f7d8f17bfa0b8786bd11fb92da8a6d41f9466b36498cd140b24ff90075317"
+    },
+    {
+      "path": "src/modals/MediaModal.jsx",
+      "bytes": 81210,
+      "sha256": "e82a4fbb9c8180978a4efcb18a943bf33e241074bb3de246ac015c44b8ff116b"
+    },
+    {
+      "path": "src/modals/MowerModal.jsx",
+      "bytes": 8099,
+      "sha256": "0a9e35b493353507489648a6207a419225cc3ff30d92b0f4418095ccff226a53"
+    },
+    {
+      "path": "src/modals/NordpoolModal.jsx",
+      "bytes": 9201,
+      "sha256": "f5f059d47675595a84ac510290bdcc7e218133de2cb151e91700a5a2d2654060"
+    },
+    {
+      "path": "src/modals/PersonModal.jsx",
+      "bytes": 21422,
+      "sha256": "41aefbf2ddc88de707287240d6a595cf8d79fc1bf6e793277910a5c52aa13cac"
+    },
+    {
+      "path": "src/modals/RoomModal.jsx",
+      "bytes": 45096,
+      "sha256": "e1cdec2d53d0ca5a892a574523ae330c7d964f650c165d4ca5e788afe693be4c"
+    },
+    {
+      "path": "src/modals/SensorCardSettings.jsx",
+      "bytes": 12079,
+      "sha256": "4bd8fe2ff34348d0d72f21fdf757e85d8a960bf4635b49bcbcec94dc655ac0da"
+    },
+    {
+      "path": "src/modals/SensorModal.jsx",
+      "bytes": 29837,
+      "sha256": "e88f43fb9d5d1a3f713e4f11a2f41d741ad92687f8be6d073bbce640ddc375fa"
+    },
+    {
+      "path": "src/modals/StatusGroupPillModal.jsx",
+      "bytes": 7213,
+      "sha256": "28e4dec6250f6bb66eb32078a53efef57fc1e5a81ea18bc0ccc66f57992d579b"
+    },
+    {
+      "path": "src/modals/StatusPillsConfigModal.jsx",
+      "bytes": 130170,
+      "sha256": "e230ca612f23e10cad0f1f5f8725e8c6bccad8c8f5e144de2a711c3b12e54329"
+    },
+    {
+      "path": "src/modals/TodoModal.jsx",
+      "bytes": 15167,
+      "sha256": "61e90e43a1dbf927a4e5f811088a191753d114e1c84c00f9d7bd825f23b91cd6"
+    },
+    {
+      "path": "src/modals/VacuumModal.jsx",
+      "bytes": 112072,
+      "sha256": "8028e267494621152072b82ce5fffc7507346d4068f876c0b587745e46807ad2"
+    },
+    {
+      "path": "src/modals/WeatherModal.jsx",
+      "bytes": 24217,
+      "sha256": "9a9274f40eacbfb6b3f65b00b86ef87ba5f7aa107c82f2ab705c9221026ef692"
+    },
+    {
+      "path": "src/modals/editCard/CarMappingsSection.jsx",
+      "bytes": 18592,
+      "sha256": "b8e97cacd5cc242545a740457905e65d249b327b5a7f103e8243ffb395e4bdb8"
+    },
+    {
+      "path": "src/modals/editCard/RoomSettingsSection.jsx",
+      "bytes": 30999,
+      "sha256": "4b13531efc2790e164a2f966d16c3be4ba888ad6a720ddb9f9dc7d72a9c9522d"
+    },
+    {
+      "path": "src/modals/editCard/SensorCardPreview.jsx",
+      "bytes": 2809,
+      "sha256": "3a2ed0931eb6f0315cc45a1dc076cbee916756cce59db3047a4ccd8b56204988"
+    },
+    {
+      "path": "src/modals/editCard/SensorNumericStyle.jsx",
+      "bytes": 10062,
+      "sha256": "64fb9518545c2ba378fa2c0d0a367592b57cd920d8e2e45723dba1db0b7e0202"
+    },
+    {
+      "path": "src/modals/editCard/SensorServiceSettings.jsx",
+      "bytes": 15014,
+      "sha256": "c0f6695d6fa0657c546ac3ff1f5fdc8d9ffa46700a304bf7dc18e0da9d02da58"
+    },
+    {
+      "path": "src/modals/editCard/carAnchorOptions.js",
+      "bytes": 1267,
+      "sha256": "ccff553f0fb4ef6544f2e99be3b5101d959b53d0e4b2216badb8f8a935839962"
+    },
+    {
+      "path": "src/modals/editCard/settingsControls.jsx",
+      "bytes": 6590,
+      "sha256": "6ede19e89a357350e828f84f1d3a54e66067cda77ccf8192d7bc13afbd2b269a"
+    },
+    {
+      "path": "src/rendering/DashboardGrid.jsx",
+      "bytes": 10220,
+      "sha256": "28b903995e5a704d04645a1359de2cffb2d2b32b8f888c8d7c40a08097287abf"
+    },
+    {
+      "path": "src/rendering/ModalManager.jsx",
+      "bytes": 942,
+      "sha256": "29bf77714fef817b2cc8e3ac732e0063039a9fad897f18a6ae8bd396edc48f9f"
+    },
+    {
+      "path": "src/rendering/ModalOrchestrator.jsx",
+      "bytes": 5516,
+      "sha256": "39282be9ee2c48e25952561f8da5a12e1622c8b287ebbf0d77fe86c776a1c3d6"
+    },
+    {
+      "path": "src/rendering/cardRenderers.jsx",
+      "bytes": 315,
+      "sha256": "c79ed5013ba363844b7ab080a8f4d9c2c78eb71b694b1b7f0fec18f100596ae8"
+    },
+    {
+      "path": "src/rendering/cards/alarmRenderer.jsx",
+      "bytes": 1913,
+      "sha256": "33680777cf03fc7de134164a338f3d73d87435e996df668dea89ccf502c76b05"
+    },
+    {
+      "path": "src/rendering/cards/androidTvRenderer.jsx",
+      "bytes": 1466,
+      "sha256": "96d695ffc95ef5eaa2deb52430e7e4e34f1d23fc46f0e301a4dec8cbb480362f"
+    },
+    {
+      "path": "src/rendering/cards/appleTvRenderer.jsx",
+      "bytes": 1482,
+      "sha256": "f920ab098fb663aea920a01aa7030de0d1a84047e2a2388717faa727c20a5532"
+    },
+    {
+      "path": "src/rendering/cards/automationRenderer.jsx",
+      "bytes": 2995,
+      "sha256": "5f62221229595232c909acaca3a64be1db0ccfea71156676276b036b70f32eff"
+    },
+    {
+      "path": "src/rendering/cards/calendarRenderer.jsx",
+      "bytes": 1262,
+      "sha256": "bbd66dbf11d1005ce6c7411e932def23ea470935b76e298734d0ce000147e9b0"
+    },
+    {
+      "path": "src/rendering/cards/cameraRenderer.jsx",
+      "bytes": 1547,
+      "sha256": "e7bf01b0cb058bd9a78b28d57217e9238712599bb80edc43831ed7a812ec2676"
+    },
+    {
+      "path": "src/rendering/cards/carRenderer.jsx",
+      "bytes": 928,
+      "sha256": "5a98484861cd71727959fc688874c0aef26b2586eee3df1e77f3ee1b0c8edbd5"
+    },
+    {
+      "path": "src/rendering/cards/climateRenderer.jsx",
+      "bytes": 1444,
+      "sha256": "804d769a988bcc00de6b6f03a39b155e940047c00294487d56ba65157c9be6d5"
+    },
+    {
+      "path": "src/rendering/cards/costRenderer.jsx",
+      "bytes": 924,
+      "sha256": "c58fb9ec8d544aa6cca8ac7212760d6c2e39248e081b60962748ccff16bae314"
+    },
+    {
+      "path": "src/rendering/cards/coverRenderer.jsx",
+      "bytes": 1218,
+      "sha256": "c927efa28a3ddff5e16c6393abb141f64b0baa612ab48b27ed2398c58521fd24"
+    },
+    {
+      "path": "src/rendering/cards/fanRenderer.jsx",
+      "bytes": 823,
+      "sha256": "251c51cd82f29bf5c18b1ee569570f4609076d0dc12c08f9725e65e33d2e380e"
+    },
+    {
+      "path": "src/rendering/cards/index.js",
+      "bytes": 1265,
+      "sha256": "809e089d261484415467b155bc6e1d9d906b8016d2d8b521a391cd12c9e88b20"
+    },
+    {
+      "path": "src/rendering/cards/lightRenderer.jsx",
+      "bytes": 1260,
+      "sha256": "437569b4175dd46f60885f27b1a87e7c03c2f798dfd3db1d8a7abe2ecce33fdc"
+    },
+    {
+      "path": "src/rendering/cards/lockRenderer.jsx",
+      "bytes": 1426,
+      "sha256": "4c79901ae1d2d9062fde7adf6680b3a9500ee598e8268de050a5efceabf58a77"
+    },
+    {
+      "path": "src/rendering/cards/mediaGroupRenderer.jsx",
+      "bytes": 1058,
+      "sha256": "812c2df96517dc07f20ca7d2c5b603a77e73b7010339f106c87a7b64044c0b82"
+    },
+    {
+      "path": "src/rendering/cards/mediaPlayerRenderer.jsx",
+      "bytes": 1280,
+      "sha256": "59b52bf2fcd6918dab7bec2eccdfebfe5de6e2156fe1f69a9092c08a41ff5815"
+    },
+    {
+      "path": "src/rendering/cards/mowerRenderer.jsx",
+      "bytes": 964,
+      "sha256": "8f90657584564708ad50dc7d79882adec93d66a25c824eb5e13b3a65ee973e41"
+    },
+    {
+      "path": "src/rendering/cards/nordpoolRenderer.jsx",
+      "bytes": 1167,
+      "sha256": "7341f3c8be473a5410b154594106634f89901bb1be839d91d22620880fcdce55"
+    },
+    {
+      "path": "src/rendering/cards/roomRenderer.jsx",
+      "bytes": 1344,
+      "sha256": "e3b37cf13f32b2727480c7e4aeabe77da642d9f9bd4082fb68f00d0860e95af0"
+    },
+    {
+      "path": "src/rendering/cards/sensorRenderer.jsx",
+      "bytes": 2836,
+      "sha256": "70e5fcda63e8317620aa50561cccd3dd280967c7fb2153d8f6f6c415206f3df5"
+    },
+    {
+      "path": "src/rendering/cards/spacerRenderer.jsx",
+      "bytes": 682,
+      "sha256": "c1b314412881a36c5d4d3102ecfcd93d0dbdc36c6598bf070d3c617c30e6538d"
+    },
+    {
+      "path": "src/rendering/cards/todoRenderer.jsx",
+      "bytes": 1108,
+      "sha256": "83e3721c1447a60ee6a7bfe29b7da9a8f7d08bd06cbd9052ba9f8bd43d91072f"
+    },
+    {
+      "path": "src/rendering/cards/vacuumRenderer.jsx",
+      "bytes": 936,
+      "sha256": "a6477eb48a3bef186a253c295a31dc75c02d862cc6eecfa1b61cfaf64a6e7244"
+    },
+    {
+      "path": "src/rendering/cards/weatherTempRenderer.jsx",
+      "bytes": 1438,
+      "sha256": "78386c6f37b1c74e979d31721e272a69aefb1a9f312b85a55493569ce32400fe"
+    },
+    {
+      "path": "src/rendering/helpers.js",
+      "bytes": 877,
+      "sha256": "bfd888b12c8bf36060a55638d3228c3b584becf06859052535522c1fcba08a1e"
+    },
+    {
+      "path": "src/rendering/index.js",
+      "bytes": 198,
+      "sha256": "44318373e849cd74f15adcc6ae9d9c4b70b8ccf1dee14d8e87d2e03d15d8179f"
+    },
+    {
+      "path": "src/rendering/modalSlices/ModalEntitySlice.jsx",
+      "bytes": 18664,
+      "sha256": "f3335ad22151c8386e08d2060109f274b9394420d3666617db25d8b56e2f0c77"
+    },
+    {
+      "path": "src/rendering/modalSlices/ModalManagementSlice.jsx",
+      "bytes": 10174,
+      "sha256": "1989517621d3a75e4fb24c0cb078f9885c69b300c4737e15990548d339436e16"
+    },
+    {
+      "path": "src/rendering/modalSlices/ModalSettingsSlice.jsx",
+      "bytes": 7794,
+      "sha256": "90c1792085ad17d6b48f98a5083e5caf697dc970690398005d149c80b4e133e3"
+    },
+    {
+      "path": "src/rendering/modalSlices/roomCardUtils.js",
+      "bytes": 2230,
+      "sha256": "0c76b0be3f6ae7c87b66b4f06924af52d2e7ab8e7320a36e08c4d343d36324b4"
+    },
+    {
+      "path": "src/rendering/profileContextSetters.js",
+      "bytes": 1329,
+      "sha256": "0e4e4fd06d64fc7c01740a057a7c203552427aee53c483bce3417c643fce4658"
+    },
+    {
+      "path": "src/rendering/registry.js",
+      "bytes": 4107,
+      "sha256": "3ccb46b002fb9367f41a32e842cf95e2c8ff53cff44de1c843168d45b39d2611"
+    },
+    {
+      "path": "src/rendering/useEditModalProps.js",
+      "bytes": 5183,
+      "sha256": "b061802af1dc6852ed0620fa06243be9553c1af950d2d8763409a0d65325c27c"
+    },
+    {
+      "path": "src/services/apiAuth.js",
+      "bytes": 7651,
+      "sha256": "d3190787911b574572e1f3bfa32f4f6ef1aebc8352258fd65a6fc453ccb3266e"
+    },
+    {
+      "path": "src/services/cardActions.js",
+      "bytes": 12180,
+      "sha256": "5e553efc9bfba242bd62f9248c2e0f5cad96abc58817ce684ce2db598f7582a9"
+    },
+    {
+      "path": "src/services/haClient.js",
+      "bytes": 12883,
+      "sha256": "43f7ec6377391de9a6ffac81fe752e9c1e969691d3b7e8ecf67562f6d2326168"
+    },
+    {
+      "path": "src/services/index.js",
+      "bytes": 304,
+      "sha256": "5892c894a9f0b5e10c59089780f052e519e4f357944fc05b146b15062ef4fbc2"
+    },
+    {
+      "path": "src/services/nordpoolUtils.js",
+      "bytes": 2079,
+      "sha256": "b1e5fd62588fceca8a943b39cb394732690411359d0e2d98584b7985448e5f6b"
+    },
+    {
+      "path": "src/services/oauthStorage.js",
+      "bytes": 7443,
+      "sha256": "c4b23bf57815dc84f43c9e86fcb86fbb8f5b849ee2e02ce7c0d3a17ee61e7dbb"
+    },
+    {
+      "path": "src/services/profileApi.js",
+      "bytes": 3121,
+      "sha256": "7ca0d216fd9b0998a2e9f779863747a988488127810db2d24a233a860c32c50c"
+    },
+    {
+      "path": "src/services/settingsApi.js",
+      "bytes": 3667,
+      "sha256": "c7866abaf2031e2d4a7c6c975bb8eb1edd72a6c4c37be9ec2001f8b2c352a181"
+    },
+    {
+      "path": "src/services/snapshot.js",
+      "bytes": 11565,
+      "sha256": "aefa12038a5929f8fb5ea848dc169f1c8437fdc80a2a846f0decba1b58ad71f5"
+    },
+    {
+      "path": "src/styles/animations.css",
+      "bytes": 3385,
+      "sha256": "44328e42f8f1c4848f777d53fd91f97b51af7a7cf07289e7c18869c9b0187d56"
+    },
+    {
+      "path": "src/styles/dashboard.css",
+      "bytes": 15359,
+      "sha256": "23f21d8bf3012cd03b88f0a1b439e7fb3d4581652eb4b1fb9a45669339dcf71a"
+    },
+    {
+      "path": "src/styles/index.css",
+      "bytes": 1966,
+      "sha256": "161cab14be10953351129489d1a65eb3a6dd66a6c618a1f8e79b70435e06df5b"
+    },
+    {
+      "path": "src/styles/sidebar.css",
+      "bytes": 11545,
+      "sha256": "b9b17df6b6e67d5b105366668c5055f7de0501b2a8bb2e10e1d2c5bc41ef77cd"
+    },
+    {
+      "path": "src/types/dashboard.js",
+      "bytes": 23582,
+      "sha256": "96f474bc1d5c86e26751e6860f5002ffbc4bcd7fbef7bcdefc305485c699f2db"
+    },
+    {
+      "path": "src/types/global.d.ts",
+      "bytes": 63,
+      "sha256": "bbd0cd2f5ad4a4eb805244a4bb3a815d18a3d8b61c3a0b9de26370c86c2c1516"
+    },
+    {
+      "path": "src/utils/carEntityMatcher.js",
+      "bytes": 8419,
+      "sha256": "77d9ddfa26e607ef7bb401bc1a0a8d47106a704807b2b16306b08959cee324c2"
+    },
+    {
+      "path": "src/utils/cardUtils.js",
+      "bytes": 5437,
+      "sha256": "9a7746d0c5f69bf55cd1a8183761008dd174e246b4086e07c7c1c45b43d1997f"
+    },
+    {
+      "path": "src/utils/chartColors.js",
+      "bytes": 564,
+      "sha256": "6b70ff74e5b04653c3cd951352f5dea767b3803833ffc6f4ba24625830289237"
+    },
+    {
+      "path": "src/utils/climateFavorites.js",
+      "bytes": 1142,
+      "sha256": "c0c7e46ca791b8c475abc4ed208ca7de224b8b29e21bf2e186726d78732b3a12"
+    },
+    {
+      "path": "src/utils/conditionUtils.js",
+      "bytes": 9476,
+      "sha256": "06c5e9a34e5e1560d7fc30db85b5ce90cdcf4a201d5efbba0b81df9dee6e4bb4"
+    },
+    {
+      "path": "src/utils/connectionHealth.js",
+      "bytes": 1105,
+      "sha256": "2152c0032f8455e6be6dbf4836ca3b653ce825239208fd7a5ef47a613c022495"
+    },
+    {
+      "path": "src/utils/dragAndDrop.js",
+      "bytes": 9458,
+      "sha256": "45db945cb38d27f13e119af4426e38929bfd5e06d33f84e4a0c1038eded16fdd"
+    },
+    {
+      "path": "src/utils/entityRegistryMetadata.js",
+      "bytes": 2267,
+      "sha256": "8fa29bd956aaa90ef632a62d60c5400fd15f5f2bf8910cbd0d216725a01216dd"
+    },
+    {
+      "path": "src/utils/formatting.js",
+      "bytes": 1452,
+      "sha256": "3b540b1a6eff0a74bc407d7167f2ac4dcf3fbba9b48e9379eec46c51e8d05024"
+    },
+    {
+      "path": "src/utils/gridLayout.js",
+      "bytes": 8589,
+      "sha256": "783632b3e25849d5e941a0b826760f720ac2b650d73faa9d0f8979402aa296b3"
+    },
+    {
+      "path": "src/utils/index.js",
+      "bytes": 2103,
+      "sha256": "bdf005f54d88666b8c4af06619b4601237b4278bf8f10809fa60f2033030815c"
+    },
+    {
+      "path": "src/utils/logger.js",
+      "bytes": 38,
+      "sha256": "f5abf541391b528e565279e01f8293e86862c57ba53bc5aadbd5a86ec97c912a"
+    },
+    {
+      "path": "src/utils/logger.ts",
+      "bytes": 709,
+      "sha256": "acecc54e3783670926fe84d96ba69d078b06ab3f8d73e991dfea878783428e20"
+    },
+    {
+      "path": "src/utils/mediaEntityClassification.js",
+      "bytes": 2263,
+      "sha256": "6a23a87d21058aeb6278ed5d729e153a34b6528c2e83c112534bdd745df329c8"
+    },
+    {
+      "path": "src/utils/mediaLogos.js",
+      "bytes": 2640,
+      "sha256": "39c2c605537516ee5a4371db61f59a45ee585c327229f1f49ffb42769ff32128"
+    },
+    {
+      "path": "src/utils/mediaPlayerFeatures.js",
+      "bytes": 1114,
+      "sha256": "4cbcaee72b1dc0f2b6d4052d50a55ec8b0a9dd1dd5d9e0e8b106fdf884a279a2"
+    },
+    {
+      "path": "src/utils/pinLock.js",
+      "bytes": 503,
+      "sha256": "e7f682ba5fd14c2db81affeb52a8b71cd716a58d39c6a52a86dea00fa68d73bd"
+    },
+    {
+      "path": "src/utils/prefetchModals.js",
+      "bytes": 3062,
+      "sha256": "bae4d404a10c0d6d4360cf82c01a82a1c353071877595f57ea0662c1decaa16f"
+    },
+    {
+      "path": "src/utils/roomEntities.js",
+      "bytes": 1030,
+      "sha256": "51d2780c5fcf7aa6884b7e8ef1b43810dfd94064a1249f52f4bda24044f8b20d"
+    },
+    {
+      "path": "src/utils/sensorCardConfig.js",
+      "bytes": 7892,
+      "sha256": "a49aec9e5b841b2eebeb5edd1fdc842d87943c3afe864b0d1352d210ad6f2226"
+    },
+    {
+      "path": "src/utils/sensorHistory.js",
+      "bytes": 2702,
+      "sha256": "83b99e89fffb6139da55cefc67f4efdbb790fc146b9421c491fb60ee96095c73"
+    },
+    {
+      "path": "src/utils/statusGroupPills.js",
+      "bytes": 7906,
+      "sha256": "388ab07af1ab78a3e896491cfcef3ae8579bbc6a414070aa73ded4a3d3453d5a"
+    },
+    {
+      "path": "src/utils/statusLogic.js",
+      "bytes": 2781,
+      "sha256": "f808f7cb6f6170900efa9e50849a38a8a63699deeb3ec382d0c155c12fc7400d"
+    },
+    {
+      "path": "src/utils/statusPillPresentation.js",
+      "bytes": 5441,
+      "sha256": "84003c40be1ba352ebc4862c2b021817bdb06048a5663fd27d459808073d927a"
+    },
+    {
+      "path": "src/utils/units.js",
+      "bytes": 8632,
+      "sha256": "7ac24fe199a0e7e75c5bf77703375dc5d54006d8cea1aa9251896b1d6ec41430"
+    },
+    {
+      "path": "tailwind.config.js",
+      "bytes": 170,
+      "sha256": "316c86f90ec708a4e953dbba5f6064ddae1feb701754f872b599c4bc2a0aceb5"
+    },
+    {
+      "path": "tsconfig.typecheck.json",
+      "bytes": 595,
+      "sha256": "1717cc863d9eb70f30bbaa2c1a017a48bd967a156f3f24d49bd3e59812513e44"
+    },
+    {
+      "path": "vite.config.js",
+      "bytes": 3633,
+      "sha256": "8d8a3e192e8dc968c16dddd3595379a4bd0e69a53a29d550517eb5be8b1313c3"
+    }
+  ]
+}

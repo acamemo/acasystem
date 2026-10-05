@@ -1,0 +1,58 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+Thumbs.db
+# IDE folders
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+# Coverage and test output
+coverage/
+*.lcov
+.nyc_output/
+# Playwright E2E tests
+test-results/
+playwright-report/
+.playwright/
+# Generated review docs
+CODE_REVIEW_*.md
+# Local SQLite database
+data/
+# Local scratch output (previews, emulator images, audit screenshots)
+.tmp/
+
+# --- Local AI tooling (Copilot extras, Claude, Cursor, Aider, Windsurf, Gemini, etc.) ---
+# Personal/local AI assistant configs — keep out of git.
+# The canonical project guidance lives in .github/copilot-instructions.md (committed).
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.aider.conf.yml
+.aider*
+.cursor/
+.cursorrules
+.cursorignore
+.windsurf/
+.windsurfrules
+.continue/
+.codeium/
+.zed/
+.junie/
+.roo/
+.clinerules
+.opencommit
+# Local-only Copilot extras (the tracked instructions file stays committed)
+.github/prompts/
+.github/chatmodes/
+.github/instructions/
+.github/copilot/
+AI_TOOLING.md

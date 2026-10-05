@@ -4,13 +4,13 @@ Aggiornato: 2026-10-05. Responsabile dell'approvazione di prodotto: utente commi
 
 ## Situazione verificata
 
-La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. La documentazione descrive progettazione e vincoli; il repository non contiene codice applicativo, configurazioni di deployment o test di prodotto.
+La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. Il 2026-10-05 l'utente ha installato HA Container e concluso il setup. Nel successivo incarico [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) sono stati acquisiti i sorgenti Tunet 1.22.1 e predisposto il [Compose locale](../progetto/compose.tunet.yaml). Tunet è avviato su localhost:3002; HA 2026.9.4 è raggiungibile dal backend. L'utente ha completato OAuth nel browser; Tunet mostra CONNECTED / Authenticated via OAuth2 e il pannello profili mostra auto-sync con ultima sincronizzazione. Dispositivi e grafica ACA non sono collaudati.
 
 La [raccolta UI](design/componenti/README.md) contiene ora sette campioni di codice come reference testuali in documentazione, senza adattamenti o integrazione. Sono distinti dal futuro codice applicativo in progetto/. Hash e fonti registrano l'acquisizione; non dimostrano collaudo o licenza del riuso.
 
 Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in questo incarico. Disponibilità di eventuali risorse esterne: non verificata. Non esistono evidenze di operatività, prestazioni o conformità del prodotto. Nessuna CI è configurata.
 
-La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Documenti e PRD sono in `documentazione/`; backup e progetto contengono soltanto i rispettivi README. Nessuna copia di backup è stata creata.
+La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Progetto contiene ora i sorgenti upstream e il banco prova Tunet. Backup contiene una copia ZIP/estratta dell'acquisizione, esclusa da Git; nessun backup dei dati HA/Tunet o ripristino è stato eseguito.
 
 Su richiesta umana del 2026-10-05, la documentazione comprende due moduli: [funzionalità](funzionalita/README.md) per PRD e pilota, e [design](design/README.md) con design.md come fonte visiva. Stato, aspetti tecnici, verifiche e storico restano comuni. La separazione non cambia approvazioni o stato di realizzazione dei requisiti.
 
@@ -37,7 +37,7 @@ Criteri nel [PRD](funzionalita/product.md#11-criteri-di-accettazione-proposti); 
 | REQ-00 | Hardware locale Linux 64 bit | Approvato | Non iniziato | V-00 | Vincoli approvati; inventario/modelli aperti, ISSUE-005. |
 | REQ-01 | Provisioning Hetzner storico | Ritirato | Non iniziato | V-01, non applicabile | ADR-0003; ID e storico conservati. |
 | REQ-02 | Home Assistant locale, offline e obiettivo remoto | Approvato | Non iniziato | V-02 | ISSUE-004, ISSUE-007, ISSUE-013, ISSUE-015. |
-| REQ-03 | Fase 1 grafica, riferimento React Tunet | Approvato | Non iniziato | V-03 | ISSUE-002; ISSUE-001/003 solo se HAKit viene adottato. |
+| REQ-03 | Fase 1 grafica, riferimento React Tunet | Approvato | In corso | V-03 | Base Tunet installata; grafica ACA e accettazione non realizzate. ISSUE-002; ISSUE-001/003 solo se HAKit viene adottato. |
 | REQ-04 | Google/email, opzione futura | Proposto | Non iniziato | V-04 | Fuori dal minimo grafico; ISSUE-006, ISSUE-014. |
 | REQ-05 | Identità/sessioni e credenziali HA | Proposto | Non iniziato | V-05 | Contratto da progettare; ISSUE-006, ISSUE-007. |
 | REQ-06 | Admin e consegna del primo setup al cliente | Approvato | Non iniziato | V-06 | Comportamento richiesto; meccanismo aperto, ISSUE-006/008. |
@@ -67,13 +67,15 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 
 **Tunet — riferimento confermato, modalità di riuso aperta.** Il 2026-10-05 l'utente conferma Tunet come punto di partenza React. La revisione main acquisita con `git ls-remote` coincide con quella dell'audit: `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`, GPL-3.0. Per il prodotto fornito su hardware locale definire modifiche, artefatti consegnati e condizioni della distribuzione. Evidenza: C-02 e [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md). La direzione approvata non chiude il vincolo.
 
+Sorgenti 1.22.1 acquisiti e installati per il banco prova autorizzato in REP-20261005-004, con licenza e impronte conservate. Nessuna distribuzione a clienti effettuata; condizioni del prodotto ancora aperte.
+
 ### ISSUE-003
 
 **React/HAKit — compatibilità da verificare se l'SDK viene adottato.** Il manifest storico di HAKit Core richiede React/React DOM >=19.x e non coincide con React 18 dell'originale. Il punto di partenza corrente è Tunet; non è stata decisa una combinazione con HAKit. Nell'analisi tecnica scegliere una revisione e verificare le sue dipendenze effettive, senza imporre lo stack originale.
 
 ### ISSUE-004
 
-**Metodo Home Assistant — scelta aperta, limite Container verificato.** Home Assistant è obbligatorio; Container è soltanto un candidato originale e non include la gestione delle app di HA OS. Definire metodo/versione e mantenimento delle funzioni native richieste, considerando hosting Tunet e servizi complementari. Nessuna installazione è stata effettuata.
+**Metodo Home Assistant — banco prova Container, prodotto ancora aperto.** L'utente ha installato HA Container 2026.9.4 su Docker Desktop/WSL 2. Tunet viene eseguito come servizio Docker separato, senza app/Supervisor. Evidenza in REP-20261005-004. Metodo/versione e mantenimento delle funzioni native sul prodotto finale restano da definire; questo ambiente Windows non è il deployment Linux dell'hardware fornito.
 
 ### ISSUE-005
 
@@ -86,6 +88,8 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 ### ISSUE-007
 
 **Frontend offline — obiettivo confermato, realizzazione mancante.** Il funzionamento locale riguarda anche UI, stati e comandi, non soltanto automazioni. Progettare hosting degli asset Tunet, autenticazione e riavvio di client/gateway senza internet; inventariare integrazioni che richiedono cloud. Disponibilità dipendente anche da rete locale e alimentazione. Verifiche V-02/V-03/V-05/V-15 da delimitare al pilota.
+
+Nel banco prova gli asset compilati Tunet sono serviti localmente. Font esterni rilevati nell'index upstream: vedere ISSUE-016. Nessuna prova con WAN assente eseguita.
 
 ### ISSUE-008
 
@@ -123,6 +127,10 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 
 **Molti utenti su una macchina — valutazione richiesta, architettura aperta.** Distinguere utenti di uno stesso impianto da abitazioni separate con dispositivi comuni. Definire scala, accessi, reti, isolamento delle entità/configurazioni, risorse e conseguenze di un guasto comune. Capacità e organizzazione in una o più istanze HA non sono dimostrate né scelte. Collegamenti: REQ-02/17 e ISSUE-008. Chiusura con proposta motivata, eventuale decisione umana e verifiche pertinenti.
 
+### ISSUE-016
+
+**Risorse frontend esterne — Aperto, osservazione tecnica.** Tunet 1.22.1 carica stylesheet/font Google Fonts nel proprio index.html; il server consente anche risorse esterne per mappe/icone/media. Sono possibilità del codice, non prova che tutte siano utilizzate. Collegamenti: REQ-02/03, C-04/C-06 e REP-20261005-004. Proposta fuori dall'incarico di installazione: valutare font locali e censire richieste effettive prima del collaudo offline e della distribuzione. Nessuna sostituzione applicata. Chiusura con incarico dedicato, inventario dei flussi e prova offline delle schermate concordate.
+
 ## Incarichi e punto di ripresa
 
 | Report | Incarico | Stato |
@@ -133,7 +141,8 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 | [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md) | Direzione di prodotto e primo pilota in ufficio | Completato; direzione documentata, integrità e coerenza verificate, senza sviluppo. |
 | [REP-20261005-002](reports/REP-20261005-002-moduli-documentali-design.md) | Separazione dei moduli funzionalità e design | Completato; design.md creato, moduli e collegamenti verificati. |
 | [REP-20261005-003](reports/REP-20261005-003-raccolta-componenti-microinterazioni.md) | Raccolta componenti e microinterazioni | Completato; sette originali, catalogo e specifiche verificati senza implementazione. |
+| [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) | Installazione locale Tunet | Completato; sorgenti integri, servizio healthy, OAuth collegato e limiti documentati. |
 
-**Incarico attivo:** nessuno. REP-20261005-003 completato con controlli DOC-17–DOC-19: sette originali conservati, catalogo e specifiche aggiornati. Nessun adattamento, installazione HA o sviluppo UI avviati. L'area backup resta predisposta senza copie o automazioni.
+**Incarico attivo:** nessuno. [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) completato: base Tunet 1.22.1 installata e collegamento OAuth confermato; ENV-01–ENV-05 e DOC-20 registrano le evidenze limitate del banco prova. Personalizzazione ACA, dispositivi, offline e accettazione di prodotto non completati.
 
-**Sequenza richiesta, con fasi successive da incaricare:** accumulare componenti, preparare HA, poi lavorare sulla UI. Restano analisi tecnica Tunet, schermate e dettagli del design, inventario dell'ufficio e metodo HA, autenticazione/setup/offline; remoto e isolamento condominiale nei rispettivi incarichi. Nessuna fase successiva viene avviata dalla sola raccolta.
+**Punto di ripresa:** base Tunet installata e collegamento OAuth confermato. Definire schermate e primo componente ACA nel relativo incarico; collaudare entità e letture/comandi del pilota, profili e offline. Inventario dell'ufficio, autenticazione/setup/ruoli, remoto e isolamento condominiale conservano i loro limiti e ambiti.

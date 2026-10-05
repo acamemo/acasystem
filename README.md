@@ -1,14 +1,14 @@
 # ACA SYSTEM 2.0
 
-Sistema locale basato su Home Assistant, con Tunet come punto di partenza React. Il [pilota in ufficio](documentazione/funzionalita/pilot-scope.md) ha come fase 1 minima la personalizzazione grafica. Hetzner è escluso dalla direzione corrente. Il lavoro realizzato comprende documentazione e Git locale; applicazione e installazioni devono ancora essere realizzate.
+Sistema locale basato su Home Assistant, con Tunet come punto di partenza React. Il [pilota in ufficio](documentazione/funzionalita/pilot-scope.md) ha come fase 1 minima la personalizzazione grafica. Hetzner è escluso dalla direzione corrente. Sono disponibili documentazione, Git locale e banco prova HA/Tunet; grafica ACA e collaudo del prodotto sono ancora da realizzare.
 
 ## Organizzazione della cartella
 
 | Cartella | Contenuto |
 |---|---|
 | [documentazione/](documentazione/README.md) | Due moduli: [funzionalità](documentazione/funzionalita/README.md) con product.md e pilota, [design](documentazione/design/README.md) con design.md. Stato, documenti tecnici, verifiche e storico comuni. |
-| [backup/](backup/README.md) | Area predisposta per copie locali. Il README è versionato; i backup sono esclusi da Git. Nessuna copia di backup è stata creata. |
-| [progetto/](progetto/README.md) | Area per futuro codice, test e configurazioni del progetto. Contiene attualmente soltanto un README. |
+| [backup/](backup/README.md) | Copia locale dell'acquisizione Tunet, esclusa da Git. Nessun backup dei dati HA/Tunet o ripristino eseguito. |
+| [progetto/](progetto/README.md) | Sorgenti Tunet 1.22.1, provenienza, configurazione Docker e procedura del banco prova. |
 
 `README.md` e [AGENTS.md](AGENTS.md) restano nella radice, insieme alla configurazione e allo storico Git. Aprire il repository da questa cartella per avere insieme documentazione e futuro codice.
 

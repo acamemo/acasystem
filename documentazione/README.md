@@ -1,6 +1,6 @@
 # Documentazione — ACA SYSTEM 2.0
 
-Direzione corrente: Home Assistant locale con frontend personalizzato a partire da Tunet; pilota in ufficio e fase 1 minima grafica, secondo ADR-0003. Il repository contiene documentazione e Git locale; applicazione e installazioni non sono realizzate.
+Direzione corrente: Home Assistant locale con frontend personalizzato a partire da Tunet; pilota in ufficio e fase 1 minima grafica, secondo ADR-0003. Il repository contiene documentazione, Git locale e sorgenti Tunet 1.22.1; banco prova HA/Tunet disponibile. Stato e limiti in [project-status.md](project-status.md), avvio in [progetto/README.md](../progetto/README.md); UI ACA e collaudo del prodotto ancora da realizzare.
 
 ## Da dove iniziare
 

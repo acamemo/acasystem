@@ -1,18 +1,18 @@
 # Infrastruttura e operazioni
 
-Aggiornato: 2026-10-05. Documento progettuale; nessun provisioning è stato eseguito. Direzione locale in [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md), pilota in [pilot-scope.md](funzionalita/pilot-scope.md); problemi ISSUE-005/011/013/014/015 nello [stato del progetto](project-status.md).
+Aggiornato: 2026-10-05. Banco prova locale HA/Tunet disponibile; ambiente finale del prodotto ancora progettuale. Direzione locale in [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md), installazione in [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md); problemi nello [stato del progetto](project-status.md).
 
 ## Inventario verificato e previsto
 
 | Risorsa | Evidenza attuale | Destinazione prevista |
 |---|---|---|
 | Repository locale | Git inizializzato; documentazione e copia originale versionate | Storico di codice, configurazioni e documenti quando autorizzati. |
-| Area backup locale | [backup/](../backup/README.md) predisposta, con il solo README; nessuna copia o prova di ripristino | Destinazioni, frequenza, accessi e recupero da progettare nell'incarico dedicato. |
-| Ambiente sviluppo applicativo | Nessun manifest o codice di progetto | Runtime/versioni e procedura di avvio da scegliere. |
-| Ambiente test/staging | Nessuna configurazione nel repository; risorse esterne non verificate | Collaudo isolato prima dei rilasci. |
+| Area backup locale | ZIP, estrazione e schermate dell'acquisizione Tunet in backup/tunet-acquisizione-20261005/, esclusi da Git | Nessun backup dei dati HA/Tunet; frequenza, accessi e ripristino da progettare. |
+| Sorgenti e banco prova Tunet | 1.22.1, revisione 5dec995; Compose e sorgenti in [progetto/](../progetto/README.md). Node 26.10.0/npm 11.19.1 nel container | Personalizzazione UI e sviluppo con ricaricamento automatico ancora da assegnare. |
+| Ambiente test/staging | Banco prova su Windows 11 Home, Docker Desktop/WSL 2; HA e Tunet locali | Non è un ambiente di produzione o staging con dispositivi fisici collaudati. |
 | Cloud Hetzner storico | Nessuna configurazione acquisita; REQ-01 ritirato dall'utente | Escluso dalla direzione corrente; nessun fornitore sostitutivo scelto. |
 | DNS e TLS | Domini del PRD sono esempi; nessuna proprietà o configurazione verificata | Endpoint e certificati da definire. |
-| Host locale e client del pilota | Pilota in ufficio; nessun modello, inventario o collaudo acquisito | Linux 64 bit ARM64/x86-64; mini PC/Raspberry e client da scegliere. |
+| Host locale e client del pilota | Macchina corrente Windows/Docker, container Linux; frontend nel browser locale. HA 2026.9.4 installato dall'utente | Linux 64 bit ARM64/x86-64; mini PC/Raspberry, tablet e dispositivi fisici da scegliere. |
 | Rete cablata e Wi-Fi | Descrizione umana preliminare; topologia e funzione della componente Wi-Fi da chiarire | Collegamenti locali, reti dei dispositivi e condizioni offline da documentare. |
 | Hardware condiviso da più utenti | Valutazione richiesta; capacità e isolamento non provati | Distinguere stesso impianto da abitazioni separate, senza scegliere una topologia. |
 | Repository remoto / CI | Nessun remote o workflow configurato | Scelta successiva, con controlli e accessi da definire. |
@@ -21,11 +21,22 @@ Non registrare segreti o identificativi personali non necessari. Per ogni futura
 
 ## Componenti candidati
 
-Home Assistant e il riferimento frontend React Tunet sono approvati come direzione; Linux è a 64 bit. Distro/versione, metodo HA (OS/Container), storage, risorse e servizi necessari a Tunet devono essere analizzati prima dell'installazione. Nessuna versione è fissata come dipendenza installata.
+Home Assistant e il riferimento frontend React Tunet sono approvati come direzione. Nel banco prova sono installati HA Container 2026.9.4 e Tunet 1.22.1; il metodo/versioni dell'hardware finale restano aperti. Il lockfile upstream conserva le dipendenze Tunet; HAKit non è stato aggiunto.
 
 Docker Compose, reverse proxy, tunnel, database e motore AI erano candidati originali; non sono tutti prerequisiti della fase grafica. Se necessari, motivarne uso e collocazione locale nel relativo incarico. Hetzner e i tier CPX originali restano soltanto nello storico della proposta ritirata.
 
-Le porte, i record DNS e i percorsi citati nel PRD non costituiscono una configurazione operativa. Prima del provisioning definire inventario, confini di rete, gestione dei segreti e responsabilità del servizio.
+Le porte, i record DNS e i percorsi proposti nel PRD non costituiscono la configurazione operativa del prodotto. Il banco prova usa soltanto gli endpoint e percorsi seguenti.
+
+## Banco prova verificato il 2026-10-05
+
+- HA preesistente: container homeassistant, porta host 8123 su tutte le interfacce come installato dall'utente, dati `C:\homeassistant\config` → `/config`. Questa configurazione esterna al repository non è stata modificata né importata in Git.
+- Tunet: [compose.tunet.yaml](../progetto/compose.tunet.yaml), progetto Compose aca-tunet, immagine locale aca-tunet:1.22.1-5dec995, container aca-tunet-tunet-1; ascolto host `127.0.0.1:3002`.
+- Browser → HA: `http://localhost:8123`, OAuth2 completato dall'utente; Tunet mostra CONNECTED e Authenticated via OAuth2. Non esiste un nuovo account remoto ACA/Tunet.
+- Backend → HA: `http://host.docker.internal:8123`; challenge WebSocket auth_required ricevuta e schermata profili senza errore. Le credenziali non sono state lette o registrate dall'agente.
+- Tunet → dati: volume Docker aca-tunet_tunet-data → `/app/data`; SQLite/profili, cifratura upstream off. Layout e sessione browser sono separati dal volume.
+- Build: Dockerfile upstream node:26-alpine e npm ci; sorgenti e lockfile acquisiti senza modifiche. Il tag base è mobile; digest/versioni osservati nel report. Nessuna CI è attiva.
+
+Procedura di avvio eseguita e comandi di gestione pianificati in [progetto/README.md](../progetto/README.md). Il comando Compose riguarda Tunet e non ricrea HA. Persone/client della LAN, remoto, TLS, backup e riavvio offline non sono stati collaudati; la porta Tunet è riservata alla macchina corrente.
 
 ## Procedure operative da definire e provare
 

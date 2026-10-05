@@ -8,3 +8,8 @@ documentazione/archive/** -text
 documentazione/design/componenti/originali/** -text
 documentazione/design/componenti/fonti/** -text
 documentazione/design/componenti/integrita.json text eol=lf
+
+# Conservare i byte acquisiti da upstream anche su checkout Windows.
+progetto/tunet/** -text
+progetto/compose.tunet.yaml text eol=lf
+progetto/tunet-origin.json text eol=lf

@@ -1,0 +1,651 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { DEFAULT_PAGES_CONFIG } from '../config/defaults';
+import { MAX_GRID_COLUMNS, MIN_GRID_COLUMNS } from '../hooks/useResponsiveGrid';
+import {
+  DEFAULT_STATUS_GROUP_PRESET,
+  STATUS_GROUP_PILL_TYPE,
+  STATUS_GROUP_SELECTION_ALL,
+} from '../utils/statusGroupPills';
+import { normalizeDecimalPlaces } from '../utils/units';
+
+/** @typedef {import('../types/dashboard').PageContextValue} PageContextValue */
+/** @typedef {import('../types/dashboard').PageProviderProps} PageProviderProps */
+
+const readJSON = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error(`Failed to parse ${key}:`, error);
+    return fallback;
+  }
+};
+
+const writeJSON = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Failed to save ${key}:`, error);
+  }
+};
+
+const readNumber = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw === null ? NaN : Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const readBoolean = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    if (raw === '1' || raw === 'true') return true;
+    if (raw === '0' || raw === 'false') return false;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const DEFAULT_SECTION_SPACING = {
+  headerToStatus: 16,
+  statusToNav: 24,
+  navToGrid: 24,
+};
+
+const CARDS_ONLY_MODE_KEY = 'tunet_cards_only_mode';
+
+const normalizeGridColumns = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 4;
+  return Math.max(MIN_GRID_COLUMNS, Math.min(Math.round(parsed), MAX_GRID_COLUMNS));
+};
+
+const coercePillBoolean = (value, fallback) => {
+  if (value === true || value === false) return value;
+  if (value === 'true' || value === '1' || value === 1) return true;
+  if (value === 'false' || value === '0' || value === 0) return false;
+  return fallback;
+};
+
+const coerceConditionEnabled = (value) => {
+  if (value === true || value === false) return value;
+  if (value === 'true' || value === '1' || value === 1) return true;
+  if (value === 'false' || value === '0' || value === 0) return false;
+  return undefined;
+};
+
+function normalizeStatusPillConfig(pill) {
+  if (!pill || typeof pill !== 'object') return pill;
+
+  return {
+    ...pill,
+    visible: coercePillBoolean(pill.visible, true),
+    clickable: coercePillBoolean(pill.clickable, false),
+    animated: coercePillBoolean(pill.animated, true),
+    showLabel: coercePillBoolean(pill.showLabel, true),
+    showSublabel: coercePillBoolean(pill.showSublabel, true),
+    showCover: coercePillBoolean(pill.showCover, true),
+    showCount: coercePillBoolean(pill.showCount, false),
+    decimals: normalizeDecimalPlaces(pill.decimals),
+    hideWhenEmpty:
+      pill.type === STATUS_GROUP_PILL_TYPE
+        ? coercePillBoolean(pill.hideWhenEmpty, true)
+        : pill.hideWhenEmpty,
+    groupPreset:
+      pill.type === STATUS_GROUP_PILL_TYPE && typeof pill.groupPreset !== 'string'
+        ? DEFAULT_STATUS_GROUP_PRESET
+        : pill.groupPreset,
+    groupSelectionMode:
+      pill.type === STATUS_GROUP_PILL_TYPE && typeof pill.groupSelectionMode !== 'string'
+        ? STATUS_GROUP_SELECTION_ALL
+        : pill.groupSelectionMode,
+    groupEntityIds:
+      pill.type === STATUS_GROUP_PILL_TYPE && !Array.isArray(pill.groupEntityIds)
+        ? []
+        : pill.groupEntityIds,
+    conditionEnabled: coerceConditionEnabled(pill.conditionEnabled),
+  };
+}
+
+const ROOM_CARD_DEFAULTS = {
+  showLightChip: true,
+  showMediaChip: true,
+  showActiveChip: true,
+  showVacuumChip: true,
+  showOccupiedIndicator: false,
+  showIconWatermark: true,
+  showPopupClimate: true,
+  showPopupLights: true,
+  showPopupTempOverview: true,
+  showPopupMedia: true,
+  showPopupVacuum: true,
+  navigateOnTap: false,
+};
+
+function migrateCardSettings(rawSettings) {
+  if (!rawSettings || typeof rawSettings !== 'object')
+    return { migratedSettings: {}, changed: false };
+
+  let changed = false;
+  const migratedSettings = { ...rawSettings };
+
+  Object.entries(migratedSettings).forEach(([settingsKey, settings]) => {
+    if (!settings || typeof settings !== 'object') return;
+
+    const isRoomSettings =
+      settingsKey.includes('room_card_') ||
+      String(settings.type || '').toLowerCase() === 'room' ||
+      typeof settings.areaId === 'string';
+
+    if (!isRoomSettings) return;
+
+    const next = { ...settings };
+    Object.entries(ROOM_CARD_DEFAULTS).forEach(([key, defaultValue]) => {
+      if (next[key] === undefined) {
+        next[key] = defaultValue;
+        changed = true;
+      }
+    });
+
+    migratedSettings[settingsKey] = next;
+  });
+
+  return { migratedSettings, changed };
+}
+
+function loadCardSettings() {
+  const saved = readJSON('tunet_card_settings', null);
+  if (!saved) return {};
+
+  const { migratedSettings, changed } = migrateCardSettings(saved);
+  if (changed) writeJSON('tunet_card_settings', migratedSettings);
+  return migratedSettings;
+}
+
+/** Synchronously load & migrate pagesConfig from localStorage. */
+function loadPagesConfig() {
+  const parsed = readJSON('tunet_pages_config', null);
+  if (!parsed) return DEFAULT_PAGES_CONFIG;
+
+  let modified = false;
+
+  // Remove legacy automations page config entirely
+  if (parsed.automations) {
+    delete parsed.automations;
+    modified = true;
+  }
+
+  // Ensure pages array exists
+  if (!Array.isArray(parsed.pages)) {
+    const detectedPages = Object.keys(parsed).filter(
+      (key) => Array.isArray(parsed[key]) && !['header', 'settings', 'automations'].includes(key)
+    );
+    parsed.pages = detectedPages.length > 0 ? detectedPages : ['home'];
+    modified = true;
+  }
+
+  // Filter out settings and legacy automations from pages
+  parsed.pages = parsed.pages.filter((id) => id !== 'settings' && id !== 'automations');
+  if (parsed.pages.length === 0) {
+    parsed.pages = ['home'];
+    modified = true;
+  }
+
+  // Ensure all pages have arrays
+  parsed.pages.forEach((pageId) => {
+    if (!Array.isArray(parsed[pageId])) {
+      parsed[pageId] = [];
+      modified = true;
+    }
+  });
+
+  // Ensure header exists
+  if (!parsed.header) {
+    parsed.header = [];
+    modified = true;
+  }
+
+  if (modified) writeJSON('tunet_pages_config', parsed);
+  return parsed;
+}
+
+/** Synchronously load & migrate status pills config from localStorage. */
+function loadStatusPillsConfig() {
+  const parsed = readJSON('tunet_status_pills_config', []);
+  if (!Array.isArray(parsed)) return [];
+
+  let modified = false;
+  const next = parsed.map((pill) => {
+    const normalizedPill = normalizeStatusPillConfig(pill);
+    if (normalizedPill !== pill) {
+      modified = true;
+    }
+
+    if (!normalizedPill || typeof normalizedPill !== 'object' || normalizedPill.type !== 'sonos') {
+      return normalizedPill;
+    }
+
+    const updates = {};
+    if (typeof normalizedPill.clickable !== 'boolean') {
+      updates.clickable = true;
+      modified = true;
+    }
+    if (typeof normalizedPill.showCount !== 'boolean') {
+      updates.showCount = true;
+      modified = true;
+    }
+    if (typeof normalizedPill.sonosHeadingSource !== 'string') {
+      updates.sonosHeadingSource = 'song';
+      modified = true;
+    }
+    if (typeof normalizedPill.sonosSubheadingSource !== 'string') {
+      updates.sonosSubheadingSource = 'artist_player';
+      modified = true;
+    }
+
+    if (Object.keys(updates).length === 0) return normalizedPill;
+    return { ...normalizedPill, ...updates };
+  });
+
+  if (modified) writeJSON('tunet_status_pills_config', next);
+  return next;
+}
+
+/** @type {import('react').Context<PageContextValue | null>} */
+const PageContext = createContext(null);
+
+/** @returns {PageContextValue} */
+export const usePages = () => {
+  const context = useContext(PageContext);
+  if (!context) {
+    throw new Error('usePages must be used within PageProvider');
+  }
+  return context;
+};
+
+/** @param {PageProviderProps} props */
+export const PageProvider = ({ children }) => {
+  const [pagesConfig, setPagesConfig] = useState(loadPagesConfig);
+  const [cardSettings, setCardSettings] = useState(loadCardSettings);
+  const [customNames, setCustomNames] = useState({});
+  const [customIcons, setCustomIcons] = useState({});
+  const [hiddenCards, setHiddenCards] = useState([]);
+  const [pageSettings, setPageSettings] = useState({});
+  const [gridColumns, setGridColumns] = useState(4);
+  const [dynamicGridColumns, setDynamicGridColumns] = useState(true);
+  const [gridGapH, setGridGapH] = useState(20);
+  const [gridGapV, setGridGapV] = useState(20);
+  const [cardBorderRadius, setCardBorderRadius] = useState(16);
+  const [headerScale, setHeaderScale] = useState(1);
+  const [sectionSpacing, setSectionSpacing] = useState(DEFAULT_SECTION_SPACING);
+  const [cardsOnlyMode, setCardsOnlyMode] = useState(() => readBoolean(CARDS_ONLY_MODE_KEY, false));
+  const [headerTitle, setHeaderTitle] = useState(
+    () => localStorage.getItem('tunet_header_title') || ''
+  );
+
+  // Load remaining configuration from localStorage
+  useEffect(() => {
+    const hidden = readJSON('tunet_hidden_cards', null);
+    if (hidden) {
+      setHiddenCards(hidden);
+    }
+
+    const names = readJSON('tunet_custom_names', null);
+    if (names) setCustomNames(names);
+
+    const icons = readJSON('tunet_custom_icons', null);
+    if (icons) setCustomIcons(icons);
+
+    const savedCols = readNumber('tunet_grid_columns', null);
+    if (savedCols !== null) setGridColumns(normalizeGridColumns(savedCols));
+
+    const savedDynamicCols = readBoolean('tunet_grid_columns_dynamic', true);
+    setDynamicGridColumns(savedDynamicCols);
+
+    const savedGap = readNumber('tunet_grid_gap', null);
+    const savedGapH = readNumber('tunet_grid_gap_h', null);
+    const savedGapV = readNumber('tunet_grid_gap_v', null);
+
+    if (savedGapH !== null) setGridGapH(savedGapH);
+    else if (savedGap !== null) setGridGapH(savedGap);
+
+    if (savedGapV !== null) setGridGapV(savedGapV);
+    else if (savedGap !== null) setGridGapV(savedGap);
+
+    const savedRadius = readNumber('tunet_card_border_radius', null);
+    if (savedRadius !== null) setCardBorderRadius(savedRadius);
+
+    const savedScale = readNumber('tunet_header_scale', null);
+    if (savedScale !== null) setHeaderScale(savedScale);
+
+    const spacingSaved = readJSON('tunet_section_spacing', null);
+    if (spacingSaved) {
+      const nextSpacing = {
+        headerToStatus: Number.isFinite(spacingSaved.headerToStatus)
+          ? spacingSaved.headerToStatus
+          : DEFAULT_SECTION_SPACING.headerToStatus,
+        statusToNav: Number.isFinite(spacingSaved.statusToNav)
+          ? spacingSaved.statusToNav
+          : DEFAULT_SECTION_SPACING.statusToNav,
+        navToGrid: Number.isFinite(spacingSaved.navToGrid)
+          ? spacingSaved.navToGrid
+          : DEFAULT_SECTION_SPACING.navToGrid,
+      };
+      setSectionSpacing(nextSpacing);
+    }
+
+    const pageSettingsSaved = readJSON('tunet_page_settings', null);
+    if (pageSettingsSaved) {
+      let modified = false;
+      const nextSettings = { ...pageSettingsSaved };
+      Object.keys(nextSettings).forEach((pageId) => {
+        if (nextSettings[pageId]?.type === 'sonos') {
+          nextSettings[pageId] = { ...nextSettings[pageId], type: 'media' };
+          modified = true;
+        }
+      });
+      setPageSettings(nextSettings);
+      if (modified) writeJSON('tunet_page_settings', nextSettings);
+    }
+
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--card-border-radius', `${cardBorderRadius}px`);
+  }, [cardBorderRadius]);
+
+  useEffect(() => {
+    writeJSON('tunet_pages_config', pagesConfig);
+  }, [pagesConfig]);
+
+  useEffect(() => {
+    writeJSON('tunet_card_settings', cardSettings);
+  }, [cardSettings]);
+
+  const saveCustomName = useCallback((id, name) => {
+    setCustomNames((prev) => {
+      const newNames = { ...prev, [id]: name };
+      writeJSON('tunet_custom_names', newNames);
+      return newNames;
+    });
+  }, []);
+
+  const saveCustomIcon = useCallback((id, iconName) => {
+    setCustomIcons((prev) => {
+      const newIcons = { ...prev, [id]: iconName };
+      writeJSON('tunet_custom_icons', newIcons);
+      return newIcons;
+    });
+  }, []);
+
+  const saveCardSetting = useCallback((id, setting, value) => {
+    setCardSettings((prev) => {
+      return {
+        ...prev,
+        [id]: { ...(prev[id] || {}), [setting]: value },
+      };
+    });
+  }, []);
+
+  const savePageSetting = useCallback((id, setting, value) => {
+    setPageSettings((prev) => {
+      const newSettings = {
+        ...prev,
+        [id]: { ...(prev[id] || {}), [setting]: value },
+      };
+      writeJSON('tunet_page_settings', newSettings);
+      return newSettings;
+    });
+  }, []);
+
+  const persistPageSettings = useCallback((newSettings) => {
+    setPageSettings(newSettings);
+    writeJSON('tunet_page_settings', newSettings);
+  }, []);
+
+  const persistCustomNames = useCallback((newNames) => {
+    setCustomNames(newNames);
+    writeJSON('tunet_custom_names', newNames);
+  }, []);
+
+  const persistCustomIcons = useCallback((newIcons) => {
+    setCustomIcons(newIcons);
+    writeJSON('tunet_custom_icons', newIcons);
+  }, []);
+
+  const persistHiddenCards = useCallback((newHidden) => {
+    setHiddenCards(newHidden);
+    writeJSON('tunet_hidden_cards', newHidden);
+  }, []);
+
+  const toggleCardVisibility = useCallback((cardId) => {
+    setHiddenCards((prev) => {
+      const newHidden = prev.includes(cardId)
+        ? prev.filter((id) => id !== cardId)
+        : [...prev, cardId];
+      writeJSON('tunet_hidden_cards', newHidden);
+      return newHidden;
+    });
+  }, []);
+
+  const updateHeaderScale = useCallback((newScale) => {
+    setHeaderScale(newScale);
+    try {
+      localStorage.setItem('tunet_header_scale', String(newScale));
+    } catch (error) {
+      console.error('Failed to save header scale:', error);
+    }
+  }, []);
+
+  const updateHeaderTitle = useCallback((newTitle) => {
+    setHeaderTitle(newTitle);
+    try {
+      localStorage.setItem('tunet_header_title', newTitle);
+    } catch (error) {
+      console.error('Failed to save header title:', error);
+    }
+  }, []);
+
+  const updateSectionSpacing = useCallback((partial) => {
+    setSectionSpacing((prev) => {
+      const nextSpacing = { ...prev, ...partial };
+      writeJSON('tunet_section_spacing', nextSpacing);
+      return nextSpacing;
+    });
+  }, []);
+
+  const updateCardsOnlyMode = useCallback((nextValue) => {
+    const enabled = Boolean(nextValue);
+    setCardsOnlyMode(enabled);
+    try {
+      localStorage.setItem(CARDS_ONLY_MODE_KEY, enabled ? '1' : '0');
+    } catch (error) {
+      console.error('Failed to save cards-only mode:', error);
+    }
+  }, []);
+
+  const [headerSettings, setHeaderSettings] = useState(() => {
+    const saved = readJSON('tunet_header_settings');
+    return (
+      saved || {
+        showTitle: true,
+        showClock: true,
+        showClockOnMobile: true,
+        showDate: true,
+        headerStyle: 'classic',
+        mobileAlignment: 'center',
+        batteryVariant: 'glass',
+        showBatteryNub: true,
+      }
+    );
+  });
+
+  const updateHeaderSettings = useCallback((newSettings) => {
+    setHeaderSettings(newSettings);
+    writeJSON('tunet_header_settings', newSettings);
+  }, []);
+
+  const [statusPillsConfig, setStatusPillsConfig] = useState(loadStatusPillsConfig);
+
+  const saveStatusPillsConfig = useCallback((newConfig) => {
+    const normalized = Array.isArray(newConfig)
+      ? newConfig.map((pill) => normalizeStatusPillConfig(pill))
+      : [];
+    setStatusPillsConfig(normalized);
+    writeJSON('tunet_status_pills_config', normalized);
+  }, []);
+
+  const persistConfig = useCallback((newConfig) => {
+    setPagesConfig(newConfig);
+    writeJSON('tunet_pages_config', newConfig);
+  }, []);
+
+  const persistCardSettings = useCallback((newSettings) => {
+    setCardSettings(newSettings);
+    writeJSON('tunet_card_settings', newSettings);
+  }, []);
+
+  const setGridColumnsPersisted = useCallback((val) => {
+    const next = normalizeGridColumns(val);
+    setGridColumns(next);
+    try {
+      localStorage.setItem('tunet_grid_columns', String(next));
+    } catch (error) {
+      console.error('Failed to save grid columns:', error);
+    }
+  }, []);
+
+  const setDynamicGridColumnsPersisted = useCallback((val) => {
+    const next = Boolean(val);
+    setDynamicGridColumns(next);
+    try {
+      localStorage.setItem('tunet_grid_columns_dynamic', next ? '1' : '0');
+    } catch (error) {
+      console.error('Failed to save dynamic grid columns setting:', error);
+    }
+  }, []);
+
+  const setGridGapHPersisted = useCallback((val) => {
+    setGridGapH(val);
+    try {
+      localStorage.setItem('tunet_grid_gap_h', String(val));
+    } catch (error) {
+      console.error('Failed to save grid gap h:', error);
+    }
+  }, []);
+
+  const setGridGapVPersisted = useCallback((val) => {
+    setGridGapV(val);
+    try {
+      localStorage.setItem('tunet_grid_gap_v', String(val));
+    } catch (error) {
+      console.error('Failed to save grid gap v:', error);
+    }
+  }, []);
+
+  const setCardBorderRadiusPersisted = useCallback((val) => {
+    setCardBorderRadius(val);
+    try {
+      localStorage.setItem('tunet_card_border_radius', String(val));
+    } catch (error) {
+      console.error('Failed to save card border radius:', error);
+    }
+  }, []);
+
+  /** @type {PageContextValue} */
+  const value = useMemo(
+    () => ({
+      pagesConfig,
+      setPagesConfig,
+      persistConfig,
+      cardSettings,
+      setCardSettings,
+      saveCardSetting,
+      customNames,
+      saveCustomName,
+      customIcons,
+      saveCustomIcon,
+      hiddenCards,
+      toggleCardVisibility,
+      pageSettings,
+      setPageSettings,
+      persistPageSettings,
+      persistCustomNames,
+      persistCustomIcons,
+      persistHiddenCards,
+      savePageSetting,
+      gridColumns,
+      setGridColumns: setGridColumnsPersisted,
+      dynamicGridColumns,
+      setDynamicGridColumns: setDynamicGridColumnsPersisted,
+      headerScale,
+      updateHeaderScale,
+      headerTitle,
+      updateHeaderTitle,
+      headerSettings,
+      updateHeaderSettings,
+      sectionSpacing,
+      updateSectionSpacing,
+      cardsOnlyMode,
+      updateCardsOnlyMode,
+      persistCardSettings,
+      gridGapH,
+      setGridGapH: setGridGapHPersisted,
+      gridGapV,
+      setGridGapV: setGridGapVPersisted,
+      statusPillsConfig,
+      saveStatusPillsConfig,
+      cardBorderRadius,
+      setCardBorderRadius: setCardBorderRadiusPersisted,
+    }),
+    [
+      pagesConfig,
+      persistConfig,
+      cardSettings,
+      saveCardSetting,
+      customNames,
+      saveCustomName,
+      customIcons,
+      saveCustomIcon,
+      hiddenCards,
+      toggleCardVisibility,
+      pageSettings,
+      persistPageSettings,
+      persistCustomNames,
+      persistCustomIcons,
+      persistHiddenCards,
+      savePageSetting,
+      gridColumns,
+      setGridColumnsPersisted,
+      dynamicGridColumns,
+      setDynamicGridColumnsPersisted,
+      headerScale,
+      updateHeaderScale,
+      headerTitle,
+      updateHeaderTitle,
+      headerSettings,
+      updateHeaderSettings,
+      sectionSpacing,
+      updateSectionSpacing,
+      cardsOnlyMode,
+      updateCardsOnlyMode,
+      persistCardSettings,
+      gridGapH,
+      setGridGapHPersisted,
+      gridGapV,
+      setGridGapVPersisted,
+      statusPillsConfig,
+      saveStatusPillsConfig,
+      cardBorderRadius,
+      setCardBorderRadiusPersisted,
+    ]
+  );
+
+  return <PageContext.Provider value={value}>{children}</PageContext.Provider>;
+};

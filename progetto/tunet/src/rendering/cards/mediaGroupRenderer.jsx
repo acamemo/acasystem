@@ -1,0 +1,44 @@
+import { MediaGroupCard } from '../../components';
+
+export function renderMediaGroupCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    getA,
+    getEntityImageUrl,
+    callService,
+    isMediaActive,
+    saveCardSetting,
+    openMediaModal,
+    isMobile,
+    isFullWidthMobileCard,
+    t,
+  } = ctx;
+  return (
+    <MediaGroupCard
+      key={cardId}
+      cardId={cardId}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      entities={entities}
+      editMode={editMode}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
+      customNames={customNames}
+      customIcons={customIcons}
+      getA={getA}
+      getEntityImageUrl={getEntityImageUrl}
+      callService={callService}
+      isMediaActive={isMediaActive}
+      saveCardSetting={saveCardSetting}
+      onOpen={openMediaModal}
+      isMobile={isMobile}
+      isFullWidthMobile={isFullWidthMobileCard}
+      t={t}
+    />
+  );
+}

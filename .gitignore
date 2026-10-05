@@ -19,3 +19,10 @@ secrets/
 # Copie locali di backup: mantenere versionata soltanto la guida della cartella.
 /backup/**
 !/backup/README.md
+
+# Artefatti e dati locali Tunet, mai sorgenti o lockfile.
+/progetto/tunet/node_modules/
+/progetto/tunet/dist/
+/progetto/tunet/data/
+/progetto/tunet/playwright-report/
+/progetto/tunet/test-results/

@@ -1,6 +1,6 @@
 # Pilota in ufficio e perimetro della fase 1
 
-Aggiornato: 2026-10-05. Direzione umana in [ADR-0003](../decisions/ADR-0003-home-assistant-locale-fase1.md); risposte di riferimento nel [report](../reports/REP-20261005-001-direzione-pilota.md). Stato di realizzazione in [project-status.md](../project-status.md): nessuna applicazione o installazione realizzata.
+Aggiornato: 2026-10-05. Direzione umana in [ADR-0003](../decisions/ADR-0003-home-assistant-locale-fase1.md); risposte di riferimento nel [report](../reports/REP-20261005-001-direzione-pilota.md). Stato di realizzazione in [project-status.md](../project-status.md): banco prova HA Container/Tunet disponibile, personalizzazione ACA e accettazione della fase 1 non completate.
 
 ## Risultato minimo confermato
 
@@ -8,7 +8,7 @@ Aggiornato: 2026-10-05. Direzione umana in [ADR-0003](../decisions/ADR-0003-home
 
 Il risultato deve servire il funzionamento locale. Il prodotto sarà fornito con mini PC o Raspberry nelle abitazioni, negli uffici e nelle aziende dove viene installato. È approvato Linux a 64 bit, ARM64 oppure x86-64; modello, sistema operativo/versione, risorse e metodo di installazione HA restano da scegliere. L'ufficio è il contesto del pilota, senza inventario hardware acquisito.
 
-Nella successiva risposta del 2026-10-05 l'utente dichiara che Home Assistant non è ancora installato in ufficio. Il logo ACA SYSTEM non è disponibile; viene fornita una direzione grafica, descritta di seguito. Sono informazioni dichiarate dall'utente, senza sopralluogo o verifica dell'hardware.
+Nella prima risposta del 2026-10-05 l'utente dichiarava Home Assistant non ancora installato in ufficio. Successivamente ha installato Docker/WSL e HA, concluso il setup e richiesto l'installazione Tunet; verifiche del banco prova in [REP-20261005-004](../reports/REP-20261005-004-installazione-tunet.md). L'hardware finale non è identificato. Il logo ACA SYSTEM non è disponibile; viene fornita una direzione grafica, descritta di seguito.
 
 Hetzner è escluso dalla direzione corrente. L'accesso da fuori casa rimane un obiettivo online, con meccanismo ancora da progettare; non comporta la scelta automatica di un altro cloud.
 
@@ -67,4 +67,4 @@ Sono criteri proposti da precisare nell'incarico esecutivo. Le verifiche applica
 
 ## Informazioni mancanti per il prossimo incarico
 
-Inventario dell'ufficio e numero dei client; dispositivi da integrare; significato operativo della componente Wi-Fi del sistema cablato; logo e palette completa all'interno della direzione neumorfica con i due colori confermati; schermate richieste; metodo HA; budget e tempi. Il prossimo passo proposto è l'analisi tecnica di Tunet e la definizione delle schermate della fase 1, senza installazioni implicite.
+Inventario dell'ufficio e numero dei client; dispositivi da integrare; significato operativo della componente Wi-Fi del sistema cablato; logo e palette completa all'interno della direzione neumorfica con i due colori confermati; schermate richieste; metodo HA sull'hardware finale; budget e tempi. Tunet è installato per il banco prova: il prossimo incarico potrà definire schermate e personalizzazione della fase 1, preservando le funzioni selezionate e verificando offline/sessioni.

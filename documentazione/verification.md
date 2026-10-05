@@ -1,6 +1,6 @@
 # Verifiche ed evidenze
 
-Aggiornato: 2026-10-05. Questo documento distingue controlli documentali eseguiti e scenari di prodotto previsti. La realizzazione dei requisiti resta in [project-status.md](project-status.md).
+Aggiornato: 2026-10-05. Questo documento distingue controlli documentali, verifiche del banco prova e scenari di prodotto previsti. La realizzazione dei requisiti resta in [project-status.md](project-status.md).
 
 ## Criteri per gli esiti
 
@@ -90,6 +90,21 @@ L'identità byte per byte del testo inline è verificata rispetto alla cattura a
 | V-15 | REQ-15 | Associazione tablet e kiosk, riavvio senza internet, sessione scaduta e ritorno della rete; nessuna concessione implicita di privilegi tecnici. |
 | V-16 | REQ-16 | Valutazione R&D separata con compatibilità/prestazioni misurate sui dispositivi scelti; esito documentato prima di una decisione sul 3D. |
 | V-17 | REQ-17 | Amministratore condominiale configura dispositivi comuni autorizzati; configurazione dei dispositivi privati rifiutata anche via API. Letture/comandi secondo la policy da approvare. |
+
+## Banco prova Tunet — 2026-10-05
+
+Evidenze in [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md), Tunet 1.22.1 / HA 2026.9.4. Questi controlli non completano V-02/V-03/V-05 né certificano la grafica ACA.
+
+| ID | Controllo | Esito | Evidenza e limiti |
+|---|---|---|---|
+| ENV-01 | Acquisizione sorgenti e configurazione Compose | Superato | 407 file confrontati byte per byte con l'estrazione upstream; impronte in tunet-origin.json. docker compose config --quiet valido. |
+| ENV-02 | Build e avvio locale | Superato | npm ci/build nel Dockerfile upstream; container healthy, porta 127.0.0.1:3002, /api/health 200 e versione 1.22.1. |
+| ENV-03 | Pagina e asset iniziali | Superato | HTTP 200 per pagina e 22 JS/CSS referenziati; dashboard visibile nel browser. Non è un audit di tutti gli asset o delle schermate. |
+| ENV-04 | Rete e autenticazione di base | Superato | Challenge HA auth_required dal container; /api/profiles senza credenziali restituisce 401. Utente completa OAuth; System → Connection mostra CONNECTED / Authenticated via OAuth2. Nessuna credenziale nel report. |
+| ENV-05 | Profili e persistenza predisposta | Superato, controllo parziale | Volume Docker montato in /app/data; UI profili senza errore, auto-sync attivo e ultima sincronizzazione visibile. Salvataggio/caricamento manuale profili, riavvio e ripristino non eseguiti. |
+| ENV-06 | Dispositivi, offline, ruoli e grafica ACA | Non eseguito | Nessun comando fisico inviato, nessuna prova WAN assente o admin → cliente; nessuna personalizzazione. |
+| DOC-20 | Integrità e riferimenti ACA dopo l'installazione | Superato | 407 sorgenti integri, 19 file protetti invariati, 31 Markdown / 247 link locali validi, 18 requisiti conservati. |
+| DOC-21 | Perimetro e integrità del commit locale | Superato | 422 file pertinenti; 407 blob upstream byte per byte identici; esclusioni di ZIP/database/dipendenze/.env e diff delle fonti ACA verificati. |
 
 ## Regressioni da conservare quando esiste codice
 

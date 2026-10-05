@@ -1,0 +1,28 @@
+name: aca-tunet
+
+services:
+  tunet:
+    image: aca-tunet:1.22.1-5dec995
+    build:
+      context: ./tunet
+    ports:
+      - '127.0.0.1:3002:3002'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATA_DIR: /app/data
+      TUNET_INTERNAL_HA_URL: http://host.docker.internal:8123
+      TUNET_ENCRYPTION_MODE: 'off'
+    volumes:
+      - tunet-data:/app/data
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:3002/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  tunet-data:

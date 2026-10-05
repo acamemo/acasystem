@@ -1,0 +1,170 @@
+/* Background Animations */
+/* Slower, more organic movement for premium feel */
+@keyframes aurora-1 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -40px) scale(1.1);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.95);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes aurora-2 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-40px, 50px) scale(1.15);
+  }
+  66% {
+    transform: translate(35px, -35px) scale(0.85);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes aurora-3 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(60px, 40px) scale(1.1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+}
+
+.aurora-blob-1 {
+  animation: aurora-1 25s infinite ease-in-out;
+}
+.aurora-blob-2 {
+  animation: aurora-2 35s infinite ease-in-out;
+}
+.aurora-blob-3 {
+  animation: aurora-3 40s infinite ease-in-out;
+}
+
+/* Page Transitions */
+@keyframes pageFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: pageFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes statusPillIconPulse {
+  0%,
+  100% {
+    transform: translateZ(0) scale(1);
+  }
+  50% {
+    transform: translateZ(0) scale(var(--status-pill-pulse-scale, 1.04));
+  }
+}
+
+.status-pill-icon-pulse {
+  animation: statusPillIconPulse var(--status-pill-pulse-duration, 3.2s) ease-in-out infinite;
+  backface-visibility: hidden;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.status-pill-icon-spin {
+  backface-visibility: hidden;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* Media playing background motion (optional + subtle) */
+@keyframes mediaBgSubtleDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+  33% {
+    transform: translate3d(-1.25%, -0.9%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(1.1%, 0.75%, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+}
+
+@keyframes mediaBgSubtlePulse {
+  0% {
+    opacity: 0.88;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.88;
+  }
+}
+
+.media-bg-subtle-drift {
+  animation: mediaBgSubtleDrift 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+.media-bg-subtle-pulse {
+  animation: mediaBgSubtlePulse 6s ease-in-out infinite;
+}
+
+.media-bg-subtle-overlay {
+  background:
+    radial-gradient(120% 60% at 20% 20%, rgba(255, 255, 255, 0.08), transparent 60%),
+    radial-gradient(90% 50% at 80% 75%, rgba(255, 255, 255, 0.06), transparent 65%);
+  mix-blend-mode: soft-light;
+  opacity: 0.45;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob-1,
+  .aurora-blob-2,
+  .aurora-blob-3,
+  .media-bg-subtle-drift,
+  .media-bg-subtle-pulse,
+  .page-transition,
+  .status-pill-icon-pulse,
+  .status-pill-icon-spin {
+    animation: none !important;
+    will-change: auto !important;
+  }
+}
+
+@media (update: slow) {
+  .aurora-blob-1,
+  .aurora-blob-2,
+  .aurora-blob-3,
+  .media-bg-subtle-drift,
+  .media-bg-subtle-pulse,
+  .status-pill-icon-pulse,
+  .status-pill-icon-spin {
+    animation: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* Update older fade-in-anim if needed, but keeping it for compatibility */
