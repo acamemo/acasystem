@@ -4,3 +4,7 @@ export { Heading } from './typography/Heading';
 export { Text } from './typography/Text';
 export { Flex } from './layout/Flex';
 export { Icon } from './components/Icon';
+export { Input } from './components/Input';
+export { Choice } from './components/Choice';
+export { Switch } from './components/Switch';
+export { Modal } from './components/Modal';

@@ -1,17 +1,31 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Container, Icon, Input } from '../../primitives';
+import type { Translate } from '../../types/home';
+interface IconPickerProps {
+  value?: string | null;
+  onSelect: (value: string) => void;
+  onClear?: () => void;
+  t?: Translate;
+  maxHeightClass?: string;
+}
 import { getAllIconKeys, getIconComponent, preloadMdiIcons } from '../../icons';
 
-export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass = 'max-h-72' }) {
+export default function IconPicker({
+  value,
+  onSelect,
+  onClear,
+  t,
+  maxHeightClass = 'max-h-72',
+}: IconPickerProps) {
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
+  const [columnCount, setColumnCount] = useState(6);
   const [open, setOpen] = useState(false);
   const [mdiLoadedVersion, setMdiLoadedVersion] = useState(0);
-  const scrollRef = useRef(null);
-  const translate = t || ((key) => key);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const translate = t || ((key: string) => key);
 
-  const COLUMN_COUNT = 6;
   const ROW_HEIGHT = 52;
 
   useEffect(() => {
@@ -29,9 +43,8 @@ export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass
 
   const iconKeys = useMemo(() => {
     void mdiLoadedVersion;
-    return getAllIconKeys()
-      .slice()
-      .sort((a, b) => a.localeCompare(b));
+    const keys: string[] = getAllIconKeys();
+    return keys.slice().sort((a, b) => a.localeCompare(b));
   }, [mdiLoadedVersion]);
   const filteredKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,6 +57,9 @@ export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass
     const updateHeight = () => {
       if (!scrollRef.current) return;
       setContainerHeight(scrollRef.current.clientHeight || 0);
+      setColumnCount(
+        Math.max(1, Math.min(6, Math.floor((scrollRef.current.clientWidth + 8) / 52)))
+      );
     };
     updateHeight();
     window.addEventListener('resize', updateHeight);
@@ -55,31 +71,37 @@ export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass
     setScrollTop(0);
   }, [query]);
 
-  const totalRows = Math.ceil(filteredKeys.length / COLUMN_COUNT);
+  const totalRows = Math.ceil(filteredKeys.length / columnCount);
   const visibleRowCount = Math.ceil(containerHeight / ROW_HEIGHT) + 2;
   const startRow = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT));
   const endRow = Math.min(totalRows, startRow + visibleRowCount);
-  const startIndex = startRow * COLUMN_COUNT;
-  const endIndex = endRow * COLUMN_COUNT;
+  const startIndex = startRow * columnCount;
+  const endIndex = endRow * columnCount;
   const visibleKeys = filteredKeys.slice(startIndex, endIndex);
   const topSpacerHeight = startRow * ROW_HEIGHT;
   const bottomSpacerHeight = Math.max(0, (totalRows - endRow) * ROW_HEIGHT);
 
-  const SelectedIcon = value ? getIconComponent(value) : RefreshCw;
+  const SelectedIcon = value ? getIconComponent(value) : null;
   const selectedLabel = value || '';
 
   return (
-    <div className="space-y-3">
-      <button
+    <Container className="aca-management space-y-3">
+      <Button
+        variant="control"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
         className="popup-surface flex w-full items-center justify-between rounded-2xl px-4 py-3"
       >
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className={`flex h-9 w-9 items-center justify-center rounded-xl ${value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+            className={`flex h-9 w-9 items-center justify-center rounded-xl ${value ? 'aca-selected-text bg-[var(--accent-bg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
           >
-            <SelectedIcon className="h-4 w-4" />
+            {SelectedIcon ? (
+              <SelectedIcon color="currentColor" aria-hidden="true" className="h-4 w-4" />
+            ) : (
+              <Icon name="refresh" size={18} />
+            )}
           </div>
           <div className="flex min-w-0 flex-col">
             <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
@@ -92,72 +114,82 @@ export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass
             )}
           </div>
         </div>
-        <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+        <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
           {open ? translate('common.cancel') : translate('form.searchIcon')}
         </span>
-      </button>
+      </Button>
 
       {open && (
         <div className="space-y-3">
-          <input
+          <Input
             type="text"
             className="popup-surface w-full rounded-xl px-4 py-2 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
+            aria-label={translate('form.searchIcon')}
             placeholder={translate('form.searchIcon')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {onClear && (
-            <button
+            <Button
+              variant="control"
+              aria-pressed={!value}
               onClick={() => {
                 onClear();
                 setOpen(false);
               }}
-              className={`w-full rounded-xl px-3 py-2 text-xs font-bold tracking-widest uppercase ${!value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+              className={`w-full rounded-xl px-3 py-2 text-xs font-bold tracking-widest uppercase ${!value ? 'aca-selected-text bg-[var(--accent-bg)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
               title={translate('form.defaultIcon')}
             >
               {translate('form.defaultIcon')}
-            </button>
+            </Button>
           )}
           <div
             ref={scrollRef}
             onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-            className={`custom-scrollbar grid h-60 grid-cols-5 content-start items-start gap-2 overflow-y-auto pr-2 sm:h-72 sm:grid-cols-6 ${maxHeightClass}`}
+            className={`custom-scrollbar grid h-60 content-start items-start gap-2 overflow-y-auto pr-2 sm:h-72 ${maxHeightClass}`}
+            style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
           >
             {filteredKeys.length === 0 ? (
-              <div className="col-span-6 py-2 text-center text-xs text-[var(--text-secondary)]">
+              <div
+                style={{ gridColumn: '1 / -1' }}
+                className="py-2 text-center text-xs text-[var(--text-secondary)]"
+              >
                 {translate('form.noIconsFound')}
               </div>
             ) : (
               <>
                 {topSpacerHeight > 0 && (
-                  <div className="col-span-6" style={{ height: topSpacerHeight }} />
+                  <div style={{ gridColumn: '1 / -1', height: topSpacerHeight }} />
                 )}
                 {visibleKeys.map((iconName) => {
-                  const Icon = getIconComponent(iconName);
-                  if (!Icon) return null;
+                  const CatalogIcon = getIconComponent(iconName);
+                  if (!CatalogIcon) return null;
                   const isSelected = value === iconName;
                   return (
-                    <button
+                    <Button
+                      variant="control"
                       key={iconName}
                       onClick={() => {
                         onSelect(iconName);
                         setOpen(false);
                       }}
-                      className={`flex items-center justify-center rounded-xl p-3 transition-all ${isSelected ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-[var(--text-muted)]'}`}
+                      className={`flex items-center justify-center rounded-xl p-3 transition-all ${isSelected ? 'aca-selected-text bg-[var(--accent-bg)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                      aria-label={iconName}
+                      aria-pressed={isSelected}
                       title={iconName}
                     >
-                      <Icon className="h-5 w-5" />
-                    </button>
+                      <CatalogIcon color="currentColor" aria-hidden="true" className="h-5 w-5" />
+                    </Button>
                   );
                 })}
                 {bottomSpacerHeight > 0 && (
-                  <div className="col-span-6" style={{ height: bottomSpacerHeight }} />
+                  <div style={{ gridColumn: '1 / -1', height: bottomSpacerHeight }} />
                 )}
               </>
             )}
           </div>
         </div>
       )}
-    </div>
+    </Container>
   );
 }

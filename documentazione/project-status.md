@@ -4,7 +4,7 @@ Aggiornato: 2026-10-05. Responsabile dell'approvazione di prodotto: utente commi
 
 ## Situazione verificata
 
-La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. Il 2026-10-05 l'utente ha installato HA Container e concluso il setup. Nel successivo incarico [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) sono stati acquisiti i sorgenti Tunet 1.22.1 e predisposto il [Compose locale](../progetto/compose.tunet.yaml). Tunet è avviato su localhost:3002; HA 2026.9.4 è raggiungibile dal backend. L'utente ha completato OAuth nel browser; Tunet mostra CONNECTED / Authenticated via OAuth2 e il pannello profili mostra auto-sync con ultima sincronizzazione. HOME Neumorphism e controlli condivisi sono verificati nel browser locale (REP-20261005-008); dispositivi fisici e grafica del resto delle interfacce non sono collaudati.
+La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. Il 2026-10-05 l'utente ha installato HA Container e concluso il setup. Nel successivo incarico [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) sono stati acquisiti i sorgenti Tunet 1.22.1 e predisposto il [Compose locale](../progetto/compose.tunet.yaml). Tunet è avviato su localhost:3002; HA 2026.9.4 è raggiungibile dal backend. L'utente ha completato OAuth nel browser; Tunet mostra CONNECTED / Authenticated via OAuth2 e il pannello profili mostra auto-sync con ultima sincronizzazione. HOME Neumorphism e controlli condivisi (REP-20261005-008), aggiunta scheda, aggiunta/modifica pagina e selettore icone (REP-20261005-009) sono verificati nel browser locale; dispositivi fisici e grafica del resto delle interfacce non sono collaudati.
 
 La [raccolta UI](design/componenti/README.md) contiene ora sette campioni di codice come reference testuali in documentazione, senza adattamenti o integrazione. Sono distinti dal futuro codice applicativo in progetto/. Hash e fonti registrano l'acquisizione; non dimostrano collaudo o licenza del riuso.
 
@@ -53,7 +53,7 @@ Criteri nel [PRD](funzionalita/product.md#11-criteri-di-accettazione-proposti); 
 | REQ-16 | Valutazione piantina 3D | Proposto | Non iniziato | V-16 | Futuro/R&D; ISSUE-012. |
 | REQ-17 | Amministratore condominiale per dispositivi comuni | Approvato | Non iniziato | V-17 | Obiettivo successivo; progetto dei permessi aperto, ISSUE-008/015. |
 
-Le decisioni accettate sono [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md) per processo/struttura, e [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) per la direzione di prodotto. Nessuna evidenza di implementazione applicativa è disponibile.
+Le decisioni accettate sono [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md) per processo/struttura, e [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) per la direzione di prodotto. Le evidenze applicative sono circoscritte alle interfacce e al banco locale documentati nei report di migrazione; non provano il prodotto completo.
 
 ## Registro dei problemi e limiti
 
@@ -135,7 +135,7 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 
 **Composizione frontend con primitive — Aperto, disallineamento progettuale.** L'utente richiede primitive condivise per componenti, tipografia e layout, con pagine composte principalmente da queste e componenti locali alla pagina (ADR-0004). Tunet 1.22.1 è parzialmente allineato nel riuso UI, ma markup/stile e organizzazione delle interfacce restano distribuiti. REQ-03; evidenze in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md). Proposta: definire API e composizione delle primitive nel prossimo incarico UI, preservando le funzioni HA concordate. Il primo incremento HOME è realizzato; il resto delle interfacce resta da organizzare. Chiusura con struttura concordata e verifica delle interfacce migrate.
 
-Primo incremento REP-20261005-006: primitive componenti/tipografia/Flex e HOME vuota, header, navigazione e toolbar/menu migrati. REP-20261005-008 aggiunge il materiale Neumorphism HOME e i controlli condivisi. ISSUE-017 resta aperto per il resto delle interfacce e il sistema visivo ACA completo; la prima migrazione non certifica tutto il frontend.
+Primo incremento REP-20261005-006: primitive componenti/tipografia/Flex e HOME vuota, header, navigazione e toolbar/menu migrati. REP-20261005-008 aggiunge il materiale Neumorphism HOME e i controlli condivisi. REP-20261005-009 aggiunge Input/Choice/Switch/Modal e finestre di gestione in TSX. ISSUE-017 resta aperto per il resto delle interfacce e il sistema visivo ACA completo; la prima migrazione non certifica tutto il frontend.
 
 ### ISSUE-018
 
@@ -153,7 +153,7 @@ tsconfig.home.json ora applica strict e controllo dichiarazioni inutilizzate all
 
 ### ISSUE-021
 
-**Traduzione delle interfacce precedenti — Aperto.** Italiano richiesto per le nuove interfacce (ADR-0005); HOME migrata e menu sono tradotti, data/ora usa it-IT. La traduzione delle schermate precedenti, inclusi pannelli aggiunta scheda/profili/aspetto, è parziale e usa fallback inglese. Proposta: completare i testi insieme alle schermate assegnate, verificando etichette, errori e accessibilità. Non è dichiarata l'app interamente tradotta né assegnata una traduzione integrale.
+**Traduzione delle interfacce precedenti — Aperto.** Italiano richiesto per le nuove interfacce (ADR-0005); HOME migrata e menu sono tradotti, data/ora usa it-IT. REP-20261005-009 completa i testi di aggiunta scheda e gestione pagine/icone. Profili, aspetto e altri pannelli precedenti restano parziali e usano fallback inglese. Proposta: completare i testi insieme alle schermate assegnate, verificando etichette, errori e accessibilità. Non è dichiarata l'app interamente tradotta né assegnata una traduzione integrale.
 
 ## Incarichi e punto di ripresa
 
@@ -171,6 +171,8 @@ tsconfig.home.json ora applica strict e controllo dichiarazioni inutilizzate all
 | [REP-20261005-007](reports/REP-20261005-007-conversione-neumorphism.md) | Fonte Antigravity sul design | Interrotto dall'utente; report originale conservato, token acquisiti e ripresa HOME in REP-008. Non prova la conversione integrale. |
 | [REP-20261005-008](reports/REP-20261005-008-home-neumorphism.md) | Ripresa del design HOME | Completato; materiale chiaro/scuro, controlli condivisi, regressioni e storico verificati sul banco locale. |
 
-**Incarico attivo:** nessuno. [REP-20261005-008](reports/REP-20261005-008-home-neumorphism.md) concluso: HOME Neumorphism disponibile sul banco locale. Il report Antigravity REP-007 è conservato come fonte storica; la sua indicazione In corso non descrive un secondo agente attivo dopo la conferma umana di arresto.
+| [REP-20261005-009](reports/REP-20261005-009-gestione-schede-pagine.md) | Gestione schede e pagine | Completato; primo gruppo della prosecuzione con TypeScript, italiano, temi, regressioni e browser. |
 
-**Punto di ripresa:** per le prossime schermate usare ADR-0004/0005 e le primitive esistenti, soltanto con incarico dedicato. Neumorphism del resto delle interfacce, dimmer con riscontro HA, traduzione legacy completa e migrazione del resto del frontend restano da realizzare; infrastruttura finale da indicare dall'utente. Inventario, dispositivi, profili manuali, offline, ruoli, remoto e isolamento conservano i loro limiti.
+**Incarico attivo:** nessuno per il gruppo consegnato. [REP-20261005-009](reports/REP-20261005-009-gestione-schede-pagine.md) conclude aggiunta scheda, nuova pagina, modifica pagina e selettore icone. La richiesta «continuiamo con le altre pagine» è stata affrontata per questo primo gruppo collegato alla HOME; priorità degli altri gruppi non ancora specificata. Il report esterno REP-007 resta storico.
+
+**Punto di ripresa:** prossimi gruppi suggeriti: impostazioni/aspetto/disposizione/intestazione, profili e pagine dispositivo. Usare ADR-0004/0005 e le primitive correnti; dimmer con riscontro HA, traduzione legacy completa e infrastruttura finale conservano i loro limiti. Il gruppo appena consegnato non dichiara la conversione del resto delle interfacce.

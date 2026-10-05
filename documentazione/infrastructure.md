@@ -30,7 +30,7 @@ Le porte, i record DNS e i percorsi proposti nel PRD non costituiscono la config
 ## Banco prova verificato il 2026-10-05
 
 - HA preesistente: container homeassistant, porta host 8123 su tutte le interfacce come installato dall'utente, dati `C:\homeassistant\config` → `/config`. Questa configurazione esterna al repository non è stata modificata né importata in Git.
-- Tunet: [compose.tunet.yaml](../progetto/compose.tunet.yaml), progetto Compose aca-tunet, immagine locale aca-tunet:1.22.1-aca-home-neu1 dopo REP-20261005-008 (precedenti immagini HOME TS e baseline aca-tunet:1.22.1-5dec995 conservate), container aca-tunet-tunet-1; ascolto host `127.0.0.1:3002`.
+- Tunet: [compose.tunet.yaml](../progetto/compose.tunet.yaml), progetto Compose aca-tunet, immagine locale aca-tunet:1.22.1-aca-management-neu1 dopo REP-20261005-009 (precedenti immagini HOME Neumorphism, HOME TS e baseline aca-tunet:1.22.1-5dec995 conservate), container aca-tunet-tunet-1; ascolto host `127.0.0.1:3002`.
 - Browser → HA: `http://localhost:8123`, OAuth2 completato dall'utente; Tunet mostra CONNECTED e Authenticated via OAuth2. Non esiste un nuovo account remoto ACA/Tunet.
 - Backend → HA: `http://host.docker.internal:8123`; challenge WebSocket auth_required ricevuta e schermata profili senza errore. Le credenziali non sono state lette o registrate dall'agente.
 - Tunet → dati: volume Docker aca-tunet_tunet-data → `/app/data`; SQLite/profili, cifratura upstream off. Layout e sessione browser sono separati dal volume.

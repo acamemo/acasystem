@@ -151,6 +151,19 @@ Evidenze, passaggio da Antigravity e limiti in [REP-20261005-008](reports/REP-20
 | Build e servizio locale | Superato | Tunet healthy, stesso volume /app/data, HA non ricreato. Non prova offline, backup o ripristino. |
 | Integrità e collegamenti | Superato | 407 file baseline e ZIP integri; 21 fonti protette e report Antigravity immutati; 38 documenti, 312 collegamenti locali validi e 31 percorsi nel perimetro. |
 
+## Finestre di gestione schede e pagine
+
+Evidenze in [REP-20261005-009](reports/REP-20261005-009-gestione-schede-pagine.md); risultato circoscritto al primo gruppo della prosecuzione.
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Tipi e lint | Superato | Controllo precedente + strict sulle finestre TSX e test gestione; lint senza errori/warning nel builder Node 26, nessuna dipendenza aggiunta. |
+| Regressioni | Superato | 93 file / 728 test. Nuovi casi per selezione/ricerca, sei azioni creazione pagina, impostazioni/eliminazione pagina, focus/Escape e compatibilità delle chiavi icona. |
+| Build e bundle | Superato | Index passato da 900,9 KB (oltre budget 900) a 885,3 KB; mx-icons separato in vendor-icons-mx 34,0 KB, limite 500. Soglie invariate. |
+| Browser | Superato, perimetro limitato | Aggiunta scheda desktop scuro/chiaro e mobile chiaro 390×844; nuova pagina scuro e catalogo icone a 390/320 px; modifica pagina chiaro desktop/mobile, focus switch 84×48. Nessun salvataggio dati pagina o comando HA. |
+| Movimento ridotto | Implementato | Media query estesa ai dialoghi e discendenti; posizione dello switch conserva lo stato. Preferenza OS non modificata/emulata. Non conformità globale. |
+| Integrità e link | Superato | 407 file baseline e ZIP integri; 23 fonti protette; 39 documenti, 320 link locali validi e 32 percorsi nel perimetro. |
+
 ## Regressioni da conservare quando esiste codice
 
 Una modifica a identità, permessi, trasporto, esecuzione locale o distribuzione degli scenari deve conservare verifiche dei relativi confini. Per un difetto riproducibile registrare il caso, il comportamento atteso e una verifica pertinente dopo la correzione.

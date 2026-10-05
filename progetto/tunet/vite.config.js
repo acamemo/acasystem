@@ -57,6 +57,10 @@ export default defineConfig({
             return 'vendor-icons-lucide';
           }
 
+          if (id.includes('mx-icons')) {
+            return 'vendor-icons-mx';
+          }
+
           if (id.includes('@mdi/js')) {
             return 'vendor-icons-mdi-js';
           }

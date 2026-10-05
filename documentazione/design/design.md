@@ -1,6 +1,6 @@
 # ACA SYSTEM — Specifica di design
 
-Aggiornato: 2026-10-05. Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME e controlli condivisi hanno il primo materiale Neumorphism, verificato sul banco locale; card dispositivo, dimmer con riscontro HA e altre schermate restano da convertire.
+Aggiornato: 2026-10-05. Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME, controlli condivisi e finestre di gestione schede/pagine hanno il primo materiale Neumorphism, verificato sul banco locale; card dispositivo, dimmer con riscontro HA e altre schermate restano da convertire.
 
 ## Scopo e responsabilità
 
@@ -48,6 +48,12 @@ Controlli eseguiti: coppie testo/superficie opache, focus nel browser, due temi,
 La separazione in moduli e la creazione di questo file sono richieste dall'utente nel presente [incarico](../reports/REP-20261005-002-moduli-documentali-design.md). Le indicazioni precedenti e i calcoli sui colori sono conservati nell'[annotazione del report del pilota](../reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico).
 
 La successiva richiesta di [raccolta e microinterazioni](../reports/REP-20261005-003-raccolta-componenti-microinterazioni.md) aggiorna la direzione inizialmente scura: sono richiesti entrambi i temi, con arancione comune. Le [sette reference](componenti/README.md) sono conservate come originali testuali; non sono una UI implementata né autorizzano installazioni. Sequenza richiesta: accumulo, preparazione HA e poi UI, con incarichi dedicati alle fasi successive.
+
+## Finestre di gestione implementate
+
+[REP-20261005-009](../reports/REP-20261005-009-gestione-schede-pagine.md) estende il materiale ad aggiunta scheda, nuova pagina, modifica pagina e selettore icone. Modal separa intestazione, corpo scorrevole e azioni sempre raggiungibili; Input usa incasso e focus; Choice usa selezione stabile; Switch espone un pulsante nativo con role switch, indicatore luminoso e corsa del pomello. Movimento ridotto elimina le transizioni conservando posizione e stato. Le reference originali rimangono intatte.
+
+Testi italiani e mx-icons per i controlli; nomi e catalogo delle icone già salvate restano compatibili. La griglia del selettore calcola le colonne dalla larghezza disponibile per mantenere coerente la virtualizzazione su mobile. Verificati dialoghi a 320/390 px e desktop, senza comandi fisici o creazione di pagine sul banco reale. Impostazioni/profili e pagine dispositivo non sono convertiti da questo gruppo.
 
 ## Spiegazione dello stile
 

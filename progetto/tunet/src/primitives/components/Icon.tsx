@@ -9,6 +9,14 @@ import {
   TextLinear,
   DriverLinear,
   TickSquareLinear,
+  CloseSquareLinear,
+  SearchNormalLinear,
+  HomeLinear,
+  MusicLinear,
+  SpeakerLinear,
+  LampOnLinear,
+  BatteryFullLinear,
+  RefreshLinear,
   type IconProps as MxIconProps,
 } from 'mx-icons';
 
@@ -23,6 +31,14 @@ const icons = {
   text: TextLinear,
   server: DriverLinear,
   done: TickSquareLinear,
+  close: CloseSquareLinear,
+  search: SearchNormalLinear,
+  home: HomeLinear,
+  music: MusicLinear,
+  speaker: SpeakerLinear,
+  light: LampOnLinear,
+  battery: BatteryFullLinear,
+  refresh: RefreshLinear,
 };
 
 export type IconProps = MxIconProps & { name: keyof typeof icons };

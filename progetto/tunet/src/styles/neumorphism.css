@@ -206,6 +206,198 @@ html:is([data-theme='dark'], [data-theme='light']) .aca-background[data-bg-mode=
   }
 }
 
+.aca-input {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: var(--neu-surface, var(--glass-bg));
+  box-shadow: var(--neu-shadow-inset-sm);
+  color: var(--text-primary);
+  font: inherit;
+  outline: 0;
+}
+.aca-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+.aca-input--search {
+  padding-left: 44px;
+}
+.aca-input:focus-visible {
+  outline: 2px solid var(--neu-active-ink, var(--accent-color));
+  outline-offset: 3px;
+}
+.aca-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.aca-field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.aca-selected-text {
+  color: var(--neu-active-ink, var(--accent-color));
+}
+.aca-switch {
+  width: 84px;
+  height: 48px;
+  padding: 8px;
+  border-radius: 24px;
+  flex-shrink: 0;
+}
+.aca-switch__track {
+  display: block;
+  position: relative;
+  height: 32px;
+  width: 68px;
+  border-radius: 20px;
+  box-shadow: var(--aca-inset);
+}
+.aca-switch__thumb {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 36px;
+  height: 26px;
+  border-radius: 18px;
+  background: var(--aca-surface);
+  box-shadow: var(--aca-raised);
+  display: grid;
+  place-items: center;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.aca-switch__led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+.aca-switch[aria-checked='true'] .aca-switch__thumb {
+  transform: translateX(26px);
+}
+.aca-switch[aria-checked='true'] .aca-switch__led {
+  background: var(--accent-color);
+  box-shadow: 0 0 8px var(--accent-color);
+}
+.aca-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.aca-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100dvh - 48px);
+  border-radius: 24px;
+  padding: 24px;
+  min-height: 0;
+  color: var(--text-primary);
+  box-shadow: var(--neu-shadow-raised, var(--modal-shadow));
+  animation: popupIn 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.aca-modal--wide {
+  max-width: 880px;
+}
+.aca-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+.aca-modal__title {
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.aca-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 6px 12px;
+}
+.aca-modal__footer {
+  padding-top: 20px;
+}
+.aca-modal .modal-close {
+  position: relative;
+  inset: auto;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: var(--aca-surface);
+  color: var(--text-primary);
+  box-shadow: var(--aca-raised);
+}
+.aca-management .aca-control:not(.aca-action--primary) {
+  background: var(--aca-surface);
+  border: 0;
+  color: var(--text-primary);
+}
+.aca-management .aca-control[aria-pressed='true'] {
+  color: var(--aca-active-ink);
+  box-shadow: var(--aca-inset);
+}
+.aca-management .entity-item {
+  min-height: 64px;
+}
+.aca-management .entity-item .aca-selected-text {
+  color: var(--neu-active-ink, var(--accent-color));
+}
+.aca-management .aca-control:not(.aca-action--primary):hover {
+  color: var(--aca-active-ink);
+}
+.aca-management .aca-input {
+  border: 0;
+  background: var(--neu-surface, var(--glass-bg));
+}
+.aca-management p {
+  text-transform: none;
+  font-style: normal;
+  letter-spacing: normal;
+}
+.aca-management .aca-control {
+  letter-spacing: normal;
+  text-transform: none;
+}
+.aca-management .aca-danger {
+  color: var(--status-error-fg);
+}
+@media (max-width: 639px) {
+  .aca-modal-overlay {
+    padding: 12px;
+  }
+  .aca-modal {
+    max-height: calc(100dvh - 24px);
+    padding: 16px;
+    border-radius: 20px;
+  }
+  .aca-modal__header {
+    padding-bottom: 16px;
+  }
+  .aca-choice {
+    padding-inline: 12px;
+    font-size: 0.8125rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :is(
     .aca-control,
@@ -215,7 +407,9 @@ html:is([data-theme='dark'], [data-theme='light']) .aca-background[data-bg-mode=
     .aca-header,
     .aca-header *,
     .aca-menu,
-    .aca-menu *
+    .aca-menu *,
+    .aca-modal,
+    .aca-modal *
   ) {
     animation: none !important;
     transition: none !important;

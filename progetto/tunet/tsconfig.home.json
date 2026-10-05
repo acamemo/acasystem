@@ -6,7 +6,10 @@
     "checkJs": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["@testing-library/jest-dom/vitest", "vitest/globals"]
+    "types": [
+      "@testing-library/jest-dom/vitest",
+      "vitest/globals"
+    ]
   },
   "include": [
     "src/primitives/**/*.ts",
@@ -19,7 +22,16 @@
     "src/components/pages/home/**/*.tsx",
     "src/components/ui/SettingsDropdown.tsx",
     "src/types/global.d.ts",
-    "src/__tests__/HomeMigration.test.tsx"
+    "src/__tests__/HomeMigration.test.tsx",
+    "src/types/management.ts",
+    "src/modals/AddCardContent.tsx",
+    "src/modals/AddPageModal.tsx",
+    "src/modals/EditPageModal.tsx",
+    "src/components/ui/IconPicker.tsx",
+    "src/__tests__/ManagementMigration.test.tsx"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

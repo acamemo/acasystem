@@ -16,6 +16,8 @@ Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](..
 | [REP-20261005-007](REP-20261005-007-conversione-neumorphism.md) | Conversione dell'applicativo a Neumorphism | Fonte Antigravity conservata; esecuzione interrotta dall'utente. Ripresa circoscritta alla HOME in REP-008; card e conversione integrale non completate. |
 | [REP-20261005-008](REP-20261005-008-home-neumorphism.md) | Ripresa del design HOME | Materiale Neumorphism nei due temi, controlli condivisi, regressioni e passaggio da Antigravity. |
 
+| [REP-20261005-009](REP-20261005-009-gestione-schede-pagine.md) | Gestione schede e pagine | Primo gruppo dopo HOME: finestre TS/italiano, primitive Input/Choice/Switch/Modal, icone compatibili e verifiche. |
+
 ## Regole
 
 Usare il [modello](../templates/report.md) per un nuovo intervento significativo. Gli ID hanno data ISO compatta e numero progressivo di tre cifre nella data, mai riutilizzato. Un report nuovo apre un incarico soltanto se riproduce una richiesta umana: un'idea di un agente non è un incarico.
