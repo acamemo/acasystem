@@ -131,6 +131,22 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 
 **Risorse frontend esterne — Aperto, osservazione tecnica.** Tunet 1.22.1 carica stylesheet/font Google Fonts nel proprio index.html; il server consente anche risorse esterne per mappe/icone/media. Sono possibilità del codice, non prova che tutte siano utilizzate. Collegamenti: REQ-02/03, C-04/C-06 e REP-20261005-004. Proposta fuori dall'incarico di installazione: valutare font locali e censire richieste effettive prima del collaudo offline e della distribuzione. Nessuna sostituzione applicata. Chiusura con incarico dedicato, inventario dei flussi e prova offline delle schermate concordate.
 
+### ISSUE-017
+
+**Composizione frontend con primitive — Aperto, disallineamento progettuale.** L'utente richiede primitive condivise per componenti, tipografia e layout, con pagine composte principalmente da queste e componenti locali alla pagina (ADR-0004). Tunet 1.22.1 è parzialmente allineato nel riuso UI, ma markup/stile e organizzazione delle interfacce restano distribuiti. REQ-03; evidenze in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md). Proposta: definire API e composizione delle primitive nel prossimo incarico UI, preservando le funzioni HA concordate. Nessun refactor applicato. Chiusura con struttura concordata e verifica delle interfacce migrate.
+
+### ISSUE-018
+
+**Manutenibilità dell'orchestrazione — Aperto, valutazione tecnica.** App e alcune modali hanno dimensioni elevate, molti parametri e contratti JS/JSDoc poco restrittivi. Lint/typecheck e 705 test passano: non è un guasto dimostrato. REQ-03; evidenze e conteggi nel report di audit. Proposta: delimitare responsabilità/contratti nell'incarico di organizzazione frontend, valutare la tipizzazione e misurare render/carico sul pilota. L'utente non ha imposto TypeScript o uno store alternativo; nessuna migrazione scelta. Chiusura con confini concordati e controlli pertinenti, non con la sola riduzione delle righe.
+
+### ISSUE-019
+
+**Politica di invio della luminosità — Aperto, osservazione statica.** LightCard usa debounce 200 ms, LightModal invii su onChange (per frame sullo slider M3, nativi sui sottodispositivi). Non è una policy uniforme per la luce reale durante il gesto e la conferma HA prevista in design.md. REQ-03 e specifiche di interazione; report AUD-01. Proposta: definire frequenza, invio finale, errori e distinzione richiesto/confermato nel relativo incarico. Nessun comando fisico provato o comportamento modificato. Chiusura con scenario gesto/HA e verifica della policy implementata.
+
+### ISSUE-020
+
+**Guide upstream per agenti — Aperto, discrepanza verificata.** copilot-instructions.md cita React 18 e immagine hassen-app:latest; lockfile e banco prova sono rispettivamente React 19.2.8 e Compose ACA. Fonte immutata conservata, regole ACA nella radice. Proposta: mantenere una guida operativa ACA verificata e distinguere i riferimenti upstream quando saranno avviati gli incarichi UI; non copiare indicazioni storiche come decisioni correnti. Nessuna fonte upstream modificata. Chiusura con percorso operativo coerente e verificato per i futuri agenti. Evidenze in REP-20261005-005; continuità ADR-0001.
+
 ## Incarichi e punto di ripresa
 
 | Report | Incarico | Stato |
@@ -142,7 +158,8 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 | [REP-20261005-002](reports/REP-20261005-002-moduli-documentali-design.md) | Separazione dei moduli funzionalità e design | Completato; design.md creato, moduli e collegamenti verificati. |
 | [REP-20261005-003](reports/REP-20261005-003-raccolta-componenti-microinterazioni.md) | Raccolta componenti e microinterazioni | Completato; sette originali, catalogo e specifiche verificati senza implementazione. |
 | [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) | Installazione locale Tunet | Completato; sorgenti integri, servizio healthy, OAuth collegato e limiti documentati. |
+| [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md) | Audit della struttura Tunet | Completato; confronto, controlli isolati, integrità e documentazione verificati. |
 
-**Incarico attivo:** nessuno. [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) completato: base Tunet 1.22.1 installata e collegamento OAuth confermato; ENV-01–ENV-05 e DOC-20 registrano le evidenze limitate del banco prova. Personalizzazione ACA, dispositivi, offline e accettazione di prodotto non completati.
+**Incarico attivo:** nessuno. Audit [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md) completato. Principi umani registrati in ADR-0004; nessuna personalizzazione o migrazione avviata. Lint, typecheck, colori, bundle e 705 test passano in ambiente isolato; infrastruttura futura da indicare dall'utente.
 
-**Punto di ripresa:** base Tunet installata e collegamento OAuth confermato. Definire schermate e primo componente ACA nel relativo incarico; collaudare entità e letture/comandi del pilota, profili e offline. Inventario dell'ufficio, autenticazione/setup/ruoli, remoto e isolamento condominiale conservano i loro limiti e ambiti.
+**Punto di ripresa:** ricevere la futura infrastruttura/organizzazione concreta dall'utente. Base Tunet installata e OAuth confermato; primitive/pagine secondo ADR-0004 nei successivi incarichi. Inventario, dispositivi, profili manuali, offline, ruoli, remoto e isolamento conservano i loro limiti.

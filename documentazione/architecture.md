@@ -8,6 +8,10 @@ Sono disponibili documentazione, Git locale e banco prova HA Container/Tunet 1.2
 
 La direzione è locale, con massimo uso possibile senza internet e obiettivo remoto online. Nel banco prova: browser → Tunet Express/asset locali su porta 3002; browser → HA WebSocket/OAuth su 8123; backend Tunet → HA per validare l'identità; SQLite in volume Docker per profili/snapshot. Il server interno HA è host.docker.internal; nessun sorgente HA è modificato. Versioni e dati in [infrastructure.md](infrastructure.md). Queste scelte esecutive autorizzate per il banco prova non definiscono ruoli ACA, disponibilità offline o architettura del prodotto distribuito.
 
+## Organizzazione frontend richiesta
+
+[ADR-0004](decisions/ADR-0004-principi-frontend.md) registra i principi esplicitati dall'utente: primitive condivise per componenti, tipografia e layout, interfacce composte principalmente con queste e componenti specifici per pagina. L'[audit Tunet](reports/REP-20261005-005-audit-struttura-tunet.md) confronta il codice con questi criteri. Non sono scelti una nuova libreria, il layout delle cartelle ACA o la futura infrastruttura; il banco prova mantiene l'organizzazione upstream.
+
 ## Componenti e responsabilità previste
 
 | Componente | Responsabilità | Decisione / questione aperta |

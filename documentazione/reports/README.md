@@ -11,6 +11,7 @@ Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](..
 | [REP-20261005-002](REP-20261005-002-moduli-documentali-design.md) | Moduli funzionalità e design | Separazione documentale, specifica dello stile e controlli dei nuovi percorsi. |
 | [REP-20261005-003](REP-20261005-003-raccolta-componenti-microinterazioni.md) | Raccolta componenti e microinterazioni | Sette originali, catalogo, temi e interazioni confermati; conservazione e verifiche documentali. |
 | [REP-20261005-004](REP-20261005-004-installazione-tunet.md) | Installazione locale Tunet | Acquisizione sorgenti, avvio Docker, integrazione con HA e limiti del banco prova. |
+| [REP-20261005-005](REP-20261005-005-audit-struttura-tunet.md) | Audit della struttura Tunet | Responsabilità e flussi, confronto con le primitive richieste e risultati dei controlli upstream. |
 
 ## Regole
 

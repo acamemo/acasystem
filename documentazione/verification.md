@@ -106,6 +106,21 @@ Evidenze in [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md),
 | DOC-20 | Integrità e riferimenti ACA dopo l'installazione | Superato | 407 sorgenti integri, 19 file protetti invariati, 31 Markdown / 247 link locali validi, 18 requisiti conservati. |
 | DOC-21 | Perimetro e integrità del commit locale | Superato | 422 file pertinenti; 407 blob upstream byte per byte identici; esclusioni di ZIP/database/dipendenze/.env e diff delle fonti ACA verificati. |
 
+## Audit frontend Tunet — 2026-10-05
+
+Esiti in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md), revisione upstream 5dec995; principi di confronto in ADR-0004. Controlli eseguiti in container audit effimeri, senza rete esterna o mount dei dati reali. Nessuna CI attivata.
+
+| ID | Controllo | Esito | Limiti |
+|---|---|---|---|
+| AUD-01 | Mappa statica e confronto con primitive/pagine | Superato come analisi | Componenti riusabili presenti; disallineamento dei gruppi tipografia/layout e della composizione predominante. Non è verifica della conformità del frontend ACA. |
+| AUD-02 | Ambiente audit dal target builder upstream | Superato | Dockerfile/lockfile conservati; container applicativi non ricreati. |
+| AUD-03 | ESLint | Superato | 222 file, 0 errori/warning; esclusi test e backend dalla configurazione upstream. |
+| AUD-04 | Typecheck | Superato | checkJs, strict/noImplicitAny false; non dimostra tipizzazione rigorosa. |
+| AUD-05 | Vitest | Superato | 90 file / 705 test passati in jsdom e test backend; non collaudo sui dispositivi. |
+| AUD-06 | Colori e budget bundle upstream | Superato | 43 file per i colori, chunk entro i budget; non prova completa della grafica o delle prestazioni ACA. |
+| AUD-07 | E2E, coverage, profilazione, WAN assente, audit sicurezza completo | Non eseguito | Da delimitare nei relativi incarichi. |
+| AUD-08 | Integrità, perimetro e collegamenti | Superato | 407 sorgenti integri, 20 file storici invariati, 33 documenti / 279 collegamenti validi; soltanto otto documenti interessati. |
+
 ## Regressioni da conservare quando esiste codice
 
 Una modifica a identità, permessi, trasporto, esecuzione locale o distribuzione degli scenari deve conservare verifiche dei relativi confini. Per un difetto riproducibile registrare il caso, il comportamento atteso e una verifica pertinente dopo la correzione.
