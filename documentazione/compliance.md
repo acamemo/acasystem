@@ -23,6 +23,7 @@ Il committente approva il perimetro e individua i responsabili. Ruoli specifici 
 | C-07 | Chat, contesto AI e scenari | Nessun flusso dati implementato. Da valutare. | Identificare contesto ammesso, dati nei prompt/log, accessi, conservazione e condizioni del modello utilizzato. | ISSUE-010/014 |
 | C-08 | Log, backup e ripristino | Procedure non definite o provate. Da valutare. | Descrivere dati raccolti, accessi, conservazione, anonimizzazione delle evidenze e prove di recupero. | ISSUE-011/014 |
 | C-09 | Trasporto e credenziali | Nessun endpoint o schema TLS ACA verificato. Da valutare. | Documentare confini di fiducia, certificati, segreti fuori Git e proprietà di cifratura effettivamente dimostrate. | ISSUE-013 |
+| C-10 | Reference UI raccolte | Sette esempi forniti dall'utente; autore originale, URL e licenza sconosciuti. Raccolti senza adattamento o integrazione. | Prima del riuso applicativo acquisire provenienza, licenza e condizioni per i singoli esempi; gli import React/styled-components non definiscono licenza dei campioni né dipendenze adottate. [Catalogo e fonti](design/componenti/README.md#provenienza). | ISSUE-014 |
 
 ## Fonti e revisioni già esaminate
 

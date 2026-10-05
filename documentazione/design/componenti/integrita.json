@@ -1,0 +1,81 @@
+{
+  "acquisitionDate": "2026-10-05",
+  "inlineCapture": {
+    "file": "fonti/messaggio-2026-10-05.txt",
+    "encoding": "UTF-8",
+    "lineEndings": "LF",
+    "bytes": 14602,
+    "sha256": "97F062B052BD8935709F82C9A3BAC5FA2CEC1E2112A219427DAB942E3465DEB5",
+    "note": "Cattura del contenuto del messaggio; non esiste un file sorgente esterno del testo inline con cui provare identità byte per byte."
+  },
+  "references": [
+    {
+      "id": "UI-001",
+      "file": "originali/UI-001-switch-principale.jsx.txt",
+      "bytes": 3563,
+      "sha256": "A3214ADDD43584716BE2E2F8ADC1AEBE590C8DE3FC7322478F786497AA3A7DCC",
+      "source": "messaggio inline dell’utente",
+      "bundle": "fonti/messaggio-2026-10-05.txt",
+      "startByte": 0,
+      "endByteExclusive": 3563
+    },
+    {
+      "id": "UI-002",
+      "file": "originali/UI-002-switch-grip.jsx.txt",
+      "bytes": 3054,
+      "sha256": "D89B3151B7BDA7E831F491758118B352506B429284AF3EE5437DE672A486B9D4",
+      "source": "messaggio inline dell’utente",
+      "bundle": "fonti/messaggio-2026-10-05.txt",
+      "startByte": 3563,
+      "endByteExclusive": 6617
+    },
+    {
+      "id": "UI-003",
+      "file": "originali/UI-003-pulsante-pressione.jsx.txt",
+      "bytes": 4040,
+      "sha256": "099F0F306614D1B2BE20B15CB65B8AA5025690BBF1256ABD64107E080B39D06A",
+      "source": "messaggio inline dell’utente",
+      "bundle": "fonti/messaggio-2026-10-05.txt",
+      "startByte": 6617,
+      "endByteExclusive": 10657
+    },
+    {
+      "id": "UI-004",
+      "file": "originali/UI-004-switch-led.jsx.txt",
+      "bytes": 2164,
+      "sha256": "C50E23A439851748350D85093D8058C38905ED340F5395F554BA0207D593ADB6",
+      "source": "messaggio inline dell’utente",
+      "bundle": "fonti/messaggio-2026-10-05.txt",
+      "startByte": 10657,
+      "endByteExclusive": 12821
+    },
+    {
+      "id": "UI-005",
+      "file": "originali/UI-005-card-incassata.jsx.txt",
+      "bytes": 453,
+      "sha256": "69925D5D52527EBFDA6F8E781ECFC0D724550F3DFB5AD69E9BC71EAD902D9E74",
+      "source": "messaggio inline dell’utente",
+      "bundle": "fonti/messaggio-2026-10-05.txt",
+      "startByte": 12821,
+      "endByteExclusive": 13274
+    },
+    {
+      "id": "UI-006",
+      "file": "originali/UI-006-card-stratificata.jsx.txt",
+      "bytes": 1328,
+      "sha256": "57885A8B6E4F02A0D59C0963E39C488A29C9F05A2F7CDD3F4B755E2E6484DDE4",
+      "source": "messaggio inline dell’utente",
+      "bundle": "fonti/messaggio-2026-10-05.txt",
+      "startByte": 13274,
+      "endByteExclusive": 14602
+    },
+    {
+      "id": "UI-007",
+      "file": "originali/UI-007-switch-wifi.jsx.txt",
+      "bytes": 5027,
+      "sha256": "ED2211C5FEFB80790E06767A5D5204A23301B059ACCF0835448797287A6227F1",
+      "source": "allegato Testo incollato.txt",
+      "attachmentId": "6f856bb7-5772-433d-947c-20d4046d43f7"
+    }
+  ]
+}

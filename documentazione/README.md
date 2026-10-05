@@ -18,6 +18,7 @@ La documentazione è divisa in due moduli: **funzionalità**, con product.md e p
 | [product.md](funzionalita/product.md) | Visione, requisiti proposti/approvati/ritirati, priorità storiche e criteri di accettazione proposti. |
 | [Pilota e fase 1](funzionalita/pilot-scope.md) | Indicazioni umane, perimetro minimo grafico, obiettivi successivi e informazioni mancanti. |
 | [design.md](design/design.md) | Stile Neumorphism, colori confermati, spiegazione, proposte sui componenti e verifiche visive previste. |
+| [Catalogo componenti](design/componenti/README.md) | Sette reference originali, provenienza, dipendenze dichiarate, ruoli e integrità; nessuna integrazione applicativa. |
 | [Stato del progetto](project-status.md) | Stato reale dei requisiti, problemi e punto di ripresa. |
 | [Architettura](architecture.md) | Responsabilità e flussi proposti, decisioni tecniche aperte. |
 | [Infrastruttura](infrastructure.md) | Ambienti previsti, inventario verificato e procedure operative da definire. |

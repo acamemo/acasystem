@@ -6,6 +6,8 @@ Aggiornato: 2026-10-05. Responsabile dell'approvazione di prodotto: utente commi
 
 La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. La documentazione descrive progettazione e vincoli; il repository non contiene codice applicativo, configurazioni di deployment o test di prodotto.
 
+La [raccolta UI](design/componenti/README.md) contiene ora sette campioni di codice come reference testuali in documentazione, senza adattamenti o integrazione. Sono distinti dal futuro codice applicativo in progetto/. Hash e fonti registrano l'acquisizione; non dimostrano collaudo o licenza del riuso.
+
 Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in questo incarico. Disponibilità di eventuali risorse esterne: non verificata. Non esistono evidenze di operatività, prestazioni o conformità del prodotto. Nessuna CI è configurata.
 
 La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Documenti e PRD sono in `documentazione/`; backup e progetto contengono soltanto i rispettivi README. Nessuna copia di backup è stata creata.
@@ -105,6 +107,8 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 
 **Perimetro del primo rilascio — chiarito in parte.** L'utente sceglie ufficio e minimo grafico su Home Assistant con Tunet. Nelle risposte successive del 2026-10-05 dichiara HA non ancora installato in ufficio e logo non disponibile; indica Neumorphism con un articolo Clay e tre reference, colore principale `#222222` e secondario arancione `#ef8231`. Restano schermate, palette completa e ruoli dei colori, logo, inventario, entità rappresentative, budget e tempi. Le estensioni non hanno un ordine assegnato e non entrano automaticamente nella fase 1; il 3D resta futuro/R&D. Dettagli in [pilot-scope.md](funzionalita/pilot-scope.md#direzione-grafica-confermata-e-proposte); fonti e limiti nell'annotazione del [report](reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico). Stato Aperto fino alla definizione del perimetro esecutivo.
 
+Il successivo piano di raccolta approvato aggiorna la direzione: **tema chiaro e scuro**, accento `#ef8231`, `#222222` conservato come riferimento scuro; base chiara precisa ancora da scegliere. UI-001 guida il design e UI-007 il feedback luminoso; microinterazioni prioritarie, regolazione della luce durante il gesto, stato attivo stabile, alternative senza trascinamento e movimento ridotto sono specifiche confermate per la futura UI. [design.md](design/design.md#microinterazioni-richieste) ne è la fonte. Frequenza degli invii HA, geometria del gesto, stati di errore e adattamenti non sono implementati o collaudati.
+
 ### ISSUE-013
 
 **Accesso remoto e trasporto — soluzione aperta.** L'accesso fuori casa è un obiettivo online; il broker Hetzner è ritirato e non è stato scelto un sostituto. Per LAN/remoto definire percorso, autenticazione, TLS, certificati e confini di fiducia. Nessuna proprietà end-to-end è dimostrata. Perdita di internet e indisponibilità della rete locale sono condizioni distinte.
@@ -112,6 +116,8 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 ### ISSUE-014
 
 **Distribuzione software e dati — verifiche mancanti.** Il prodotto verrà fornito su hardware negli immobili; identificare artefatti distribuiti, licenze, account, dati, accessi, conservazione e backup locali. Hetzner è escluso; Google/Resend restano opzioni non approvate per la fase 1. Per eventuale AI o accesso remoto documentare nuovi flussi/provider prima dell'adozione. Voci nel [registro di conformità](compliance.md).
+
+Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10 e [catalogo](design/componenti/README.md#provenienza). La raccolta non risolve le condizioni del riuso applicativo e non adotta styled-components.
 
 ### ISSUE-015
 
@@ -126,7 +132,8 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 | [REP-20261002-003](reports/REP-20261002-003-organizzazione-cartelle.md) | Separazione di documentazione, backup e progetto | Completato; percorsi, integrità e storico verificati. |
 | [REP-20261005-001](reports/REP-20261005-001-direzione-pilota.md) | Direzione di prodotto e primo pilota in ufficio | Completato; direzione documentata, integrità e coerenza verificate, senza sviluppo. |
 | [REP-20261005-002](reports/REP-20261005-002-moduli-documentali-design.md) | Separazione dei moduli funzionalità e design | Completato; design.md creato, moduli e collegamenti verificati. |
+| [REP-20261005-003](reports/REP-20261005-003-raccolta-componenti-microinterazioni.md) | Raccolta componenti e microinterazioni | Completato; sette originali, catalogo e specifiche verificati senza implementazione. |
 
-**Incarico attivo:** nessuno. REP-20261005-002 completato: moduli funzionalità e design separati, design.md creato e controlli DOC-14–DOC-16 superati. Dettagli visivi e prossimo lavoro applicativo restano da assegnare; sviluppo, acquisti e provisioning non sono avviati. L'area backup resta predisposta senza copie o automazioni.
+**Incarico attivo:** nessuno. REP-20261005-003 completato con controlli DOC-17–DOC-19: sette originali conservati, catalogo e specifiche aggiornati. Nessun adattamento, installazione HA o sviluppo UI avviati. L'area backup resta predisposta senza copie o automazioni.
 
-**Backlog proposto, non assegnato:** analisi tecnica Tunet e schermate della fase 1; inventario dell'ufficio e metodo HA; autenticazione/setup/offline; remoto e isolamento condominiale nei rispettivi incarichi. Il prossimo incarico deve precisare risultato e perimetro.
+**Sequenza richiesta, con fasi successive da incaricare:** accumulare componenti, preparare HA, poi lavorare sulla UI. Restano analisi tecnica Tunet, schermate e dettagli del design, inventario dell'ufficio e metodo HA, autenticazione/setup/offline; remoto e isolamento condominiale nei rispettivi incarichi. Nessuna fase successiva viene avviata dalla sola raccolta.

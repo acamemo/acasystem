@@ -4,3 +4,7 @@
 .gitattributes text eol=lf
 # Gli archivi originali devono conservare esattamente i byte acquisiti.
 documentazione/archive/** -text
+# Le reference testuali mantengono i byte acquisiti, incluse le terminazioni.
+documentazione/design/componenti/originali/** -text
+documentazione/design/componenti/fonti/** -text
+documentazione/design/componenti/integrita.json text eol=lf

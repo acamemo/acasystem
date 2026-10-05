@@ -16,7 +16,7 @@ Hetzner è escluso dalla direzione corrente. L'accesso da fuori casa rimane un o
 
 | Ambito | Direzione confermata | Dettaglio ancora da definire |
 |---|---|---|
-| Grafica | Personalizzazione di Home Assistant tramite il riferimento React Tunet; Neumorphism, colore principale `#222222` e secondario `#ef8231` indicati dall'utente | Schermate comprese, logo da definire, ruoli dei colori e palette completa, font, layout, dispositivi client e copertura delle funzioni HA. |
+| Grafica | Home Assistant tramite Tunet; Neumorphism, temi chiaro/scuro, `#222222` come riferimento scuro e accento `#ef8231`; microinterazioni prioritarie | Schermate comprese, base chiara, logo, palette completa, font, layout, dispositivi client e copertura delle funzioni HA. |
 | Operatività locale | Massimo funzionamento possibile senza internet | Hosting degli asset, autenticazione, riavvio client/gateway, dipendenze esterne delle integrazioni e lista dei dispositivi del pilota. |
 | Stati e comandi | Funzioni d'interesse e comportamento HA da preservare | Entità e comandi rappresentativi della prima verifica; nessuna copertura completa già dimostrata. |
 | Funzioni aggiuntive | Luci, clima, consumi, scenari, piantina, remoto, AI e personalizzazione restano nella visione | Ordine e perimetro delle estensioni da assegnare dopo il risultato grafico minimo. |
@@ -27,7 +27,7 @@ L'obiettivo minimo non assegna lo sviluppo delle estensioni. Il perimetro grafic
 
 ## Direzione grafica confermata e proposte
 
-La specifica visiva è in [design.md](../design/design.md), fonte unica per Neumorphism, colori principali `#222222`/`#ef8231`, spiegazione dello stile, proposte UI e calcoli di contrasto. Questo documento mantiene il perimetro e i comportamenti del pilota; le decisioni grafiche non aggiungono funzionalità o permessi.
+La specifica visiva è in [design.md](../design/design.md), fonte unica per Neumorphism, temi chiaro/scuro, accento `#ef8231`, riferimento scuro `#222222`, microinterazioni richieste, proposte UI e calcoli di contrasto. Questo documento mantiene il perimetro e i comportamenti del pilota; le decisioni grafiche non assegnano implementazioni o nuovi permessi. Il [catalogo](../design/componenti/README.md) conserva gli esempi senza adattamenti.
 
 Logo, palette completa, componenti e schermate restano da definire nei rispettivi ambiti.
 

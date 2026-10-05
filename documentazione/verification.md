@@ -54,6 +54,18 @@ Evidenze e limiti in [REP-20261005-002](reports/REP-20261005-002-moduli-document
 
 Le verifiche UI di design.md sono previste e Non eseguite. I calcoli numerici dei colori rimangono evidenze limitate del report precedente; nessuna conformità del frontend è dichiarata.
 
+### Raccolta componenti e microinterazioni — 2026-10-05
+
+Evidenze e limiti in [REP-20261005-003](reports/REP-20261005-003-raccolta-componenti-microinterazioni.md). Il [catalogo](design/componenti/README.md) contiene reference originali, senza adattamenti o prove UI.
+
+| ID | Criterio | Esito | Evidenza |
+|---|---|---|---|
+| DOC-17 | Sette originali e acquisizione verificabile | Superato, 2026-10-05 | Sette ID/file/hash; sei porzioni contigue ricostruiscono la cattura inline di 14.602 byte, Wi-Fi identico ai 5.027 byte dell'allegato. Originali/fonti con attributo text: unset. |
+| DOC-18 | Catalogo, fonti, specifiche e link coerenti | Superato, 2026-10-05 | 30 Markdown, destinazioni e ancore locali verificate; principale UI-001 e animazione UI-007 identificati, autore/URL/licenza sconosciuti, dipendenze dichiarate separate dall'adozione. |
+| DOC-19 | Perimetro e storico preservati | Superato, 2026-10-05 | Archivio originale integro, cinque report storici invariati, 18 righe REQ e stati preservati, progetto/backup invariati. Revisione documentale e diff; nessuna installazione o nuova dipendenza. |
+
+L'identità byte per byte del testo inline è verificata rispetto alla cattura acquisita dal messaggio, non a un file sorgente esterno inesistente. Le verifiche del design e del collegamento HA restano Non eseguite. Gli originali conservano anche spazi e colori della fonte; non vengono corretti per superare controlli di stile.
+
 ## Scenari di prodotto previsti
 
 **Gli scenari applicativi attivi sono Non eseguiti; V-01 è Non applicabile perché REQ-01 è Ritirato.** V-00–V-17 conservano la mappatura dei requisiti, incluso quello ritirato. Criteri da precisare nell'incarico pertinente; nessun ambiente applicativo è disponibile. La fase 1 è delimitata in [pilot-scope.md](funzionalita/pilot-scope.md).
@@ -63,7 +75,7 @@ Le verifiche UI di design.md sono previste e Non eseguite. I calcoli numerici de
 | V-00 | REQ-00 | Inventario dell'ufficio, Linux 64 bit ARM64/x86-64, client e dispositivi scelti; prove pertinenti e ambito fisico documentati. |
 | V-01 | REQ-01 | Non applicabile al piano corrente: provisioning Hetzner Ritirato in ADR-0003; scenario storico nell'archivio/Git. Non è un controllo superato. |
 | V-02 | REQ-02 | Frontend locale, stati/comandi e automazioni selezionati senza internet, inclusi riavvio client/gateway e riconnessione; dipendenze cloud identificate. Remoto nel suo incarico. |
-| V-03 | REQ-03 | Confronto grafico delle schermate concordate, copertura delle funzioni HA, stati/comandi e riconnessione; base Tunet, versioni e condizioni di distribuzione verificate. |
+| V-03 | REQ-03 | Confronto grafico delle schermate concordate, copertura delle funzioni HA, stati/comandi e riconnessione; base Tunet, versioni e condizioni di distribuzione verificate. Per la futura UI: temi chiaro/scuro con arancione, microinterazioni, stato attivo stabile, movimento ridotto e alternativa al trascinamento; dove incluso, anteprima dell'icona/percentuale e luce reale durante il gesto, invii limitati e conferma HA. Non eseguito. |
 | V-04 | REQ-04 | Login Google/email autorizzati, account email non verificato rifiutato e sessione scaduta gestita secondo il progetto approvato. |
 | V-05 | REQ-05 | Credenziali accettate dal gateway, associazione corretta, rinnovo/revoca e rifiuto dell'accesso a un altro impianto; comportamento offline definito. |
 | V-06 | REQ-06 | Sessione admin aperta solo per il primo setup, configurazione, logout e login cliente; nessun privilegio admin residuo e rifiuto delle operazioni non autorizzate anche via API. |

@@ -9,6 +9,7 @@ Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](..
 | [REP-20261002-003](REP-20261002-003-organizzazione-cartelle.md) | Separazione di documentazione, backup e progetto | Riorganizzazione autorizzata, integrità dell'archivio e aggiornamento dei percorsi. |
 | [REP-20261005-001](REP-20261005-001-direzione-pilota.md) | Direzione di prodotto e primo pilota in ufficio | Risposte umane, perimetro della fase 1, decisioni e verifiche documentali. |
 | [REP-20261005-002](REP-20261005-002-moduli-documentali-design.md) | Moduli funzionalità e design | Separazione documentale, specifica dello stile e controlli dei nuovi percorsi. |
+| [REP-20261005-003](REP-20261005-003-raccolta-componenti-microinterazioni.md) | Raccolta componenti e microinterazioni | Sette originali, catalogo, temi e interazioni confermati; conservazione e verifiche documentali. |
 
 ## Regole
 
