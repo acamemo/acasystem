@@ -4,13 +4,13 @@ Aggiornato: 2026-10-05. Responsabile dell'approvazione di prodotto: utente commi
 
 ## Situazione verificata
 
-La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. Il 2026-10-05 l'utente ha installato HA Container e concluso il setup. Nel successivo incarico [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) sono stati acquisiti i sorgenti Tunet 1.22.1 e predisposto il [Compose locale](../progetto/compose.tunet.yaml). Tunet è avviato su localhost:3002; HA 2026.9.4 è raggiungibile dal backend. L'utente ha completato OAuth nel browser; Tunet mostra CONNECTED / Authenticated via OAuth2 e il pannello profili mostra auto-sync con ultima sincronizzazione. Dispositivi e grafica ACA non sono collaudati.
+La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. Il 2026-10-05 l'utente ha installato HA Container e concluso il setup. Nel successivo incarico [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) sono stati acquisiti i sorgenti Tunet 1.22.1 e predisposto il [Compose locale](../progetto/compose.tunet.yaml). Tunet è avviato su localhost:3002; HA 2026.9.4 è raggiungibile dal backend. L'utente ha completato OAuth nel browser; Tunet mostra CONNECTED / Authenticated via OAuth2 e il pannello profili mostra auto-sync con ultima sincronizzazione. HOME Neumorphism e controlli condivisi sono verificati nel browser locale (REP-20261005-008); dispositivi fisici e grafica del resto delle interfacce non sono collaudati.
 
 La [raccolta UI](design/componenti/README.md) contiene ora sette campioni di codice come reference testuali in documentazione, senza adattamenti o integrazione. Sono distinti dal futuro codice applicativo in progetto/. Hash e fonti registrano l'acquisizione; non dimostrano collaudo o licenza del riuso.
 
 Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in questo incarico. Disponibilità di eventuali risorse esterne: non verificata. Non esistono evidenze di operatività, prestazioni o conformità del prodotto. Nessuna CI è configurata.
 
-La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Progetto contiene la baseline Tunet adattata nel primo incremento HOME TS/primitive/italiano; gli originali restano nello storico e nello ZIP. Backup contiene una copia ZIP/estratta dell'acquisizione, esclusa da Git; nessun backup dei dati HA/Tunet o ripristino è stato eseguito.
+La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Progetto contiene la baseline Tunet adattata nel primo incremento HOME TS/primitive/italiano e materiale Neumorphism chiaro/scuro; gli originali restano nello storico e nello ZIP. Backup contiene una copia ZIP/estratta dell'acquisizione, esclusa da Git; nessun backup dei dati HA/Tunet o ripristino è stato eseguito.
 
 Su richiesta umana del 2026-10-05, la documentazione comprende due moduli: [funzionalità](funzionalita/README.md) per PRD e pilota, e [design](design/README.md) con design.md come fonte visiva. Stato, aspetti tecnici, verifiche e storico restano comuni. La separazione non cambia approvazioni o stato di realizzazione dei requisiti.
 
@@ -37,7 +37,7 @@ Criteri nel [PRD](funzionalita/product.md#11-criteri-di-accettazione-proposti); 
 | REQ-00 | Hardware locale Linux 64 bit | Approvato | Non iniziato | V-00 | Vincoli approvati; inventario/modelli aperti, ISSUE-005. |
 | REQ-01 | Provisioning Hetzner storico | Ritirato | Non iniziato | V-01, non applicabile | ADR-0003; ID e storico conservati. |
 | REQ-02 | Home Assistant locale, offline e obiettivo remoto | Approvato | Non iniziato | V-02 | ISSUE-004, ISSUE-007, ISSUE-013, ISSUE-015. |
-| REQ-03 | Fase 1 grafica, riferimento React Tunet | Approvato | In corso | V-03 | Base Tunet installata; grafica ACA e accettazione non realizzate. ISSUE-002; ISSUE-001/003 solo se HAKit viene adottato. |
+| REQ-03 | Fase 1 grafica, riferimento React Tunet | Approvato | In corso | V-03 | Base Tunet e prima HOME Neumorphism locali; conversione delle altre interfacce e accettazione del prodotto da completare. ISSUE-002; ISSUE-001/003 solo se HAKit viene adottato. |
 | REQ-04 | Google/email, opzione futura | Proposto | Non iniziato | V-04 | Fuori dal minimo grafico; ISSUE-006, ISSUE-014. |
 | REQ-05 | Identità/sessioni e credenziali HA | Proposto | Non iniziato | V-05 | Contratto da progettare; ISSUE-006, ISSUE-007. |
 | REQ-06 | Admin e consegna del primo setup al cliente | Approvato | Non iniziato | V-06 | Comportamento richiesto; meccanismo aperto, ISSUE-006/008. |
@@ -133,9 +133,9 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 
 ### ISSUE-017
 
-**Composizione frontend con primitive — Aperto, disallineamento progettuale.** L'utente richiede primitive condivise per componenti, tipografia e layout, con pagine composte principalmente da queste e componenti locali alla pagina (ADR-0004). Tunet 1.22.1 è parzialmente allineato nel riuso UI, ma markup/stile e organizzazione delle interfacce restano distribuiti. REQ-03; evidenze in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md). Proposta: definire API e composizione delle primitive nel prossimo incarico UI, preservando le funzioni HA concordate. Nessun refactor applicato. Chiusura con struttura concordata e verifica delle interfacce migrate.
+**Composizione frontend con primitive — Aperto, disallineamento progettuale.** L'utente richiede primitive condivise per componenti, tipografia e layout, con pagine composte principalmente da queste e componenti locali alla pagina (ADR-0004). Tunet 1.22.1 è parzialmente allineato nel riuso UI, ma markup/stile e organizzazione delle interfacce restano distribuiti. REQ-03; evidenze in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md). Proposta: definire API e composizione delle primitive nel prossimo incarico UI, preservando le funzioni HA concordate. Il primo incremento HOME è realizzato; il resto delle interfacce resta da organizzare. Chiusura con struttura concordata e verifica delle interfacce migrate.
 
-Primo incremento REP-20261005-006: primitive componenti/tipografia/Flex e HOME vuota, header, navigazione e toolbar/menu migrati. ISSUE-017 resta aperto per il resto delle interfacce e il sistema visivo ACA completo; la prima migrazione non certifica tutto il frontend.
+Primo incremento REP-20261005-006: primitive componenti/tipografia/Flex e HOME vuota, header, navigazione e toolbar/menu migrati. REP-20261005-008 aggiunge il materiale Neumorphism HOME e i controlli condivisi. ISSUE-017 resta aperto per il resto delle interfacce e il sistema visivo ACA completo; la prima migrazione non certifica tutto il frontend.
 
 ### ISSUE-018
 
@@ -168,7 +168,9 @@ tsconfig.home.json ora applica strict e controllo dichiarazioni inutilizzate all
 | [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) | Installazione locale Tunet | Completato; sorgenti integri, servizio healthy, OAuth collegato e limiti documentati. |
 | [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md) | Audit della struttura Tunet | Completato; confronto, controlli isolati, integrità e documentazione verificati. |
 | [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md) | Prima migrazione HOME a TypeScript | Completato; primitive/TSX, italiano, mx-icons e controlli applicativi/documentali verificati. |
+| [REP-20261005-007](reports/REP-20261005-007-conversione-neumorphism.md) | Fonte Antigravity sul design | Interrotto dall'utente; report originale conservato, token acquisiti e ripresa HOME in REP-008. Non prova la conversione integrale. |
+| [REP-20261005-008](reports/REP-20261005-008-home-neumorphism.md) | Ripresa del design HOME | Completato; materiale chiaro/scuro, controlli condivisi, regressioni e storico verificati sul banco locale. |
 
-**Incarico attivo:** nessuno. [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md) concluso: prima HOME migrata e disponibile sul banco locale. Nessuna conversione del resto delle interfacce assegnata.
+**Incarico attivo:** nessuno. [REP-20261005-008](reports/REP-20261005-008-home-neumorphism.md) concluso: HOME Neumorphism disponibile sul banco locale. Il report Antigravity REP-007 è conservato come fonte storica; la sua indicazione In corso non descrive un secondo agente attivo dopo la conferma umana di arresto.
 
-**Punto di ripresa:** per le prossime schermate usare ADR-0004/0005 e le primitive esistenti, soltanto con incarico dedicato. Neumorphism, traduzione legacy completa e migrazione del resto del frontend restano da realizzare; infrastruttura finale da indicare dall'utente. Inventario, dispositivi, profili manuali, offline, ruoli, remoto e isolamento conservano i loro limiti.
+**Punto di ripresa:** per le prossime schermate usare ADR-0004/0005 e le primitive esistenti, soltanto con incarico dedicato. Neumorphism del resto delle interfacce, dimmer con riscontro HA, traduzione legacy completa e migrazione del resto del frontend restano da realizzare; infrastruttura finale da indicare dall'utente. Inventario, dispositivi, profili manuali, offline, ruoli, remoto e isolamento conservano i loro limiti.

@@ -13,6 +13,8 @@ Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](..
 | [REP-20261005-004](REP-20261005-004-installazione-tunet.md) | Installazione locale Tunet | Acquisizione sorgenti, avvio Docker, integrazione con HA e limiti del banco prova. |
 | [REP-20261005-005](REP-20261005-005-audit-struttura-tunet.md) | Audit della struttura Tunet | Responsabilità e flussi, confronto con le primitive richieste e risultati dei controlli upstream. |
 | [REP-20261005-006](REP-20261005-006-migrazione-home-typescript.md) | Prima migrazione HOME a TypeScript | Primitive, contratti rigorosi, lingua italiana, mx-icons e regressioni della schermata. |
+| [REP-20261005-007](REP-20261005-007-conversione-neumorphism.md) | Conversione dell'applicativo a Neumorphism | Fonte Antigravity conservata; esecuzione interrotta dall'utente. Ripresa circoscritta alla HOME in REP-008; card e conversione integrale non completate. |
+| [REP-20261005-008](REP-20261005-008-home-neumorphism.md) | Ripresa del design HOME | Materiale Neumorphism nei due temi, controlli condivisi, regressioni e passaggio da Antigravity. |
 
 ## Regole
 

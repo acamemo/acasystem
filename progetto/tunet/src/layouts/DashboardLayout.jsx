@@ -1,5 +1,5 @@
 import { Profiler, memo, useCallback, useEffect, useRef } from 'react';
-import { Plus } from '../icons';
+import { Button, Icon } from '../primitives';
 import Header from './Header';
 import StatusBar from './StatusBar';
 import BackgroundLayer from './BackgroundLayer';
@@ -174,22 +174,18 @@ export default function DashboardLayout(props) {
     >
       {(pagesConfig.header || []).map((id) => personStatus(id))}
       {editMode && (
-        <button
+        <Button
           onClick={() => {
             requestSettingsAccess(() => {
               setAddCardTargetPage('header');
               setShowAddCardModal(true);
             });
           }}
-          className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold tracking-[0.2em] uppercase transition-all"
-          style={{
-            backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
-            borderColor: 'color-mix(in srgb, var(--accent-color) 28%, transparent)',
-            color: 'var(--accent-color)',
-          }}
+          variant="control"
+          className="flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold"
         >
-          <Plus className="h-3 w-3" /> {t('addCard.type.entity')}
-        </button>
+          <Icon name="add" className="h-4 w-4" /> {t('addCard.type.entity')}
+        </Button>
       )}
       {(pagesConfig.header || []).length > 0 && !isMobile && (
         <div className="mx-2 h-8 w-px bg-[var(--glass-border)]"></div>

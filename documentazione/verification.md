@@ -136,6 +136,21 @@ Evidenze e comandi in [REP-20261005-006](reports/REP-20261005-006-migrazione-hom
 | MIG-08 | Baseline, storico, link e diff | Superato | 407 file baseline e ZIP integri, 20 fonti protette immutate, 301 collegamenti locali validi e 48 percorsi nel perimetro; evidenze nel report. |
 | MIG-09 | Fisico, offline, ruoli, salvataggio/caricamento profili, benchmark | Non eseguito | Restano nei futuri incarichi pertinenti. |
 
+## Primo materiale Neumorphism HOME — 2026-10-05
+
+Evidenze, passaggio da Antigravity e limiti in [REP-20261005-008](reports/REP-20261005-008-home-neumorphism.md). La conversione delle altre schermate e delle card non è dichiarata completata.
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Tipi, lint e build | Superato | Node 26 nel builder isolato; strict HOME; 233 file lint, 0 errori/warning; build locale aggiornata, nessuna dipendenza aggiunta. |
+| Regressioni | Superato | 91 file / 715 test; dopo l'adattamento tipografico mobile, 2 file / 9 test pertinenti passati. Tre nuove regressioni per contrasto dei temi e menu chiuso. |
+| Colori/bundle | Superato | 43 file nel controllo colori upstream; chunk nei budget. Non audit completo di ogni componente. |
+| Testo e focus HOME | Superato, perimetro limitato | Coppie opache: testo principale 14,61:1 scuro / 13,18:1 chiaro; secondario 6,21 / 6,83; selezione/focus 5,99 / 6,08; testo su pulsante arancione 5,99 in entrambi. Focus visibile verificato da tastiera. Nessuna conformità WCAG complessiva attestata. |
+| Browser desktop/mobile/tablet | Superato | Due temi desktop e 390×844, vista tablet 1024×768 senza overflow orizzontale rilevato; impostazioni, aggiunta scheda, profili, modifica/Fine e gestore pagine/Escape. Nessun dato d'impianto creato. |
+| Movimento ridotto | Implementato; verifica statica | Media query presente nel CSS distribuito: animation-name none, transition none e transform none. Preferenza OS non modificata né emulata. |
+| Build e servizio locale | Superato | Tunet healthy, stesso volume /app/data, HA non ricreato. Non prova offline, backup o ripristino. |
+| Integrità e collegamenti | Superato | 407 file baseline e ZIP integri; 21 fonti protette e report Antigravity immutati; 38 documenti, 312 collegamenti locali validi e 31 percorsi nel perimetro. |
+
 ## Regressioni da conservare quando esiste codice
 
 Una modifica a identità, permessi, trasporto, esecuzione locale o distribuzione degli scenari deve conservare verifiche dei relativi confini. Per un difetto riproducibile registrare il caso, il comportamento atteso e una verifica pertinente dopo la correzione.

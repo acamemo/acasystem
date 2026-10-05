@@ -2,7 +2,7 @@ name: aca-tunet
 
 services:
   tunet:
-    image: aca-tunet:1.22.1-aca-home-ts1
+    image: aca-tunet:1.22.1-aca-home-neu1
     build:
       context: ./tunet
     ports:

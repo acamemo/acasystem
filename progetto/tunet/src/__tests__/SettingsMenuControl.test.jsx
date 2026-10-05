@@ -52,8 +52,8 @@ describe('SettingsMenuControl', () => {
     expect(screen.getByTestId('settings-dropdown-trigger')).toHaveClass(
       'h-14',
       'w-14',
-      'rounded-2xl',
-      'bg-[var(--accent-color)]'
+      'aca-control',
+      'aca-icon-control'
     );
     expect(screen.getByTestId('settings-dropdown-trigger')).not.toHaveClass('rounded-full');
   });
@@ -64,7 +64,8 @@ describe('SettingsMenuControl', () => {
 
     const doneButton = screen.getByTestId('settings-dropdown-trigger');
     expect(doneButton).toHaveAccessibleName('nav.done');
-    expect(doneButton).toHaveClass('rounded-2xl', 'bg-[var(--status-success-fg)]');
+    expect(doneButton).toHaveClass('aca-control', 'aca-icon-control');
+    expect(doneButton).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByTestId('settings-mobile-done')).not.toBeInTheDocument();
 
     fireEvent.click(doneButton);

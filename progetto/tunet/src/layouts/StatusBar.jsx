@@ -1,4 +1,4 @@
-import { Edit2 } from '../icons';
+import { Button, Icon } from '../primitives';
 import StatusPill from '../components/cards/StatusPill';
 import { useHomeAssistant, useModalActions, usePages } from '../contexts';
 import { isSonosMediaEntity, resolveStatusGroupPill, STATUS_GROUP_PILL_TYPE } from '../utils';
@@ -103,16 +103,17 @@ export default function StatusBar({
       >
         {/* Edit button (only in edit mode) - at first position */}
         {editMode && (
-          <button
+          <Button
             onClick={() => setShowStatusPillsConfig(true)}
-            className={`flex items-center gap-1.5 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] transition-all hover:bg-[var(--accent-bg)] ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1'}`}
+            variant="control"
+            className="flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold"
             title={t('statusBar.editPills')}
           >
-            <Edit2 className="h-3 w-3" />
-            <span className="text-[10px] font-bold tracking-[0.2em] uppercase">
+            <Icon name="edit" className="h-4 w-4" />
+            <span>
               {t('statusBar.pills')}
             </span>
-          </button>
+          </Button>
         )}
 
         {/* Configurable status pills */}

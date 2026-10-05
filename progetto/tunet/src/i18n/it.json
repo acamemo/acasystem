@@ -25,6 +25,9 @@
   "system.tabHeader": "Intestazione",
   "addCard.type.entity": "Entità",
   "settings.language": "Lingua",
+  "settings.theme": "Tema",
+  "theme.dark": "Scuro",
+  "theme.light": "Chiaro",
   "language.en": "Inglese",
   "language.it": "Italiano"
 }

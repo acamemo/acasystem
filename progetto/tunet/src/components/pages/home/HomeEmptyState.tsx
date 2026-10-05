@@ -15,20 +15,22 @@ export default function HomeEmptyState({
   t,
 }: HomeEmptyStateProps) {
   return (
-    <Flex className="animate-in fade-in zoom-in min-h-[60vh] flex-col items-center justify-center p-8 text-center font-sans opacity-90 duration-500">
-      <Container className="mb-6 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-5 shadow-lg shadow-black/5">
-        <Icon name="grid" className="h-12 w-12 text-[var(--text-primary)] opacity-80" />
+    <Flex className="aca-home-empty min-h-[60vh] flex-col items-center justify-center px-4 py-10 text-center font-sans sm:px-8">
+      <Container surface="inset" className="aca-home-emblem mb-8 rounded-full" aria-hidden="true">
+        <Container surface="raised" className="aca-home-emblem__core rounded-full">
+          <Icon name="grid" className="h-12 w-12" />
+        </Container>
       </Container>
       <Heading
         level={2}
-        className="mb-3 text-3xl font-light tracking-tight text-[var(--text-primary)] uppercase"
+        className="mb-3 text-3xl font-medium tracking-tight text-[var(--text-primary)]"
       >
         {t('welcome.title')}
       </Heading>
-      <Text as="p" className="mb-8 max-w-md text-lg leading-relaxed text-[var(--text-secondary)]">
+      <Text as="p" className="mb-9 max-w-md text-base leading-relaxed text-[var(--text-secondary)]">
         {t('welcome.subtitle')}
       </Text>
-      <Flex className="flex-col gap-3 sm:flex-row">
+      <Flex className="aca-home-actions flex-col gap-5 sm:flex-row">
         <Button variant="primary" onClick={onAddCard}>
           <Icon name="add" className="h-5 w-5" />
           {t('welcome.addCard')}

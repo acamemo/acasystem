@@ -22,7 +22,10 @@ export default function BackgroundLayer() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div
+      className="aca-background pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      data-bg-mode={bgMode}
+    >
       {/* Deep static gradient base */}
       <div
         className="absolute inset-0"

@@ -56,7 +56,8 @@ describe('SettingsDropdown mobile action menu', () => {
 
     const doneButton = screen.getByRole('button', { name: 'Done' });
     expect(doneButton).not.toHaveAttribute('aria-expanded');
-    expect(doneButton).toHaveClass('rounded-2xl');
+    expect(doneButton).toHaveClass('aca-control', 'aca-icon-control');
+    expect(doneButton).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(doneButton);
 

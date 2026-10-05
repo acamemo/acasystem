@@ -41,6 +41,7 @@ import {
 } from './hooks';
 
 import './styles/dashboard.css';
+import './styles/neumorphism.css';
 import {
   hasOAuthTokens,
   requestTokensFromOtherTabs,

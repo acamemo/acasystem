@@ -69,17 +69,9 @@ function SettingsDropdown({
       <Container className="relative z-50" ref={dropdownRef}>
         <Button
           onClick={handleTrigger}
-          className={`group relative z-50 flex flex-shrink-0 items-center justify-center border transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)] focus-visible:outline-none ${
-            floating
-              ? `h-14 w-14 rounded-2xl border-transparent text-white shadow-[0_16px_48px_rgba(0,0,0,0.35)] active:scale-95 ${
-                  isFloatingDone
-                    ? 'bg-[var(--status-success-fg)] text-[var(--bg-primary)] hover:brightness-110'
-                    : 'bg-[var(--accent-color)] hover:-translate-y-0.5 hover:brightness-110'
-                }`
-              : isMobile
-                ? 'h-11 w-11 rounded-full border-transparent'
-                : 'rounded-full border-transparent p-2'
-          } ${!floating ? (isOpen ? 'scale-105 border-[var(--accent-color)] bg-[var(--accent-color)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]') : ''} ${floating && isOpen ? 'scale-105' : ''}`}
+          variant="control"
+          className={`aca-icon-control group relative z-50 ${floating ? 'h-14 w-14' : 'h-11 w-11'}`}
+          aria-pressed={isFloatingDone ? true : undefined}
           aria-label={
             isFloatingDone ? t('nav.done') : floating ? t('menu.edit') : t('menu.settings')
           }
@@ -108,14 +100,15 @@ function SettingsDropdown({
         {/* Dropdown Menu */}
         <Container
           id="settings-dropdown-menu"
-          className={`absolute right-0 z-50 w-60 transform rounded-3xl border border-[var(--glass-border)] p-2.5 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
+          surface="raised"
+          className={`aca-menu absolute right-0 z-50 w-60 transform transition-all duration-200 ${
             floating ? 'bottom-full mb-3 origin-bottom-right' : 'top-full mt-2 origin-top-right'
           } ${
             isOpen
               ? 'translate-y-0 scale-100 opacity-100'
               : `pointer-events-none scale-95 opacity-0 ${floating ? 'translate-y-2' : '-translate-y-2'}`
           }`}
-          style={{ backgroundColor: 'var(--card-bg)', backdropFilter: 'blur(20px)' }}
+          style={{ visibility: isOpen ? 'visible' : 'hidden' }}
           role="menu"
           aria-hidden={!isOpen}
           data-testid="settings-dropdown-menu"
@@ -124,12 +117,12 @@ function SettingsDropdown({
             {isMobile && onAddCard && (
               <Button
                 onClick={() => handleSelect(onAddCard)}
-                className="group flex w-full items-center gap-3 rounded-2xl bg-[var(--accent-bg)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
+                className="aca-menu-item group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
                 aria-label={t('nav.addCard')}
                 role="menuitem"
                 data-testid="settings-menu-add-card"
               >
-                <Container className="rounded-xl bg-[var(--accent-color)] p-2 text-white shadow-sm transition-transform group-hover:scale-105">
+                <Container surface="inset" className="aca-menu-icon">
                   <AcaIcon name="add" className="h-4 w-4" />
                 </Container>
                 <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
@@ -142,30 +135,30 @@ function SettingsDropdown({
               <>
                 <Button
                   onClick={() => handleSelect(onToggleEdit)}
-                  className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
+                  className="aca-menu-item group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
                   aria-label={t('menu.edit')}
                   role="menuitem"
                   data-testid="settings-menu-edit"
                 >
-                  <Container className="rounded-xl bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] transition-colors">
+                  <Container surface="inset" className="aca-menu-icon">
                     <AcaIcon name="edit" className="h-4 w-4" />
                   </Container>
                   <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
                     {t('menu.edit')}
                   </Text>
                 </Button>
-                <Container className="mx-2 my-1.5 h-px bg-[var(--glass-border)]" />
+                <Container className="aca-menu-divider mx-2 my-2 h-px" />
               </>
             )}
 
             <Button
               onClick={() => handleSelect(onOpenTheme)}
-              className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
+              className="aca-menu-item group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openAppearance')}
               role="menuitem"
               data-testid="settings-menu-theme"
             >
-              <Container className="rounded-xl bg-pink-500/10 p-2 text-pink-400 transition-colors group-hover:bg-pink-500 group-hover:text-white">
+              <Container surface="inset" className="aca-menu-icon">
                 <AcaIcon name="appearance" className="h-4 w-4" />
               </Container>
               <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
@@ -175,12 +168,12 @@ function SettingsDropdown({
 
             <Button
               onClick={() => handleSelect(onOpenLayout)}
-              className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
+              className="aca-menu-item group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openLayout')}
               role="menuitem"
               data-testid="settings-menu-layout"
             >
-              <Container className="rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
+              <Container surface="inset" className="aca-menu-icon">
                 <AcaIcon name="grid" className="h-4 w-4" />
               </Container>
               <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
@@ -190,12 +183,12 @@ function SettingsDropdown({
 
             <Button
               onClick={() => handleSelect(onOpenHeader)}
-              className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
+              className="aca-menu-item group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openHeader')}
               role="menuitem"
               data-testid="settings-menu-header"
             >
-              <Container className="rounded-xl bg-indigo-500/10 p-2 text-indigo-400 transition-colors group-hover:bg-indigo-500 group-hover:text-white">
+              <Container surface="inset" className="aca-menu-icon">
                 <AcaIcon name="text" className="h-4 w-4" />
               </Container>
               <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">
@@ -203,16 +196,16 @@ function SettingsDropdown({
               </Text>
             </Button>
 
-            <Container className="mx-2 my-1.5 h-px bg-[var(--glass-border)]" />
+            <Container className="aca-menu-divider mx-2 my-2 h-px" />
 
             <Button
               onClick={() => handleSelect(onOpenSettings)}
-              className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
+              className="aca-menu-item group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
               aria-label={t('settings.openSystem')}
               role="menuitem"
               data-testid="settings-menu-system"
             >
-              <Container className="rounded-xl bg-[var(--status-success-bg)] p-2 text-[var(--status-success-fg)] transition-colors group-hover:opacity-90">
+              <Container surface="inset" className="aca-menu-icon">
                 <AcaIcon name="server" className="h-4 w-4" />
               </Container>
               <Text as="p" className="text-sm font-bold text-[var(--text-primary)]">

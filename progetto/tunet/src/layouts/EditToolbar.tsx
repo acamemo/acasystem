@@ -21,13 +21,14 @@ export default function EditToolbar({
   t,
 }: EditToolbarProps) {
   return (
-    <Flex className="relative flex flex-shrink-0 items-center justify-end gap-6 overflow-visible pb-2">
+    <Flex className="relative flex flex-shrink-0 items-center justify-end gap-4 overflow-visible pb-2">
       {editMode && (
         <Button
           onClick={() => setShowAddCardModal(true)}
-          className="group flex items-center gap-2 rounded-full border border-transparent px-2.5 py-1.5 text-xs font-bold whitespace-nowrap text-[var(--accent-color)] transition-all duration-200 hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:outline-none"
+          variant="control"
+          className="group flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold whitespace-nowrap"
         >
-          <Text className="group-hover: rounded-full bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-all duration-300 group-hover:scale-105 group-hover:bg-[var(--accent-color)] group-hover:text-white group-hover:shadow-lg">
+          <Text className="rounded-full p-1">
             <AcaIcon
               name="add"
               className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90"
@@ -40,7 +41,8 @@ export default function EditToolbar({
       {!isMobile && (
         <Button
           onClick={onToggleEdit}
-          className={`group rounded-full border p-2 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:outline-none ${editMode ? 'hover: border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)] hover:text-white hover:shadow-lg' : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white'}`}
+          variant="control"
+          className="aca-icon-control group h-11 w-11"
           title={editMode ? t('nav.done') : t('menu.edit')}
           aria-label={editMode ? t('nav.done') : t('menu.edit')}
           aria-pressed={editMode}

@@ -1,6 +1,6 @@
 # ACA SYSTEM — Specifica di design
 
-Aggiornato: 2026-10-05. Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME è il primo incremento di migrazione TS/primitive e italiano; Neumorphism e microinterazioni ACA non sono ancora implementati o collaudati.
+Aggiornato: 2026-10-05. Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME e controlli condivisi hanno il primo materiale Neumorphism, verificato sul banco locale; card dispositivo, dimmer con riscontro HA e altre schermate restano da convertire.
 
 ## Scopo e responsabilità
 
@@ -26,6 +26,24 @@ La fase 1 minima è Home Assistant personalizzato graficamente, con Tunet come p
 | Icone dei componenti migrati | mx-icons | Pacchetto npm confermato dall'utente; prima adozione 1.1.2 in HOME, currentColor per seguire i temi. |
 
 La prima [migrazione HOME](../reports/REP-20261005-006-migrazione-home-typescript.md) conserva l'aspetto Tunet per isolare la conversione; testi e icone sono gli adattamenti richiesti. [ADR-0005](../decisions/ADR-0005-typescript-italiano-icone.md) delimita questa adozione. Button/Container/Icon, Heading/Text e Flex costituiscono il primo strato condiviso; varianti, token e materiale Neumorphism completi restano da progettare nel relativo incarico.
+
+## Primo materiale HOME implementato
+
+[REP-20261005-008](../reports/REP-20261005-008-home-neumorphism.md) documenta la ripresa da Antigravity, autorizzata nella chat: «stoppo e prosegui tu?» e conferma di Gemini fermo. La HOME vuota, intestazione, navigazione, modifica, menu impostazioni e gestore pagine usano il materiale comune. I due pulsanti legacy Entità/Indicatori adottano Button/Icon senza convertire la logica JSX dei rispettivi adattatori.
+
+| Ruolo | Scuro | Chiaro | Natura della scelta |
+|---|---|---|---|
+| Superficie | #222222 | #f2f3f5 | Scuro confermato; chiaro scelto nell'esecuzione della UI, non nuova approvazione umana. |
+| Testo principale / secondario | #f5f5f7 / #a1a1aa | #1e293b / #475569 | Coppie opache verificate nei test di contrasto. |
+| Azione principale | #ef8231 con testo #222222 | #ef8231 con testo #222222 | Accento umano confermato; testo scuro evita il contrasto insufficiente del bianco. |
+| Testo/icona selezionati e focus | #ef8231 | #9b3f10 | Arancione più scuro sul tema chiaro per leggibilità; l'accento delle azioni rimane #ef8231. |
+| Ombra / luce | #141414 / #303030 | #cbd0d7 / #ffffff | Direzione coerente dall'alto a sinistra; rilievo a riposo, incasso per selezione/pressione. |
+
+Button centralizza primary/secondary/control; plain conserva i componenti legacy. Container espone superfici raised/inset. Materiale in src/styles/neumorphism.css, token in themes.js. Il simbolo di benvenuto è decorativo, non dichiara uno stato di impianto. Focus separato dal rilievo; selezione stabile tramite aria-current/pressed/expanded; movimento e illuminazione durante interazioni, senza cicli infiniti. Transizioni dei controlli 180 ms; pulsanti azione 56 px, controlli 44 px CSS. Il wrapper mobile preesistente può ridimensionare le entità dell'intestazione.
+
+Il fondo segue la superficie nei temi dark/light e modalità Follow theme; sfondi personalizzati e temi legacy conservano i meccanismi precedenti. Il selettore del tema esistente resta responsabile della persistenza. La base chiara iniziale di Antigravity #e0e5ec è stata schiarita a #f2f3f5; l'originale acquisito è conservato nel backup di passaggio.
+
+Controlli eseguiti: coppie testo/superficie opache, focus nel browser, due temi, desktop, mobile e tablet. La regola prefers-reduced-motion disattiva transizioni/animazioni della porzione; verificata nel CSS distribuito, non mediante cambio della preferenza del sistema operativo. Non è attestata conformità WCAG complessiva, leggibilità sul tablet fisico o copertura di tutte le schermate/stati. Reference originali conservate; nessun codice originale importato o nuova dipendenza.
 
 La separazione in moduli e la creazione di questo file sono richieste dall'utente nel presente [incarico](../reports/REP-20261005-002-moduli-documentali-design.md). Le indicazioni precedenti e i calcoli sui colori sono conservati nell'[annotazione del report del pilota](../reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico).
 

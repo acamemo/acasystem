@@ -4,11 +4,11 @@ La schermata HOME viene migrata progressivamente a TypeScript secondo [ADR-0004]
 
 | Gruppo | Primitive disponibili | Contratto |
 |---|---|---|
-| Componenti | Button, Container, Icon | Proprietà native React; Button ha varianti plain/primary/secondary e type button iniziale. Icon espone soltanto i nomi mx-icons selezionati, con currentColor. |
+| Componenti | Button, Container, Icon | Proprietà native React; Button ha varianti plain/primary/secondary/control e type button iniziale. Container espone surface raised/inset. Icon espone soltanto i nomi mx-icons selezionati, con currentColor. |
 | Tipografia | Heading, Text | Heading richiede livello 1–6; Text usa span o p. Semantica HTML preservata. |
 | Layout | Flex | Contenitore div con display flex e proprietà native. |
 
-Le varianti primary/secondary centralizzano i due pulsanti di azione HOME. Plain permette la migrazione dei controlli esistenti conservandone lo stile specifico. Le primitive usano i token CSS già disponibili in Tunet: non è ancora il design Neumorphism ACA completo. Non creare primitive senza un uso concreto nell'incarico; Card e Grid verranno introdotti quando serviranno alle interfacce assegnate.
+Le varianti primary/secondary centralizzano i due pulsanti di azione HOME; control serve navigazione e strumenti, plain preserva i controlli legacy. Token themes.js e materiale styles/neumorphism.css definiscono rilievo/incasso, focus, pressione e movimento ridotto. aria-current, aria-pressed e aria-expanded comunicano selezioni stabili. Il primo materiale HOME non converte tutte le interfacce. Non creare primitive senza un uso concreto; Card e Grid verranno introdotti quando serviranno alle interfacce assegnate.
 
 Lo stato vuoto e l'icona della pagina risiedono in components/pages/home. Header, navigazione e toolbar condivisi restano nei percorsi esistenti, ora in TSX; PageManagerPopover è privato del file PageNavigation. DashboardLayout, DashboardGrid e App continuano a collegare il codice JS alle interfacce migrate.
 

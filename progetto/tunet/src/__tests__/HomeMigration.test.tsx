@@ -150,6 +150,16 @@ describe('HOME migrata a TypeScript', () => {
     expect(actions.setConfigTab).toHaveBeenCalledWith('connection');
   });
 
+  it('nasconde anche visivamente il menu chiuso e lo richiude con Escape', () => {
+    renderHome();
+    const menu = screen.getByTestId('settings-dropdown-menu');
+    expect(menu).not.toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Impostazioni' }));
+    expect(menu).toBeVisible();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(menu).not.toBeVisible();
+  });
+
   it('mantiene le azioni del menu mobile e la chiusura con Escape', () => {
     renderHome(true);
     fireEvent.click(screen.getByRole('button', { name: 'Impostazioni' }));

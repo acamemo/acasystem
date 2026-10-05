@@ -93,7 +93,7 @@ export default function Header({
 
   const timeStr = now.toLocaleTimeString(locale, timeOptions);
   const headingFontSize = `calc(${
-    isMobile ? 'clamp(2.75rem, 14vw, 3.75rem)' : 'clamp(3rem, 5vw, 3.75rem)'
+    isMobile ? 'clamp(1.75rem, 8vw, 2.5rem)' : 'clamp(3rem, 5vw, 3.75rem)'
   } * ${headerScale})`;
   const clockFontSize = `calc(${
     isMobile ? 'clamp(2.4rem, 12vw, 3.25rem)' : 'clamp(3rem, 5vw, 3.75rem)'
@@ -115,7 +115,7 @@ export default function Header({
   });
 
   const titleStyle: CSSProperties = {
-    color: 'var(--text-muted)',
+    color: 'var(--text-primary)',
     fontSize: headingFontSize,
     fontWeight: fontWeight,
     letterSpacing: isMobile ? lsMobile : lsDesktop,
@@ -126,7 +126,7 @@ export default function Header({
 
   const clockStyle: CSSProperties = {
     fontSize: clockFontSize,
-    color: 'var(--text-muted)',
+    color: 'var(--text-primary)',
     fontFamily: resolvedFontFamily,
   };
 
@@ -136,16 +136,17 @@ export default function Header({
   if (isBattery) {
     return (
       <header
-        className="relative pt-4 font-sans md:pt-0"
+        className="aca-header relative pt-4 font-sans md:pt-0"
         style={{ marginBottom: `${headerBottom}px` }}
       >
         {editMode && !headerSettings.showTitle && setShowHeaderEditModal && (
           <Container className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
             <Button
               onClick={() => setShowHeaderEditModal(true)}
-              className="flex items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
+              variant="control"
+              className="flex items-center gap-2 rounded-full px-4 py-2"
             >
-              <AcaIcon name="edit" className="h-4 w-4 animate-pulse" />
+              <AcaIcon name="edit" className="h-4 w-4" />
               <Text className="text-xs font-bold tracking-widest uppercase">
                 {t('header.addHeader')}
               </Text>
@@ -163,7 +164,7 @@ export default function Header({
           {headerSettings.showTitle && (
             <Heading
               level={1}
-              className="leading-none whitespace-nowrap select-none"
+              className="aca-header-title leading-none whitespace-nowrap select-none"
               style={titleStyle}
             >
               {headerTitle || 'Tunet'}
@@ -174,7 +175,7 @@ export default function Header({
           {headerSettings.showDate && !isMobile && (
             <Text
               as="p"
-              className="leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50 md:tracking-[0.4em]"
+              className="aca-header-date leading-none font-medium"
               style={{
                 fontSize: `calc(0.75rem * ${dateScale})`,
                 fontFamily: resolvedFontFamily,
@@ -188,7 +189,7 @@ export default function Header({
           {showClock && (
             <Heading
               level={2}
-              className="leading-none font-light tracking-[0.1em] whitespace-nowrap select-none"
+              className="aca-header-clock leading-none font-light tracking-[0.02em] whitespace-nowrap select-none"
               style={clockStyle}
             >
               {timeStr}
@@ -200,7 +201,7 @@ export default function Header({
         {headerSettings.showDate && isMobile && (
           <Text
             as="p"
-            className={`mt-2 leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50 ${mobileAlignmentClasses.date}`}
+            className={`aca-header-date mt-2 leading-none font-medium ${mobileAlignmentClasses.date}`}
             style={{
               fontSize: `calc(0.75rem * ${dateScale})`,
               fontFamily: resolvedFontFamily,
@@ -218,16 +219,17 @@ export default function Header({
   // ── Classic layout (default) ──
   return (
     <header
-      className="relative pt-4 font-sans md:pt-0"
+      className="aca-header relative pt-4 font-sans md:pt-0"
       style={{ marginBottom: `${headerBottom}px` }}
     >
       {editMode && !headerSettings.showTitle && setShowHeaderEditModal && (
         <Container className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
           <Button
             onClick={() => setShowHeaderEditModal(true)}
-            className="flex items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
+            variant="control"
+            className="flex items-center gap-2 rounded-full px-4 py-2"
           >
-            <AcaIcon name="edit" className="h-4 w-4 animate-pulse" />
+            <AcaIcon name="edit" className="h-4 w-4" />
             <Text className="text-xs font-bold tracking-widest uppercase">
               {t('header.addHeader')}
             </Text>
@@ -246,7 +248,11 @@ export default function Header({
           }`}
         >
           {headerSettings.showTitle && (
-            <Heading level={1} className="leading-none select-none" style={titleStyle}>
+            <Heading
+              level={1}
+              className="aca-header-title leading-none select-none"
+              style={titleStyle}
+            >
               {headerTitle || 'Tunet'}
             </Heading>
           )}
@@ -255,7 +261,7 @@ export default function Header({
         {headerSettings.showClock && !isMobile && (
           <Heading
             level={2}
-            className="leading-none font-light tracking-[0.1em] select-none"
+            className="aca-header-clock leading-none font-light tracking-[0.02em] select-none"
             style={clockStyle}
           >
             {timeStr}
@@ -265,7 +271,7 @@ export default function Header({
         {headerSettings.showClock && isMobile && showClockOnMobile && (
           <Heading
             level={2}
-            className="leading-none font-light tracking-[0.08em] select-none"
+            className="aca-header-clock leading-none font-light tracking-[0.02em] select-none"
             style={clockStyle}
           >
             {timeStr}
@@ -276,7 +282,7 @@ export default function Header({
       {headerSettings.showDate && !isMobile && (
         <Text
           as="p"
-          className="mt-1 leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50 md:tracking-[0.6em]"
+          className="aca-header-date mt-3 leading-none font-medium"
           style={{
             fontSize: `calc(0.75rem * ${dateScale})`,
             fontFamily: resolvedFontFamily,

@@ -5,7 +5,7 @@
 
 La [copia originale](../archive/product-original-2026-10-02.md) resta immutata. [ADR-0001](../decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](../decisions/ADR-0002-organizzazione-cartelle.md) restano valide per documentazione e storico. Lo [stato reale](../project-status.md), il [registro dei vincoli](../compliance.md) e i [report](../reports/README.md) registrano decisioni, evidenze e problemi.
 
-Gli ID `REQ-00`–`REQ-16` sono conservati, incluso REQ-01 ritirato; REQ-17 aggiunge il ruolo condominiale richiesto dall'utente. Approvato indica la direzione o il comportamento autorizzato, non versioni, licenze o realizzazione già verificate. L'incarico corrente è progettuale: nessuno sviluppo o provisioning è avviato. Le [verifiche](../verification.md) distinguono controlli documentali e scenari applicativi non eseguiti.
+Gli ID `REQ-00`–`REQ-16` sono conservati, incluso REQ-01 ritirato; REQ-17 aggiunge il ruolo condominiale richiesto dall'utente. Approvato indica la direzione o il comportamento autorizzato, non versioni, licenze o realizzazione già verificate. Installazione locale, prima migrazione HOME e primo materiale grafico sono registrati nei report; il completamento del prodotto e l'infrastruttura finale restano distinti dal banco prova. Le [verifiche](../verification.md) distinguono controlli documentali e scenari applicativi non eseguiti.
 
 ---
 
