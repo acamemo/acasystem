@@ -101,7 +101,7 @@ Tutte le voci seguenti sono **Aperte** al 2026-10-05. Le decisioni chiariscono a
 
 ### ISSUE-012
 
-**Perimetro del primo rilascio — chiarito in parte.** L'utente sceglie ufficio e minimo grafico su Home Assistant con Tunet. Restano schermate, materiale grafico, inventario, entità rappresentative, budget e tempi. Le estensioni non hanno un ordine assegnato e non entrano automaticamente nella fase 1; il 3D resta futuro/R&D. Dettagli in [pilot-scope.md](pilot-scope.md). Stato Aperto fino alla definizione del perimetro esecutivo.
+**Perimetro del primo rilascio — chiarito in parte.** L'utente sceglie ufficio e minimo grafico su Home Assistant con Tunet. Nelle risposte successive del 2026-10-05 dichiara HA non ancora installato in ufficio e logo non disponibile; indica Neumorphism con un articolo Clay e tre reference, colore principale `#222222` e secondario arancione `#ef8231`. Restano schermate, palette completa e ruoli dei colori, logo, inventario, entità rappresentative, budget e tempi. Le estensioni non hanno un ordine assegnato e non entrano automaticamente nella fase 1; il 3D resta futuro/R&D. Dettagli in [pilot-scope.md](pilot-scope.md#direzione-grafica-confermata-e-proposte); fonti e limiti nell'annotazione del [report](reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico). Stato Aperto fino alla definizione del perimetro esecutivo.
 
 ### ISSUE-013
 

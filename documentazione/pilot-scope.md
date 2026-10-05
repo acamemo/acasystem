@@ -8,13 +8,15 @@ Aggiornato: 2026-10-05. Direzione umana in [ADR-0003](decisions/ADR-0003-home-as
 
 Il risultato deve servire il funzionamento locale. Il prodotto sarà fornito con mini PC o Raspberry nelle abitazioni, negli uffici e nelle aziende dove viene installato. È approvato Linux a 64 bit, ARM64 oppure x86-64; modello, sistema operativo/versione, risorse e metodo di installazione HA restano da scegliere. L'ufficio è il contesto del pilota, senza inventario hardware acquisito.
 
+Nella successiva risposta del 2026-10-05 l'utente dichiara che Home Assistant non è ancora installato in ufficio. Il logo ACA SYSTEM non è disponibile; viene fornita una direzione grafica, descritta di seguito. Sono informazioni dichiarate dall'utente, senza sopralluogo o verifica dell'hardware.
+
 Hetzner è escluso dalla direzione corrente. L'accesso da fuori casa rimane un obiettivo online, con meccanismo ancora da progettare; non comporta la scelta automatica di un altro cloud.
 
 ## Fase minima e obiettivi successivi
 
 | Ambito | Direzione confermata | Dettaglio ancora da definire |
 |---|---|---|
-| Grafica | Personalizzazione di Home Assistant tramite il riferimento React Tunet | Schermate comprese, logo, colori, font, layout, dispositivi client e copertura delle funzioni HA. |
+| Grafica | Personalizzazione di Home Assistant tramite il riferimento React Tunet; Neumorphism, colore principale `#222222` e secondario `#ef8231` indicati dall'utente | Schermate comprese, logo da definire, ruoli dei colori e palette completa, font, layout, dispositivi client e copertura delle funzioni HA. |
 | Operatività locale | Massimo funzionamento possibile senza internet | Hosting degli asset, autenticazione, riavvio client/gateway, dipendenze esterne delle integrazioni e lista dei dispositivi del pilota. |
 | Stati e comandi | Funzioni d'interesse e comportamento HA da preservare | Entità e comandi rappresentativi della prima verifica; nessuna copertura completa già dimostrata. |
 | Funzioni aggiuntive | Luci, clima, consumi, scenari, piantina, remoto, AI e personalizzazione restano nella visione | Ordine e perimetro delle estensioni da assegnare dopo il risultato grafico minimo. |
@@ -22,6 +24,24 @@ Hetzner è escluso dalla direzione corrente. L'accesso da fuori casa rimane un o
 | Molti utenti su una macchina | Possibilità da valutare | Capacità, utenti dello stesso impianto o impianti distinti, reti, dati e isolamento tra abitazioni. |
 
 L'obiettivo minimo non assegna lo sviluppo delle estensioni. Il perimetro grafico preciso deve essere chiaro prima del relativo incarico; il PRD conserva i requisiti futuri con i loro ID.
+
+## Direzione grafica confermata e proposte
+
+Fonte umana del 2026-10-05: «Neumorphism si chiama lo stile», con [articolo Clay](https://clay.global/blog/neumorphism-ui) e tre immagini di riferimento. Le immagini mostrano una variante chiara neutra con accento viola, una scura grafite con accento verde e una chiara lilla con accenti colorati. Sono riferimenti estetici; non sono schermate ACA SYSTEM approvate o componenti collaudati.
+
+Il riferimento comune comprende superfici vicine al colore dello sfondo, ombre chiare/scure, comandi in rilievo o incassati e forme arrotondate. Nella precisazione successiva l'utente richiede colore principale dell'app `#222222` e secondo colore arancione `#ef8231`. Sono vincoli grafici confermati; la proposta dell'agente è usare il primo come base scura e il secondo come accento per azioni e selezione. Toni delle superfici, testi, colori semantici, eventuali altri temi e librerie restano da definire. Il logo resta da definire; le interfacce delle reference non vengono adottate integralmente.
+
+**Proposte dell'agente, da precisare nel progetto grafico:**
+
+- Applicare il rilievo soprattutto ai controlli principali e alle superfici delle stanze, preservando la leggibilità dei dati e dei messaggi.
+- Usare testo `#222222` sui comandi con riempimento arancione `#ef8231`, e testo chiaro sulle superfici scure; definire e verificare le varianti effettive prima dell'implementazione.
+- Usare testi e icone distinguibili dallo sfondo; associare agli stati diciture esplicite, come «Accesa», «Spenta», «Comando in corso» e «Non disponibile». Il rilievo del pulsante non costituisce conferma dello stato reale del dispositivo.
+- Definire varianti per selezione, focus, disabilitazione, attesa ed errore; verificare il risultato sul client del pilota nelle condizioni d'illuminazione reali.
+- Valutare lo stile negli strumenti già presenti in Tunet, prima di proporre nuove librerie o modifiche al backend HA.
+
+Come riferimenti per verifiche future: WCAG 2.2 prevede contrasto di almeno 4,5:1 per testo ordinario e 3:1 per testo grande, con le eccezioni previste dal criterio [1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html); le informazioni visive necessarie a identificare controlli e stati seguono il criterio [1.4.11](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html). Il significato non deve dipendere soltanto dal colore ([1.4.1](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html)). Fonti consultate il 2026-10-05; nessuna misurazione sulle reference o verifica di conformità ACA è stata eseguita.
+
+Calcolo numerico del 2026-10-05 sulle coppie sRGB opache: `#ef8231`/`#222222` = circa 5,99:1; `#ffffff`/`#ef8231` = circa 2,66:1; `#ffffff`/`#222222` = circa 15,91:1. La prima e la terza coppia superano la soglia 4,5:1 per testo ordinario, la seconda no. Sono calcoli sui valori dichiarati, non prove di rendering, trasparenze, stati del componente o accessibilità complessiva. Procedura ed esiti nell'annotazione del [report](reports/REP-20261005-001-direzione-pilota.md#annotazione-del-2026-10-05--risposte-successive-e-stile-grafico).
 
 ## Ruoli richiesti e primo setup
 
@@ -59,4 +79,4 @@ Sono criteri proposti da precisare nell'incarico esecutivo. Le verifiche applica
 
 ## Informazioni mancanti per il prossimo incarico
 
-Inventario dell'ufficio e numero dei client; dispositivi da integrare; significato operativo della componente Wi-Fi del sistema cablato; materiale grafico; schermate richieste; metodo HA; budget e tempi. Il prossimo passo proposto è l'analisi tecnica di Tunet e la definizione delle schermate della fase 1, senza installazioni implicite.
+Inventario dell'ufficio e numero dei client; dispositivi da integrare; significato operativo della componente Wi-Fi del sistema cablato; logo e palette completa all'interno della direzione neumorfica con i due colori confermati; schermate richieste; metodo HA; budget e tempi. Il prossimo passo proposto è l'analisi tecnica di Tunet e la definizione delle schermate della fase 1, senza installazioni implicite.
