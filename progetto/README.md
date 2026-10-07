@@ -1,6 +1,16 @@
 # Banco prova locale ACA SYSTEM
 
-Tunet 1.22.1 è installato in Docker, da upstream [oyvhov/Tunet](https://github.com/oyvhov/Tunet), revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`. La baseline di 407 file è conservata nel commit 14ff7f4 e nello ZIP di acquisizione; [tunet-origin.json](tunet-origin.json) registra gli hash della baseline. La cartella corrente include la prima migrazione ACA di HOME a TypeScript, primitive e italiano, documentata in [REP-20261005-006](../documentazione/reports/REP-20261005-006-migrazione-home-typescript.md). Il manifest originale non descrive gli hash del codice modificato. La [licenza GPL-3.0 originale](tunet/LICENSE) è inclusa. Le condizioni della futura distribuzione ACA restano da valutare.
+> **Banco corrente: Acasystem 0.1, verificato il 2026-10-07.** Il codice è in [`acasystem/`](acasystem/README.md): monorepo npm con i workspace `frontend/` (React/Vite) e `backend/` (Express), secondo [ADR-0008](../documentazione/decisions/ADR-0008-struttura-frontend-backend.md); i file solo upstream di Tunet sono in `acasystem/upstream-tunet/`. Compose costruisce da `./acasystem` e usa `aca-system:0.1`. La revisione e l'aggiornamento autorizzato sono conclusi in [REP-20261006-002](../documentazione/reports/REP-20261006-002-ripresa-revisione.md).
+
+## Avvio del banco corrente
+
+Dalla radice, con Docker Desktop attivo, `docker compose -f progetto/compose.tunet.yaml up -d --no-build` avvia l'immagine locale già costruita. `docker compose -f progetto/compose.tunet.yaml ps` e `Invoke-RestMethod http://localhost:3002/api/health` controllano servizio e versione. Aprire [Acasystem](http://localhost:3002/); il login avviene nel proprio Home Assistant locale.
+
+Per sviluppo e ricostruzione seguire il [README dei workspace](acasystem/README.md). Configurazione corrente, immagine, volume, copia a freddo e limiti delle prove hanno fonte in [infrastructure.md](../documentazione/infrastructure.md). Le sezioni seguenti conservano l'installazione del 2026-10-05 e non descrivono la versione attuale.
+
+## Storico dell'installazione iniziale — 2026-10-05
+
+Tunet 1.22.1 è installato in Docker, da upstream [oyvhov/Tunet](https://github.com/oyvhov/Tunet), revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`. La baseline di 407 file è conservata nel commit 14ff7f4 e nello ZIP di acquisizione; [tunet-origin.json](tunet-origin.json) registra gli hash della baseline. La cartella corrente include la prima migrazione ACA di HOME a TypeScript, primitive e italiano, documentata in [REP-20261005-006](../documentazione/reports/REP-20261005-006-migrazione-home-typescript.md). Il manifest originale non descrive gli hash del codice modificato. La [licenza GPL-3.0 originale](acasystem/LICENSE) è inclusa. Le condizioni della futura distribuzione ACA restano da valutare.
 
 ## Avvio e controllo
 
@@ -19,7 +29,7 @@ Aprire [Tunet](http://localhost:3002), scegliere OAuth2 e inserire `http://local
 ## Dati e confini
 
 - Tunet: frontend/backend su `127.0.0.1:3002`, volume Docker `aca-tunet_tunet-data` montato in `/app/data` per SQLite/profili. Cifratura a riposo lasciata al valore upstream `off`; nessuna garanzia di cifratura applicativa.
-- Browser: layout/preferenze e cache di sessione HA secondo Tunet; non sono parte del repository. Riferimenti in `tunet/docs/SETUP.md` e `tunet/src/services/oauthStorage.js`.
+- Browser: layout/preferenze e cache di sessione HA secondo Tunet; non sono parte del repository. Riferimenti in `acasystem/upstream-tunet/docs/SETUP.md` e `acasystem/frontend/src/services/oauthStorage.js`.
 - HA preesistente: container `homeassistant`, versione 2026.9.4, `C:\homeassistant\config` montato in `/config`. La pubblicazione esistente della porta 8123 su tutte le interfacce non è stata modificata.
 - Archivio di acquisizione: ZIP e copia estratta in `backup/tunet-acquisizione-20261005/`, esclusi da Git; sono una copia dei sorgenti, non un backup dei dati HA/Tunet.
 

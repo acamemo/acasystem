@@ -1,0 +1,18 @@
+/*
+ * Cover page: the calendar centred in the page, never scrolling. The page is the size container
+ * «aca-cover»: the calendar sizes and arranges itself on this area, not on the window, so the
+ * status bar and the footer are already taken out (REP-20261007-001, L-11, L-12).
+ */
+@layer components {
+  .aca-cover {
+    container: aca-cover / size;
+    display: grid;
+    flex: 1 1 auto;
+    place-items: center;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--aca-space-3) var(--aca-gutter);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+}

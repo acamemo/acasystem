@@ -1,0 +1,26 @@
+{
+  "name": "acasystem",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Acasystem: Home Assistant con un frontend migliorato (da Tunet 1.22.1, GPL-3.0)",
+  "license": "GPL-3.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w frontend\" \"npm run dev -w backend\"",
+    "build": "npm run build -w frontend",
+    "start": "npm run start -w backend",
+    "test": "npm run test -w frontend && npm run test -w backend",
+    "typecheck": "npm run typecheck -w frontend && npm run typecheck -w backend",
+    "lint": "npm run lint -w frontend && npm run lint -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

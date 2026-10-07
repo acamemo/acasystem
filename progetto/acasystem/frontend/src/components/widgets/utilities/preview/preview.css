@@ -1,0 +1,104 @@
+/* Frame of the development preview only (not part of the production build). */
+@layer components {
+  html,
+  body {
+    margin: 0;
+    background: var(--aca-page);
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+  }
+  .preview-page {
+    --preview-cell: 8.5rem;
+    display: grid;
+    gap: 2.5rem;
+    max-width: 82rem;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+  .preview-header {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .preview-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+  }
+  .preview-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .preview-group {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--preview-cell));
+    grid-auto-rows: var(--preview-cell);
+    grid-auto-flow: dense;
+    gap: 1.6rem 1rem;
+    margin-top: 0.75rem;
+  }
+  .preview-cell {
+    position: relative;
+    margin: 0;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* Mirrors .aca-launcher-widget__frame of the launcher (B1). */
+  .preview-frame.aca-m--card {
+    --aca-radius: min(var(--aca-radius-card), calc(var(--preview-cell) * 0.24));
+    --aca-pad: clamp(0.55rem, calc(var(--preview-cell) * 0.1), 1rem);
+  }
+  .preview-frame__content {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .preview-bare {
+    height: 100%;
+    min-height: 0;
+  }
+  /* Mirrors the launcher: only the details opener ([data-widget-open]) presses the frame. */
+  @media (hover: hover) {
+    .preview-frame:has([data-widget-open]:hover) {
+      box-shadow: var(--aca-m-socket-flat);
+    }
+    .preview-frame:has([data-widget-open]:hover) > .aca-m__outer {
+      box-shadow: var(--aca-shell-flat);
+    }
+    .preview-frame:has([data-widget-open]:hover) > .aca-m__outer > .aca-m__face {
+      clip-path: inset(
+        var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+      );
+      box-shadow: var(--aca-face-pressed-soft);
+    }
+  }
+  .preview-frame:has([data-widget-open]:active) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  .preview-frame:has([data-widget-open]:active) > .aca-m__outer {
+    box-shadow: var(--aca-shell-flat);
+  }
+  .preview-frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
+    clip-path: inset(
+      var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+    );
+    box-shadow: var(--aca-face-pressed);
+    transform: scale(var(--aca-press-scale));
+  }
+  .preview-cell > figcaption {
+    position: absolute;
+    top: calc(100% + 0.2rem);
+    left: 0.25rem;
+  }
+  .preview-fullpage {
+    height: min(80dvh, 56rem);
+    overflow-y: auto;
+    border-radius: var(--aca-radius-card);
+    outline: 1px dashed color-mix(in oklab, var(--aca-ink-muted) 40%, transparent);
+  }
+}

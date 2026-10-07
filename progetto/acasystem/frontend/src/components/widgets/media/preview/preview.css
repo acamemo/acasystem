@@ -1,0 +1,99 @@
+/* Frame of the development preview only (preview-media.html). */
+@layer components {
+  .preview-page {
+    --cell: 8.5rem;
+    box-sizing: border-box;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 4rem;
+  }
+  .preview-header {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+  }
+  .preview-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+  }
+  .preview-section {
+    display: grid;
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+  .preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1.75rem 1.5rem;
+  }
+  .preview-figure {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+  }
+  .preview-cell {
+    width: calc(var(--w) * var(--cell) + (var(--w) - 1) * 1rem);
+    height: calc(var(--h) * var(--cell) + (var(--h) - 1) * 1rem);
+  }
+  /* Same frame values as the launcher's WidgetHost (templates/launcher/launcher.css). */
+  .preview-frame.aca-m--card {
+    --aca-radius: min(var(--aca-radius-card), calc(var(--cell) * 0.24));
+    --aca-pad: clamp(0.55rem, calc(var(--cell) * 0.1), 1rem);
+  }
+  .preview-frame__content {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Press feedback of the launcher frame: only the details opener presses it (launcher.css). */
+  @media (hover: hover) {
+    .preview-frame:has([data-widget-open]:hover) {
+      box-shadow: var(--aca-m-socket-flat);
+    }
+    .preview-frame:has([data-widget-open]:hover) > .aca-m__outer {
+      box-shadow: var(--aca-shell-flat);
+    }
+    .preview-frame:has([data-widget-open]:hover) > .aca-m__outer > .aca-m__face {
+      clip-path: inset(
+        var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+      );
+      box-shadow: var(--aca-face-pressed-soft);
+    }
+  }
+  .preview-frame:has([data-widget-open]:active) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  .preview-frame:has([data-widget-open]:active) > .aca-m__outer {
+    box-shadow: var(--aca-shell-flat);
+  }
+  .preview-frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
+    clip-path: inset(
+      var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+    );
+    box-shadow: var(--aca-face-pressed);
+    transform: scale(var(--aca-press-scale));
+  }
+  .preview-page-frame {
+    min-height: 40rem;
+  }
+  @media (max-width: 40rem) {
+    .preview-page {
+      --cell: calc((100vw - 5rem) / 4);
+      padding: 1.5rem 1rem 3rem;
+    }
+    .preview-page-frame {
+      min-height: 0;
+    }
+  }
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--aca-page);
+  color: var(--aca-ink-solid);
+  font-family: var(--aca-font);
+}

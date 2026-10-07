@@ -1,0 +1,161 @@
+/*
+ * Page indicator (UI-009 adapted): recessed groove of the kit, engraved dots, chrome orange
+ * ball. The position is index × step, exact for any number of pages (the reference formula
+ * drifted); the transparent range on top uses a thumb as wide as a step, so a tap lands on
+ * the page under the finger.
+ * REP-20261007-001 (L-18, K10, K11): the groove is as high as the frame controls, every page
+ * is a 44 px stop, and with few pages the groove keeps a minimum length with a notch for each
+ * page, the current one engraved on the ball: a scale with stops, not a switch.
+ * Second round (V-01, V-05, R-06): the indicator is sized on the footer band, its container
+ * (100cqw). The page name keeps a readable minimum (--aca-label-min): the stops shrink first,
+ * down to the size of the ball. In edit mode the band gives the room left by the edit bar
+ * (--aca-band-room) and what follows the name (--aca-band-end, footerBand.ts).
+ */
+@layer components {
+  .aca-indicator {
+    --aca-label-min: 5rem;
+    display: inline-flex;
+    position: relative;
+    align-items: center;
+    max-width: 100%;
+    font-family: var(--aca-font);
+  }
+
+  .aca-indicator__track {
+    --aca-pad: var(--aca-space-1);
+    --aca-track-min: 8rem;
+    --aca-ball: 1.75rem;
+    /* Room of the track: given by the band in edit mode, otherwise the band minus the page name
+       (with its gap) on both sides, so the groove stays centred. */
+    --aca-room: var(
+      --aca-band-room,
+      calc(100cqw - 2 * (var(--aca-label-min) + var(--aca-space-4)))
+    );
+    --aca-step: max(
+      var(--aca-ball),
+      min(
+        max(var(--aca-control-height), calc(var(--aca-track-min) / var(--aca-steps))),
+        calc((var(--aca-room) - 2 * var(--aca-pad)) / var(--aca-steps))
+      )
+    );
+    flex: none;
+  }
+
+  .aca-indicator__content {
+    position: relative;
+    display: flex;
+    gap: 0;
+    width: calc(var(--aca-steps) * var(--aca-step));
+    height: calc(var(--aca-control-height) - 2 * var(--aca-pad));
+    justify-content: flex-start;
+  }
+
+  /* Notches above the ball, so the stop of the current page stays visible on it. */
+  .aca-indicator__dot {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    flex: 0 0 var(--aca-step);
+    place-items: center;
+    height: 100%;
+    pointer-events: none;
+  }
+  .aca-indicator__dot::before {
+    content: '';
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: rgb(5 5 5 / 20%);
+    box-shadow:
+      inset 0.03rem 0.05rem 0.08rem rgb(5 5 5 / 35%),
+      0 0.05rem 0 rgb(255 255 255 / 55%);
+  }
+
+  .aca-indicator__ball {
+    position: absolute;
+    top: calc((100% - var(--aca-ball)) / 2);
+    left: calc((var(--aca-step) - var(--aca-ball)) / 2);
+    width: var(--aca-ball);
+    height: var(--aca-ball);
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 34% 28%, rgb(255 255 255 / 90%) 0 7%, rgb(255 255 255 / 0%) 27%),
+      radial-gradient(circle at 68% 78%, rgb(255 255 255 / 35%) 0 6%, rgb(255 255 255 / 0%) 22%),
+      radial-gradient(
+        circle at 45% 40%,
+        var(--aca-orange-light) 0%,
+        var(--aca-orange) 50%,
+        var(--aca-orange-ink-icon) 100%
+      );
+    box-shadow:
+      0.08rem 0.18rem 0.3rem rgb(5 5 5 / 35%),
+      0.02rem 0.05rem 0.08rem rgb(5 5 5 / 40%),
+      inset -0.12rem -0.16rem 0.3rem rgb(5 5 5 / 22%);
+    transform: translateX(calc(var(--aca-index) * var(--aca-step)));
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+
+  /* The range covers the whole height of the groove: 44 px targets in both directions. */
+  .aca-indicator__input {
+    position: absolute;
+    z-index: 5;
+    inset: 0 var(--aca-pad);
+    width: calc(100% - 2 * var(--aca-pad));
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+    appearance: none;
+    background: transparent;
+    touch-action: none;
+  }
+  .aca-indicator__input::-webkit-slider-runnable-track {
+    height: 100%;
+    background: transparent;
+  }
+  .aca-indicator__input::-webkit-slider-thumb {
+    width: var(--aca-step);
+    height: var(--aca-control-height);
+    appearance: none;
+  }
+  .aca-indicator__input::-moz-range-thumb {
+    width: var(--aca-step);
+    height: var(--aca-control-height);
+    border: 0;
+  }
+
+  .aca-indicator__track:has(.aca-indicator__input:focus-visible) {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+  }
+
+  /*
+   * The name takes the side of the band right of the groove (half of what the groove leaves,
+   * 100% being the groove), less what the edit bar keeps at the end of the band.
+   */
+  .aca-indicator__label {
+    position: absolute;
+    left: calc(100% + var(--aca-space-4));
+    max-width: min(
+      14rem,
+      calc((100cqw - 100%) / 2 - var(--aca-space-4) - var(--aca-band-end, 0px))
+    );
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* One page: no groove (nothing to choose), only its name, centred. */
+  .aca-indicator--single .aca-indicator__label {
+    position: static;
+    max-width: min(14rem, 100%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aca-indicator__ball {
+      transition: none !important;
+    }
+  }
+}

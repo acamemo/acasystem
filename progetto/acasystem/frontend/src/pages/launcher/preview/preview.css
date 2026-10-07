@@ -1,0 +1,55 @@
+/* Placeholder widgets of the development preview only. */
+@layer components {
+  .aca-preview-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-family: var(--aca-font);
+    text-align: start;
+  }
+  .aca-preview-widget--center {
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .aca-preview-widget--button {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    justify-content: center;
+  }
+  .aca-preview-widget__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--aca-ink-solid);
+    cursor: pointer;
+  }
+  .aca-preview-widget__caption {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .aca-preview-widget__foot {
+    margin-top: auto;
+  }
+  .aca-preview-details {
+    display: grid;
+    gap: 0.5rem;
+  }
+}

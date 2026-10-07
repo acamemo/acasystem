@@ -2,9 +2,9 @@ name: aca-tunet
 
 services:
   tunet:
-    image: aca-tunet:1.22.1-aca-panels-neu1
+    image: aca-system:0.2
     build:
-      context: ./tunet
+      context: ./acasystem
     ports:
       - '127.0.0.1:3002:3002'
     extra_hosts:

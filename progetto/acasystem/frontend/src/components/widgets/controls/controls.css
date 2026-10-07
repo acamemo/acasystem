@@ -1,0 +1,842 @@
+/*
+ * Control widgets (wave 2, B2): layout of the widget content, the light knob, details and the lights
+ * page. Colours, fonts and depth come only from the --aca-* tokens; the material and the
+ * states belong to the kit. Own custom properties use the --aca-ctl- prefix.
+ */
+@layer components {
+  /* ── Widget content (inside the launcher frame) ───────────────────────── */
+  /*
+   * The launcher draws the kit frame and its padding; the widget fills the frame's content
+   * box. The box is the size container of the content (see the density queries at the end).
+   */
+  .ctl-widget {
+    /* Padding of the nested materials (pills), not inherited from the frame. */
+    --aca-pad: 0.9rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    text-align: start;
+    container: ctl-widget / size;
+  }
+  /* Opens the details: the free area of the widget. Only this target presses the frame. */
+  .ctl-widget--compact {
+    --aca-pad: 0.75rem;
+  }
+  .ctl-widget--large {
+    --aca-pad: 1.15rem;
+  }
+  .ctl-widget__open {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0.6rem;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ctl-widget__open:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: -2px;
+  }
+  .ctl-widget__open:disabled {
+    cursor: default;
+  }
+  /* Text lets taps through to the details target; controls take them back. */
+  .ctl-widget__body {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    pointer-events: none;
+  }
+  .ctl-widget__body :is(button, input, select, a, [tabindex]) {
+    pointer-events: auto;
+  }
+  /* Edit mode: the launcher owns every gesture on the widget (drag, resize, long press). */
+  .ctl-widget--editing .ctl-widget__open,
+  .ctl-widget--editing .ctl-widget__body,
+  .ctl-widget--editing .ctl-widget__body * {
+    pointer-events: none;
+  }
+  .ctl-widget--missing > .ctl-widget__body {
+    gap: 0.4rem;
+  }
+  .ctl-widget__spark {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 0;
+    height: 38%;
+    pointer-events: none;
+  }
+
+  /* ── Layout helpers ───────────────────────────────────────────────────── */
+  .ctl-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+  .ctl-row--center {
+    align-items: center;
+  }
+  .ctl-row--bottom {
+    align-items: center;
+    margin-top: auto;
+  }
+  .ctl-row--end {
+    justify-content: flex-end;
+  }
+  /* A bottom row without a command takes no room (nor a gap) of the body. */
+  .ctl-row--bottom:empty {
+    display: none;
+  }
+  /*
+   * Two poles of a 2×2 widget (L-19): the name keeps the top, the reading sits at the bottom
+   * with the command that changes it. Without a command, the reading (.ctl-fit) grows with the
+   * widget: as wide as the estimate of its longest line allows (--aca-ctl-fit, in em, from
+   * valueFit.ts), within 45% of the height, from the size of the name up to the display step.
+   */
+  .ctl-pole {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aca-space-2);
+    min-width: 0;
+    margin-top: auto;
+  }
+  .ctl-pole > .ctl-row--bottom {
+    margin-top: 0;
+  }
+  .ctl-pole > .ctl-fit {
+    --aca-ctl-fit-max: var(--aca-step-4);
+    /* The line height of the estimate; it keeps descenders («Spento») inside the box. */
+    line-height: 1.2;
+    font-size: clamp(
+      var(--aca-step-0),
+      min(calc(100cqi / var(--aca-ctl-fit, 6)), calc(45cqh / (var(--aca-ctl-lines, 1) * 1.2))),
+      var(--aca-ctl-fit-max)
+    );
+  }
+  .ctl-pole > .ctl-fit--figure {
+    --aca-ctl-fit-max: var(--aca-step-6);
+  }
+  .ctl-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .ctl-grow {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .ctl-inline {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .ctl-stepper,
+  .ctl-cover-buttons {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  /*
+   * The 44 px touch area of the kit slider overhangs its track: the margin keeps it inside the
+   * frame's content box, which clips (and would cut the target at the bottom edge).
+   */
+  .ctl-widget .ctl-slider {
+    margin-block: max(0px, calc((44px - var(--aca-knob)) / 2));
+  }
+  .ctl-widget__body > .ctl-slider {
+    margin-top: auto;
+  }
+  .ctl-action__content {
+    gap: 0.45rem;
+  }
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  .ctl-name {
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step-0);
+    font-weight: var(--aca-weight-regular);
+    line-height: 1.25;
+  }
+  .ctl-widget--compact .ctl-name {
+    font-size: var(--aca-step--1);
+  }
+  .ctl-status {
+    display: block;
+  }
+  .ctl-unavailable {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+  .ctl-unavailable > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ctl-missing__title {
+    min-width: 0;
+    max-width: 100%;
+    align-items: flex-start;
+    font-size: var(--aca-step--1);
+  }
+  .ctl-missing__title > span {
+    min-width: 0;
+    display: -webkit-box;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .ctl-clamp-1,
+  .ctl-clamp-2,
+  .ctl-clamp-3 {
+    display: -webkit-box;
+    overflow: hidden;
+    /* Long words wrap with a hyphen (lang="it") instead of breaking mid-word without one. */
+    overflow-wrap: break-word;
+    hyphens: auto;
+    -webkit-box-orient: vertical;
+  }
+  .ctl-clamp-1 {
+    -webkit-line-clamp: 1;
+  }
+  .ctl-clamp-2 {
+    -webkit-line-clamp: 2;
+  }
+  .ctl-clamp-3 {
+    -webkit-line-clamp: 3;
+  }
+  .ctl-break {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .ctl-figure {
+    margin: 0;
+    color: var(--aca-ink-solid);
+    line-height: 1;
+  }
+  .ctl-row--top > .ctl-figure {
+    text-align: end;
+  }
+  /* 1×1 tiles are about 8 rem wide: a smaller figure keeps «100%» and «21,4 °C» inside. */
+  .ctl-widget--compact .ctl-figure {
+    font-size: var(--aca-step-3);
+  }
+  .ctl-unit {
+    margin-inline-start: 0.08em;
+    color: var(--aca-ink-muted);
+    font-size: 0.5em;
+  }
+  .ctl-state {
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step-2);
+    font-weight: var(--aca-weight-light);
+    line-height: 1.15;
+  }
+  .ctl-state--sm {
+    font-size: var(--aca-step-1);
+  }
+  .ctl-state--lg {
+    font-size: var(--aca-step-3);
+  }
+  /* Requested, not yet confirmed: the value breathes until Home Assistant reports it. */
+  .ctl-value--pending {
+    animation: aca-ctl-pending 900ms ease-in-out infinite alternate;
+  }
+  .ctl-feedback {
+    display: block;
+  }
+  /* Empty live region: stays mounted for announcements but takes no row (nor gap) of the body. */
+  .ctl-feedback:empty {
+    position: absolute;
+  }
+
+  /* ── Knob of the light (and of the other switches drawn as an icon) ─────── */
+  .ctl-knob {
+    flex: none;
+    touch-action: manipulation;
+  }
+  .ctl-knob--dimmable {
+    touch-action: none;
+  }
+  .ctl-widget--large .ctl-knob {
+    --aca-dim: 3.1em;
+  }
+  .ctl-knob__content {
+    position: relative;
+  }
+  .ctl-knob__content > .aca-icon {
+    position: relative;
+    color: var(--aca-ink-muted);
+  }
+  .ctl-knob--on .ctl-knob__content > .aca-icon {
+    color: var(--aca-on-orange);
+  }
+  /* A stable inset distinguishes a powered switch even without colour or a status caption. */
+  :is(.ctl-knob, .ctl-icon-button)[aria-checked='true']:not([aria-invalid='true']) > .aca-m__outer {
+    box-shadow: var(--aca-shell-flat);
+  }
+  :is(.ctl-knob, .ctl-icon-button)[aria-checked='true']:not([aria-invalid='true'])
+    > .aca-m__outer > .aca-m__face {
+    box-shadow: var(--aca-face-pressed-soft);
+    clip-path: inset(var(--aca-ring) round var(--aca-radius));
+  }
+  /* Intensity preview: the orange glow follows the requested brightness at once. */
+  .ctl-knob__glow {
+    position: absolute;
+    inset: -25%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      var(--aca-orange-light) 0%,
+      var(--aca-orange) 42%,
+      transparent 72%
+    );
+    opacity: calc(var(--aca-ctl-level, 0) * 0.9);
+    transition: opacity 160ms ease-out;
+    pointer-events: none;
+  }
+  .ctl-icon-button,
+  .ctl-badge-icon {
+    flex: none;
+  }
+  .ctl-badge-icon .aca-icon {
+    color: var(--aca-ink-muted);
+  }
+  .ctl-icon-button.ctl-knob--on .aca-icon {
+    color: var(--aca-orange-ink-icon);
+  }
+
+  /* ── Sparkline and charts ─────────────────────────────────────────────── */
+  .ctl-spark {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .ctl-spark__line {
+    fill: none;
+    stroke: var(--aca-orange-ink-icon);
+    stroke-width: 1.5;
+    opacity: 0.55;
+  }
+  .ctl-spark__stop-top {
+    stop-color: var(--aca-orange);
+    stop-opacity: 0.2;
+  }
+  .ctl-spark__stop-bottom {
+    stop-color: var(--aca-orange);
+    stop-opacity: 0;
+  }
+  .ctl-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0;
+  }
+  .ctl-chart__plot {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.5rem;
+    height: 10rem;
+  }
+  .ctl-chart__axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: end;
+  }
+  .ctl-chart__svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.6rem;
+    background: color-mix(in oklch, var(--aca-ink-muted) 7%, transparent);
+  }
+  .ctl-chart__area {
+    fill: color-mix(in oklch, var(--aca-orange) 20%, transparent);
+  }
+  .ctl-chart__line {
+    fill: none;
+    stroke: var(--aca-orange-ink-icon);
+    stroke-width: 2;
+  }
+  .ctl-chart__times {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .ctl-timeline {
+    position: relative;
+    height: 0.75rem;
+    overflow: hidden;
+    border-radius: var(--aca-radius-pill);
+    background: color-mix(in oklch, var(--aca-ink-muted) 14%, transparent);
+  }
+  .ctl-timeline__span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background-image: var(--aca-fill);
+  }
+  .ctl-log {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ctl-log__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .ctl-log__dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--aca-ink-muted) 45%, transparent);
+  }
+  .ctl-log__dot--on {
+    background: var(--aca-orange);
+  }
+
+  /* ── Sensor visuals (gauge, donut, bar) ───────────────────────────────── */
+  .ctl-visual {
+    --aca-ctl-tone: var(--aca-orange);
+    display: block;
+    flex: none;
+  }
+  .ctl-visual--danger {
+    --aca-ctl-tone: var(--aca-danger);
+  }
+  .ctl-visual--info {
+    --aca-ctl-tone: var(--aca-blue);
+  }
+  .ctl-visual--gauge {
+    width: 100%;
+    max-width: 9rem;
+    height: auto;
+  }
+  .ctl-visual--donut {
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+  .ctl-visual--compact.ctl-visual--gauge {
+    max-width: 4.5rem;
+  }
+  .ctl-visual--compact.ctl-visual--donut {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .ctl-visual--bar {
+    width: 100%;
+  }
+  .ctl-visual--compact.ctl-visual--bar {
+    width: 4.5rem;
+  }
+  .ctl-visual__track-line {
+    fill: none;
+    stroke: color-mix(in oklch, var(--aca-ink-muted) 18%, transparent);
+    stroke-linecap: round;
+    stroke-width: 10;
+  }
+  .ctl-visual__value-line {
+    fill: none;
+    stroke: var(--aca-ctl-tone);
+    stroke-linecap: round;
+    stroke-width: 10;
+    transition: stroke-dasharray 300ms ease-out;
+  }
+  .ctl-visual__track {
+    position: relative;
+    display: block;
+    height: 0.6rem;
+    overflow: hidden;
+    border-radius: var(--aca-radius-pill);
+    background: color-mix(in oklch, var(--aca-ink-muted) 16%, transparent);
+  }
+  .ctl-visual__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: calc(var(--aca-ctl-ratio, 0) * 100%);
+    border-radius: inherit;
+    background: var(--aca-ctl-tone);
+  }
+
+  /* ── Detail sheets ────────────────────────────────────────────────────── */
+  .ctl-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    font-family: var(--aca-font);
+  }
+  .ctl-details__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .ctl-details > .ctl-details__section + .ctl-details__section,
+  .ctl-details > .ctl-details__row + .ctl-details__section,
+  .ctl-details > .ctl-details__section + .ctl-details__row {
+    padding-top: 1.25rem;
+    border-top: 1px solid color-mix(in oklch, var(--aca-ink-muted) 22%, transparent);
+  }
+  .ctl-details__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    min-width: 0;
+  }
+  .ctl-details__control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .ctl-details__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .ctl-details__members {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ctl-details__member {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .ctl-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+    gap: 0.75rem 1.25rem;
+    margin: 0;
+  }
+  .ctl-facts__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .ctl-facts dd {
+    margin: 0;
+  }
+  .ctl-swatch {
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--aca-ink-solid) 30%, transparent);
+  }
+
+  /* ── Menus and confirmations in popovers ──────────────────────────────── */
+  .ctl-menu {
+    display: grid;
+    justify-content: stretch;
+    gap: 0.35rem;
+  }
+  .ctl-menu__item {
+    display: block;
+  }
+  .ctl-menu__item > .aca-m__outer > .aca-m__face > .aca-m__content {
+    justify-content: flex-start;
+  }
+  .ctl-confirm {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 16rem;
+    padding: 0.25rem;
+    text-align: start;
+  }
+  .ctl-confirm__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  /* ── Lights page ──────────────────────────────────────────────────────── */
+  .ctl-lights {
+    display: flex;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: 1.25rem;
+    height: 100%;
+    min-height: 0;
+    font-family: var(--aca-font);
+  }
+  .ctl-lights__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .ctl-lights__actions,
+  .ctl-lights__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .ctl-lights__search {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+  .ctl-lights__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: -0.75rem;
+    padding: 0.75rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .ctl-lights__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ctl-lights__tile.aca-m--card {
+    --aca-pad: 1rem;
+  }
+  .ctl-lights__tile.aca-m--card > .aca-m__outer > .aca-m__face > .ctl-lights__tile-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    text-align: start;
+  }
+  .ctl-lights__tile--off {
+    opacity: 0.75;
+  }
+  .ctl-lights__area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .ctl-lights__area + .ctl-lights__area {
+    margin-top: 1.5rem;
+  }
+  .ctl-lights__area-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .ctl-lights__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 3rem 1rem;
+    color: var(--aca-ink-muted);
+    text-align: center;
+  }
+
+  /*
+   * ── Density by the real size of the content box ──────────────────────────
+   * The size in cells sets the density class; the cell itself is about 7.5–9 rem on tablets
+   * and about 5.25 rem on phones, minus the frame padding. These queries keep every command
+   * inside the frame: first spacing, then decorative parts, never a command.
+   */
+  @container ctl-widget (max-width: 6.5rem) {
+    .ctl-widget__body {
+      gap: 0.3rem;
+    }
+    .ctl-widget.ctl-widget--compact .ctl-figure,
+    .ctl-widget.ctl-widget--tall .ctl-figure {
+      font-size: var(--aca-step-2);
+    }
+    .ctl-widget.ctl-widget--compact .ctl-row--top {
+      flex-wrap: wrap;
+      row-gap: 0.25rem;
+    }
+    .ctl-widget .ctl-stepper {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  }
+  /*
+   * One column on phones (about 4 rem wide): one-line names. Two 44 px buttons do not fit side
+   * by side, so a tall light keeps the knob (tap, drag, arrows) and leaves −/+ to the details.
+   */
+  @container ctl-widget (max-width: 4.75rem) {
+    .ctl-widget .ctl-name {
+      -webkit-line-clamp: 1;
+    }
+    .ctl-widget.ctl-widget--tall.ctl-light .ctl-row--bottom:has(> .ctl-stepper) {
+      display: none;
+    }
+    /* «Non trovato» takes the whole width under its glyph: no word cut in half (DES-3). */
+    .ctl-widget .ctl-missing__title {
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+  }
+  /* 2×2 on phones (about 11 rem wide): the fan's mode buttons would squeeze its name to nothing. */
+  @container ctl-widget (max-width: 12rem) {
+    .ctl-widget.ctl-widget--large.ctl-fan .ctl-row--top > .ctl-stepper {
+      display: none;
+    }
+  }
+  /* One row on tablets (about 6 rem high): a 44 px knob, tighter gaps, one-line names. */
+  @container ctl-widget (max-height: 6.75rem) {
+    .ctl-widget .ctl-widget__body {
+      gap: 0.35rem;
+    }
+    .ctl-widget .ctl-knob {
+      font-size: 1rem;
+    }
+    .ctl-widget.ctl-widget--compact .ctl-name {
+      -webkit-line-clamp: 1;
+    }
+    .ctl-widget.ctl-widget--compact .ctl-state {
+      font-size: var(--aca-step-0);
+    }
+    .ctl-widget.ctl-widget--compact .ctl-status {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    /* Decorative badges a little smaller than the 44 px commands. */
+    .ctl-widget .ctl-badge-icon {
+      --aca-dim: 2.5rem;
+    }
+  }
+  /*
+   * One row on phones (about 4 rem high): room for one row of 44 px commands and one line of
+   * text. Decorative badges, the figure next to a knob and the second row of light and fan go
+   * (their values and fine controls stay in the details sheet).
+   */
+  @container ctl-widget (max-height: 4.75rem) {
+    .ctl-widget .ctl-widget__body {
+      gap: 0.15rem;
+    }
+    .ctl-widget .ctl-name {
+      line-height: 1.15;
+      -webkit-line-clamp: 1;
+    }
+    /* Still a 45 px target. */
+    .ctl-widget .aca-toggle {
+      font-size: 0.9375rem;
+    }
+    /* A switch or a menu already shows the state in its label. */
+    .ctl-widget.ctl-widget--wide
+      .ctl-row--bottom:has(.aca-toggle, [aria-haspopup])
+      > :is(.ctl-state, .ctl-figure) {
+      display: none;
+    }
+    .ctl-widget.ctl-widget--wide .ctl-row--bottom:has(.aca-toggle, [aria-haspopup]) {
+      justify-content: flex-end;
+    }
+    .ctl-widget .ctl-badge-icon,
+    .ctl-widget .ctl-visual--compact,
+    .ctl-widget.ctl-widget--compact .ctl-row--top > .ctl-figure,
+    .ctl-widget.ctl-widget--compact .ctl-status,
+    .ctl-widget.ctl-widget--wide:is(.ctl-light, .ctl-fan) .ctl-row--bottom {
+      display: none;
+    }
+    /* Name and state on one line. */
+    .ctl-widget.ctl-widget--wide .ctl-heading {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.4rem;
+    }
+    .ctl-widget.ctl-widget--wide .ctl-heading > .ctl-name {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .ctl-widget.ctl-widget--wide .ctl-heading > .ctl-status {
+      flex: none;
+    }
+    /*
+     * Unavailable on one line: the name keeps its room and the warning glyph carries the state;
+     * «Non disponibile» stays for screen readers instead of being cut in half (DES-3).
+     */
+    .ctl-widget.ctl-widget--wide .ctl-heading > .ctl-status > .ctl-unavailable > span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .ctl-widget.ctl-widget--wide .ctl-figure {
+      font-size: var(--aca-step-2);
+    }
+    .ctl-widget.ctl-widget--wide.ctl-cover .ctl-figure {
+      display: none;
+    }
+    /* A lock on one cell: the command and the state (safety first), the name in its label. */
+    .ctl-widget.ctl-widget--compact.ctl-lock .ctl-name {
+      display: none;
+    }
+    .ctl-widget.ctl-widget--compact .ctl-state {
+      font-size: var(--aca-step--1);
+    }
+    /* A sensor whose icon is the switch: the switch and the name, the value in the details. */
+    .ctl-widget.ctl-widget--compact.ctl-sensor:has(.ctl-row--top button)
+      > .ctl-widget__body
+      > :is(.ctl-figure, .ctl-state) {
+      display: none;
+    }
+  }
+
+  @keyframes aca-ctl-pending {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.55;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ctl-value--pending {
+      animation: none;
+      opacity: 0.6;
+    }
+    .ctl-knob__glow,
+    .ctl-visual__value-line {
+      transition: none;
+    }
+  }
+}

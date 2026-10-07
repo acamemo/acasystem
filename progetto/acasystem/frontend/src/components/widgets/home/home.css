@@ -1,0 +1,579 @@
+/*
+ * Comfort widgets (climate, weather, calendar, to-do, alarm): layout of the widget content and
+ * of their detail sheets. The launcher draws the kit frame (WidgetHost) and presses it when the
+ * details opener ([data-widget-open]) is hovered or pressed; nothing here draws a card.
+ * Material, colours and type come from the «Metallo» kit; only --aca-* tokens.
+ */
+@layer components {
+  /* Content root filling the frame's content box; its size drives the density rules below. */
+  .home-widget {
+    container: home-widget / size;
+    position: relative;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* One large tap target under the content (opens the details); the controls sit above it. */
+  .home-widget__press {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--aca-radius-rounded);
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .home-widget__press:focus-visible {
+    /* Inside the box: the frame clips what overflows its content. */
+    outline: 2px solid var(--aca-focus);
+    outline-offset: -2px;
+  }
+  .home-widget__body {
+    /* Nested materials get their own padding back instead of inheriting the frame's. */
+    --aca-pad: initial;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    min-height: 0;
+    pointer-events: none;
+  }
+  .home-widget__body :is(button, input, a, select, textarea, form, [tabindex]) {
+    pointer-events: auto;
+  }
+  .home-widget[data-rows='1'] .home-widget__body {
+    gap: 0.2rem;
+  }
+  .home-widget__body > .home-notice,
+  .home-widget__skeleton {
+    margin-block: auto;
+  }
+
+  /* Layout helpers */
+  .home-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .home-row--between {
+    justify-content: space-between;
+  }
+  .home-row--wrap {
+    flex-wrap: wrap;
+  }
+  .home-row--top {
+    align-items: flex-start;
+  }
+  .home-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .home-stack--end {
+    align-items: flex-end;
+  }
+  .home-grow {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .home-push {
+    margin-top: auto;
+  }
+  .home-fill {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .home-truncate {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .home-clamp-2 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .home-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+  }
+  .home-empty {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 0;
+    text-align: center;
+  }
+
+  /* Messages */
+  .home-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .home-notice[data-compact] {
+    align-items: center;
+  }
+  .home-notice__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .home-notice__message {
+    margin: 0;
+  }
+  .home-command-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin: 0;
+    color: var(--aca-danger-ink);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step--1);
+    line-height: 1.35;
+  }
+  .home-command-error > .aca-icon {
+    margin-top: 0.1em;
+  }
+  .home-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  /* Requested, not yet confirmed: orange ink and a short pulse (aria-busy carries the state). */
+  .home-widget .aca-numeric[aria-busy='true'],
+  .home-details .aca-numeric[aria-busy='true'] {
+    color: var(--aca-orange-ink);
+    animation: aca-pulse 900ms ease-in-out infinite alternate;
+  }
+
+  /* Climate */
+  .home-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .home-stepper__value {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    text-align: center;
+  }
+  .home-stepper__number {
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step-2);
+    font-weight: var(--aca-weight-regular);
+    line-height: 1.1;
+  }
+
+  /* Detail sheets */
+  .home-details {
+    --aca-pad: initial;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .home-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .home-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Weather */
+  .home-weather__current {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .aca-icon.home-weather__icon,
+  .aca-icon.home-alarm__icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .home-weather__graph {
+    flex: 1 1 auto;
+    min-width: 6rem;
+    height: 4.5rem;
+  }
+  .home-weather__graph.home-push {
+    width: 100%;
+  }
+  .home-weather__chart {
+    height: 8rem;
+  }
+  .home-line {
+    position: relative;
+    display: block;
+  }
+  .home-line > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .home-line__stroke {
+    stroke: var(--aca-ink-muted);
+    stroke-width: 2;
+  }
+  .home-line__dot {
+    position: absolute;
+    width: 0.6rem;
+    height: 0.6rem;
+    margin: -0.3rem 0 0 -0.3rem;
+    border-radius: 50%;
+    background: var(--aca-orange);
+    box-shadow: 0 0 0 0.15rem var(--aca-page);
+  }
+  .home-forecast {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .home-forecast--scroll {
+    grid-auto-columns: minmax(3.75rem, 1fr);
+    padding-bottom: 0.25rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .home-forecast__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+  .home-forecast__value {
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step-0);
+  }
+  .home-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.75rem 1rem;
+    margin: 0;
+  }
+  .home-facts__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .home-facts dd {
+    margin: 0;
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+  }
+
+  /* Calendar */
+  .home-agenda {
+    display: grid;
+    align-content: start;
+    gap: 0.6rem 1rem;
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Two columns filled in order, like a newspaper, so the measured capacity matches. */
+  .home-agenda[data-columns='2'] {
+    display: block;
+    flex: 1 1 auto;
+    columns: 2;
+    column-gap: 1rem;
+    column-fill: auto;
+  }
+  .home-agenda__day {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+  .home-agenda[data-columns='2'] .home-agenda__day {
+    display: block;
+    margin-bottom: 0.6rem;
+  }
+  .home-agenda[data-columns='2'] .home-agenda__day > :first-child {
+    break-after: avoid;
+  }
+  .home-agenda[data-columns='2'] .home-agenda__list {
+    gap: 0;
+  }
+  .home-agenda[data-columns='2'] .home-agenda__event {
+    margin-top: 0.3rem;
+    break-inside: avoid;
+  }
+  .home-agenda__list,
+  .home-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .home-agenda__list {
+    gap: 0.4rem;
+  }
+  .home-agenda__event {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .home-list {
+    gap: 0.85rem;
+  }
+  .home-list__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .home-list__time {
+    flex: none;
+    width: 6.75rem;
+    padding-top: 0.15rem;
+  }
+
+  /* To-do */
+  .home-todo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+  }
+  .home-todo__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .home-todo__check {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    min-height: 2.75rem;
+    margin: 0;
+    padding: 0.25rem 0.35rem;
+    border: 0;
+    border-radius: var(--aca-radius-rounded);
+    background: transparent;
+    color: var(--aca-ink-solid);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .home-todo__check:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 0;
+  }
+  .home-todo__check:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .home-todo__mark {
+    --aca-dim: 1.5em;
+    flex: none;
+    font-size: 1rem;
+  }
+  .home-todo__mark > .aca-m__outer > .aca-m__face > .aca-m__content {
+    color: var(--aca-on-orange);
+  }
+  .home-todo__check[aria-checked='true'] .home-todo__mark > .aca-m__outer > .aca-m__face {
+    background-image: var(--aca-face-orange-well);
+  }
+  @media (hover: hover) {
+    .home-todo__check:hover:not(:disabled) .home-todo__mark {
+      box-shadow: var(--aca-socket-shadow-flat);
+    }
+  }
+  .home-todo__check[aria-busy='true'] .home-todo__mark {
+    animation: aca-pulse 900ms ease-in-out infinite alternate;
+  }
+  .home-todo__item[data-done] .home-todo__summary {
+    color: var(--aca-ink-muted);
+    text-decoration: line-through;
+  }
+  .home-todo__add {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  /* Alarm */
+  .home-quick {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .home-quick > .aca-m {
+    display: block;
+  }
+  .home-alarm__state {
+    overflow-wrap: anywhere;
+  }
+  .home-alarm__actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.5rem;
+  }
+  .home-alarm__actions > .aca-m {
+    display: block;
+  }
+  .aca-m__content.home-alarm__action {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    row-gap: 0.1em;
+  }
+  .home-alarm__hint {
+    flex-basis: 100%;
+    padding-inline-start: 1.75em;
+    text-align: start;
+  }
+  .home-pin {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  .home-pin__field {
+    width: min(100%, 16rem);
+  }
+  .home-pin__keys {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  /*
+   * Density by the real size of the content box inside the launcher frame (cells are about
+   * 84 px on phones, 115–125 px on tablets, minus the frame padding): low widgets drop
+   * secondary lines, short ones keep a single row, narrow ones use smaller figures. The
+   * details stay complete in the sheet.
+   */
+  @container home-widget (max-height: 10.5rem) {
+    .home-widget__body {
+      gap: 0.25rem;
+    }
+    .home-stepper__number {
+      font-size: var(--aca-step-1);
+    }
+    .home-hide-low,
+    .home-quick > :nth-child(n + 2) {
+      display: none;
+    }
+  }
+  @container home-widget (max-width: 10.5rem) {
+    .home-widget__body .aca-type--display-sm {
+      font-size: var(--aca-step-3);
+    }
+    .home-quick__action {
+      --aca-pad: 0.75em 0.9em;
+    }
+    .home-quick__action .aca-icon,
+    .home-todo__add .aca-field__icon {
+      display: none;
+    }
+    .home-stepper {
+      gap: 0.25rem;
+    }
+    .home-stepper .home-unit {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .home-todo__add .aca-field {
+      --aca-pad: 0.85em 0.9em;
+    }
+  }
+  /* Small square (2×2 on a phone): the main figure one step smaller again. */
+  @container home-widget (max-width: 10.5rem) and (max-height: 10.5rem) {
+    .home-widget__body .aca-type--display-sm {
+      font-size: var(--aca-step-2);
+    }
+  }
+  /*
+   * 2×2 climate on cells under about 70 px (small phones, phone in landscape): current
+   * temperature and name share one line, so the −/+ commands stay inside the frame. From about
+   * 73 px the commands already fit and the name keeps its own line (RESP-1).
+   */
+  @container home-widget (max-height: 8.25rem) {
+    .home-widget__body:has(> .home-push > .home-stepper) > .home-stack {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 0.4rem;
+    }
+    .home-widget__body:has(> .home-push > .home-stepper) > .home-stack > h3 {
+      flex: 1 1 0;
+    }
+    .home-widget__body:has(> .home-push > .home-stepper) > .home-stack > .home-command-error {
+      flex-basis: 100%;
+    }
+  }
+
+  @container home-widget (max-height: 5.3rem) {
+    .home-widget__body {
+      gap: 0.15rem;
+    }
+    .home-hide-short {
+      display: none;
+    }
+    .home-widget__body .home-clamp-2 {
+      -webkit-line-clamp: 1;
+    }
+    .home-notice__message {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    .home-widget__body .aca-type--display-sm {
+      font-size: var(--aca-step-2);
+    }
+  }
+  /* Reduced motion: no pulse; orange ink and the «In attesa di conferma» text remain. */
+  @media (prefers-reduced-motion: reduce) {
+    .home-widget .aca-numeric[aria-busy='true'],
+    .home-details .aca-numeric[aria-busy='true'],
+    .home-todo__check[aria-busy='true'] .home-todo__mark {
+      animation: none;
+    }
+  }
+}

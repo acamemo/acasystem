@@ -1,0 +1,178 @@
+/*
+ * ACA «Metallo» tokens (ADR-0006, ADR-0007): colours and font of the UI-003 pressure button,
+ * the two accents and the type scale.
+ * Lengths in em resolve against the element's own font size, as in the reference, so a
+ * size modifier scales shadows, padding and radius together.
+ * Light comes from the top left: raised elements cast their soft shadow to the bottom right,
+ * wells (holes) are shaded at the top left.
+ */
+:root {
+  --aca-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Surfaces */
+  --aca-page: rgb(222 222 222);
+  /* Graphite: the lightest value still ≥ 3:1 against every face (3.0 on 180, 3.6 on the well,
+     5.0 on 230, 4.7 on the page). */
+  --aca-socket: rgb(96 96 96);
+  --aca-face: linear-gradient(135deg, rgb(230 230 230), rgb(180 180 180));
+  --aca-face-well: linear-gradient(135deg, rgb(196 196 196), rgb(226 226 226));
+
+  /* Ink. The reference ends the text gradient at 75; 60 keeps ≥ 4.5:1 on the darkest face. */
+  --aca-ink: linear-gradient(135deg, rgb(25 25 25), rgb(60 60 60));
+  --aca-ink-strong: linear-gradient(135deg, rgb(5 5 5), rgb(35 35 35));
+  --aca-ink-solid: rgb(32 32 32);
+  --aca-ink-muted: rgb(66 66 66);
+
+  /* Accents (ADR-0007), OKLCH with the sRGB reference in the comment. */
+  --aca-orange: oklch(69.24% 0.2024 38.37); /* #ff622a */
+  --aca-orange-light: oklch(80% 0.12 55); /* #f9a870 */
+  --aca-blue: oklch(55.01% 0.2481 265.28); /* #295bff */
+  --aca-danger: oklch(50.54% 0.1905 27.52); /* #b91c1c */
+
+  /* Ink variants on metal: -icon ≥ 3:1, plain ≥ 4.5:1 on faces 230→180, the well 196→226 and
+     the page 222 (pairs verified by MetalMaterial.test.jsx). */
+  --aca-orange-ink-icon: oklch(49% 0.15 38.37); /* #a3380f */
+  --aca-orange-ink: oklch(40% 0.12 38.37); /* #7b290b */
+  --aca-blue-ink-icon: oklch(49% 0.24 265.28); /* #1d48e5 */
+  --aca-blue-ink: oklch(40% 0.2 265.28); /* #1233b1 */
+  --aca-danger-ink-icon: oklch(49% 0.18 27.52); /* #b01f1d */
+  --aca-danger-ink: oklch(40% 0.15 27.52); /* #861212 */
+  /* Orange for large text only (≥ 24 px, e.g. the date of the cover): WCAG asks 3:1 there, and
+     the ≥ 3:1 ink is already the most saturated orange that keeps it on the darkest face. */
+  --aca-orange-ink-large: var(--aca-orange-ink-icon);
+  /* Destructive action on metal (Button variant danger): the ≥ 4.5:1 red ink as a flat text
+     gradient, like the other engraved labels. */
+  --aca-ink-danger: linear-gradient(var(--aca-danger-ink), var(--aca-danger-ink));
+
+  /* Text on accent surfaces: 5.5:1 on the orange, 5.2:1 on the blue. */
+  --aca-on-orange: oklch(24.35% 0 0); /* #202020 */
+  --aca-on-blue: oklch(100% 0 0); /* #ffffff */
+
+  /* Roles: orange = on, active, primary, fills; blue = focus, selection, current page, info. */
+  --aca-accent: var(--aca-orange);
+  --aca-focus: var(--aca-blue-ink-icon);
+  --aca-ink-selected: linear-gradient(var(--aca-blue-ink), var(--aca-blue-ink));
+  --aca-ink-on-orange: linear-gradient(var(--aca-on-orange), var(--aca-on-orange));
+  --aca-badge: var(--aca-danger);
+  --aca-face-orange: linear-gradient(135deg, var(--aca-orange-light), var(--aca-orange));
+  --aca-face-orange-well: linear-gradient(135deg, var(--aca-orange), var(--aca-orange-light));
+  --aca-fill: linear-gradient(90deg, var(--aca-orange-light), var(--aca-orange));
+  /* Requested but not yet confirmed: the same orange at 45%. */
+  --aca-fill-pending: linear-gradient(
+    135deg,
+    oklch(69.24% 0.2024 38.37 / 45%),
+    oklch(80% 0.12 55 / 45%)
+  );
+  --aca-arc-from: var(--aca-orange-light);
+  --aca-arc-to: var(--aca-orange);
+
+  /* Type scale: fixed rem, ratio 1.2; weights 300/400/500 only, no tracking. */
+  --aca-step--1: 0.833rem;
+  --aca-step-0: 1rem;
+  --aca-step-1: 1.2rem;
+  --aca-step-2: 1.44rem;
+  --aca-step-3: 1.728rem;
+  --aca-step-4: 2.074rem;
+  --aca-step-5: 2.488rem;
+  --aca-step-6: 2.986rem;
+  --aca-weight-light: 300;
+  --aca-weight-regular: 400;
+  --aca-weight-medium: 500;
+
+  /* Stacking: dropdown → sticky → sheet backdrop → sheet → toast → tooltip. */
+  --aca-z-dropdown: 100;
+  --aca-z-sticky: 200;
+  --aca-z-sheet-backdrop: 300;
+  --aca-z-sheet: 310;
+  --aca-z-toast: 400;
+  --aca-z-tooltip: 500;
+
+  /*
+   * Spacing scale on a 4 px base, in rem (REP-20261007-001): the frame of the OS (status bar,
+   * pages, footer, cover) and new layout code use these steps instead of one-off values.
+   */
+  --aca-space-1: 0.25rem;
+  --aca-space-2: 0.5rem;
+  --aca-space-3: 0.75rem;
+  --aca-space-4: 1rem;
+  --aca-space-5: 1.5rem;
+  --aca-space-6: 2rem;
+  --aca-space-7: 3rem;
+  /* One side margin for status bar, pages and footer, so their edges line up. */
+  --aca-gutter: clamp(1rem, 2.5vw, 1.75rem);
+  /* Height of the frame controls (status bar, edit bar): the 44 px touch target of the kit. */
+  --aca-control-height: 2.75rem;
+
+  /* Geometry */
+  --aca-ring: clamp(1px, 0.0625em, 2px);
+  --aca-radius-pill: 100em;
+  --aca-radius-rounded: 0.9em;
+  --aca-radius-card: 1.5em;
+
+  /*
+   * Socket: the reference shadows plus a soft UI pair that lifts the element off the page.
+   * Layer 1 is the dark top-left shade of a hole: visible only on wells, transparent on raised
+   * elements so every state keeps four layers and transitions interpolate.
+   */
+  --aca-socket-shadow:
+    -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 10%),
+    0.45em 0.55em 1em 0 rgb(5 5 5 / 16%), -0.4em -0.4em 0.9em 0 rgb(255 255 255 / 80%);
+  --aca-socket-shadow-flat:
+    -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 10%),
+    0.15em 0.2em 0.4em 0 rgb(5 5 5 / 10%), -0.15em -0.15em 0.35em 0 rgb(255 255 255 / 60%);
+  --aca-socket-shadow-well:
+    -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 25%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 10%),
+    0.3em 0.3em 0.6em 0 rgb(255 255 255 / 75%), -0.2em -0.2em 0.5em 0 rgb(5 5 5 / 12%);
+  /* Cards and tiles: dark layers about 40% lighter, they cover a larger area. */
+  --aca-socket-shadow-card:
+    -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 6%),
+    0.45em 0.55em 1em 0 rgb(5 5 5 / 10%), -0.4em -0.4em 0.9em 0 rgb(255 255 255 / 80%);
+  --aca-socket-shadow-card-flat:
+    -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 6%),
+    0.15em 0.2em 0.4em 0 rgb(5 5 5 / 6%), -0.15em -0.15em 0.35em 0 rgb(255 255 255 / 60%);
+
+  /* Shell (outer layer): contact line, hairline and short drop shadow; flat = hover/pressed. */
+  --aca-shell:
+    0 0.05em 0.05em -0.01em rgb(5 5 5 / 35%), 0 0.01em 0.01em -0.01em rgb(5 5 5 / 50%),
+    0.12em 0.25em 0.25em -0.01em rgb(5 5 5 / 15%);
+  --aca-shell-card:
+    0 0.05em 0.05em -0.01em rgb(5 5 5 / 21%), 0 0.01em 0.01em -0.01em rgb(5 5 5 / 30%),
+    0.12em 0.25em 0.25em -0.01em rgb(5 5 5 / 9%);
+  --aca-shell-flat: 0 0 0 0 rgb(5 5 5 / 0%), 0 0 0 0 rgb(5 5 5 / 0%), 0 0 0 0 rgb(5 5 5 / 0%);
+
+  /*
+   * Face (inner layer): the reference's seven inset shadows, then the LED: a 1px inset glow,
+   * transparent unless the element is selected (blue) or in error (danger).
+   * rest → soft press (hover, selection) → press (click, wells).
+   */
+  --aca-face-rest-layers:
+    0 0 0 0 inset rgb(5 5 5 / 10%), -0.05em -0.05em 0.05em 0 inset rgb(5 5 5 / 25%),
+    0 0 0 0 inset rgb(5 5 5 / 10%), 0 0 0.05em 0.2em inset rgb(255 255 255 / 25%),
+    0.025em 0.05em 0.1em 0 inset rgb(255 255 255 / 100%),
+    0.12em 0.12em 0.12em 0 inset rgb(255 255 255 / 25%),
+    -0.075em -0.25em 0.25em 0.1em inset rgb(5 5 5 / 25%);
+  --aca-face-soft-layers:
+    0.1em 0.15em 0.05em 0 inset rgb(5 5 5 / 40%),
+    -0.025em -0.03em 0.05em 0.025em inset rgb(5 5 5 / 28%),
+    0.25em 0.25em 0.2em 0 inset rgb(5 5 5 / 25%), 0 0 0.05em 0.5em inset rgb(255 255 255 / 15%),
+    0 0 0 0 inset rgb(255 255 255 / 100%), 0.12em 0.12em 0.12em 0 inset rgb(255 255 255 / 25%),
+    -0.075em -0.12em 0.2em 0.1em inset rgb(5 5 5 / 25%);
+  --aca-face-pressed-layers:
+    0.1em 0.15em 0.05em 0 inset rgb(5 5 5 / 55%),
+    -0.025em -0.03em 0.05em 0.025em inset rgb(5 5 5 / 38%),
+    0.25em 0.25em 0.2em 0 inset rgb(5 5 5 / 36%), 0 0 0.05em 0.5em inset rgb(255 255 255 / 15%),
+    0 0 0 0 inset rgb(255 255 255 / 100%), 0.12em 0.12em 0.12em 0 inset rgb(255 255 255 / 25%),
+    -0.075em -0.12em 0.2em 0.1em inset rgb(5 5 5 / 25%);
+  --aca-led-off: 0 0 0.15em 0.0625em inset transparent;
+  --aca-led-selected: 0 0 0.15em 0.0625em inset var(--aca-blue);
+  --aca-led-error: 0 0 0.15em 0.0625em inset var(--aca-danger);
+  /* Wells clip their face by --aca-ring: the LED starts one ring further in. */
+  --aca-led-error-well: 0 0 0.2em 0.125em inset var(--aca-danger);
+
+  --aca-face-rest: var(--aca-face-rest-layers), var(--aca-led-off);
+  --aca-face-pressed-soft: var(--aca-face-soft-layers), var(--aca-led-off);
+  --aca-face-pressed: var(--aca-face-pressed-layers), var(--aca-led-off);
+  --aca-face-selected: var(--aca-face-soft-layers), var(--aca-led-selected);
+  --aca-face-error: var(--aca-face-rest-layers), var(--aca-led-error);
+  --aca-face-well-error: var(--aca-face-pressed-layers), var(--aca-led-error-well);
+}

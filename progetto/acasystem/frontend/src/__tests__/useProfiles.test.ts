@@ -1,0 +1,164 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useProfiles } from '../hooks/useProfiles';
+
+vi.mock('@/api/profileApi', () => ({
+  fetchProfiles: vi.fn(),
+  createProfile: vi.fn(),
+  updateProfile: vi.fn(),
+  deleteProfile: vi.fn(),
+}));
+
+vi.mock('../hooks/useSettingsSync', () => ({
+  useSettingsSync: vi.fn(() => ({
+    enabled: true,
+    setEnabled: vi.fn(),
+    status: 'idle',
+    error: '',
+    lastSyncedAt: null,
+    deviceId: 'device-test',
+    currentRevision: null,
+    knownDevices: [],
+    publishing: false,
+    syncNow: vi.fn(),
+    loadCurrentFromServer: vi.fn(),
+    publishCurrentToDevices: vi.fn(),
+    refreshKnownDevices: vi.fn(),
+  })),
+}));
+
+vi.mock('@/api/snapshot', () => ({
+  collectSnapshot: vi.fn(),
+  applySnapshot: vi.fn(),
+  isValidSnapshot: vi.fn(),
+}));
+
+import { fetchProfiles, createProfile, updateProfile } from '@/api/profileApi';
+import { collectSnapshot, isValidSnapshot } from '@/api/snapshot';
+import { useSettingsSync } from '../hooks/useSettingsSync';
+
+describe('useProfiles', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(fetchProfiles).mockResolvedValue([]);
+    vi.mocked(collectSnapshot, { partial: true, deep: true }).mockReturnValue({
+      version: 1,
+      layout: {},
+      appearance: {},
+    });
+    vi.mocked(isValidSnapshot).mockReturnValue(true);
+  });
+
+  it('does not prefetch profiles when disabled', () => {
+    renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {}, prefetchProfiles: false })
+    );
+
+    expect(fetchProfiles).not.toHaveBeenCalled();
+    expect(useSettingsSync).toHaveBeenCalledWith({
+      haUserId: 'user-1',
+      contextSettersRef: expect.objectContaining({ current: {} }),
+      autoBootstrap: false,
+    });
+  });
+
+  it('saveProfile sends validated snapshot payload and prepends saved profile', async () => {
+    const savedProfile = { id: 'p1', name: 'Home', data: { version: 1 } };
+    vi.mocked(createProfile).mockResolvedValue(savedProfile);
+
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
+    );
+
+    await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
+
+    await act(async () => {
+      await result.current.saveProfile('Home', 'Tablet');
+    });
+
+    expect(collectSnapshot).toHaveBeenCalled();
+    expect(isValidSnapshot).toHaveBeenCalledWith({ version: 1, layout: {}, appearance: {} });
+    expect(createProfile).toHaveBeenCalledWith({
+      ha_user_id: 'user-1',
+      name: 'Home',
+      device_label: 'Tablet',
+      data: { version: 1, layout: {}, appearance: {} },
+    });
+    expect(result.current.profiles[0]).toEqual(savedProfile);
+    expect(result.current.error).toBeNull();
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('saveProfile fails fast when snapshot is invalid and does not call API', async () => {
+    vi.mocked(isValidSnapshot).mockReturnValue(false);
+
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
+    );
+
+    await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
+
+    const captured: { error: Error | null } = { error: null };
+    await act(async () => {
+      try {
+        await result.current.saveProfile('Home');
+      } catch (error) {
+        captured.error = error instanceof Error ? error : new Error(String(error));
+      }
+    });
+
+    expect(captured.error).toBeTruthy();
+    expect(captured.error?.message).toBe('Invalid snapshot data');
+
+    expect(createProfile).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.error).toBe('Invalid snapshot data');
+    });
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('overwriteProfile validates snapshot before API call', async () => {
+    vi.mocked(updateProfile).mockResolvedValue({ id: 'p1', name: 'Updated' });
+
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
+    );
+
+    await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
+
+    await act(async () => {
+      await result.current.overwriteProfile('p1', 'Updated');
+    });
+
+    expect(isValidSnapshot).toHaveBeenCalled();
+    expect(updateProfile).toHaveBeenCalledWith('p1', {
+      ha_user_id: 'user-1',
+      name: 'Updated',
+      data: { version: 1, layout: {}, appearance: {} },
+    });
+  });
+
+  it('editProfile updates metadata without sending snapshot data', async () => {
+    vi.mocked(updateProfile).mockResolvedValue({
+      id: 'p1',
+      name: 'Renamed',
+      device_label: 'Wall Tablet',
+    });
+
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
+    );
+
+    await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
+
+    await act(async () => {
+      await result.current.editProfile('p1', 'Renamed', 'Wall Tablet');
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith('p1', {
+      ha_user_id: 'user-1',
+      name: 'Renamed',
+      device_label: 'Wall Tablet',
+    });
+  });
+});

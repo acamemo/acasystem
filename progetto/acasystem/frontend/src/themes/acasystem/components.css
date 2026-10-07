@@ -1,0 +1,511 @@
+/* ACA «Metallo» components composed from the material layers (ADR-0006, ADR-0007). */
+
+/* Component layer: Tailwind utilities on the same element still win, as for any component style. */
+@layer components {
+  /* Toggle: recessed track, hosted metal knob, label on the free side; ON fills the track orange. */
+  .aca-toggle {
+    --aca-pad: 0.25em;
+    cursor: pointer;
+  }
+  .aca-toggle__content {
+    position: relative;
+    display: block;
+    width: 6.75em;
+    height: 2.5em;
+  }
+  .aca-toggle__knob {
+    --aca-dim: 2.5em;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition:
+      transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 300ms ease;
+  }
+  .aca-toggle[aria-checked='true'] .aca-toggle__knob {
+    transform: translateX(4.25em);
+  }
+  .aca-toggle[aria-checked='true'] > .aca-m__outer > .aca-m__face {
+    background-image: var(--aca-face-orange-well);
+  }
+  /* Requested, not yet confirmed: the orange at 45% over the metal, plus the pulse and aria-busy. */
+  .aca-toggle[aria-checked='true'][aria-busy='true'] > .aca-m__outer > .aca-m__face {
+    background-image: var(--aca-fill-pending), var(--aca-face-well);
+  }
+  .aca-toggle__label {
+    position: absolute;
+    top: 50%;
+    right: 0.75em;
+    transform: translateY(-50%);
+    font-size: 0.85em;
+    font-weight: 500;
+  }
+  .aca-toggle[aria-checked='true'] .aca-toggle__label {
+    right: auto;
+    left: 0.85em;
+    background-image: var(--aca-ink-on-orange);
+  }
+  .aca-toggle--compact .aca-toggle__content {
+    width: 3.75em;
+    height: 1.75em;
+  }
+  .aca-toggle--compact .aca-toggle__knob {
+    --aca-dim: 1.75em;
+  }
+  .aca-toggle--compact[aria-checked='true'] .aca-toggle__knob {
+    transform: translateX(2em);
+  }
+
+  /* Error mark inside a hosted knob: the non-colour signal next to the danger LED. */
+  .aca-mark {
+    flex: none;
+    width: 62%;
+    height: 62%;
+  }
+
+  /* Segmented control: recessed track; the selected item is raised, the others are flush. */
+  .aca-segmented {
+    --aca-pad: 0.3em;
+  }
+  .aca-segmented__content {
+    gap: 0.3em;
+  }
+  .aca-segmented .aca-segmented__item {
+    --aca-pad: 0.7em 1.4em;
+  }
+  .aca-segmented .aca-segmented__item[aria-pressed='false'] {
+    background-color: transparent;
+    box-shadow: none;
+  }
+  .aca-segmented .aca-segmented__item[aria-pressed='false'] > .aca-m__outer {
+    box-shadow: none;
+  }
+  .aca-segmented .aca-segmented__item[aria-pressed='false'] > .aca-m__outer > .aca-m__face {
+    background-image: none;
+    box-shadow: none;
+    clip-path: none;
+  }
+  .aca-segmented .aca-segmented__item[aria-pressed='false'] .aca-m__label {
+    background-image: linear-gradient(var(--aca-ink-muted), var(--aca-ink-muted));
+  }
+  @media (hover: hover) {
+    .aca-segmented
+      .aca-segmented__item[aria-pressed='false']:is(:hover, .is-hover):not(:disabled)
+      .aca-m__label {
+      background-image: var(--aca-ink);
+    }
+  }
+  .aca-segmented .aca-segmented__item[aria-pressed='true'] {
+    box-shadow: var(--aca-m-socket);
+  }
+  .aca-segmented .aca-segmented__item[aria-pressed='true'] > .aca-m__outer {
+    box-shadow: var(--aca-m-shell);
+  }
+  .aca-segmented .aca-segmented__item[aria-pressed='true'] > .aca-m__outer > .aca-m__face,
+  .aca-segmented
+    .aca-segmented__item[aria-pressed='true']:is(:hover, .is-hover)
+    > .aca-m__outer
+    > .aca-m__face {
+    clip-path: inset(0 0 0 0 round var(--aca-radius));
+    box-shadow: var(--aca-face-rest);
+    transform: none;
+  }
+  .aca-segmented .aca-segmented__item:disabled {
+    opacity: 1;
+  }
+  /* The track clips its face: the focus ring of an item hugs it, inside the track padding. */
+  .aca-segmented .aca-segmented__item:is(:focus-visible, .is-focus) {
+    outline-offset: 0;
+  }
+  .aca-segmented
+    .aca-segmented__item[aria-pressed='false']:is(:active, .is-active):not(:disabled)
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content {
+    transform: scale(var(--aca-press-scale));
+  }
+
+  /* Field: recessed pill with an optional icon; error adds the LED and a message below. */
+  .aca-field {
+    --aca-pad: 0.85em 1.25em;
+    display: block;
+    cursor: text;
+  }
+  .aca-field__content {
+    justify-content: flex-start;
+    gap: 0.75em;
+  }
+  .aca-field__icon {
+    flex: none;
+    width: 1.15em;
+    height: 1.15em;
+  }
+  .aca-field__input {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--aca-ink-solid);
+    font: inherit;
+    font-family: var(--aca-font);
+  }
+  .aca-field__input::placeholder {
+    color: var(--aca-ink-muted);
+    opacity: 1;
+  }
+  .aca-field:is(:focus-within, .is-focus) {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+  }
+  .aca-field:has(.aca-field__input:disabled) {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .aca-field-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4em;
+    margin: 0.5em 0 0;
+    padding-inline: 1.25em;
+    color: var(--aca-danger-ink);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step--1);
+    line-height: 1.4;
+  }
+  .aca-field-error > .aca-icon {
+    width: 1.2em;
+    height: 1.2em;
+  }
+
+  /* Slider: native range input on top of a recessed track, orange fill and hosted metal thumb. */
+  .aca-slider {
+    --aca-knob: 1.75em;
+    position: relative;
+    display: block;
+    height: var(--aca-knob);
+    font-family: var(--aca-font);
+  }
+  .aca-slider__track {
+    --aca-pad: 0.2em;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    display: block;
+    transform: translateY(-50%);
+  }
+  .aca-slider__track > .aca-m__outer > .aca-m__face > .aca-m__content {
+    display: block;
+    height: 0.45em;
+  }
+  .aca-slider__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: calc(var(--aca-ratio, 0) * 100%);
+    border-radius: 100em;
+    background-image: var(--aca-fill);
+  }
+  .aca-slider--pending .aca-slider__fill {
+    background-image: var(--aca-fill-pending);
+    animation: aca-pulse 900ms ease-in-out infinite alternate;
+  }
+  .aca-slider--pending .aca-slider__input {
+    cursor: progress;
+  }
+  .aca-slider__knob {
+    --aca-dim: var(--aca-knob);
+    position: absolute;
+    top: 0;
+    left: calc((100% - var(--aca-knob)) * var(--aca-ratio, 0));
+    pointer-events: none;
+  }
+  /* Touch target of at least 44 px even when the track is thinner (WCAG 2.5.8, kit rule). */
+  .aca-slider__input {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: max(100%, 44px);
+    transform: translateY(-50%);
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .aca-slider:has(.aca-slider__input:focus-visible) .aca-slider__knob,
+  .aca-slider.is-focus .aca-slider__knob {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+  }
+  .aca-slider:has(.aca-slider__input:disabled) {
+    opacity: 0.55;
+  }
+  .aca-slider:has(.aca-slider__input:disabled) .aca-slider__input {
+    cursor: not-allowed;
+  }
+
+  /* Progress ring: recessed disc, orange arc, raised metal core. */
+  .aca-ring {
+    --aca-dim: 9em;
+  }
+  .aca-ring__content {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+  .aca-ring__arc {
+    position: absolute;
+    inset: 0.45em;
+    width: calc(100% - 0.9em);
+    height: calc(100% - 0.9em);
+  }
+  .aca-ring__track {
+    fill: none;
+    stroke: rgb(5 5 5 / 8%);
+    stroke-width: 7;
+  }
+  .aca-ring__value {
+    fill: none;
+    stroke-width: 7;
+    stroke-linecap: round;
+    transition: stroke-dasharray 600ms ease;
+  }
+  .aca-ring__core {
+    --aca-dim: 6.25em;
+  }
+  .aca-ring__core-content {
+    flex-direction: column;
+    gap: 0.1em;
+  }
+
+  /* Notification dot. */
+  .aca-badge {
+    position: absolute;
+    top: -0.2em;
+    right: -0.2em;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: var(--aca-badge);
+    box-shadow: 0 0 0 0.12em rgb(230 230 230);
+    pointer-events: none;
+  }
+
+  /* Dropdown trigger. */
+  .aca-select__content {
+    justify-content: space-between;
+    gap: 1.5em;
+    min-width: 9em;
+  }
+
+  /* Skeleton: shapes engraved in the metal, with a short sheen (the legacy CSS keeps its own). */
+  .aca-skeleton__shapes {
+    display: grid;
+    gap: 0.9em;
+  }
+  .aca-skeleton__row {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+  }
+  .aca-skeleton__lines {
+    display: grid;
+    flex: 1;
+    gap: 0.45em;
+  }
+  .aca-skeleton__icon,
+  .aca-skeleton__line,
+  .aca-skeleton__chart {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: rgb(5 5 5 / 9%);
+    box-shadow:
+      inset 0.05em 0.08em 0.12em rgb(5 5 5 / 12%),
+      inset -0.05em -0.05em 0.1em rgb(255 255 255 / 45%);
+  }
+  .aca-skeleton__icon {
+    flex: none;
+    width: 2.25em;
+    height: 2.25em;
+    border-radius: 0.6em;
+  }
+  .aca-skeleton__line {
+    height: 0.7em;
+    border-radius: 100em;
+  }
+  .aca-skeleton__line--short {
+    width: 60%;
+  }
+  .aca-skeleton__chart {
+    height: 100%;
+    border-radius: 1em;
+  }
+  .aca-skeleton__icon::after,
+  .aca-skeleton__line::after,
+  .aca-skeleton__chart::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 35%), transparent);
+    transform: translateX(-100%);
+    animation: aca-sheen 1.4s ease-in-out infinite;
+  }
+  @keyframes aca-sheen {
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Sheet: bottom sheet on a native modal <dialog> (top layer, focus, Escape). */
+  .aca-sheet {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: var(--aca-z-sheet);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 40rem;
+    max-height: none;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--aca-ink-solid);
+    overflow: visible;
+    transform: translateY(0);
+    transition-property: transform, display, overlay;
+    transition-duration: 240ms;
+    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+    transition-behavior: allow-discrete;
+  }
+  .aca-sheet:not([open]) {
+    transform: translateY(100%);
+  }
+  @starting-style {
+    .aca-sheet[open] {
+      transform: translateY(100%);
+    }
+  }
+  .aca-sheet::backdrop {
+    background-color: rgb(5 5 5 / 35%);
+    transition-property: background-color, display, overlay;
+    transition-duration: 240ms;
+    transition-timing-function: ease-out;
+    transition-behavior: allow-discrete;
+  }
+  .aca-sheet:not([open])::backdrop {
+    background-color: rgb(5 5 5 / 0%);
+  }
+  @starting-style {
+    .aca-sheet[open]::backdrop {
+      background-color: rgb(5 5 5 / 0%);
+    }
+  }
+  .aca-sheet__panel {
+    --aca-radius: var(--aca-radius-card) var(--aca-radius-card) 0 0;
+    --aca-pad: 1.25em 1.5em calc(1.5em + env(safe-area-inset-bottom, 0px));
+    box-shadow: none;
+  }
+  .aca-sheet__panel > .aca-m__outer > .aca-m__face {
+    display: flex;
+    flex-direction: column;
+    max-height: min(85dvh, 48rem);
+  }
+  .aca-sheet__panel > .aca-m__outer > .aca-m__face > .aca-sheet__content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 1em;
+    min-height: 0;
+  }
+  .aca-sheet__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+  }
+  /*
+   * Room for the shadows of raised rows (about 1.25em) inside the scroll box, so it never cuts
+   * them. At the top it stops at the 1em gap: rows scrolling up never cover the header.
+   */
+  .aca-sheet__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: -1em -1.25em;
+    padding: 1em 1.25em;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .aca-sheet__footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75em;
+  }
+
+  /* Popover: native popover API (top layer, light dismiss, Escape), placed under its trigger. */
+  .aca-popover {
+    position: fixed;
+    inset: auto;
+    z-index: var(--aca-z-dropdown);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--aca-ink-solid);
+    overflow: visible;
+    opacity: 1;
+    transform: none;
+    transition-property: opacity, transform, display, overlay;
+    transition-duration: 160ms;
+    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+    transition-behavior: allow-discrete;
+  }
+  .aca-popover:not(:popover-open) {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+  @starting-style {
+    .aca-popover:popover-open {
+      opacity: 0;
+      transform: translateY(-0.25rem);
+    }
+  }
+  .aca-popover__panel {
+    --aca-radius: var(--aca-radius-rounded);
+    --aca-pad: 0.5em;
+    min-width: 12rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aca-toggle__knob,
+    .aca-ring__value {
+      transition: none !important;
+    }
+    .aca-slider__fill,
+    .aca-skeleton__icon::after,
+    .aca-skeleton__line::after,
+    .aca-skeleton__chart::after {
+      animation: none !important;
+    }
+    .aca-slider--pending .aca-slider__fill {
+      opacity: 0.6;
+    }
+    /* Sheet and popover appear in place: a short fade, no travel. */
+    .aca-sheet,
+    .aca-sheet:not([open]),
+    .aca-popover,
+    .aca-popover:not(:popover-open) {
+      transform: none !important;
+    }
+    .aca-sheet {
+      transition-duration: 120ms;
+    }
+  }
+}

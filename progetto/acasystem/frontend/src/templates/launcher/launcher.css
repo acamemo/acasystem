@@ -1,0 +1,348 @@
+/*
+ * Launcher (ADR-0007): pager on scroll snap, pages of square cells, widgets placed by cell
+ * through --aca-lx/ly/lw/lh, free cells with «+», drop preview, wiggle and the dragged copy.
+ */
+@layer components {
+  .aca-pager {
+    display: flex;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .aca-pager::-webkit-scrollbar {
+    display: none;
+  }
+  .aca-pager.is-locked {
+    overflow-x: hidden;
+    scroll-snap-type: none;
+  }
+  .aca-pager__page {
+    position: relative;
+    display: flex;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  /*
+   * A page of widgets. The grid hangs from the top (on phones and portrait tablets, limited by
+   * the width, the spare height goes to the bottom) and stays centred across. Above and below
+   * it keeps --aca-launcher-edge-room: the light halo of the first row and the «×» that sits on
+   * the corner of a widget in edit mode (half of --aca-dim, 0.75rem, out) are not clipped by the pager. The
+   * padding is measured by WidgetGrid, so cellMetrics only gets the area inside it.
+   */
+  .aca-launcher-page {
+    --aca-launcher-edge-room: var(--aca-space-5);
+    display: grid;
+    flex: 1 1 auto;
+    place-items: start center;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--aca-launcher-edge-room) var(--aca-gutter);
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  /*
+   * One radius for every rectangle drawn on the grid (widget frames, free cells, drop preview,
+   * edit handles), following small cells on phones. Local layers, low to high: free cells,
+   * drop preview, widgets; inside a widget its edit handle and corner controls.
+   */
+  .aca-launcher-grid {
+    --aca-radius-cell: min(var(--aca-radius-card), calc(var(--aca-cell) * 0.24));
+    --aca-layer-cell: 0;
+    --aca-layer-drop: 1;
+    --aca-layer-widget: 2;
+    --aca-layer-handle: 5;
+    --aca-layer-edit: 6;
+    position: relative;
+  }
+
+  .aca-launcher-widget,
+  .aca-launcher-cell.aca-m,
+  .aca-launcher-drop.aca-m {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(var(--aca-lw) * var(--aca-cell) + (var(--aca-lw) - 1) * var(--aca-gap));
+    height: calc(var(--aca-lh) * var(--aca-cell) + (var(--aca-lh) - 1) * var(--aca-gap));
+    box-sizing: border-box;
+    transform: translate(
+      calc(var(--aca-lx) * (var(--aca-cell) + var(--aca-gap))),
+      calc(var(--aca-ly) * (var(--aca-cell) + var(--aca-gap)))
+    );
+  }
+
+  .aca-launcher-widget {
+    z-index: var(--aca-layer-widget);
+    transition: transform 240ms var(--aca-ease-in-out, cubic-bezier(0.77, 0, 0.175, 1));
+  }
+  .aca-launcher-widget.is-dragging {
+    visibility: hidden;
+  }
+
+  /* Frame of the kit around every widget; the radius follows small cells on phones. */
+  .aca-launcher-widget__frame.aca-m--card {
+    --aca-radius: var(--aca-radius-cell);
+    --aca-pad: clamp(var(--aca-space-2), calc(var(--aca-cell) * 0.1), var(--aca-space-4));
+  }
+  /*
+   * The face of the frame already clips (overflow: clip + rounded clip-path), so the content
+   * must not clip again: the shadows of knobs, toggles and buttons near the edge stay whole.
+   * Static positioning lets the widget's [data-widget-open] opener (inset: 0) cover the whole
+   * face, padding included, like the legacy card.
+   */
+  .aca-launcher-widget__content {
+    position: static;
+    height: 100%;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  /* A widget reports a failed command or an alarm with data-widget-error: red LED on the frame. */
+  .aca-launcher-widget__frame:has([data-widget-error='true']) > .aca-m__outer > .aca-m__face {
+    box-shadow: var(--aca-face-error);
+  }
+  .aca-launcher-widget__bare {
+    height: 100%;
+    min-height: 0;
+  }
+
+  /*
+   * The frame is static; the details opener of the widget ([data-widget-open]) presses it with
+   * the kit sequence (shell to zero, socket ring, pressed face). Commands inside the widget do
+   * not move the frame.
+   */
+  /* Hover only lifts the socket a little; the inset stays reserved for the real press. */
+  @media (hover: hover) and (pointer: fine) {
+    .aca-launcher-widget__frame:has([data-widget-open]:hover:not(:active)) {
+      box-shadow:
+        var(--aca-m-socket),
+        0 0.35rem 0.9rem rgb(5 5 5 / 8%);
+    }
+  }
+  .aca-launcher-widget__frame:has([data-widget-open]:active),
+  .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer,
+  .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
+    transition-duration: var(--aca-press);
+  }
+  .aca-launcher-widget__frame:has([data-widget-open]:active) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer {
+    box-shadow: var(--aca-shell-flat);
+  }
+  .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
+    clip-path: inset(
+      var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+    );
+    box-shadow: var(--aca-face-pressed);
+    transform: scale(var(--aca-press-scale));
+  }
+
+  .aca-launcher-widget.is-hidden .aca-launcher-widget__frame {
+    opacity: 0.55;
+  }
+
+  /* Edit mode: a light wiggle says the widgets can move. */
+  .aca-launcher-widget.is-editing .aca-launcher-widget__frame {
+    animation: aca-wiggle 320ms ease-in-out infinite alternate;
+    animation-delay: var(--aca-wiggle-delay, 0ms);
+  }
+  /* Still while a widget is dragged or pointed at: the moving one is the one being handled. */
+  .aca-launcher-grid.is-dragging .aca-launcher-widget.is-editing .aca-launcher-widget__frame,
+  .aca-launcher-widget.is-editing:is(:hover, :focus-within) .aca-launcher-widget__frame {
+    animation-play-state: paused;
+  }
+  /* Moves from the keyboard land immediately. */
+  :root[data-aca-input='keyboard'] .aca-launcher-widget {
+    transition: none;
+  }
+  @keyframes aca-wiggle {
+    from {
+      rotate: -0.25deg;
+    }
+    to {
+      rotate: 0.25deg;
+    }
+  }
+
+  .aca-launcher-widget__handle {
+    position: absolute;
+    z-index: var(--aca-layer-handle);
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--aca-radius-cell);
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+  }
+  .aca-launcher-widget__handle:focus-visible,
+  .aca-launcher-widget.is-keyboard .aca-launcher-widget__handle {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+  }
+
+  /* The move/resize hint is in the footer (WidgetPositionControls): never clipped by the page. */
+  .aca-launcher-widget__badge {
+    position: absolute;
+    z-index: var(--aca-layer-edit);
+    bottom: var(--aca-space-2);
+    left: var(--aca-space-3);
+    padding: var(--aca-space-1) var(--aca-space-2);
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /*
+   * Free cells: the soft well of the kit (.aca-m--well-soft: page colour, light inner edge,
+   * muted «+»; hover, focus and click from the kit) with the cell radius, and a small «+» about
+   * a fifth of the cell that grows a little under the pointer. Cells kept by a hidden widget
+   * show the same well without «+» and do not react. The drop preview keeps the full well, so
+   * the target of a drag stands out from the cells around it.
+   */
+  .aca-launcher-cells {
+    position: absolute;
+    z-index: var(--aca-layer-cell);
+    inset: 0;
+    pointer-events: none;
+  }
+  .aca-launcher-cell.aca-m {
+    --aca-radius: var(--aca-radius-cell);
+    --aca-pad: 0;
+    --aca-cell-plus-scale: 1;
+    display: block;
+    pointer-events: auto;
+  }
+  .aca-launcher-cell.is-reserved {
+    pointer-events: none;
+  }
+  .aca-launcher-cell > .aca-m__outer,
+  .aca-launcher-cell > .aca-m__outer > .aca-m__face {
+    height: 100%;
+  }
+  /* Centred «+» (the card shape of the kit makes its content a block). */
+  .aca-launcher-cell.aca-m > .aca-m__outer > .aca-m__face > .aca-launcher-cell__content {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-size: clamp(0.875rem, calc(var(--aca-cell) * 0.16), 1.125rem);
+    transform: scale(var(--aca-cell-plus-scale));
+    transition:
+      color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @media (hover: hover) {
+    .aca-launcher-cell.aca-m:hover {
+      --aca-cell-plus-scale: 1.06;
+    }
+  }
+  .aca-launcher-cell.aca-m:active {
+    --aca-cell-plus-scale: 0.94;
+  }
+  /* While a widget is dragged the wells stay as the grid of reference, without «+». */
+  .aca-launcher-grid.is-dragging .aca-launcher-cell {
+    pointer-events: none;
+  }
+  .aca-launcher-grid.is-dragging .aca-launcher-cell__content {
+    opacity: 0;
+  }
+
+  /* Where the dragged widget will land: a recessed slot; red LED and text when refused. */
+  .aca-launcher-drop.aca-m {
+    --aca-radius: var(--aca-radius-cell);
+    --aca-pad: var(--aca-space-2);
+    z-index: var(--aca-layer-drop);
+    display: block;
+    pointer-events: none;
+  }
+  .aca-launcher-drop .aca-m__outer,
+  .aca-launcher-drop .aca-m__face {
+    height: 100%;
+  }
+  .aca-launcher-drop.aca-m > .aca-m__outer > .aca-m__face > .aca-launcher-drop__content {
+    display: grid;
+    place-items: center;
+    height: 100%;
+  }
+
+  .aca-launcher-special {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--aca-space-4);
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Copy of the dragged widget under the pointer. */
+  .aca-drag-ghost {
+    position: fixed;
+    z-index: var(--aca-z-sticky);
+    top: 0;
+    left: 0;
+    pointer-events: none;
+  }
+  .aca-drag-ghost__frame.aca-m--card {
+    --aca-pad: 0.9rem;
+    rotate: 1.5deg;
+    box-shadow:
+      var(--aca-socket-shadow-card),
+      0.6rem 1rem 1.6rem rgb(5 5 5 / 18%);
+    transition:
+      rotate 150ms var(--aca-ease-out),
+      scale 150ms var(--aca-ease-out),
+      opacity 150ms var(--aca-ease-out);
+    @starting-style {
+      rotate: 0deg;
+      scale: 0.98;
+      opacity: 0;
+    }
+  }
+  .aca-drag-ghost__layer {
+    height: 100%;
+  }
+  .aca-drag-ghost__content {
+    display: grid;
+    align-content: center;
+    gap: var(--aca-space-1);
+    height: 100%;
+  }
+  .aca-drag-ghost__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aca-launcher-widget,
+    .aca-launcher-cell__content {
+      transition: none !important;
+    }
+    .aca-launcher-cell__content {
+      transform: none !important;
+    }
+    .aca-launcher-widget.is-editing .aca-launcher-widget__frame {
+      animation: none !important;
+    }
+    .aca-drag-ghost__frame.aca-m--card {
+      rotate: none;
+      transition: none;
+    }
+  }
+}

@@ -21,8 +21,12 @@ secrets/
 !/backup/README.md
 
 # Artefatti e dati locali Tunet, mai sorgenti o lockfile.
-/progetto/tunet/node_modules/
-/progetto/tunet/dist/
-/progetto/tunet/data/
-/progetto/tunet/playwright-report/
-/progetto/tunet/test-results/
+/progetto/acasystem/node_modules/
+/progetto/acasystem/*/node_modules/
+/progetto/acasystem/frontend/dist/
+/progetto/acasystem/backend/data/
+/progetto/acasystem/frontend/playwright-report/
+/progetto/acasystem/frontend/test-results/
+
+# Istantanee di versione al posto dei commit (ADR-0008): restano solo sulla macchina.
+/usa-come-git/**

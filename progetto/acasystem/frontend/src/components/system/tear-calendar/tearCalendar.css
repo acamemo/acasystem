@@ -1,0 +1,225 @@
+/*
+ * Tear-off calendar of the cover (UI-008 adapted to «Metallo»), REP-20261007-001.
+ *
+ * Size: one unit, --aca-tear-u, follows the page that holds the calendar (the size container
+ * «aca-cover» of cover.css; the small viewport without it) between 0.8 and 1.75 rem, so the
+ * object fills a wall tablet as well as a phone. Text and spacing are multiples of the unit:
+ * the kit's type steps are redefined on it below and the gaps use the 4 px scale in em.
+ * Every material keeps the kit size of 1 rem, so radius (24 px), shadows and ring are those of
+ * the kit at every size (K16); only its padding and diameter follow the unit.
+ *
+ * Layouts, chosen on the page and not on the window:
+ * - portrait page: calendar above the clock; on narrow pages (phones) the weekday goes under
+ *   the date and the month grid is centred below;
+ * - landscape page: calendar and clock side by side, the clock centred on the sheet (K19);
+ * - short landscape page (phones on their side): a landscape sheet with the month grid at the
+ *   side, so nothing is cut (L-11).
+ * Colours are the accents' ink variants: ≥ 4.5:1 on the metal faces, ≥ 3:1 for the large date.
+ */
+@layer components {
+  .aca-tear {
+    --aca-tear-u: clamp(0.8rem, min(100cqw / 22.5, 100cqh / 35), 1.75rem);
+    /* The kit's type scale (ratio 1.2) on the unit of the calendar. */
+    --aca-step--1: calc(var(--aca-tear-u) * 0.833);
+    --aca-step-0: var(--aca-tear-u);
+    --aca-step-1: calc(var(--aca-tear-u) * 1.2);
+    --aca-step-2: calc(var(--aca-tear-u) * 1.44);
+    --aca-step-3: calc(var(--aca-tear-u) * 1.728);
+    --aca-step-4: calc(var(--aca-tear-u) * 2.074);
+    --aca-step-5: calc(var(--aca-tear-u) * 2.488);
+    --aca-step-6: calc(var(--aca-tear-u) * 2.986);
+    /* Height of the hook above the sheet: the clock drops by it to sit on the sheet's centre. */
+    --aca-tear-hook: calc(var(--aca-tear-u) * 1.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2em;
+    width: 100%;
+    font-family: var(--aca-font);
+    font-size: var(--aca-tear-u);
+  }
+
+  .aca-tear__object {
+    position: relative;
+    flex: none;
+    width: min(23em, 100%);
+    box-sizing: border-box;
+    padding-top: var(--aca-tear-hook);
+  }
+
+  /* Hook: a raised bar behind the top edge with a recessed hole. */
+  .aca-tear__hook {
+    --aca-pad: calc(var(--aca-tear-u) * 0.25) calc(var(--aca-tear-u) * 1.5);
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 50%;
+    width: 46%;
+    font-size: 1rem;
+    transform: translateX(-50%);
+  }
+  .aca-tear__hook-content {
+    justify-content: center;
+  }
+  .aca-tear__hole {
+    --aca-dim: calc(var(--aca-tear-u) * 1.1);
+  }
+
+  .aca-tear__sheet.aca-m--card {
+    --aca-pad: var(--aca-tear-u) calc(var(--aca-tear-u) * 1.5) calc(var(--aca-tear-u) * 1.5);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* The sheet: header, date and, side by side, the month grid and the weekday (UI-008). */
+  .aca-tear__content {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'header header'
+      'main main'
+      'grid weekday';
+    align-items: center;
+    gap: 0.5em 1em;
+    font-size: var(--aca-tear-u);
+  }
+
+  .aca-tear__header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .aca-tear__pin {
+    --aca-dim: calc(var(--aca-tear-u) * 1.25);
+    font-size: 1rem;
+  }
+  .aca-tear__year {
+    color: var(--aca-ink-muted);
+    font-size: var(--aca-step-0);
+  }
+
+  .aca-tear__main {
+    grid-area: main;
+    display: grid;
+    justify-items: center;
+  }
+  .aca-tear__month {
+    font-weight: var(--aca-weight-medium);
+  }
+  /* Large text (6 units): the ≥ 3:1 ink keeps the orange of the accent instead of a brown. */
+  .aca-tear__day.aca-type {
+    color: var(--aca-orange-ink-large);
+    font-size: 6em;
+    line-height: 1;
+  }
+
+  /* Weekday centred in the free half of the sheet, level with the month grid (UI-008). */
+  .aca-tear__weekday {
+    grid-area: weekday;
+    justify-self: center;
+    margin: 0;
+    text-align: center;
+  }
+
+  .aca-tear__month-grid {
+    grid-area: grid;
+    border-collapse: collapse;
+    font-size: var(--aca-step--1);
+  }
+  .aca-tear__month-grid th,
+  .aca-tear__month-grid td {
+    width: 1.75em;
+    height: 1.6em;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .aca-tear__date {
+    color: var(--aca-ink-solid);
+  }
+
+  /* Today: pressed into the sheet and orange (depth carries it too, not colour alone). */
+  .aca-tear__today {
+    --aca-dim: calc(var(--aca-tear-u) * 1.4);
+    font-size: 1rem;
+  }
+  .aca-tear__today.aca-m--well > .aca-m__outer > .aca-m__face {
+    background-image: var(--aca-face-orange-well);
+  }
+  .aca-tear__today .aca-m__content {
+    color: var(--aca-on-orange);
+    font-size: var(--aca-step--1);
+    font-weight: var(--aca-weight-medium);
+  }
+
+  /* Digital clock in a groove of the kit: the figures grow, the groove keeps the kit's depth. */
+  .aca-tear__clock {
+    --aca-pad: calc(var(--aca-tear-u) * 0.5) calc(var(--aca-tear-u) * 1.5);
+    flex: none;
+    font-size: 1rem;
+  }
+  .aca-tear__time {
+    color: var(--aca-ink-solid);
+    font-size: var(--aca-step-6);
+    font-weight: var(--aca-weight-light);
+    line-height: 1.1;
+  }
+
+  /* Narrow portrait page (phones): weekday under the date, the month grid centred below. */
+  @container aca-cover (width < 30rem) and (aspect-ratio < 4 / 3) {
+    .aca-tear__content {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'header'
+        'main'
+        'weekday'
+        'grid';
+    }
+    .aca-tear__month-grid {
+      justify-self: center;
+    }
+  }
+
+  /* Landscape page: calendar and clock side by side, the clock level with the sheet's centre. */
+  @container aca-cover (aspect-ratio >= 4 / 3) {
+    .aca-tear {
+      --aca-tear-u: clamp(0.8rem, min(100cqw / 46, 100cqh / 30), 1.75rem);
+      flex-direction: row;
+      gap: 3em;
+    }
+    .aca-tear__clock {
+      margin-top: var(--aca-tear-hook);
+    }
+  }
+
+  /*
+   * Short landscape page (a phone on its side, a small tablet): the sheet turns landscape, with
+   * date and weekday on the left and the month grid on the right, and the clock one step
+   * smaller, so the whole cover stays legible in about 15 rem of height.
+   */
+  @container aca-cover (aspect-ratio >= 4 / 3) and (height < 30rem) {
+    .aca-tear {
+      --aca-tear-u: clamp(0.8rem, min(100cqw / 40, 100cqh / 15.5), 1.75rem);
+      gap: 2em;
+    }
+    .aca-tear__object {
+      width: auto;
+    }
+    .aca-tear__content {
+      grid-template-columns: auto auto;
+      grid-template-areas:
+        'header header'
+        'main grid'
+        'weekday grid';
+      gap: 0.25em 1.5em;
+    }
+    .aca-tear__day.aca-type {
+      font-size: 5em;
+    }
+    .aca-tear__time {
+      font-size: var(--aca-step-5);
+    }
+  }
+}

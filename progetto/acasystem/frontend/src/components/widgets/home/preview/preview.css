@@ -1,0 +1,89 @@
+/* Development preview of the comfort widgets: page, cell grid and the launcher's widget frame. */
+@layer components {
+  .home-preview {
+    box-sizing: border-box;
+    min-height: 100dvh;
+    padding: 2rem clamp(1rem, 3vw, 3rem) 4rem;
+    background: var(--aca-page);
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+  }
+  .home-preview__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 48rem;
+    margin-bottom: 2rem;
+  }
+  .home-preview__section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  .home-preview__grid {
+    /* Cells as in the launcher: about 7.25 rem on a landscape tablet, a quarter of a phone. */
+    --aca-cell: min(7.25rem, calc((100vw - 4.25rem) / 4));
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--aca-cell));
+    grid-auto-rows: var(--aca-cell);
+    grid-auto-flow: row dense;
+    gap: 2rem 0.75rem;
+  }
+  .home-preview__cell {
+    position: relative;
+    align-self: start;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+  }
+  /*
+   * Same frame values as the launcher's WidgetHost (templates/launcher/launcher.css): static,
+   * pressed by the kit sequence only while the widget's details opener is hovered or pressed.
+   */
+  .home-preview__frame.aca-m--card {
+    --aca-radius: min(var(--aca-radius-card), calc(var(--aca-cell) * 0.24));
+    --aca-pad: clamp(0.55rem, calc(var(--aca-cell) * 0.1), 1rem);
+  }
+  .home-preview__frame-content {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (hover: hover) {
+    .home-preview__frame:has([data-widget-open]:hover) {
+      box-shadow: var(--aca-m-socket-flat);
+    }
+    .home-preview__frame:has([data-widget-open]:hover) > .aca-m__outer {
+      box-shadow: var(--aca-shell-flat);
+    }
+    .home-preview__frame:has([data-widget-open]:hover) > .aca-m__outer > .aca-m__face {
+      clip-path: inset(
+        var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+      );
+      box-shadow: var(--aca-face-pressed-soft);
+    }
+  }
+  .home-preview__frame:has([data-widget-open]:active) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  .home-preview__frame:has([data-widget-open]:active) > .aca-m__outer {
+    box-shadow: var(--aca-shell-flat);
+  }
+  .home-preview__frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
+    clip-path: inset(
+      var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+    );
+    box-shadow: var(--aca-face-pressed);
+    transform: scale(var(--aca-press-scale));
+  }
+
+  .home-preview__note {
+    position: absolute;
+    top: calc(100% + 0.3rem);
+    left: 0.5rem;
+    color: var(--aca-ink-muted);
+    font-size: var(--aca-step--1);
+    white-space: nowrap;
+  }
+}

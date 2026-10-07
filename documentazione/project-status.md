@@ -1,16 +1,16 @@
 # Stato effettivo del progetto
 
-Aggiornato: 2026-10-05. Responsabile dell'approvazione di prodotto: utente committente. Questo documento è la fonte corrente per stato dei requisiti, problemi e incarichi; i report conservano gli esiti datati.
+Aggiornato: 2026-10-07. Responsabile dell'approvazione di prodotto: utente committente. Questo documento è la fonte corrente per stato dei requisiti, problemi e incarichi; i report conservano gli esiti datati.
 
 ## Situazione verificata
 
-La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. Il 2026-10-05 l'utente ha installato HA Container e concluso il setup. Nel successivo incarico [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) sono stati acquisiti i sorgenti Tunet 1.22.1 e predisposto il [Compose locale](../progetto/compose.tunet.yaml). Tunet è avviato su localhost:3002; HA 2026.9.4 è raggiungibile dal backend. L'utente ha completato OAuth nel browser; Tunet mostra CONNECTED / Authenticated via OAuth2 e il pannello profili mostra auto-sync con ultima sincronizzazione. HOME Neumorphism e controlli condivisi (REP-20261005-008), aggiunta scheda, aggiunta/modifica pagina e selettore icone (REP-20261005-009) sono verificati nel browser locale; dispositivi fisici e grafica del resto delle interfacce non sono collaudati.
+La cartella iniziale conteneva solo `product.md`. Git locale è stato inizializzato e l'originale è conservato nel commit `912ec16b818f2446c77b844b6ff24f44e30a5fa9`. Il 2026-10-05 l'utente ha installato HA Container e concluso il setup. Nel successivo incarico [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md) sono stati acquisiti i sorgenti Tunet 1.22.1 e predisposto il [Compose locale](../progetto/compose.tunet.yaml). Il banco corrente usa Acasystem 0.1 su localhost:3002: frontend «OS» Metallo e backend TypeScript, revisione e aggiornamento autorizzato conclusi in [REP-20261006-002](reports/REP-20261006-002-ripresa-revisione.md). La verifica del 2026-10-07 conferma container healthy, health versione 0.1.0, sessione OAuth conservata, stato «Collegato», copertina, Principale e navigazione verso Sistema nel browser laterale. HA 2026.9.4 resta il sistema locale installato dall'utente. Le verifiche precedenti della HOME e dei pannelli restano nei report datati; dispositivi fisici, offline e accettazione del prodotto non sono collaudati.
 
 La [raccolta UI](design/componenti/README.md) contiene ora sette campioni di codice come reference testuali in documentazione, senza adattamenti o integrazione. Sono distinti dal futuro codice applicativo in progetto/. Hash e fonti registrano l'acquisizione; non dimostrano collaudo o licenza del riuso.
 
 Nessun servizio esterno, gateway o tablet è stato configurato o collaudato in questo incarico. Disponibilità di eventuali risorse esterne: non verificata. Non esistono evidenze di operatività, prestazioni o conformità del prodotto. Nessuna CI è configurata.
 
-La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Progetto contiene la baseline Tunet adattata nel primo incremento HOME TS/primitive/italiano e materiale Neumorphism chiaro/scuro; gli originali restano nello storico e nello ZIP. Backup contiene una copia ZIP/estratta dell'acquisizione, esclusa da Git; nessun backup dei dati HA/Tunet o ripristino è stato eseguito.
+La struttura corrente separa [documentazione/](README.md), [backup/](../backup/README.md) e [progetto/](../progetto/README.md), secondo ADR-0002. Progetto contiene i workspace Acasystem frontend/backend (ADR-0008); gli originali Tunet restano nello storico e nello ZIP. Backup contiene l'acquisizione e le copie manuali del volume Tunet/Acasystem, inclusa quella a freddo precedente all'aggiornamento del 2026-10-07, escluse da Git. Nessun ripristino dei dati, backup automatico o nuovo backup HA è stato provato; fonte operativa in [infrastructure.md](infrastructure.md).
 
 Su richiesta umana del 2026-10-05, la documentazione comprende due moduli: [funzionalità](funzionalita/README.md) per PRD e pilota, e [design](design/README.md) con design.md come fonte visiva. Stato, aspetti tecnici, verifiche e storico restano comuni. La separazione non cambia approvazioni o stato di realizzazione dei requisiti.
 
@@ -37,7 +37,7 @@ Criteri nel [PRD](funzionalita/product.md#11-criteri-di-accettazione-proposti); 
 | REQ-00 | Hardware locale Linux 64 bit | Approvato | Non iniziato | V-00 | Vincoli approvati; inventario/modelli aperti, ISSUE-005. |
 | REQ-01 | Provisioning Hetzner storico | Ritirato | Non iniziato | V-01, non applicabile | ADR-0003; ID e storico conservati. |
 | REQ-02 | Home Assistant locale, offline e obiettivo remoto | Approvato | Non iniziato | V-02 | ISSUE-004, ISSUE-007, ISSUE-013, ISSUE-015. |
-| REQ-03 | Fase 1 grafica, riferimento React Tunet | Approvato | In corso | V-03 | Base Tunet e prima HOME Neumorphism locali; conversione delle altre interfacce e accettazione del prodotto da completare. ISSUE-002; ISSUE-001/003 solo se HAKit viene adottato. |
+| REQ-03 | Fase 1 grafica, riferimento React Tunet | Approvato | In corso | V-03 | Acasystem 0.1 «OS» Metallo disponibile sul banco, revisione conclusa (REP-20261006-002); accettazione del prodotto e dispositivi fisici da completare. ISSUE-002; ISSUE-026/027/028/029; ISSUE-001/003 solo se HAKit viene adottato. |
 | REQ-04 | Google/email, opzione futura | Proposto | Non iniziato | V-04 | Fuori dal minimo grafico; ISSUE-006, ISSUE-014. |
 | REQ-05 | Identità/sessioni e credenziali HA | Proposto | Non iniziato | V-05 | Contratto da progettare; ISSUE-006, ISSUE-007. |
 | REQ-06 | Admin e consegna del primo setup al cliente | Approvato | Non iniziato | V-06 | Comportamento richiesto; meccanismo aperto, ISSUE-006/008. |
@@ -131,17 +131,19 @@ Per le sette reference UI raccolte mancano autore originale, URL e licenza: C-10
 
 **Risorse frontend esterne — Aperto, osservazione tecnica.** Tunet 1.22.1 carica stylesheet/font Google Fonts nel proprio index.html; il server consente anche risorse esterne per mappe/icone/media. Sono possibilità del codice, non prova che tutte siano utilizzate. Collegamenti: REQ-02/03, C-04/C-06 e REP-20261005-004. Proposta fuori dall'incarico di installazione: valutare font locali e censire richieste effettive prima del collaudo offline e della distribuzione. Nessuna sostituzione applicata. Chiusura con incarico dedicato, inventario dei flussi e prova offline delle schermate concordate.
 
+Inventario verificato durante la ripresa del 2026-10-06 (SEC-4, REP-20261006-002): `CarDetails.tsx` carica una mappa da `www.openstreetmap.org` con coordinate del veicolo nei parametri; `mediaLogos.ts` carica loghi TV da `cdn.simpleicons.org`, indicando l'app mostrata. Inter viene ora servito localmente tramite `@fontsource/inter`; Google Fonts non è nel nuovo entry point. Loghi locali e mappa su richiesta/offline sono proposte, non modifiche autorizzate. Le integrazioni e le immagini fornite da HA possono aggiungere altre origini; il censimento statico non prova l'assenza di traffico esterno in ogni installazione.
+
 ### ISSUE-017
 
 **Composizione frontend con primitive — Aperto, disallineamento progettuale.** L'utente richiede primitive condivise per componenti, tipografia e layout, con pagine composte principalmente da queste e componenti locali alla pagina (ADR-0004). Tunet 1.22.1 è parzialmente allineato nel riuso UI, ma markup/stile e organizzazione delle interfacce restano distribuiti. REQ-03; evidenze in [REP-20261005-005](reports/REP-20261005-005-audit-struttura-tunet.md). Proposta: definire API e composizione delle primitive nel prossimo incarico UI, preservando le funzioni HA concordate. Il primo incremento HOME è realizzato; il resto delle interfacce resta da organizzare. Chiusura con struttura concordata e verifica delle interfacce migrate.
 
-Primo incremento REP-20261005-006: primitive componenti/tipografia/Flex e HOME vuota, header, navigazione e toolbar/menu migrati. REP-20261005-008 aggiunge il materiale Neumorphism HOME e i controlli condivisi. REP-20261005-009 aggiunge Input/Choice/Switch/Modal e finestre di gestione in TSX. ISSUE-017 resta aperto per il resto delle interfacce e il sistema visivo ACA completo; la prima migrazione non certifica tutto il frontend.
+Primo incremento REP-20261005-006: primitive componenti/tipografia/Flex e HOME vuota, header, navigazione e toolbar/menu migrati. REP-20261005-008 aggiunge il materiale Neumorphism HOME e i controlli condivisi. REP-20261005-009 aggiunge Input/Choice/Switch/Modal e finestre di gestione in TSX. REP-20261005-011 aggiunge la primitiva Card, adottata soltanto da SensorCard, e il materiale a pressione di pulsanti ed emblema. ISSUE-017 resta aperto per il resto delle interfacce e il sistema visivo ACA completo; la prima migrazione non certifica tutto il frontend.
 
 ### ISSUE-018
 
-**Manutenibilità dell'orchestrazione — Aperto, valutazione tecnica.** App e alcune modali hanno dimensioni elevate, molti parametri e contratti JS/JSDoc poco restrittivi. Lint/typecheck e 705 test passano: non è un guasto dimostrato. REQ-03; evidenze e conteggi nel report di audit. Proposta: delimitare responsabilità/contratti nell'incarico di organizzazione frontend, valutare la tipizzazione e misurare render/carico sul pilota. Al momento dell'audit non era stata scelta una migrazione. La successiva richiesta umana autorizza il primo incremento TypeScript della HOME (ADR-0005); nessuno store alternativo è stato scelto. Chiusura con confini concordati e controlli pertinenti, non con la sola riduzione delle righe.
+**Manutenibilità dell'orchestrazione — Aperto per valutazione sul pilota.** Nell'audit iniziale App e alcune modali avevano dimensioni elevate, molti parametri e contratti JS/JSDoc poco restrittivi. Lint/typecheck e 705 test passavano: non era un guasto dimostrato. REQ-03; evidenze e conteggi storici in REP-20261005-005. ADR-0008 e REP-20261006-001/002 hanno poi introdotto workspace separati, gerarchia frontend e TypeScript strict nell'app corrente; nessuno store alternativo è stato scelto. Restano da misurare render/carico nell'ufficio e verificare i confini sul pilota. Chiusura con controlli pertinenti, non con la sola riduzione delle righe.
 
-tsconfig.home.json ora applica strict e controllo dichiarazioni inutilizzate alla porzione migrata e al relativo test. Il resto delle orchestrazioni/card resta JS; questa mitigazione circoscritta non chiude ISSUE-018.
+L'incremento iniziale usava `tsconfig.home.json` soltanto sulla HOME. Dal 2026-10-07 il frontend applicativo usa `frontend/tsconfig.strict.json`, il backend `backend/tsconfig.json`; il legacy JS/JSX è stato cancellato il 2026-10-07 (ISSUE-029). Le verifiche correnti sono in REP-20261006-002, senza equiparare la tipizzazione al collaudo sul pilota.
 
 ### ISSUE-019
 
@@ -153,7 +155,73 @@ tsconfig.home.json ora applica strict e controllo dichiarazioni inutilizzate all
 
 ### ISSUE-021
 
-**Traduzione delle interfacce precedenti — Aperto.** Italiano richiesto per le nuove interfacce (ADR-0005); HOME migrata e menu sono tradotti, data/ora usa it-IT. REP-20261005-009 completa i testi di aggiunta scheda e gestione pagine/icone. Profili, aspetto e altri pannelli precedenti restano parziali e usano fallback inglese. Proposta: completare i testi insieme alle schermate assegnate, verificando etichette, errori e accessibilità. Non è dichiarata l'app interamente tradotta né assegnata una traduzione integrale.
+**Traduzione delle interfacce — Aperto per verifica complessiva.** Italiano richiesto per le nuove interfacce (ADR-0005); l'audit iniziale rilevava fallback inglesi nei pannelli upstream. ADR-0007 ha successivamente fissato italiano e tema Acasystem ed eliminato Aspetto; REP-20261006-001/002 ha sostituito launcher, widget e Sistema. Copertina, pagina vuota e Sistema sono osservati in italiano nel banco il 2026-10-07. Le schermate legacy conservate non entrano nella build corrente. Restano da verificare tutti gli errori e i contenuti dinamici del pilota; nomi e valori forniti da HA dipendono dalla configurazione dell'impianto. Non è dichiarata una verifica completa di ogni stringa.
+
+### ISSUE-022
+
+**Contrasto delle etichette secondarie nelle card — Aperto, osservazione di calcolo, proposta.** SensorCard mostra l'etichetta con `text-secondary` e opacità 0,6. Su sRGB opachi il contrasto risulta circa 3,1:1 nel tema scuro e 2,8:1 nel chiaro prima di REP-20261005-011, e 3,0–3,2 / 2,6–2,9 con il nuovo materiale: il materiale non lo peggiora in modo apprezzabile, ma il valore resta sotto 4,5:1 per testo piccolo. REQ-03; calcoli in [REP-20261005-011](reports/REP-20261005-011-materiale-pressione.md). Proposta: decidere nell'incarico di conversione delle card se rimuovere l'opacità o usare un colore dedicato, verificando anche le altre card. Nessuna modifica applicata. Chiusura con contrasto verificato per le etichette delle card migrate.
+
+### ISSUE-023
+
+**Blocco impostazioni rimosso — Aperto, conseguenza di ADR-0007.** Con l'eliminazione del pannello Aspetto sparisce anche il blocco impostazioni di Tunet: sui tablet chiunque può aprire Sistema e modificare pagine e widget. REQ-05/06/15, ISSUE-006/008. Proposta: inserire la protezione nel progetto di ruoli e sessioni, con una sessione cliente senza privilegi di configurazione. Chiusura con una protezione progettata e verificata su UI e API.
+
+### ISSUE-024
+
+**Robustezza delle API del backend — Aperto, proposta da A1 (REP-20261006-001).** La migrazione TypeScript conserva volutamente alcuni comportamenti di Tunet:
+
+- un PUT/POST senza corpo JSON produce 500;
+- id di tipo non stringa (booleani, oggetti) arrivano a better-sqlite3 e producono 500.
+
+Proposta: 400 con messaggio e validazione dei tipi degli id. Non applicata per non cambiare le risposte durante la migrazione. Chiusura con validatori aggiornati e test dei casi.
+
+### ISSUE-025
+
+**Sovraccarico globale di parseFloat — Risolto nel codice corrente.** Il sovraccarico è stato rimosso nell'ondata 3 di REP-20261006-001; la ripresa REP-20261006-002 conferma il typecheck strict senza l'allentamento globale. Il legacy resta escluso dal programma TypeScript.
+
+### ISSUE-026
+
+**Parità residua delle persone e delle taglie — Aperto, limiti della revisione OS.** I widget attivi recuperano le impostazioni di calendario, attività, meteo, videocamera, TV, energia, separatore e aspirapolvere (PAR-1/2/3). Le persone nella nuova barra usano soltanto nome e stato: foto/icona, batterie, tracker e sensori aggiuntivi del vecchio pannello non hanno un consumer migrato. Non sono state aggiunte impostazioni inerti. L'altezza del separatore è governata dalle celle, mentre `heightPx` legacy non è consumato. Costi/auto/stanza limitati a 2×2; una luce senza dimmer può ancora occupare 2×2 perché il contratto delle taglie è statico e serve anche alle luci regolabili (DES-9). Fonti: REP-20261006-002, confronto del codice nuovo con EditCardModal legacy. Le impostazioni storiche restano salvate. Chiusura: incarico per decidere e verificare la parità delle persone e l'eventuale taglia dipendente dalle capacità del dispositivo. Nessun nuovo comportamento assegnato da questa voce.
+
+### ISSUE-027
+
+**Residui di sicurezza della revisione OS — Aperto, decisioni richieste (REP-20261006-002).**
+- **Identità dal backend (SEC-1) — risolto il 2026-10-07.** Su decisione dell'utente («Rifiuta sempre») il backend valida il token solo presso `TUNET_INTERNAL_HA_URL` / `TUNET_INTERNAL_HA_FALLBACK_URL`. Senza variabili valide risponde 503 `HA_URL_NOT_CONFIGURED` e non usa mai `x-ha-url` del client: niente più finto HA né sondaggi della rete interna. Rimosse le alternative Docker degli URL del client. Test: `haAuth`, `server`, `routeAuth` (93/93).
+- **Lettore go2rtc (SEC-3).** La CSP del backend (`frame-src https://www.openstreetmap.org`) blocca i lettori personalizzati delle videocamere. Il widget ora passa subito alla fonte successiva, ma per usare davvero go2rtc serve allargare `frame-src`.
+- **Uscita OAuth (SEC-2).** Il refresh token viene cancellato dal dispositivo ma non revocato su HA (`auth.revoke()` non applicato). Un'altra scheda aperta può restituire i token dopo «Esci», comportamento ereditato. Il vecchio `ha_token` resta salvato dopo il passaggio a OAuth.
+
+Proposte:
+- origini go2rtc da variabile d'ambiente;
+- revoca all'uscita.
+
+Requisiti collegati: REQ-05/06/17, ISSUE-006/008/015. Chiusura con le decisioni dell'utente, le modifiche e i test.
+
+### ISSUE-028
+
+**Area di tocco e celle piccole — Aperto, limiti della revisione OS (REP-20261006-002).**
+- **Area di tocco (RESP-3).** Il `::before` porta i pulsanti a 44 px senza cambiare l'aspetto, ma con due limiti: le voci del Segmented sm arrivano a 42,8 px, perché la traccia ritaglia; nei menu con voci da 30,8 px e passo di 36,4 px l'ultimo 1–2 px di una voce attiva la successiva.
+- **Celle piccole (RESP-1).** In modifica a 640x400 (tablet con zoom al 200%) le celle sono di 65 px. Sotto circa 82 px alcuni widget 2×1 con una riga di comandi (sensore con interruttore, script, automazione, tapparella, serratura) e la luce 2×2 con cursore escono dall'area del contenuto. La griglia `phoneLandscape` 6×2 è una scelta esecutiva misurata nell'anteprima, non su dispositivi reali.
+
+Proposte:
+- passo dei menu e Segmented a 44 px, che cambia l'aspetto e richiede l'assenso dell'utente;
+- barra di modifica compatta in orizzontale;
+- densità dei widget sui pixel reali.
+
+Aggiornamento 2026-10-07 (REP-20261007-001): i pulsanti della cornice e la × di rimozione arrivano ora a 44 px. Restano aperti:
+- con 9–13 pagine sui telefoni stretti l'indicatore e la barra di modifica non hanno una forma compatta (V2-01/V2-02);
+- sui telefoni verticali la seconda riga della fascia del piè di pagina resta vuota in vista, per tenere la griglia identica a quella della modifica (V-02);
+- quando il widget non entra nella cella toccata, l'annuncio non dice dove è finito (V2-06);
+- da decidere con l'utente: griglia più larga per gli schermi oltre ~16:9, righe in più sul telefono.
+
+Chiusura con le misure sul tablet pilota e sul telefono.
+
+### ISSUE-029
+
+**Codice legacy Tunet — Risolto il 2026-10-07.** Su richiesta dell'utente («procedi con la cancellazione del legacy») sono stati cancellati 232 file:
+- l'interfaccia Tunet sostituita (App.jsx, main.jsx, components/{cards,charts,effects,pages,sidebars,ui,camera}, modals, layouts, rendering, icons, config, stili e 51 test legacy);
+- 7 moduli TypeScript usati solo dal legacy;
+- gli e2e e tre script di Tunet.
+
+L'elenco viene da un tracciamento delle importazioni (`backup/legacy-da-cancellare.txt`). Il classificatore dei permessi ha negato la cancellazione all'agente, quindi l'ha eseguita l'utente. Ripuliti `tsconfig.strict.json`, lo script di tipografia, la regola ESLint delle primitive, l'ingresso `main.tsx`/`app.tsx` e la configurazione e2e. Esito: suite frontend 1161/1161 senza fallimenti; build, budget e immagine verificati (verification.md). Le istantanee `usa-come-git/v009`–`v011` conservano il codice cancellato.
 
 ## Incarichi e punto di ripresa
 
@@ -172,7 +240,28 @@ tsconfig.home.json ora applica strict e controllo dichiarazioni inutilizzate all
 | [REP-20261005-008](reports/REP-20261005-008-home-neumorphism.md) | Ripresa del design HOME | Completato; materiale chiaro/scuro, controlli condivisi, regressioni e storico verificati sul banco locale. |
 | [REP-20261005-009](reports/REP-20261005-009-gestione-schede-pagine.md) | Gestione schede e pagine | Completato; primo gruppo della prosecuzione con TypeScript, italiano, temi, regressioni e browser. |
 | [REP-20261005-010](reports/REP-20261005-010-pannelli-skeleton.md) | Transizioni e skeleton | Completato; presenza/uscita, movimento ridotto, caricamenti e regressioni verificati. |
+| [REP-20261005-011](reports/REP-20261005-011-materiale-pressione.md) | Materiale a pressione (UI-003) su barra, card di stato e benvenuto | Completato; materiale, primitiva Card, regressioni, build e banco locale verificati; card reale con entità non osservata. Nessun commit. |
+| [REP-20261005-012](reports/REP-20261005-012-sistema-metallo.md) | Sistema «Metallo» a strati (kit e pagina di prova) | Completato per le fasi 1–2; fase 3 confluita in REP-20261006-001. |
+| [REP-20261006-001](reports/REP-20261006-001-acasystem-os.md) | Rifacimento del frontend come «OS» Metallo, con subagenti | Completato con le ondate 0–4; correzioni della revisione finale chiuse in REP-20261006-002. |
+| [REP-20261006-002](reports/REP-20261006-002-ripresa-revisione.md) | Ripresa e chiusura della revisione OS | Completato e verificato; SEC-1 «rifiuta sempre» e banco su `aca-system:0.1` il 2026-10-07 (annotazione nel report). |
+| [REP-20261007-001](reports/REP-20261007-001-launcher-polish.md) | Polish e layout del launcher, «Principale» come schermata di base | Completato e verificato; banco su `aca-system:0.2`. |
+| [REP-20261007-002](reports/REP-20261007-002-animazioni-principale.md) | Revisione animazioni della «Principale» e tempi del kit | Completato; verifiche automatiche verdi, banco non aggiornato. |
+| [REP-20261007-002](reports/REP-20261007-002-ha-dietro-acasystem.md) | Home Assistant dietro Acasystem: proxy e accesso proprietario (ADR-0009) | In corso. |
 
-**Incarico attivo:** nessuno. [REP-20261005-010](reports/REP-20261005-010-pannelli-skeleton.md) conclude transizioni dei pannelli e skeleton sul banco locale. Il gruppo precedente è chiuso. [REP-20261005-009](reports/REP-20261005-009-gestione-schede-pagine.md) conclude aggiunta scheda, nuova pagina, modifica pagina e selettore icone. La richiesta «continuiamo con le altre pagine» è stata affrontata per questo primo gruppo collegato alla HOME; priorità degli altri gruppi non ancora specificata. Il report esterno REP-007 resta storico.
+**Incarico attivo:** nessun incarico applicativo aperto. Acasystem 0.1 (base Tunet con il frontend «OS» Metallo e le correzioni della revisione finale) è la versione da mostrare in ufficio il 2026-10-07. Le modifiche successive dipenderanno dal parere raccolto lì (richiesta dell'utente del 2026-10-06).
 
-**Punto di ripresa:** pannelli e fetch ora condividono transizioni/skeleton; 94 file / 740 test superati. Restano il collaudo reale dei dispositivi e gli altri gruppi suggeriti: impostazioni/aspetto/disposizione/intestazione, profili e pagine dispositivo. Usare ADR-0004/0005 e le primitive correnti; dimmer con riscontro HA, traduzione legacy completa e infrastruttura finale conservano i loro limiti. Il gruppo appena consegnato non dichiara la conversione del resto delle interfacce.
+**Punto di ripresa (2026-10-07):**
+- Banco su localhost:3002 con `aca-system:0.2` dal 2026-10-07 (dati e integrazione HA invariati): «Principale» come schermata di base con celle «+», polish e layout del launcher, legacy cancellato (REP-20261007-001).
+  - Ripristino possibile su `aca-system:0.1` o `aca-tunet:1.22.1-aca-press-neu1`, cambiando `image:` in `progetto/compose.tunet.yaml`.
+  - Copie del volume in `backup/banco/`, l'ultima a freddo prima di 0.2: `tunet-data-20261007-pre-0.2-freddo.tgz`.
+- Codice verificato:
+  - typecheck, lint, tipografia e colori a 0;
+  - frontend 1281/1281;
+  - backend 93/93;
+  - build nei budget.
+- Istantanee:
+  - `v009`: demo 0.1;
+  - `v012`: legacy cancellato;
+  - `v013`: polish e layout del launcher.
+- Prossimo passo: il parere dell'ufficio sull'interfaccia, poi le modifiche indicate dall'utente.
+- Questioni aperte: ISSUE-026/027/028 e le decisioni di REP-20261006-002 e REP-20261007-001 (griglia per schermi larghi, righe del telefono, ritorno a Principale dopo inattività, dipendenze inutilizzate).

@@ -1,12 +1,66 @@
 # ACA SYSTEM — Specifica di design
 
-Aggiornato: 2026-10-05. Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME, controlli condivisi e finestre di gestione schede/pagine hanno il primo materiale Neumorphism, verificato sul banco locale; card dispositivo, dimmer con riscontro HA e altre schermate restano da convertire.
+Aggiornato: 2026-10-06 (sezione «Sistema Metallo»). Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME, controlli condivisi e finestre di gestione schede/pagine hanno il primo materiale Neumorphism, verificato sul banco locale. Pulsanti, emblema di benvenuto e card di stato (SensorCard) usano il materiale a pressione adattato da UI-003 ([REP-20261005-011](../reports/REP-20261005-011-materiale-pressione.md)); le altre card dispositivo, il dimmer con riscontro HA e le altre schermate restano da convertire.
 
 ## Scopo e responsabilità
 
 Descrivere come presentare le funzionalità autorizzate: stile, colori, gerarchia, componenti e feedback. Il design non aggiunge funzionalità, permessi o automazioni. Una schermata proposta non autorizza lo sviluppo del comportamento rappresentato.
 
 La fase 1 minima è Home Assistant personalizzato graficamente, con Tunet come punto di partenza React e pilota in ufficio. Il suo perimetro è in [pilot-scope.md](../funzionalita/pilot-scope.md). L'analisi tecnica di Tunet deve precedere la scelta di componenti e librerie da integrare.
+
+## Sistema Metallo (fonte corrente dal 2026-10-06)
+
+> **Precedenza.** Questa sezione, con [ADR-0006](../decisions/ADR-0006-sistema-metallo.md) e [ADR-0007](../decisions/ADR-0007-acasystem-os.md), supera le scelte di colore e tema delle sezioni successive (temi chiaro/scuro, #222222, #ef8231, materiali di REP-008/009/011), che restano come storico: i file di quelle implementazioni (`neumorphism.css`, `themes.js`, componenti legacy) sono stati cancellati il 2026-10-07 (ISSUE-029). Implementazione e verifiche in [REP-20261005-012](../reports/REP-20261005-012-sistema-metallo.md) e [REP-20261006-001](../reports/REP-20261006-001-acasystem-os.md).
+
+**Materiale.** Ogni controllo e contenitore ha i quattro livelli del pulsante [UI-003](componenti/originali/UI-003-pulsante-pressione.jsx.txt):
+
+| Livello | Aspetto |
+|---|---|
+| Socket | Grafite rgb(96 96 96) |
+| Guscio | Ombre di contatto |
+| Faccia | Gradiente metallico 230→180, sette ombre interne più lo strato LED |
+| Contenuto | Inter, etichetta incisa |
+
+| Comportamento | Uso |
+|---|---|
+| `press` | Hover: guscio a zero, faccia ristretta dal `clip-path`, contenuto a 0,975. Click: faccia a 0,975. |
+| `static` | Superfici informative. |
+| `well` | Incassato, per campi e tracce. |
+
+- **Forme:** pillola, cerchio, arrotondata, card (24px, eccezione voluta alle regole impeccable, come il testo inciso a gradiente).
+- **Fisica:** una sola per stato. Luce dall'alto a sinistra; l'ombra scura in alto a sinistra solo sugli elementi incassati.
+
+**Colori.** Tema unico chiaro metallico, pagina rgb(222). Socket ≥3:1 contro ogni faccia.
+
+| Ruolo | Valore | Uso |
+|---|---|---|
+| Arancione | `#ff622a` | Acceso, attivo, azione principale, riempimenti, sfera dell'indicatore, data della copertina. |
+| Blu elettrico | `#295bff` | Focus, selezione (LED e testo), pagina corrente, informazioni. |
+| Rosso | `#b91c1c` | Errore. Confermato dall'utente il 2026-10-06. |
+| Varianti ink | Testo ≥4,5:1, icone ≥3:1 | Testi e icone colorati sul metallo. |
+
+Il colore non è mai l'unico segnale: restano la profondità, il LED e il testo.
+
+**Tipografia.** Solo Inter, servito in locale; scala in rem con rapporto 1,2; pesi 300/400/500.
+- Mai testo tutto maiuscolo, mai spaziatura tra le lettere, mai grassetto (richiesta dell'utente); solo la prima lettera della frase maiuscola.
+- Primitive: Display, Title, Heading, Body, Label, Caption, Numeric (cifre tabellari), IconText.
+- Controllo automatico: `npm run lint:typography`.
+
+**Stati.** Riposo, hover, click, focus (anello blu), selezione, disabilitato, caricamento, errore e «richiesto vs confermato» (`pending`) su interruttore e cursore.
+- Interruttore con etichette «Acceso»/«Spento».
+- Sheet (foglio dal basso) e Popover; scala semantica degli z-index.
+- Matrice completa nella pagina di prova `frontend/kit.html`.
+
+**Interfaccia «OS».** Barra di stato; copertina con calendario a strappo ([UI-008](componenti/originali/UI-008-calendario-strappo.txt)) e orologio; pagine di widget a celle stile Android, modificabili con pressione lunga; swipe tra le pagine con l'indicatore a pallina ([UI-009](componenti/originali/UI-009-indicatore-pallina.txt)); dettagli dei dispositivi in fogli; Sistema come pagina intera. Il pannello Aspetto non esiste più.
+
+**Schermata di base e celle «+»** (richiesta dell'utente del 2026-10-07, [REP-20261007-001](../reports/REP-20261007-001-launcher-polish.md)):
+- All'avvio il launcher apre sempre «Principale», la prima pagina di widget, anche se vuota. La copertina resta alla sua sinistra, raggiungibile con lo swipe. La pagina vista l'ultima volta non decide più l'avvio.
+- Su ogni pagina di widget, in vista normale e in modifica, ogni cella libera è un pozzetto tenue con un «+» discreto. Il tocco apre l'aggiunta e il widget va nella cella toccata, alla taglia scelta, oppure nel punto libero più vicino. La griglia ha una sola fermata di tabulazione e si percorre con le frecce.
+- La griglia non cambia cella né posizione tra vista normale e modifica: il piè di pagina è una fascia di altezza costante che contiene l'indicatore e, in modifica, la barra dei comandi.
+- In modifica l'unica azione arancione è «Fine». «Aggiungi widget», «Pagina» e «Nuova pagina» sono controlli metallici della stessa altezza. La × di rimozione è un piccolo pomello centrato sullo spigolo, con area di tocco di 44 px.
+- La conferma di rimozione usa la variante «danger» del pulsante (inchiostro rosso sul metallo). Il pallino degli aggiornamenti di Sistema è blu, perché è un'informazione e non un errore.
+
+**Spaziature e cornice.** Scala su base 4 px in `tokens.css` (`--aca-space-1…7`), margine laterale unico `--aca-gutter` per barra di stato, pagine e piè di pagina, altezza dei controlli della cornice `--aca-control-height` (44 px). Il raggio delle celle `--aca-radius-cell` è definito una volta sulla griglia e vale per widget, pozzetti, anteprima di rilascio e maniglie.
 
 ## Indicazioni umane confermate
 
@@ -19,6 +73,7 @@ La fase 1 minima è Home Assistant personalizzato graficamente, con Tunet come p
 | Accento | Arancione `#ef8231` in entrambi i temi | Piano di raccolta approvato dall'utente, 2026-10-05. |
 | Reference principale | Primo switch, UI-001 | Base per profondità, rilievo, movimento e illuminazione degli altri design. |
 | Reference di animazione | Switch Wi-Fi, UI-007 | Riferimento aggiuntivo per feedback luminoso e animazioni. |
+| Reference di pulsanti, card ed emblema | Pulsante a pressione, UI-003 | Richiesta umana del 2026-10-05 (REP-20261005-011): struttura a strati e interazioni di hover/click per barra superiore, card di stato e benvenuto. UI-001 resta la reference principale per switch e regolazione. |
 | Microinterazioni | Priorità esplicita, con feedback durante il gesto | Indicazioni e risposte umane riprese nel piano approvato. |
 | Reference | [Articolo Clay](https://clay.global/blog/neumorphism-ui) e tre immagini fornite in chat | Ispirazione estetica; non schermate ACA approvate. |
 | Logo | Non ancora disponibile | Da definire; nessun logo generato o adottato. |
@@ -54,6 +109,34 @@ La successiva richiesta di [raccolta e microinterazioni](../reports/REP-20261005
 [REP-20261005-009](../reports/REP-20261005-009-gestione-schede-pagine.md) estende il materiale ad aggiunta scheda, nuova pagina, modifica pagina e selettore icone. Modal separa intestazione, corpo scorrevole e azioni sempre raggiungibili; Input usa incasso e focus; Choice usa selezione stabile; Switch espone un pulsante nativo con role switch, indicatore luminoso e corsa del pomello. Movimento ridotto elimina le transizioni conservando posizione e stato. Le reference originali rimangono intatte.
 
 Testi italiani e mx-icons per i controlli; nomi e catalogo delle icone già salvate restano compatibili. La griglia del selettore calcola le colonne dalla larghezza disponibile per mantenere coerente la virtualizzazione su mobile. Verificati dialoghi a 320/390 px e desktop, senza comandi fisici o creazione di pagine sul banco reale. Impostazioni/profili e pagine dispositivo non sono convertiti da questo gruppo.
+
+## Materiale a pressione implementato
+
+Richiesta umana del 2026-10-05, [REP-20261005-011](../reports/REP-20261005-011-materiale-pressione.md): applicare lo stile di [UI-003](componenti/originali/UI-003-pulsante-pressione.jsx.txt) a pillola di navigazione, pulsanti circolari Modifica/Impostazioni, card di stato, emblema di benvenuto e pulsanti «Aggiungi scheda»/«Carica profilo». Materiale in src/styles/neumorphism.css; il pulsante principale e quello secondario usano le stesse primitive Button e la card la nuova primitiva Card.
+
+**Strati.** Socket (l'elemento, scuro), guscio (ombra esterna) e faccia (`::before`, gradiente più sette ombre interne). Riposo: il guscio solleva l'elemento. Hover: il guscio si annulla, la faccia si restringe di 1,5 px (2 px sulla card) scoprendo un anello del socket, le ombre interne diventano più profonde e il contenuto scala a 0,975. Click: la faccia scala a 0,975 (0,985 sulla card). Selezione stabile (aria-current/pressed/expanded): aspetto premuto mantenuto con inchiostro d'accento e bagliore; il colore non è l'unico segnale. Transizioni 300 ms (ombre) e 250 ms (faccia e contenuto) come nell'originale.
+
+**Adattamenti, scelte esecutive non approvate come colori ufficiali.**
+
+| Originale UI-003 | ACA | Motivo |
+|---|---|---|
+| Faccia grigio metallico chiaro, testo a gradiente scuro | Facce derivate dai temi: scuro #2b2b2b → #202020, chiaro #ffffff → #e3e7ed; testo nel colore del tema | Il design non approva integralmente i colori delle reference; scuro #222222 e accento #ef8231 sono confermati. |
+| `clip-path` che si restringe | Il `::before` si restringe con la proprietà inset | I raggi dei controlli variano per elemento (pillola, cerchio, 18 px, 14 px) e arrivano da utility Tailwind: un `clip-path` richiederebbe di conoscerli. Il risultato visivo è lo stesso. |
+| Overlay `::after` che sfuma l'alone | Ombra neumorfica chiara e scura nel guscio | Luce coerente dall'alto a sinistra nei due temi. |
+| Unità em | rem per il guscio; em risolto su `--aca-u` (16 px, 24 px sulla card, 20 px sull'emblema) per la faccia | Ombre indipendenti dalla dimensione del testo. |
+| Pulsante unico a pillola | Raggio proprio di ciascun elemento: pillola, cerchio 50% per le icone, 18 px per le azioni | Le forme già approvate restano. |
+
+**Pulsante principale.** Faccia arancione `#f8a35f → #e8761e`, socket `#8f4310`, testo #222222. Contrasto del testo sulle facce: 4,85–7,88. Su facce scure e chiare i testi principale/secondario e l'inchiostro selezionato superano 4,5 in ogni stato (calcoli sRGB opachi in REP-20261005-011; non è una conformità WCAG complessiva).
+
+**Card.** La primitiva Card applica il materiale fuori dalla modifica; in modifica resta lo stile precedente (bordo blu, jiggle, trascinamento). Sostituisce con `!important` sfondo, bordo, ombra e sfocatura inline di `getCardStyle`, e cede il passo a un altro materiale scelto nel pannello Disposizione. È adottata per ora da SensorCard; le altre card restano con il materiale precedente.
+
+**Emblema.** Disco di benvenuto in socket con faccia statica, senza hover.
+
+**Token.** `--aca-socket`, `--aca-face`, `--aca-face-active`, `--aca-shell-rest|hover|selected`, `--aca-face-inset|-hover|-active`, `--aca-card-shell-rest|hover` in neumorphism.css: valori espliciti per scuro e chiaro, derivati da `--bg-secondary` per i temi legacy. Ogni elenco di ombre ha lo stesso numero di strati in tutti gli stati, così le transizioni interpolano; un test lo verifica. Cambiare la faccia in un grigio metallico chiaro, come nell'originale, richiede di modificare solo `--aca-face*` e le ombre interne del tema.
+
+**Movimento ridotto.** Le transizioni e la scala sono disattivate; ombre, anello e profondità dello stato restano.
+
+**Limiti noti.** La card è stata osservata su una replica del suo markup e degli stili inline di `getCardStyle`, perché il browser di verifica non aveva una sessione Home Assistant; lo stato `:active` è coperto da un test sul CSS e non dal browser; il movimento ridotto non è stato emulato dal sistema operativo; non c'è verifica su tablet fisico. Le etichette secondarie delle card (opacità 0,6) hanno un contrasto preesistente di circa 3:1: [ISSUE-022](../project-status.md#issue-022).
 
 ## Spiegazione dello stile
 

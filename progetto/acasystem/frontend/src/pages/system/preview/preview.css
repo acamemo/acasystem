@@ -1,0 +1,30 @@
+/* Frame of the development preview only (preview-system.html). */
+@layer components {
+  .aca-preview-system {
+    min-height: 100dvh;
+    background-color: var(--aca-page);
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+  }
+  .aca-preview-system__bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-bottom: 1px solid color-mix(in oklch, var(--aca-ink-solid) 14%, transparent);
+  }
+  .aca-preview-system__views {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .aca-preview-system__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+}

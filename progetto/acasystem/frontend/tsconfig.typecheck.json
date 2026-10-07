@@ -1,0 +1,5 @@
+{
+  // Kept for the commands that still name it: the check is one, strict over all of src
+  // (tsconfig.strict.json). The non-strict JavaScript check of the legacy code is gone.
+  "extends": "./tsconfig.strict.json"
+}

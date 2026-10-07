@@ -1,0 +1,619 @@
+/*
+ * Utility widgets, their detail sheets and the battery and rooms pages (wave 2, B5).
+ * Layout only on top of the «Metallo» kit: colours come from the --aca-* tokens.
+ */
+@layer components {
+  /* ── Widget content: fills the launcher frame (WidgetHost draws the card) ──────── */
+  .utility-card {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    container-type: size;
+    font-family: var(--aca-font);
+    font-size: 1rem;
+    text-align: start;
+  }
+  .utility-card--row {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* The open button covers the content; readings sit above it, controls stay clickable. */
+  .utility-card__open {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--aca-radius-rounded);
+    background: transparent;
+    cursor: pointer;
+  }
+  .utility-card__open:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: -2px;
+  }
+  .utility-card > :not(.utility-card__open) {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .utility-card :is(button, a, input, select, [role='switch']):not(.utility-card__open) {
+    pointer-events: auto;
+  }
+
+  /* ── Building blocks ─────────────────────────────────────────────────────────────── */
+  .utility-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65em;
+    min-width: 0;
+  }
+  .utility-head__text {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 0.1em;
+    min-width: 0;
+  }
+  .utility-head__aside {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.4em;
+    margin-inline-start: auto;
+  }
+  .utility-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .utility-grow {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* Readings anchored to the bottom of a tall card, under the header (Android widget rhythm). */
+  .utility-bottom {
+    margin-top: auto;
+  }
+  .utility-stack {
+    display: grid;
+    align-content: start;
+    gap: 0.25em;
+    min-width: 0;
+  }
+  .utility-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3em 0.6em;
+    min-width: 0;
+  }
+  .utility-split {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75em;
+    min-width: 0;
+  }
+
+  /* Recessed disc holding the widget icon. */
+  .utility-well.aca-m--circle {
+    --aca-dim: 2.4em;
+    flex: none;
+  }
+  .utility-well--sm.aca-m--circle {
+    --aca-dim: 2em;
+  }
+
+  /* Values: tabular figures from Numeric, sizes from the type scale, light weight. */
+  .utility-value {
+    font-family: var(--aca-font);
+    font-size: var(--aca-step-3);
+    font-weight: var(--aca-weight-light);
+    line-height: 1.05;
+    color: var(--aca-ink-solid);
+  }
+  .utility-value--md {
+    font-size: var(--aca-step-2);
+  }
+  .utility-value--sm {
+    font-size: var(--aca-step-1);
+    font-weight: var(--aca-weight-regular);
+  }
+
+  /* Status chips: flat tinted pills, the text and the icon carry the meaning. */
+  .utility-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 0.4em;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .utility-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    max-width: 100%;
+    padding: 0.3em 0.7em;
+    border-radius: var(--aca-radius-pill);
+    background: color-mix(in oklab, var(--aca-ink-muted) 11%, transparent);
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step--1);
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .utility-chip--active {
+    background: color-mix(in oklab, var(--aca-orange) 20%, transparent);
+    color: var(--aca-orange-ink);
+  }
+  .utility-chip--info {
+    background: color-mix(in oklab, var(--aca-blue) 14%, transparent);
+    color: var(--aca-blue-ink);
+  }
+  .utility-chip--danger {
+    background: color-mix(in oklab, var(--aca-danger) 14%, transparent);
+    color: var(--aca-danger-ink);
+  }
+
+  /* Level meter (battery, consumables): recessed track with the orange fill. */
+  .utility-meter.aca-m--pill {
+    --aca-pad: 0.16em;
+    display: block;
+    width: 100%;
+  }
+  .utility-meter > .aca-m__outer > .aca-m__face > .aca-m__content {
+    display: block;
+    height: 0.42em;
+  }
+  .utility-meter__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: calc(var(--aca-ratio, 0) * 100%);
+    border-radius: 100em;
+    background-image: var(--aca-fill);
+  }
+  .utility-meter--low .utility-meter__fill {
+    background-image: none;
+    background-color: var(--aca-danger);
+  }
+
+  /* Controls of a card. */
+  .utility-actions {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .utility-actions--fill > * {
+    flex: 1 1 0;
+  }
+  /* Main command with its label, secondary commands as round icons beside it. */
+  .utility-actions--primary {
+    flex-wrap: nowrap;
+  }
+  .utility-actions--primary > :first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .utility-actions--fill > .aca-m > .aca-m__outer > .aca-m__face > .aca-m__content {
+    white-space: nowrap;
+  }
+
+  /* Messages: missing entity, unavailable device, failed or unconfirmed command. */
+  .utility-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45em;
+    min-width: 0;
+    color: var(--aca-ink-muted);
+    font-family: var(--aca-font);
+    font-size: var(--aca-step--1);
+    line-height: 1.35;
+  }
+  .utility-notice > .aca-icon {
+    margin-top: 0.05em;
+  }
+  .utility-notice--danger {
+    color: var(--aca-danger-ink);
+  }
+  .utility-empty {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 0.35em;
+    height: 100%;
+    min-width: 0;
+  }
+
+  /* ── Charts (price bars, cost history) ───────────────────────────────────────────── */
+  .utility-chart {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .utility-chart__bar {
+    fill: var(--aca-ink-muted);
+    opacity: 0.3;
+  }
+  .utility-chart__bar--current {
+    fill: var(--aca-orange);
+    opacity: 1;
+  }
+  .utility-chart__bar--selected {
+    fill: var(--aca-blue);
+    opacity: 1;
+  }
+  .utility-chart__bar--negative {
+    fill: var(--aca-danger);
+    opacity: 0.75;
+  }
+  .utility-chart__line {
+    fill: none;
+    stroke: var(--aca-orange-ink-icon);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+  .utility-chart__area {
+    fill: var(--aca-orange);
+    opacity: 0.14;
+  }
+  .utility-chart__grid {
+    stroke: var(--aca-ink-muted);
+    stroke-width: 1;
+    opacity: 0.22;
+    vector-effect: non-scaling-stroke;
+  }
+  .utility-chart__zero {
+    stroke: var(--aca-ink-muted);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    opacity: 0.5;
+    vector-effect: non-scaling-stroke;
+  }
+  .utility-chart__marker {
+    stroke: var(--aca-blue-ink-icon);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+  .utility-plot {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: 1fr auto;
+    gap: 0.35rem 0.5rem;
+    min-height: 0;
+  }
+  .utility-plot__y {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: end;
+  }
+  .utility-plot__area {
+    position: relative;
+    min-height: 0;
+  }
+  .utility-plot__x {
+    display: flex;
+    grid-column: 2;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .utility-plot--fixed .utility-plot__area {
+    height: 12rem;
+  }
+  .utility-plot__area:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 4px;
+    border-radius: 0.5rem;
+  }
+  .utility-spark {
+    flex: 1 1 auto;
+    min-height: 2.5em;
+  }
+
+  /* ── Detail sheets ─────────────────────────────────────────────────────────────── */
+  .utility-details {
+    display: grid;
+    gap: 1.25rem;
+    font-family: var(--aca-font);
+  }
+  .utility-section {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .utility-section + .utility-section {
+    padding-top: 1.25rem;
+    border-top: 1px solid color-mix(in oklab, var(--aca-ink-muted) 24%, transparent);
+  }
+  .utility-section__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+  }
+  .utility-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .utility-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 0.85rem 1rem;
+    margin: 0;
+  }
+  .utility-stat {
+    display: grid;
+    align-content: start;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .utility-stat > dt,
+  .utility-stat > dd {
+    margin: 0;
+  }
+  .utility-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .utility-list__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    min-height: 2.75rem;
+    padding: 0.55rem 0;
+  }
+  .utility-list__row + .utility-list__row {
+    border-top: 1px solid color-mix(in oklab, var(--aca-ink-muted) 18%, transparent);
+  }
+  .utility-list__main {
+    display: grid;
+    flex: 1 1 10rem;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+  .utility-list__end {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    margin-inline-start: auto;
+  }
+  .utility-list__wide {
+    flex: 1 1 100%;
+  }
+  .utility-menu {
+    display: grid;
+    gap: 0.35rem;
+    max-height: min(60dvh, 22rem);
+    overflow-y: auto;
+  }
+  .utility-menu__item {
+    display: block;
+  }
+  .utility-menu__item > .aca-m__outer > .aca-m__face > .aca-m__content {
+    justify-content: flex-start;
+  }
+  .utility-collapse {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--aca-ink-solid);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .utility-collapse:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+    border-radius: 0.4rem;
+  }
+  .utility-collapse__chevron {
+    transition: transform 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .utility-collapse[aria-expanded='false'] .utility-collapse__chevron {
+    transform: rotate(-90deg);
+  }
+  .utility-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .utility-stepper > .aca-slider {
+    flex: 1 1 auto;
+  }
+  .utility-figure {
+    margin: 0;
+  }
+  .utility-map.aca-m--card {
+    --aca-pad: 0.35em;
+    display: block;
+  }
+  .utility-map.aca-m--card > .aca-m__outer > .aca-m__face > .aca-m__content {
+    display: block;
+    overflow: hidden;
+    border-radius: var(--aca-radius-rounded);
+  }
+  .utility-map iframe {
+    display: block;
+    width: 100%;
+    height: 14rem;
+    border: 0;
+    filter: grayscale(0.5) contrast(1.05);
+  }
+  .utility-map__viewport {
+    max-height: 20rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .utility-map__viewport:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: -2px;
+  }
+  .utility-map__viewport img {
+    display: block;
+    max-width: none;
+    height: auto;
+  }
+  .utility-car-image {
+    display: block;
+    flex: none;
+    max-width: 45%;
+    max-height: 5em;
+    object-fit: contain;
+  }
+  .utility-thumb {
+    flex: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.6rem;
+    object-fit: cover;
+  }
+
+  /* ── Separator ─────────────────────────────────────────────────────────────────── */
+  .utility-spacer {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--aca-radius-card);
+  }
+  .utility-spacer[data-editing='true'] {
+    outline: 1px dashed color-mix(in oklab, var(--aca-ink-muted) 50%, transparent);
+    outline-offset: -2px;
+  }
+  .utility-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding-inline: 0.5rem;
+  }
+  .utility-divider__line {
+    flex: 1 1 auto;
+    height: 1px;
+    background: color-mix(in oklab, var(--aca-ink-muted) 38%, transparent);
+  }
+
+  /* ── Pages (battery, rooms) ──────────────────────────────────────────────────────── */
+  /* The launcher's page host scrolls; the page only lays out its content. */
+  .utility-page {
+    box-sizing: border-box;
+    display: grid;
+    align-content: start;
+    gap: 1.25rem;
+    width: 100%;
+    font-family: var(--aca-font);
+  }
+  .utility-page__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
+  .utility-page__title {
+    display: grid;
+    flex: 1 1 14rem;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+  .utility-page__tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .utility-page__tools > .aca-field {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+  .utility-page__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+    gap: 1rem;
+  }
+  .utility-panel.aca-m--card {
+    --aca-pad: 0.5em 1.25em;
+  }
+  .utility-panel.aca-m--card > .aca-m__outer > .aca-m__face > .aca-m__content {
+    display: block;
+  }
+  .utility-tile.aca-m--card {
+    --aca-pad: 1.1em;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .utility-tile.aca-m--card > .aca-m__outer > .aca-m__face > .aca-m__content {
+    display: grid;
+    gap: 0.65em;
+  }
+  .utility-group {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .utility-group__head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .utility-group__rule {
+    flex: 1 1 auto;
+    height: 1px;
+    background: color-mix(in oklab, var(--aca-ink-muted) 28%, transparent);
+  }
+
+  /* Density by the real size of the cell (phones have smaller cells than tablets). */
+  .utility-show-narrow {
+    display: none;
+  }
+  @container (max-width: 12.5rem) {
+    .utility-hide-narrow {
+      display: none !important;
+    }
+    .utility-show-narrow {
+      display: inline-flex;
+    }
+  }
+  @container (max-height: 6.25rem) {
+    .utility-hide-short {
+      display: none !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .utility-collapse__chevron {
+      transition: none;
+    }
+  }
+}

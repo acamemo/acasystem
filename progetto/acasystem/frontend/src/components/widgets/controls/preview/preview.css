@@ -1,0 +1,94 @@
+/* Frame of the development preview only (preview-controls.html). */
+@layer components {
+  html,
+  body {
+    margin: 0;
+    background: var(--aca-page);
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+  }
+  .ctl-preview {
+    --aca-ctl-cell: 8.5rem;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 4rem;
+  }
+  .ctl-preview__header {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+  }
+  .ctl-preview__lead {
+    max-width: 70ch;
+  }
+  .ctl-preview__section {
+    display: grid;
+    gap: 1.25rem;
+    margin-bottom: 3.5rem;
+  }
+  .ctl-preview__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--aca-ctl-cell));
+    grid-auto-rows: var(--aca-ctl-cell);
+    grid-auto-flow: dense;
+    gap: 2.25rem 1.5rem;
+    padding-bottom: 2rem;
+  }
+  .ctl-preview__cell {
+    position: relative;
+    margin: 0;
+  }
+  .ctl-preview__caption {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0.25rem;
+  }
+  /* Copy of the launcher frame (WidgetHost, launcher.css) for this preview only. */
+  .ctl-preview__widget.aca-m--card {
+    --aca-radius: min(var(--aca-radius-card), calc(var(--aca-ctl-cell) * 0.24));
+    --aca-pad: clamp(0.55rem, calc(var(--aca-ctl-cell) * 0.1), 1rem);
+  }
+  .ctl-preview__widget-content {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (hover: hover) {
+    .ctl-preview__widget:has([data-widget-open]:hover) {
+      box-shadow: var(--aca-m-socket-flat);
+    }
+    .ctl-preview__widget:has([data-widget-open]:hover) > .aca-m__outer {
+      box-shadow: var(--aca-shell-flat);
+    }
+    .ctl-preview__widget:has([data-widget-open]:hover) > .aca-m__outer > .aca-m__face {
+      clip-path: inset(
+        var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+      );
+      box-shadow: var(--aca-face-pressed-soft);
+    }
+  }
+  .ctl-preview__widget:has([data-widget-open]:active) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  .ctl-preview__widget:has([data-widget-open]:active) > .aca-m__outer {
+    box-shadow: var(--aca-shell-flat);
+  }
+  .ctl-preview__widget:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
+    clip-path: inset(
+      var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
+    );
+    box-shadow: var(--aca-face-pressed);
+    transform: scale(var(--aca-press-scale));
+  }
+  .ctl-preview__frame {
+    height: 36rem;
+    border-radius: var(--aca-radius-card);
+    box-shadow: var(--aca-socket-shadow-well);
+  }
+  @media (max-width: 639px) {
+    .ctl-preview {
+      --aca-ctl-cell: 6.5rem;
+      padding: 1.5rem 1rem 3rem;
+    }
+  }
+}

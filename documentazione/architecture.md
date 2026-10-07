@@ -8,11 +8,34 @@ Sono disponibili documentazione, Git locale e banco prova HA Container/Tunet 1.2
 
 La direzione è locale, con massimo uso possibile senza internet e obiettivo remoto online. Nel banco prova: browser → Tunet Express/asset locali su porta 3002; browser → HA WebSocket/OAuth su 8123; backend Tunet → HA per validare l'identità; SQLite in volume Docker per profili/snapshot. Il server interno HA è host.docker.internal; nessun sorgente HA è modificato. Versioni e dati in [infrastructure.md](infrastructure.md). Queste scelte esecutive autorizzate per il banco prova non definiscono ruoli ACA, disponibilità offline o architettura del prodotto distribuito.
 
+## Struttura dal 2026-10-06 (ADR-0007/0008, REP-20261006-001)
+
+Il codice è in `progetto/acasystem`, monorepo npm con due workspace, più `upstream-tunet/` per i file di Tunet tenuti solo come riferimento.
+
+- **`frontend/`:** React 19, Vite 8, TypeScript strict per cartella. Gli strati seguono una gerarchia verificata da ESLint, `components/primitives` → `components/system` → `components/widgets` → `templates` → `pages`, più:
+
+  | Cartella | Contenuto |
+  |---|---|
+  | `@types` | Dominio HA, configurazione, contratto del launcher. |
+  | `api` | Client di HA e del backend. |
+  | `hooks` | Compresi i contesti in `hooks/context` e il launcher in `hooks/launcher`. |
+  | `utils` | Funzioni pure, config, i18n, fixture. |
+  | `validators` | Controlli dei dati salvati e dei payload. |
+  | `themes/acasystem` | Kit Metallo. |
+  | `routes` | Instradamento. |
+
+  Alias `@/` → `frontend/src`.
+- **`backend/`:** Express in TypeScript a livelli (`config`, `controllers`, `helpers`, `middlewares`, `models`, `routes`, `services`, `validators`, `server.ts`), eseguito da Node con lo stripping dei tipi. Stessi endpoint e stesso database SQLite `tunet.db` del banco prova.
+- **Immagine Docker unica:** builder del frontend, poi runtime del backend che serve `frontend/dist`.
+- **Interfaccia:** launcher «OS» con pagine a celle stile Android, widget per dominio definiti da `WidgetDefinition` (registro in `components/widgets/registry.ts`), fogli di dettaglio e pagina Sistema. I widget ricevono i dati da `WidgetRuntime` (contesto). Il codice dell'interfaccia Tunet sostituita è stato cancellato il 2026-10-07 su richiesta dell'utente (ISSUE-029); resta consultabile nelle istantanee `usa-come-git/v009`–`v011`.
+
+La sezione seguente descrive l'organizzazione precedente, al 2026-10-05.
+
 ## Organizzazione frontend richiesta
 
 [ADR-0004](decisions/ADR-0004-principi-frontend.md) registra primitive condivise per componenti, tipografia e layout, interfacce composte principalmente con queste e componenti specifici per pagina. L'[audit Tunet](reports/REP-20261005-005-audit-struttura-tunet.md) fotografa la baseline. [ADR-0005](decisions/ADR-0005-typescript-italiano-icone.md) e [REP-20261005-006](reports/REP-20261005-006-migrazione-home-typescript.md) avviano la migrazione TS/italiano con mx-icons della prima schermata.
 
-Struttura implementata in src/primitives: components (Button, Container, Icon, Input, Choice, Switch, Modal, PanelPresence, Skeleton), typography (Heading, Text), layout (Flex). src/components/pages/home contiene HomeEmptyState e HomePageIcon; Header, PageNavigation, EditToolbar, SettingsMenuControl e SettingsDropdown sono TSX nei percorsi esistenti. App, DashboardLayout e DashboardGrid restano adattatori JS alla porzione migrata, senza conversione del backend o delle card. Aggiunta scheda, aggiunta/modifica pagina e selettore icone sono TSX; contratti in src/types/home.ts e management.ts; strict e test HOME in tsconfig.home.json, controllo obbligatorio prima della build. Il confine con il JS legacy non diventa completamente tipizzato.
+Struttura implementata in src/primitives: components (Button, Card, Container, Icon, Input, Choice, Switch, Modal, PanelPresence, Skeleton), typography (Heading, Text), layout (Flex). src/components/pages/home contiene HomeEmptyState e HomePageIcon; Header, PageNavigation, EditToolbar, SettingsMenuControl e SettingsDropdown sono TSX nei percorsi esistenti. App, DashboardLayout e DashboardGrid restano adattatori JS alla porzione migrata, senza conversione del backend o delle card. Aggiunta scheda, aggiunta/modifica pagina e selettore icone sono TSX; contratti in src/types/home.ts e management.ts; strict e test HOME in tsconfig.home.json, controllo obbligatorio prima della build. Il confine con il JS legacy non diventa completamente tipizzato.
 
 Le primitive sono indipendenti da HA; interfacce e adattatori mantengono le callback esistenti. Nessun cambiamento a flussi HA/API/persistenza. Materiale HOME in styles/neumorphism.css e themes.js, Button con varianti control/primary/secondary e Container raised/inset; i pulsanti Entità/Indicatori riusano queste primitive negli adattatori JS. REP-20261005-009 estende il materiale alle finestre di gestione. Modal riusa il focus manager esistente; la gestione delle entità HA rimane fuori dalle primitive. Il catalogo icone persistito conserva gli identificativi originari. Vite separa mx-icons in vendor-icons-mx per rispettare i budget esistenti senza alzarli. Il sistema del resto delle interfacce resta da realizzare. Cartelle nuove e parser lint sono scelte esecutive dell'incarico, non decisioni sulla futura infrastruttura di produzione.
 

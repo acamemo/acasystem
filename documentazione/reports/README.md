@@ -1,6 +1,6 @@
 # Registro degli incarichi e report
 
-Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](../project-status.md#incarichi-e-punto-di-ripresa).
+Aggiornato: 2026-10-06. Stato corrente degli incarichi in [project-status.md](../project-status.md#incarichi-e-punto-di-ripresa).
 
 | ID | Titolo | Funzione del report |
 |---|---|---|
@@ -17,6 +17,13 @@ Aggiornato: 2026-10-05. Stato corrente degli incarichi in [project-status.md](..
 | [REP-20261005-008](REP-20261005-008-home-neumorphism.md) | Ripresa del design HOME | Materiale Neumorphism nei due temi, controlli condivisi, regressioni e passaggio da Antigravity. |
 | [REP-20261005-009](REP-20261005-009-gestione-schede-pagine.md) | Gestione schede e pagine | Primo gruppo dopo HOME: finestre TS/italiano, primitive Input/Choice/Switch/Modal, icone compatibili e verifiche. |
 | [REP-20261005-010](REP-20261005-010-pannelli-skeleton.md) | Pannelli e skeleton | Transizioni con uscita, movimento ridotto e caricamenti dinamici. |
+| [REP-20261005-011](REP-20261005-011-materiale-pressione.md) | Materiale a pressione (UI-003) | Socket, guscio e faccia su barra superiore, card di stato ed emblema; primitiva Card e test di contratto. |
+| [REP-20261005-012](REP-20261005-012-sistema-metallo.md) | Sistema «Metallo» a strati | Token, materiale, primitive del kit e pagina di prova; fase 3 confluita in REP-20261006-001. |
+| [REP-20261006-001](REP-20261006-001-acasystem-os.md) | Rifacimento del frontend come «OS» Metallo | Struttura frontend/backend, TypeScript, kit bilanciato, launcher a widget, subagenti e revisione finale. |
+| [REP-20261006-002](REP-20261006-002-ripresa-revisione.md) | Ripresa della revisione OS | 35 rilievi corretti o registrati, verifiche avversarie e banco `aca-system:0.1` aggiornato su autorizzazione; sessione HA reale e documentazione operativa verificate alla ripresa del 2026-10-07. |
+| [REP-20261007-001](REP-20261007-001-launcher-polish.md) | Polish e layout del launcher | «Principale» come schermata di base con celle «+», controllo del kit Metallo sulle schermate reali, polish e layout delle superfici del launcher. |
+| [REP-20261007-002](REP-20261007-002-animazioni-principale.md) | Animazioni della Principale | Revisione emil-design-eng: tempi del kit (pressione 120 ms, rilascio 220 ms), hover senza incasso, wiggle ridotto, tastiera senza animazione. |
+| [REP-20261007-002](REP-20261007-002-ha-dietro-acasystem.md) | Home Assistant dietro Acasystem | Proxy HTTP/WebSocket nel backend, accesso proprietario con l'API di login di HA, nessun indirizzo chiesto nel browser (ADR-0009). |
 
 ## Regole
 

@@ -1,0 +1,304 @@
+/*
+ * System sheets (add widget, widget and page settings) and their shared parts.
+ * Layout only on top of the «Metallo» kit: colours and materials come from --aca-* tokens.
+ */
+@layer components {
+  /* Body of a sheet: groups of settings separated by space and a hairline. */
+  .aca-settings,
+  .aca-add-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+  }
+  .aca-sheet-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    min-width: 0;
+  }
+  .aca-sheet-section + .aca-sheet-section {
+    padding-top: 1.25rem;
+    border-top: 1px solid color-mix(in oklch, var(--aca-ink-solid) 14%, transparent);
+  }
+  .aca-sheet-section__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  /* Label above a control. */
+  .aca-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .aca-form-row__label {
+    color: var(--aca-ink-solid);
+  }
+  /* A segmented track keeps the width of its options instead of stretching. */
+  .aca-form-row > .aca-segmented {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+
+  /* Setting with a switch: the text is the label, the switch sits at the end. */
+  .aca-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.75rem;
+  }
+  .aca-toggle-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+  .aca-toggle-row__label {
+    cursor: pointer;
+    color: var(--aca-ink-solid);
+  }
+
+  /* Wrapping choices (more than three options) and removable chips. */
+  .aca-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    padding: 0.25rem;
+  }
+  .aca-chip__text {
+    color: var(--aca-ink-solid);
+  }
+
+  /* Messages and the second step of destructive actions. */
+  .aca-notice {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-radius: var(--aca-radius-rounded);
+    background-color: color-mix(in oklch, var(--aca-blue) 7%, transparent);
+  }
+  .aca-notice--success {
+    background-color: color-mix(in oklch, var(--aca-ink-solid) 6%, transparent);
+  }
+  .aca-notice--danger {
+    background-color: color-mix(in oklch, var(--aca-danger) 8%, transparent);
+  }
+  .aca-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: var(--aca-radius-rounded);
+    background-color: color-mix(in oklch, var(--aca-danger) 7%, transparent);
+  }
+  .aca-confirm__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  /* Lists of choices: entities, areas. */
+  .aca-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    min-width: 0;
+  }
+  .aca-pick__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .aca-pick__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+  }
+  .aca-pick__empty {
+    padding: 0.5rem 0.25rem;
+  }
+  .aca-m.aca-pick__more {
+    align-self: center;
+  }
+  .aca-m.aca-pick-row {
+    --aca-pad: 0.55em 1.1em;
+    display: block;
+    width: 100%;
+    text-align: start;
+  }
+  .aca-m.aca-pick-row > .aca-m__outer > .aca-m__face > .aca-pick-row__content {
+    justify-content: space-between;
+    gap: 0.75em;
+    min-height: 2.4em;
+  }
+  .aca-pick-row__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.1em;
+    min-width: 0;
+    text-align: start;
+  }
+  .aca-pick-row__title,
+  .aca-pick-row__subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .aca-pick-row__tags {
+    display: flex;
+    flex: none;
+    gap: 0.375rem;
+  }
+
+  /* Icon selector. */
+  .aca-icon-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .aca-icon-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
+    justify-items: center;
+    gap: 0.625rem;
+    padding: 0.25rem;
+  }
+  .aca-icon-picker__current {
+    display: inline-flex;
+    flex: none;
+  }
+
+  /* Visibility rules, and lists of entries edited in place (room scripts). */
+  .aca-condition,
+  .aca-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .aca-condition__rule,
+  .aca-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+  .aca-condition__rule + .aca-condition__rule,
+  .aca-entry + .aca-entry {
+    padding-top: 1rem;
+    border-top: 1px solid color-mix(in oklch, var(--aca-ink-solid) 14%, transparent);
+  }
+  .aca-condition__actions {
+    display: flex;
+    justify-content: flex-start;
+  }
+  .aca-condition__summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--aca-radius-rounded);
+    background-color: color-mix(in oklch, var(--aca-ink-solid) 5%, transparent);
+  }
+  .aca-inline-field {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .aca-inline-field__input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Footprint of a widget on the grid. */
+  .aca-size-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .aca-size-preview__grid {
+    --aca-preview-cell: 1.5rem;
+    --aca-preview-gap: 0.25rem;
+    position: relative;
+    display: grid;
+    flex: none;
+    grid-template-columns: repeat(var(--aca-preview-cols), var(--aca-preview-cell));
+    grid-template-rows: repeat(var(--aca-preview-rows), var(--aca-preview-cell));
+    gap: var(--aca-preview-gap);
+  }
+  .aca-size-preview__cell {
+    border-radius: 0.375rem;
+    background-image: var(--aca-face-well);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--aca-ink-solid) 12%, transparent);
+  }
+  .aca-size-preview__widget {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(
+      var(--aca-preview-w) * var(--aca-preview-cell) + (var(--aca-preview-w) - 1) *
+        var(--aca-preview-gap)
+    );
+    height: calc(
+      var(--aca-preview-h) * var(--aca-preview-cell) + (var(--aca-preview-h) - 1) *
+        var(--aca-preview-gap)
+    );
+    border-radius: 0.5rem;
+    background-image: var(--aca-face-orange);
+    box-shadow: 0 0.125rem 0.25rem color-mix(in oklch, var(--aca-ink-solid) 25%, transparent);
+  }
+
+  /* Add-widget sheet: grid of types, then the details of the chosen type. */
+  .aca-type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 0.875rem;
+    padding: 0.25rem;
+  }
+  .aca-m.aca-type-tile {
+    --aca-pad: 1em 0.75em;
+    --aca-radius: var(--aca-radius-rounded);
+    width: 100%;
+  }
+  .aca-m.aca-type-tile > .aca-m__outer > .aca-m__face > .aca-type-tile__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    min-height: 4.5em;
+    text-align: center;
+  }
+  .aca-add-details__head {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+  }
+  .aca-add-details__glyph {
+    display: inline-flex;
+    flex: none;
+    font-size: 1.25rem;
+    color: var(--aca-ink-solid);
+  }
+  .aca-add-details__title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .aca-add-details__title [tabindex='-1']:focus {
+    outline: none;
+  }
+  .aca-add-details__size {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}

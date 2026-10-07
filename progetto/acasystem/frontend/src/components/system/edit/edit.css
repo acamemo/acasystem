@@ -1,0 +1,277 @@
+/* Edit chrome of the launcher: corner knobs, menus, the edit bar and the move controls. */
+@layer components {
+  /*
+   * Pills of the frame (edit bar, move controls, removal confirmation): the height of the frame
+   * controls (--aca-control-height, 44 px) at every size, like the round buttons. The status bar
+   * repeats the rule for «Fine» (statusBar.css).
+   */
+  .aca-frame-pill.aca-m--pill {
+    --aca-pad: calc((var(--aca-control-height) - 1.25em) / 2) 1.25em;
+  }
+  .aca-frame-pill > .aca-m__outer > .aca-m__face > .aca-m__content {
+    min-height: 1.25em;
+  }
+
+  /*
+   * «×» to remove (L-06, K06, B-11): a small knob centred on the top-left corner, half outside
+   * the widget, so it covers only the empty rounded corner; its 44 px target comes from ::before.
+   * The knob sticks out by half of --aca-dim (0.75rem): the launcher page keeps
+   * --aca-launcher-edge-room (1.5rem) above the grid and the gutter at the sides (launcher.css).
+   * Like the resize knob it sits on the edit layer of the grid, above the widget's own edit
+   * handle (--aca-layer-handle).
+   */
+  .aca-widget-edit__remove.aca-m {
+    --aca-dim: var(--aca-space-5);
+    --aca-m-socket: var(--aca-socket-shadow-flat);
+    position: absolute;
+    z-index: var(--aca-layer-edit);
+    top: calc(var(--aca-dim) / -2);
+    left: calc(var(--aca-dim) / -2);
+  }
+  .aca-widget-edit__remove::before {
+    content: '';
+    position: absolute;
+    inset: calc((var(--aca-dim) - var(--aca-control-height)) / 2);
+    border-radius: 50%;
+  }
+  .aca-widget-edit__remove .aca-icon {
+    width: 0.875em;
+    height: 0.875em;
+  }
+
+  .aca-widget-confirm {
+    display: grid;
+    gap: var(--aca-space-3);
+    max-width: 18rem;
+    padding: var(--aca-space-2);
+    text-align: start;
+  }
+  .aca-widget-confirm__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--aca-space-3);
+  }
+
+  .aca-widget-menu {
+    display: grid;
+    gap: var(--aca-space-2);
+    min-width: 12rem;
+  }
+  .aca-widget-menu__item {
+    display: block;
+  }
+  .aca-widget-menu__item-content {
+    justify-content: flex-start;
+    gap: 0.6em;
+  }
+
+  /*
+   * Resize handle: the same small knob as «×», inside the bottom-right corner (centred on the
+   * corner it would meet the «×» of the next widget across the gap), 44 px target.
+   */
+  .aca-resize-handle {
+    position: absolute;
+    z-index: var(--aca-layer-edit);
+    right: calc(-1 * var(--aca-space-2));
+    bottom: calc(-1 * var(--aca-space-2));
+    display: grid;
+    place-items: center;
+    width: var(--aca-control-height);
+    height: var(--aca-control-height);
+    cursor: nwse-resize;
+    touch-action: none;
+  }
+  .aca-resize-handle__grip {
+    --aca-dim: var(--aca-space-5);
+    --aca-m-socket: var(--aca-socket-shadow-flat);
+  }
+  .aca-resize-handle__lines {
+    position: relative;
+  }
+  .aca-resize-handle__lines::before {
+    content: '';
+    width: 0.75em;
+    height: 0.75em;
+    background: linear-gradient(
+      135deg,
+      transparent 0 42%,
+      var(--aca-ink-muted) 42% 50%,
+      transparent 50% 62%,
+      var(--aca-ink-muted) 62% 70%,
+      transparent 70%
+    );
+  }
+
+  /*
+   * Edit bar (L-07, B-09, K08, L-20, L-21): two groups at the two ends of the footer band, the
+   * page indicator between them where the band is one row. Every control is 44 px high; the
+   * text of the buttons and of the cover setting is on the same step (md).
+   */
+  .aca-edit-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--aca-space-4);
+    min-width: 0;
+    /* The bar spans the band across the indicator: only its groups take the pointer. */
+    pointer-events: none;
+  }
+  .aca-edit-toolbar__group {
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-2);
+    min-width: 0;
+    pointer-events: auto;
+  }
+  .aca-edit-toolbar__cover {
+    flex: none;
+    gap: var(--aca-space-3);
+  }
+  .aca-edit-toolbar__button {
+    flex: none;
+  }
+  .aca-edit-toolbar__button-content {
+    gap: var(--aca-space-2);
+  }
+  .aca-edit-toolbar__text {
+    white-space: nowrap;
+  }
+  /* Short visible name of the cover setting, shown by the «short» density only. */
+  .aca-edit-toolbar__short {
+    display: none;
+    white-space: nowrap;
+  }
+  .aca-edit-toolbar__cover-icon {
+    color: var(--aca-ink-muted);
+  }
+  /* The compact switch scaled to the 44 px of the other controls (2.25em high). */
+  .aca-edit-toolbar__toggle.aca-m {
+    flex: none;
+    font-size: calc(var(--aca-control-height) / 2.25);
+  }
+  /* Why the page offers fewer actions (cover, special pages): up to two lines in the band. */
+  .aca-edit-toolbar__note {
+    --aca-note-min: 5rem;
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    padding-inline: var(--aca-space-2);
+  }
+
+  /*
+   * Densities (V-01, V-06), chosen by the footer band on the room the page indicator leaves
+   * (data-band-density, footerBand.ts):
+   * - text: buttons with their name, the cover setting with icon and «Mostra copertina»;
+   * - short: round icon buttons, the cover setting with its short visible name «Copertina»,
+   *   so a note next to it never reads as its label;
+   * - icons: round icon buttons, the cover setting with its icon.
+   * Icon buttons are round, 44 px, with the name in aria-label and title.
+   */
+  :is([data-band-density='short'], [data-band-density='icons']) .aca-edit-toolbar__text {
+    display: none;
+  }
+  :is([data-band-density='short'], [data-band-density='icons'])
+    .aca-edit-toolbar__button.aca-m--pill {
+    --aca-pad: 0;
+  }
+  :is([data-band-density='short'], [data-band-density='icons'])
+    .aca-edit-toolbar__button
+    > .aca-m__outer
+    > .aca-m__face {
+    width: var(--aca-control-height);
+    height: var(--aca-control-height);
+  }
+  :is([data-band-density='short'], [data-band-density='icons'])
+    .aca-edit-toolbar__button
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content {
+    height: 100%;
+  }
+  [data-band-density='short'] .aca-edit-toolbar__cover {
+    gap: var(--aca-space-2);
+  }
+  [data-band-density='short'] .aca-edit-toolbar__cover-icon {
+    display: none;
+  }
+  [data-band-density='short'] .aca-edit-toolbar__short {
+    display: inline;
+  }
+
+  /*
+   * While the band measures the bar (data-band-measure, before paint): every group at its
+   * natural width, the note at its readable minimum (two lines are allowed).
+   */
+  [data-band-measure] .aca-edit-toolbar__group {
+    flex: none;
+    width: max-content;
+  }
+  [data-band-measure] .aca-edit-toolbar__note {
+    max-width: var(--aca-note-min);
+  }
+
+  /*
+   * Move and resize controls (single taps, the alternative to dragging): one row where the band
+   * is one row (from 40rem); on narrower screens the name and «Fatto» on the first row, the
+   * arrows and the page pair on the second.
+   */
+  .aca-widget-position {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--aca-space-4);
+    min-width: 0;
+  }
+  .aca-widget-position__actions {
+    display: contents;
+  }
+  .aca-widget-position__name {
+    min-width: 0;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .aca-widget-position__set {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--aca-space-1);
+  }
+  .aca-widget-position__done {
+    flex: none;
+  }
+
+  @media (max-width: 39.99rem) {
+    .aca-widget-position {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: var(--aca-control-height) var(--aca-control-height);
+      row-gap: var(--aca-space-3);
+      column-gap: var(--aca-space-3);
+    }
+    .aca-widget-position__name {
+      grid-column: 1;
+      grid-row: 1;
+      max-width: none;
+    }
+    .aca-widget-position__done {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    .aca-widget-position__set:first-child {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .aca-widget-position__set + .aca-widget-position__set {
+      grid-column: 2;
+      grid-row: 2;
+      justify-self: end;
+    }
+  }
+}

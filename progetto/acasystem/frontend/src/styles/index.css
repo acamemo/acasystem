@@ -1,0 +1,6 @@
+/*
+ * Tailwind (preflight and the few utilities the app uses, such as sr-only). Colours, type and
+ * material come from the Acasystem theme (src/themes/acasystem, ADR-0007): the legacy theme
+ * variables, background modes and Tunet animations are no longer loaded.
+ */
+@import 'tailwindcss';

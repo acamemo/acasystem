@@ -76,6 +76,22 @@
       "sha256": "ED2211C5FEFB80790E06767A5D5204A23301B059ACCF0835448797287A6227F1",
       "source": "allegato Testo incollato.txt",
       "attachmentId": "6f856bb7-5772-433d-947c-20d4046d43f7"
+    },
+    {
+      "id": "UI-008",
+      "file": "originali/UI-008-calendario-strappo.txt",
+      "bytes": 14901,
+      "sha256": "6287F5A148D526586FB03EA03DBEF8C06A7CCDD8F8C2006D1D80EA796F332DF5",
+      "source": "messaggio inline dell’utente del 2026-10-05/06, trascritto senza adattamenti",
+      "note": "Trascrizione del testo incollato in chat: identità byte per byte con un file sorgente non dimostrabile; Pug, Sass/SCSS e JavaScript nello stesso file, come ricevuti."
+    },
+    {
+      "id": "UI-009",
+      "file": "originali/UI-009-indicatore-pallina.txt",
+      "bytes": 5672,
+      "sha256": "AC5150A847786CCE7677571701231FDCFA2B7DD0C9C603F5A9C7AC5E1D836212",
+      "source": "messaggio inline dell’utente del 2026-10-05/06, trascritto senza adattamenti",
+      "note": "Trascrizione del testo incollato in chat: identità byte per byte con un file sorgente non dimostrabile; Pug, Sass/SCSS e JavaScript nello stesso file, come ricevuti."
     }
   ]
 }

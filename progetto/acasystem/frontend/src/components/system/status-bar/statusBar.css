@@ -1,0 +1,242 @@
+/* Status bar of the launcher (ADR-0007): on the page background, one line on tablets. */
+@layer components {
+  /*
+   * Fixed height (REP-20261007-001, L-14/K09): one row of frame controls (44 px) plus the
+   * padding, the same with «Modifica» and with «Fine»; side margin --aca-gutter like the pages.
+   */
+  .aca-status-bar {
+    display: grid;
+    flex: none;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: var(--aca-control-height);
+    grid-template-areas: 'start chips actions';
+    align-items: center;
+    gap: var(--aca-space-1) var(--aca-space-4);
+    padding: var(--aca-space-2) var(--aca-gutter);
+    box-sizing: border-box;
+    font-family: var(--aca-font);
+  }
+
+  .aca-status-bar__start {
+    grid-area: start;
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-3);
+    min-width: 0;
+  }
+
+  .aca-status-bar__time {
+    font-weight: var(--aca-weight-medium);
+    white-space: nowrap;
+  }
+  /* On the cover: the clock keeps its place, so the chips do not jump at every swipe. */
+  .aca-status-bar__time--reserved {
+    visibility: hidden;
+  }
+
+  .aca-status-bar__chips {
+    grid-area: chips;
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-2);
+    min-width: 0;
+    /* Room for the soft shadows of the chips inside the scroll area, without moving them:
+       the first chip starts on the column edge (on phones, under the clock). */
+    margin: calc(-1 * var(--aca-space-2)) calc(-1 * var(--aca-space-3));
+    padding: var(--aca-space-3);
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .aca-status-bar__chips::-webkit-scrollbar {
+    display: none;
+  }
+  /* Chips out of view (K25): the side that hides them fades, so the row reads as scrollable. */
+  .aca-status-bar__chips[data-overflow='end'] {
+    mask-image: linear-gradient(
+      to right,
+      var(--aca-ink-solid) calc(100% - var(--aca-space-7)),
+      transparent calc(100% - var(--aca-space-3))
+    );
+  }
+  .aca-status-bar__chips[data-overflow='start'] {
+    mask-image: linear-gradient(
+      to left,
+      var(--aca-ink-solid) calc(100% - var(--aca-space-7)),
+      transparent calc(100% - var(--aca-space-3))
+    );
+  }
+  .aca-status-bar__chips[data-overflow='start end'] {
+    mask-image: linear-gradient(
+      to right,
+      transparent var(--aca-space-3),
+      var(--aca-ink-solid) var(--aca-space-7),
+      var(--aca-ink-solid) calc(100% - var(--aca-space-7)),
+      transparent calc(100% - var(--aca-space-3))
+    );
+  }
+
+  .aca-status-bar__chip {
+    flex: none;
+  }
+
+  .aca-status-bar__actions {
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-3);
+  }
+
+  .aca-status-bar__system {
+    /* Updates are information, not an error (K20): blue dot. */
+    --aca-badge: var(--aca-blue);
+    position: relative;
+    display: inline-flex;
+  }
+  /* On the edge of the round button (45°), not beyond the corner of its box. */
+  .aca-status-bar__system .aca-badge {
+    top: 0.2em;
+    right: 0.2em;
+  }
+
+  /* «Fine» at the 44 px of the round buttons (same rule as .aca-frame-pill in edit.css). */
+  .aca-status-bar__done-button.aca-m--pill {
+    --aca-pad: calc((var(--aca-control-height) - 1.25em) / 2) 1.25em;
+  }
+  .aca-status-bar__done {
+    gap: var(--aca-space-2);
+    min-height: 1.25em;
+  }
+
+  /* Connection: LED + icon + text. */
+  .aca-connection {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .aca-connection__led {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--aca-ink-muted);
+    box-shadow: inset 0 0.05rem 0.1rem rgb(5 5 5 / 30%);
+  }
+  .aca-connection__icon {
+    color: var(--aca-ink-muted);
+  }
+  .aca-connection--connected .aca-connection__led {
+    background: var(--aca-blue);
+    box-shadow: 0 0 0.35rem var(--aca-blue);
+  }
+  .aca-connection--connected .aca-connection__icon {
+    color: var(--aca-blue-ink-icon);
+  }
+  .aca-connection--connecting .aca-connection__led,
+  .aca-connection--reconnecting .aca-connection__led {
+    animation: aca-pulse 900ms ease-in-out infinite alternate;
+  }
+  .aca-connection--error .aca-connection__led {
+    background: var(--aca-danger);
+    box-shadow: 0 0 0.35rem var(--aca-danger);
+  }
+  .aca-connection--error .aca-connection__icon {
+    color: var(--aca-danger-ink-icon);
+  }
+
+  /* Chips: compact pills of the kit, with the flat lift (they sit in a scrolling row). */
+  .aca-m.aca-chip {
+    --aca-pad: 0.45em 0.95em;
+    --aca-m-socket: var(--aca-socket-shadow-flat);
+    flex: none;
+  }
+  .aca-chip--static {
+    display: inline-block;
+  }
+  .aca-chip__content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.45em;
+    white-space: nowrap;
+  }
+  .aca-chip__icon {
+    color: var(--aca-ink-muted);
+  }
+  .aca-chip__icon--active {
+    color: var(--aca-orange-ink-icon);
+  }
+  .aca-chip__icon--danger {
+    color: var(--aca-danger-ink-icon);
+  }
+  .aca-chip__label,
+  .aca-chip__detail {
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .aca-chip__label {
+    font-size: var(--aca-step--1);
+    font-weight: var(--aca-weight-medium);
+  }
+  .aca-chip__count {
+    min-width: 1.35em;
+    padding: 0.05em 0.4em;
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-orange);
+    color: var(--aca-on-orange);
+    font-size: var(--aca-step--1);
+    text-align: center;
+  }
+
+  /* Notice under the bar while Home Assistant is unreachable. */
+  .aca-connection-notice {
+    padding: 0 var(--aca-gutter) var(--aca-space-2);
+  }
+  .aca-connection-notice > .aca-m.aca-m--card {
+    --aca-pad: 0.75em 1em;
+    --aca-radius: var(--aca-radius-rounded);
+  }
+  .aca-connection-notice__content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+  }
+  .aca-connection-notice__icon {
+    color: var(--aca-danger-ink-icon);
+  }
+  .aca-connection-notice__text {
+    display: grid;
+    flex: 1 1 16rem;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  /* Narrow screens: chips on their own line under the clock and the buttons. */
+  @media (max-width: 639px) {
+    .aca-status-bar {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: var(--aca-control-height) auto;
+      grid-template-areas:
+        'start actions'
+        'chips chips';
+      gap: var(--aca-space-1) var(--aca-space-3);
+    }
+    .aca-status-bar__chips:empty {
+      display: none;
+    }
+    .aca-chip__detail {
+      max-width: 8rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aca-connection__led {
+      animation: none !important;
+    }
+  }
+}

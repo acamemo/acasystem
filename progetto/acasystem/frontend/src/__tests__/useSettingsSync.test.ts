@@ -1,0 +1,591 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useSettingsSync } from '../hooks/useSettingsSync';
+
+vi.mock('@/api/settingsApi', () => ({
+  fetchCurrentSettings: vi.fn(),
+  fetchSettingsHistory: vi.fn(),
+  deleteSettingsHistory: vi.fn(),
+  deleteSettingsDevice: vi.fn(),
+  updateSettingsDeviceLabel: vi.fn(),
+  saveCurrentSettings: vi.fn(),
+  fetchCurrentDevices: vi.fn(),
+  publishCurrentSettings: vi.fn(),
+}));
+
+vi.mock('@/api/snapshot', () => ({
+  collectSnapshot: vi.fn(),
+  applySnapshot: vi.fn(),
+  isValidSnapshot: vi.fn(),
+}));
+
+import {
+  fetchCurrentSettings,
+  fetchSettingsHistory,
+  deleteSettingsHistory,
+  deleteSettingsDevice,
+  updateSettingsDeviceLabel,
+  saveCurrentSettings,
+  fetchCurrentDevices,
+  publishCurrentSettings,
+} from '@/api/settingsApi';
+import { collectSnapshot, applySnapshot, isValidSnapshot } from '@/api/snapshot';
+
+describe('useSettingsSync', () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+    localStorage.clear();
+    vi.mocked(fetchCurrentSettings).mockResolvedValue(null);
+    vi.mocked(fetchSettingsHistory).mockResolvedValue([]);
+    vi.mocked(deleteSettingsHistory).mockResolvedValue({ success: true, deleted: 3 });
+    vi.mocked(deleteSettingsDevice).mockResolvedValue({
+      success: true,
+      deleted_current: 1,
+      deleted_history: 2,
+    });
+    vi.mocked(updateSettingsDeviceLabel).mockResolvedValue({
+      success: true,
+      device_label: 'Living room tablet',
+    });
+    vi.mocked(fetchCurrentDevices).mockResolvedValue([]);
+    vi.mocked(saveCurrentSettings).mockResolvedValue({
+      revision: 1,
+      updated_at: '2026-02-22T12:00:00.000Z',
+    });
+    vi.mocked(publishCurrentSettings).mockResolvedValue({ success: true, affected: 1 });
+    vi.mocked(collectSnapshot, { partial: true, deep: true }).mockReturnValue({
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: [] } },
+      appearance: {},
+    });
+    vi.mocked(isValidSnapshot).mockReturnValue(true);
+  });
+
+  it('loads current settings metadata on init', async () => {
+    vi.mocked(fetchCurrentSettings).mockResolvedValue({
+      revision: 4,
+      updated_at: '2026-02-22T12:00:00.000Z',
+      data: { version: 1, layout: {}, appearance: {} },
+    });
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await waitFor(() => {
+      expect(fetchCurrentSettings).toHaveBeenCalledWith('user-1', expect.any(String));
+      expect(fetchSettingsHistory).toHaveBeenCalledWith('user-1', expect.any(String), 30);
+      expect(result.current.status).toBe('synced');
+      expect(result.current.currentRevision).toBe(4);
+    });
+  });
+
+  it('skips bootstrap and polling when autoBootstrap is disabled', async () => {
+    vi.useFakeTimers();
+
+    renderHook(() =>
+      useSettingsSync({
+        haUserId: 'user-1',
+        contextSettersRef: { current: {} },
+        autoBootstrap: false,
+      })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(12000);
+    });
+
+    expect(fetchCurrentSettings).not.toHaveBeenCalled();
+    expect(fetchSettingsHistory).not.toHaveBeenCalled();
+    expect(fetchCurrentDevices).not.toHaveBeenCalled();
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+  });
+
+  it('loads a specific revision from server when provided', async () => {
+    vi.mocked(fetchCurrentSettings)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        revision: 2,
+        updated_at: '2026-02-22T12:01:00.000Z',
+        data: { version: 1, layout: {}, appearance: {} },
+      });
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      await result.current.loadCurrentFromServer(2);
+    });
+
+    expect(
+      vi
+        .mocked(fetchCurrentSettings)
+        .mock.calls.some(
+          (call: unknown[]) => call[0] === 'user-1' && typeof call[1] === 'string' && call[2] === 2
+        )
+    ).toBe(true);
+  });
+
+  it('applies newer server revision automatically on sync tick', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchCurrentSettings)
+      .mockResolvedValueOnce({
+        revision: 1,
+        updated_at: '2026-02-22T12:00:00.000Z',
+        data: {
+          version: 1,
+          layout: { pagesConfig: { header: [], pages: ['home'], home: [] } },
+          appearance: {},
+        },
+      })
+      .mockResolvedValueOnce({
+        revision: 2,
+        updated_at: '2026-02-22T12:05:00.000Z',
+        data: {
+          version: 1,
+          layout: { pagesConfig: { header: ['x'], pages: ['home'], home: [] } },
+          appearance: {},
+        },
+      });
+
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4100);
+    });
+
+    expect(applySnapshot).toHaveBeenCalledWith(
+      {
+        version: 1,
+        layout: { pagesConfig: { header: ['x'], pages: ['home'], home: [] } },
+        appearance: {},
+      },
+      {}
+    );
+  });
+
+  it('applies published server config when device had no prior revision', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchCurrentSettings)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        revision: 1,
+        updated_at: '2026-02-22T12:10:00.000Z',
+        data: {
+          version: 1,
+          layout: { pagesConfig: { header: ['published'], pages: ['home'], home: [] } },
+          appearance: {},
+        },
+      });
+
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4100);
+    });
+
+    expect(applySnapshot).toHaveBeenCalledWith(
+      {
+        version: 1,
+        layout: { pagesConfig: { header: ['published'], pages: ['home'], home: [] } },
+        appearance: {},
+      },
+      {}
+    );
+  });
+
+  it('registers device on init when no server row exists', async () => {
+    vi.mocked(fetchCurrentSettings).mockResolvedValue(null);
+
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalled();
+    });
+  });
+
+  it('does not register device when reading current settings fails', async () => {
+    vi.mocked(fetchCurrentSettings).mockRejectedValue(new Error('network down'));
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('error');
+    });
+
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+  });
+
+  it('suspends background polling after a 503 current-settings failure', async () => {
+    vi.useFakeTimers();
+    const unavailableError = Object.assign(new Error('Service unavailable'), { status: 503 });
+    vi.mocked(fetchCurrentSettings).mockRejectedValue(unavailableError);
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.backgroundSyncSuspended).toBe(true);
+
+    const callCountAfterBootstrap = vi.mocked(fetchCurrentSettings).mock.calls.length;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(12000);
+    });
+
+    expect(vi.mocked(fetchCurrentSettings).mock.calls.length).toBe(callCountAfterBootstrap);
+    expect(fetchCurrentDevices).not.toHaveBeenCalled();
+    expect(fetchSettingsHistory).not.toHaveBeenCalled();
+  });
+
+  it('still allows manual sync after background polling is suspended', async () => {
+    const unavailableError = Object.assign(new Error('Service unavailable'), { status: 503 });
+    vi.mocked(fetchCurrentSettings).mockRejectedValue(unavailableError);
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await waitFor(() => {
+      expect(result.current.backgroundSyncSuspended).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalled();
+    });
+  });
+
+  it('syncNow pushes snapshot to server', async () => {
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalled();
+      expect(result.current.status).toBe('synced');
+      expect(result.current.currentRevision).toBe(1);
+    });
+  });
+
+  it('creates checkpoint on edit done event', async () => {
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('tunet:edit-done'));
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalled();
+      expect(result.current.status).toBe('synced');
+    });
+  });
+
+  it('handles revision conflict response', async () => {
+    vi.mocked(collectSnapshot, { partial: true, deep: true }).mockReturnValue({
+      version: 1,
+      layout: {},
+      appearance: {},
+    });
+
+    vi.mocked(fetchCurrentSettings)
+      .mockResolvedValueOnce({
+        revision: 1,
+        updated_at: '2026-02-22T12:00:00.000Z',
+        data: { version: 1, layout: {}, appearance: {} },
+      })
+      .mockResolvedValueOnce({
+        revision: 9,
+        updated_at: '2026-02-22T12:05:00.000Z',
+        data: {
+          version: 1,
+          layout: { pagesConfig: { header: ['server'], pages: ['home'], home: [] } },
+          appearance: {},
+        },
+      });
+
+    const conflictError = Object.assign(new Error('Revision conflict'), {
+      status: 409,
+      body: { revision: 9 },
+    });
+    vi.mocked(saveCurrentSettings).mockRejectedValueOnce(conflictError);
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('synced');
+      expect(result.current.currentRevision).toBe(1);
+    });
+
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalled();
+      expect(result.current.currentRevision).toBe(9);
+      expect(result.current.status).toBe('synced');
+    });
+
+    expect(applySnapshot).toHaveBeenCalledWith(
+      {
+        version: 1,
+        layout: { pagesConfig: { header: ['server'], pages: ['home'], home: [] } },
+        appearance: {},
+      },
+      {}
+    );
+  });
+
+  it('retries revision conflicts when the local snapshot has unsynced changes', async () => {
+    const baselineSnapshot = { version: 1, layout: {}, appearance: {} };
+    const localSnapshot = {
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['lock_card_1'] } },
+      appearance: {},
+    };
+    const serverSnapshot = {
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['server_card'] } },
+      appearance: {},
+    };
+    vi.mocked(collectSnapshot, { partial: true, deep: true }).mockReturnValue(localSnapshot);
+
+    vi.mocked(fetchCurrentSettings)
+      .mockResolvedValueOnce({
+        revision: 1,
+        updated_at: '2026-02-22T12:00:00.000Z',
+        data: baselineSnapshot,
+      })
+      .mockResolvedValueOnce({
+        revision: 9,
+        updated_at: '2026-02-22T12:05:00.000Z',
+        data: serverSnapshot,
+      });
+
+    const conflictError = Object.assign(new Error('Revision conflict'), {
+      status: 409,
+      body: { revision: 9 },
+    });
+    vi.mocked(saveCurrentSettings)
+      .mockRejectedValueOnce(conflictError)
+      .mockResolvedValueOnce({ revision: 10, updated_at: '2026-02-22T12:06:00.000Z' });
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await waitFor(() => {
+      expect(result.current.currentRevision).toBe(1);
+    });
+
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
+      expect(result.current.currentRevision).toBe(10);
+      expect(result.current.status).toBe('synced');
+    });
+
+    expect(vi.mocked(saveCurrentSettings).mock.calls[0][0].base_revision).toBe(1);
+    expect(vi.mocked(saveCurrentSettings).mock.calls[1][0].base_revision).toBe(9);
+    expect(vi.mocked(saveCurrentSettings).mock.calls[1][0].data).toEqual(localSnapshot);
+    expect(applySnapshot).not.toHaveBeenCalled();
+  });
+
+  it('retries revision conflicts before applying server data when no baseline is loaded', async () => {
+    const localSnapshot = {
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['lock_card_1'] } },
+      appearance: {},
+    };
+    vi.mocked(collectSnapshot, { partial: true, deep: true }).mockReturnValue(localSnapshot);
+
+    const conflictError = Object.assign(new Error('Revision conflict'), {
+      status: 409,
+      body: { revision: 9 },
+    });
+    vi.mocked(saveCurrentSettings)
+      .mockRejectedValueOnce(conflictError)
+      .mockResolvedValueOnce({ revision: 10, updated_at: '2026-02-22T12:06:00.000Z' });
+
+    const { result } = renderHook(() =>
+      useSettingsSync({
+        haUserId: 'user-1',
+        contextSettersRef: { current: {} },
+        autoBootstrap: false,
+      })
+    );
+
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
+      expect(result.current.currentRevision).toBe(10);
+      expect(result.current.status).toBe('synced');
+    });
+
+    expect(vi.mocked(saveCurrentSettings).mock.calls[0][0].base_revision).toBeNull();
+    expect(vi.mocked(saveCurrentSettings).mock.calls[1][0].base_revision).toBe(9);
+    expect(vi.mocked(saveCurrentSettings).mock.calls[1][0].data).toEqual(localSnapshot);
+    expect(fetchCurrentSettings).not.toHaveBeenCalled();
+    expect(applySnapshot).not.toHaveBeenCalled();
+  });
+
+  it('publishes current config to other devices', async () => {
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      await result.current.publishCurrentToDevices();
+    });
+
+    expect(publishCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ha_user_id: 'user-1',
+        source_device_id: expect.any(String),
+        target_device_id: undefined,
+        history_keep_limit: expect.any(Number),
+      })
+    );
+    expect(saveCurrentSettings).toHaveBeenCalled();
+  });
+
+  it('publishes only selected target devices when provided', async () => {
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      await result.current.publishCurrentToDevices(['wall-tablet', 'mobile-phone']);
+    });
+
+    expect(publishCurrentSettings).toHaveBeenCalledTimes(2);
+    expect(publishCurrentSettings).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        ha_user_id: 'user-1',
+        source_device_id: expect.any(String),
+        target_device_id: 'wall-tablet',
+        history_keep_limit: expect.any(Number),
+      })
+    );
+    expect(publishCurrentSettings).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        ha_user_id: 'user-1',
+        source_device_id: expect.any(String),
+        target_device_id: 'mobile-phone',
+        history_keep_limit: expect.any(Number),
+      })
+    );
+  });
+
+  it('allows manual sync even when auto-sync is disabled', async () => {
+    localStorage.setItem('tunet_auto_sync_enabled', '0');
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
+    await waitFor(() => {
+      expect(saveCurrentSettings).toHaveBeenCalled();
+      expect(result.current.status).toBe('synced');
+    });
+  });
+
+  it('clears revision history for current device', async () => {
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await act(async () => {
+      await result.current.clearHistory();
+    });
+
+    expect(deleteSettingsHistory).toHaveBeenCalledWith('user-1', expect.any(String), true);
+  });
+
+  it('exposes editable history keep limit', async () => {
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    expect(result.current.historyKeepLimit).toBeTypeOf('number');
+
+    await act(async () => {
+      result.current.setHistoryKeepLimit(120);
+    });
+
+    expect(result.current.historyKeepLimit).toBe(120);
+  });
+
+  it('renames a known device and refreshes list', async () => {
+    vi.mocked(fetchCurrentDevices).mockResolvedValue([
+      {
+        device_id: 'tablet-1',
+        device_label: 'Living room tablet',
+        revision: 2,
+        updated_at: '2026-02-22T12:01:00.000Z',
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+
+    await waitFor(() => {
+      expect(fetchCurrentDevices).toHaveBeenCalled();
+    });
+    const callsBeforeRename = vi.mocked(fetchCurrentDevices).mock.calls.length;
+
+    await act(async () => {
+      await result.current.renameKnownDevice('tablet-1', 'Living room tablet');
+    });
+
+    expect(updateSettingsDeviceLabel).toHaveBeenCalledWith(
+      'user-1',
+      'tablet-1',
+      'Living room tablet'
+    );
+    expect(vi.mocked(fetchCurrentDevices).mock.calls.length).toBeGreaterThan(callsBeforeRename);
+    expect(result.current.updatingDeviceId).toBe('');
+  });
+});

@@ -1,0 +1,255 @@
+/* Page frame of the development gallery only. */
+html,
+body {
+  margin: 0;
+  background: var(--aca-page);
+  color: var(--aca-ink-solid);
+  font-family: var(--aca-font);
+}
+
+.kit-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+}
+
+.kit-header {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+}
+
+.kit-lead {
+  max-width: 70ch;
+}
+
+.kit-block {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 4rem;
+}
+
+.kit-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.kit-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.kit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* State matrix: interaction states on the first line, status states on the second. */
+.kit-matrix {
+  display: grid;
+  gap: 2rem;
+}
+
+.kit-matrix__row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.kit-matrix__cells {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.kit-matrix__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.25rem;
+}
+
+.kit-matrix__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 5.5rem;
+  padding: 0.75rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.kit-matrix__wide,
+.kit-matrix__slider,
+.kit-matrix__card {
+  width: 100%;
+}
+
+.kit-matrix__card {
+  max-width: 13rem;
+}
+
+.kit-matrix__card-title {
+  display: block;
+  font-size: var(--aca-step-1);
+}
+
+.kit-matrix__slot.aca-m {
+  --aca-pad: 0;
+  width: 4rem;
+  height: 4rem;
+}
+.kit-matrix__slot > .aca-m__outer,
+.kit-matrix__slot > .aca-m__outer > .aca-m__face,
+.kit-matrix__slot-content {
+  height: 100%;
+}
+.kit-matrix__slot.aca-m > .aca-m__outer > .aca-m__face > .kit-matrix__slot-content {
+  display: grid;
+  place-items: center;
+}
+
+.kit-matrix__na {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  outline: 1px dashed rgb(5 5 5 / 20%);
+}
+
+.kit-force {
+  display: contents;
+}
+
+/* Accents and type specimens. */
+.kit-accents {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 2rem;
+}
+
+.kit-accent__content {
+  display: grid;
+  justify-content: stretch;
+  align-items: start;
+  gap: 0.6rem;
+}
+
+.kit-accent__swatch {
+  display: flex;
+  align-items: flex-end;
+  min-height: 5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.9rem;
+  box-sizing: border-box;
+}
+
+.kit-type__content {
+  display: grid;
+  justify-content: stretch;
+  gap: 1.25rem;
+}
+
+.kit-type__row {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.kit-menu {
+  display: grid;
+  justify-content: stretch;
+  gap: 0.35rem;
+}
+
+.kit-menu__item {
+  display: block;
+}
+
+.kit-menu__item > .aca-m__outer > .aca-m__face > .aca-m__content {
+  justify-content: flex-start;
+}
+
+.kit-sheet-body {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.kit-sheet-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Reference gallery. */
+.kit-card {
+  width: 16.5rem;
+}
+
+.kit-tile {
+  width: 8.5rem;
+}
+
+.kit-circle {
+  --aca-dim: 3.5em;
+}
+
+.kit-tile-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.kit-wave {
+  display: block;
+  width: 100%;
+  height: 3.5rem;
+  margin-top: 0.75rem;
+}
+
+.kit-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.kit-dots span {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: var(--aca-ink-muted);
+  opacity: 0.35;
+}
+
+.kit-dots span:first-child {
+  opacity: 1;
+}
+
+@media (max-width: 639px) {
+  .kit-page {
+    padding: 2rem 1rem 3rem;
+  }
+  .kit-card {
+    width: 100%;
+  }
+  .kit-matrix__cells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .kit-type__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+}

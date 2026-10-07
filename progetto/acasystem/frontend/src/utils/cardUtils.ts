@@ -1,0 +1,232 @@
+/**
+ * Pure utility functions for card type detection and visibility logic.
+ * These are extracted from App.jsx to reduce file size and improve testability.
+ */
+
+import type { CardSettingsMap, PageSettingsMap } from '@/@types/dashboard';
+import type { EntityLikeMap } from '@/@types/ha';
+import {
+  evaluateVisibilityConditionConfig,
+  isConditionConfigured,
+  resolveConditionEntityId,
+} from '@/utils/conditionUtils';
+
+export interface CardRemovableContext {
+  getCardSettingsKey: (cardId: string, pageId?: string) => string;
+  cardSettings: CardSettingsMap;
+}
+
+export interface CardVisibilityContext extends CardRemovableContext {
+  activePage?: string;
+  entities: EntityLikeMap;
+}
+
+/** Prefixes for card types that can always be removed from user pages. */
+const REMOVABLE_PREFIXES = [
+  'entity_card_',
+  'light_',
+  'light.',
+  'lock_card_',
+  'lock.',
+  'vacuum.',
+  'lawn_mower.',
+  'media_player.',
+  'media_group_',
+  'sonos_group_',
+  'weather_temp_',
+  'calendar_card_',
+  'climate_card_',
+  'cost_card_',
+  'androidtv_card_',
+  'appletv_card_',
+  'car_card_',
+  'nordpool_card_',
+  'todo_card_',
+  'room_card_',
+  'cover_card_',
+  'camera_card_',
+  'alarm_card_',
+  'spacer_card_',
+  'fan.',
+];
+
+/** Prefixes for "special" composite cards that don't map 1:1 to an entity. */
+const SPECIAL_CARD_PREFIXES = [
+  'entity_card_',
+  'media_group_',
+  'sonos_group_',
+  'weather_temp_',
+  'calendar_card_',
+  'climate_card_',
+  'cost_card_',
+  'androidtv_card_',
+  'appletv_card_',
+  'car_card_',
+  'nordpool_card_',
+  'todo_card_',
+  'room_card_',
+  'lock_card_',
+  'cover_card_',
+  'camera_card_',
+  'alarm_card_',
+  'spacer_card_',
+];
+
+/**
+ * Determine whether a card can be removed from a given page.
+ */
+export function isCardRemovable(
+  cardId: string,
+  pageId: string,
+  { getCardSettingsKey, cardSettings }: CardRemovableContext
+): boolean {
+  if (pageId === 'header') return cardId.startsWith('person.');
+  if (pageId === 'settings') {
+    if (['car'].includes(cardId)) return false;
+    if (cardId.startsWith('media_player')) return false;
+    return true;
+  }
+  const settingsKey = getCardSettingsKey(cardId, pageId);
+  const typeSetting = cardSettings[settingsKey]?.type || cardSettings[cardId]?.type;
+  if (typeSetting === 'entity' || typeSetting === 'toggle' || typeSetting === 'sensor') return true;
+  if (cardId === 'media_player') return true;
+  return REMOVABLE_PREFIXES.some((p) => cardId.startsWith(p));
+}
+
+/**
+ * Determine whether a card should be hidden in view mode based on entity availability.
+ */
+export function isCardHiddenByLogic(
+  cardId: string,
+  { activePage, getCardSettingsKey, cardSettings, entities }: CardVisibilityContext
+): boolean {
+  const settingsKey = getCardSettingsKey(cardId);
+  const cardConfig = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  // Property keys are coerced to strings, as in the original lookups.
+  const entityId = String(
+    cardId.startsWith('entity_card_') || cardConfig.type === 'sensor'
+      ? cardConfig.entityId || cardId
+      : cardId
+  );
+  let hiddenByBaseLogic = false;
+
+  if (cardId === 'media_player') {
+    return true;
+  }
+
+  if (cardId.startsWith('media_group_') || cardId.startsWith('sonos_group_')) {
+    const groupSettings = cardConfig;
+    const selectedIds: unknown[] = Array.isArray(groupSettings.mediaIds)
+      ? groupSettings.mediaIds
+      : [];
+    const hasEntities = selectedIds.some((id) => entities[String(id)]);
+    hiddenByBaseLogic = !hasEntities;
+  }
+
+  if (
+    activePage === 'settings' &&
+    !['car'].includes(cardId) &&
+    !cardId.startsWith('light_') &&
+    !cardId.startsWith('media_player')
+  ) {
+    hiddenByBaseLogic = hiddenByBaseLogic || !entities[entityId];
+  }
+
+  const isSpecialCard = cardId === 'car' || SPECIAL_CARD_PREFIXES.some((p) => cardId.startsWith(p));
+
+  if (cardId.startsWith('entity_card_')) {
+    hiddenByBaseLogic = hiddenByBaseLogic || !entities[entityId];
+  }
+
+  if (!isSpecialCard && !entities[entityId]) {
+    if (cardId.startsWith('light_') || cardId.startsWith('light.') || cardId.startsWith('lock.')) {
+      return false;
+    }
+    hiddenByBaseLogic = true;
+  }
+
+  if (hiddenByBaseLogic) {
+    return true;
+  }
+
+  if (isConditionConfigured(cardConfig.visibilityCondition)) {
+    const targetEntityId = resolveConditionEntityId(cardId, cardConfig, entities);
+    if (!targetEntityId) return false;
+    const targetEntity = entities[targetEntityId];
+    if (!targetEntity) return false;
+    const getAttribute = (entityId: string | undefined, attribute: string): unknown =>
+      entities?.[String(entityId)]?.attributes?.[attribute];
+
+    const shouldShow = evaluateVisibilityConditionConfig({
+      condition: cardConfig.visibilityCondition,
+      entity: targetEntity,
+      entities,
+      getAttribute,
+      fallbackEntityId: targetEntityId,
+    });
+
+    return !shouldShow;
+  }
+
+  return false;
+}
+
+/**
+ * Check if a page is a media/sonos page.
+ */
+export function isMediaPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
+  if (!pageId) return false;
+  const settings = pageSettings[pageId];
+  return settings?.type === 'media' || pageId.startsWith('media');
+}
+
+/**
+ * Check if a page is a SONOS page.
+ */
+export function isSonosPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
+  if (!pageId) return false;
+  const settings = pageSettings[pageId];
+  return settings?.type === 'sonos' || pageId.startsWith('sonos');
+}
+
+/**
+ * Check if a page is a Lights page.
+ */
+export function isLightsPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
+  if (!pageId) return false;
+  const settings = pageSettings[pageId];
+  return settings?.type === 'lights' || pageId.startsWith('lights');
+}
+
+/**
+ * Check if a page is a Battery page.
+ */
+export function isBatteryPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
+  if (!pageId) return false;
+  const settings = pageSettings[pageId];
+  return settings?.type === 'battery' || pageId.startsWith('battery');
+}
+
+/**
+ * Check if a page is a Room Explorer page.
+ */
+export function isRoomExplorerPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
+  if (!pageId) return false;
+  const settings = pageSettings[pageId];
+  return settings?.type === 'room_explorer' || pageId.startsWith('room_explorer');
+}

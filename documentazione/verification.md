@@ -151,6 +151,73 @@ Evidenze, passaggio da Antigravity e limiti in [REP-20261005-008](reports/REP-20
 | Build e servizio locale | Superato | Tunet healthy, stesso volume /app/data, HA non ricreato. Non prova offline, backup o ripristino. |
 | Integrità e collegamenti | Superato | 407 file baseline e ZIP integri; 21 fonti protette e report Antigravity immutati; 38 documenti, 312 collegamenti locali validi e 31 percorsi nel perimetro. |
 
+## Acasystem «OS» — 2026-10-06
+
+Evidenze in [REP-20261006-001](reports/REP-20261006-001-acasystem-os.md) (ondate con subagenti; le verifiche finali seguono l'integrazione).
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Divisione frontend/backend senza cambi di versione | Superato | Lockfile confrontato: 0 versioni cambiate; aggiunti solo i workspace e i pacchetti di tipi autorizzati. |
+| Backend TypeScript a livelli | Superato | 83 test, tsc e ESLint a 0, ripetuti dall'orchestratore; database e schema invariati. Volume reale non ancora provato in Docker. |
+| Nucleo frontend TypeScript strict | Superato | Strict e non strict a 0 errori; suite 795/799 con 4 fallimenti noti delle schermate legacy. |
+| Kit bilanciato, accenti, tipografia | Superato, checkpoint 1 approvato | 65 test; matrice degli stati; contrasti calcolati; lint:typography a 0 nelle cartelle a strati. Senza tablet fisico. |
+| Launcher, widget, sistema, integrazione, revisione | In corso | Ondate 2–4. |
+
+## Chiusura della revisione e banco Acasystem 0.1 — 2026-10-07
+
+Fonte corrente: [REP-20261006-002](reports/REP-20261006-002-ripresa-revisione.md), annotazioni del 2026-10-07. Gli esiti «In corso» del 2026-10-06 sopra sono storici.
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Identità dei sorgenti alla ripresa | Superato | 921 file correnti uguali al manifesto SHA-256 di v009; copia integra. Nessuna correzione applicativa aggiunta in questa ripresa. |
+| Chiusura documentale | Superato | 111 collegamenti locali dei sei documenti aggiornati validi; confronto con v009 limitato a quei documenti, codice e fonti protette invariati. Istantanea v010. |
+| Revisione documentale indipendente | Superato dopo rettifica | 70 collegamenti, inclusi gli anchor, nei tre documenti operativi principali. ISSUE-018/021 aggiornati distinguendo audit storico e nuovo applicativo; istantanea v011, stesso codice. |
+| Backend, verifica indipendente ripetuta | Superato | Typecheck strict ed ESLint a 0; 13 suite, 93/93 test. Autenticazione solo presso URL HA configurati sul server. |
+| Frontend, autenticazione e configurazione | Superato | SystemConnect, SystemPage, ShellApp, useConnectionSetup, oauthStorage, apiAuth: 6 suite, 66/66 test ripetuti. |
+| Suite frontend completa | Esito precedente con fallimenti | 1476/1481 nell'annotazione precedente; 5 fallimenti del legacy escluso, ISSUE-029. Suite completa non ripetuta in questa ripresa. Dopo la cancellazione del legacy: 1161/1161 (sezione seguente). |
+| Banco Docker | Superato | aca-system:0.1, healthy; immagine be0f93a…7b09c8; health ok versione 0.1.0, volume aca-tunet_tunet-data invariato. Configurazione e digest completo in infrastructure.md. |
+| Browser con sessione HA reale | Superato, perimetro limitato | Dopo ricaricamento: UI Metallo, OAuth2 conservato, «Collegato» in Sistema, navigazione e focus Sistema/launcher, Principale/Copertina da tastiera. Schermata nel report. Nessun comando fisico o salvataggio profilo/layout. |
+| Backup e ripristino | Copia presente; ripristino non eseguito | Copia manuale a freddo del volume, 8516 byte, precedente all'aggiornamento. Nessuna prova di recupero, backup automatico o nuovo backup HA. |
+| Dispositivi, offline, LAN/remoto | Non eseguito | Il banco browser/Docker non prova il prodotto sul tablet e sull'impianto. Nessuna CI attiva. |
+
+## Launcher: polish, layout e celle «+» — 2026-10-07
+
+Fonte: [REP-20261007-001](reports/REP-20261007-001-launcher-polish.md).
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Valutazioni isolate (layout, pre-scansione, kit) | Eseguito | 21 + 13 + 26 rilievi, poi corretti in due giri o motivati come residui (ISSUE-028) e come decisioni per l'utente. |
+| Revisione visiva indipendente | Superato con residui | Sette viewport da 360×740 a 1920×920; griglia identica tra vista e modifica; widget nella cella toccata; tastiera e focus; 0 errori in console. Su Chromium a DPR 1 e 2: non provati la scala reale al 125%, altri browser e dispositivi touch. |
+| Statici e suite | Superato | tsc, ESLint, tipografia, colori a 0; Vitest 113 file, 1281/1281. |
+| Build, budget, immagine | Superato | index 677,1/900 KB; `aca-system:0.2` provata sulla porta 3012. Banco non aggiornato. |
+
+## Cancellazione del legacy Tunet — 2026-10-07
+
+Fonte: [REP-20261006-001](reports/REP-20261006-001-acasystem-os.md), annotazione del 2026-10-07; [ISSUE-029](project-status.md#issue-029).
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Elenco del legacy | Superato | Tracciamento statico delle importazioni da index.html, kit.html, launcher.html, le preview-*.html, i test TypeScript e il setup dei test: 213 file mai raggiunti, nessuna importazione irrisolta. Aggiunti 7 moduli TypeScript usati solo dal legacy, gli e2e di Tunet e 3 script di Tunet: 232 file (`backup/legacy-da-cancellare.txt`). |
+| Cancellazione | Superato | Eseguita dall'utente da WSL: il classificatore dei permessi l'ha negata all'agente. 0/232 file residui; cartelle vuote rimosse. Copia completa in `usa-come-git/v009`–`v011`. |
+| Statici | Superato | `tsc -p tsconfig.strict.json` 0 errori, ESLint 0, tipografia 0 violazioni (384 file), colori 0 (273 file). |
+| Suite frontend completa | Superato | 102 file, 1161/1161 test, nessun fallimento (prima 1476/1481: 320 test e 51 file del legacy rimossi). |
+| Build e budget | Superato | `npm run build` e `check-bundle-size.mjs`: index 666,7/900 KB, vendor nei limiti. Il CSS passa da 219 a 104 KB: 1533 classi Tailwind generate solo per il legacy; nessuna è usata come classe nel codice nuovo. |
+| Immagine Docker | Superato | `aca-system:0.1.1-check` costruita e provata sulla porta 3012: health ok, root 200, `lang="it"`, titolo «Acasystem». Container rimosso. Il banco resta su `aca-system:0.1` per la demo. |
+| Anteprime | Superato | Playwright a 1280×800 e 390×844: copertina, Casa, Luci, Clima, Multimedia senza overflow né errori in console; aspetto uguale alle schermate precedenti. |
+
+## Materiale a pressione — 2026-10-05
+
+Evidenze, scelte e limiti in [REP-20261005-011](reports/REP-20261005-011-materiale-pressione.md); specifica in [design.md](design/design.md#materiale-a-pressione-implementato). Riguarda barra superiore, card di stato (SensorCard), emblema e pulsanti di benvenuto; non converte le altre card.
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Contratto del materiale (PressureMaterial.test.jsx) | Superato | Stesso numero di strati nelle ombre di ogni stato, regole di hover/click/selezione, card, movimento ridotto, contrasto dell'inchiostro sul volto arancione, primitiva Card. Mutazione temporanea di un elenco di ombre: test fallito come previsto, file ripristinato. |
+| Card in SensorCard | Superato | Classe del materiale nei due layout fuori dalla modifica, assente in modifica. |
+| Browser, tema scuro e chiaro, desktop e 390 px | Superato, perimetro limitato | Pillola selezionata, Modifica/Impostazioni circolari, emblema, pulsanti d'azione, hover e finestre Aggiungi scheda/Modifica pagina. Card osservata su replica del markup e degli stili inline: nessuna sessione Home Assistant nel browser di verifica. |
+| Tipi, lint, colori, suite | Superato | Typecheck JS + strict HOME; lint senza errori; colori 43 file; 95 file / 752 test sull'host. |
+| Build, budget e banco | Superato | Build Compose Node 26, chunk nei limiti; `aca-tunet:1.22.1-aca-press-neu1` healthy, 26 asset iniziali HTTP 200, stesso volume, HA non ricreato. |
+| Stato premuto (`:active`), movimento ridotto del sistema, tablet fisico, dispositivi | Non eseguito | `:active` coperto solo dal test sul CSS; preferenza OS non emulata. |
+
 ## Finestre di gestione schede e pagine
 
 Evidenze in [REP-20261005-009](reports/REP-20261005-009-gestione-schede-pagine.md); risultato circoscritto al primo gruppo della prosecuzione.

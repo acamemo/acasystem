@@ -27,6 +27,8 @@ L'obiettivo minimo non assegna lo sviluppo delle estensioni. Il perimetro grafic
 
 ## Direzione grafica confermata e proposte
 
+**Aggiornamento del 2026-10-06:** [ADR-0007](../decisions/ADR-0007-acasystem-os.md) sostituisce temi chiaro/scuro e colori precedenti con un tema unico metallico chiaro, con accenti arancione #ff622a e blu #295bff; introduce l'interfaccia «OS» a widget ed elimina il pannello Aspetto. La struttura del codice è in [ADR-0008](../decisions/ADR-0008-struttura-frontend-backend.md).
+
 La specifica visiva è in [design.md](../design/design.md), fonte unica per Neumorphism, temi chiaro/scuro, accento `#ef8231`, riferimento scuro `#222222`, microinterazioni richieste, proposte UI e calcoli di contrasto. Questo documento mantiene il perimetro e i comportamenti del pilota; le decisioni grafiche non assegnano implementazioni o nuovi permessi. Il [catalogo](../design/componenti/README.md) conserva gli esempi senza adattamenti.
 
 Logo, palette completa, componenti e schermate restano da definire nei rispettivi ambiti.

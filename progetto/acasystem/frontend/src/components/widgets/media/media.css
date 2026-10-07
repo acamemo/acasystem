@@ -1,0 +1,530 @@
+/*
+ * Media widgets (players, groups, TVs, cameras), their detail sheets and the media page.
+ * Only kit tokens (--aca-*); layout values in rem/em. Artwork and camera images sit in recessed
+ * wells of the «Metallo» material, like a screen set into the metal.
+ */
+@layer components {
+  /* ── Widget content (the launcher draws the card frame around it) ──────────────── */
+  .aca-media-widget {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75em;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    text-align: start;
+    container: aca-media-widget / inline-size;
+  }
+  .aca-media-widget--compact {
+    flex-direction: row;
+    align-items: center;
+  }
+  .aca-media-widget--clickable {
+    cursor: pointer;
+  }
+  .aca-media-widget__state {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    min-width: 0;
+    min-height: 0;
+    text-align: center;
+  }
+  .aca-media-widget--compact .aca-media-widget__state {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: start;
+  }
+  .aca-media-widget__message {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375em;
+    min-width: 0;
+    text-align: center;
+  }
+  .aca-media-widget--compact .aca-media-widget__message {
+    align-items: flex-start;
+    text-align: start;
+  }
+  .aca-media-widget__message > * {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Plain button holding the name and title: the keyboard way into the details. */
+  .aca-media-open {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125em;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0.5em;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .aca-media-open:disabled {
+    cursor: inherit;
+  }
+  .aca-media-open:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+  }
+  .aca-media-open > * {
+    max-width: 100%;
+  }
+  /*
+   * Stretched opener ([data-widget-open]): its hit area covers the whole widget, so a tap outside
+   * the commands opens the details and the launcher frame presses with it.
+   */
+  .aca-media-open--stretch::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  /* Commands, and wells holding one, sit above the opener: pressing them never moves the frame. */
+  .aca-media-widget :is(button:not([data-widget-open]), .aca-slider, .aca-m:has(button)) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .aca-media-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    min-width: 0;
+  }
+  .aca-media-row--top {
+    align-items: flex-start;
+  }
+  .aca-media-row--wrap {
+    flex-wrap: wrap;
+  }
+  .aca-media-linked {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.375em;
+  }
+  .aca-media-row--stretch {
+    align-items: stretch;
+  }
+  .aca-media-stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.5em;
+    min-width: 0;
+    container-type: inline-size;
+  }
+  .aca-media-row--between {
+    justify-content: space-between;
+  }
+  .aca-media-grow {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+  }
+  .aca-media-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125em;
+    min-width: 0;
+  }
+  .aca-media-text > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /*
+   * Density by width: the widget (and the text column of the large player) is an inline-size
+   * container; an element marked aca-media-show-N is shown only from N rem of container width.
+   * !important because the kit's own display rules on the same element are more specific.
+   */
+  @container (width < 10rem) {
+    .aca-media-show-10 {
+      display: none !important;
+    }
+  }
+  @container (width < 13rem) {
+    .aca-media-show-13 {
+      display: none !important;
+    }
+  }
+  @container (width < 20rem) {
+    .aca-media-show-20 {
+      display: none !important;
+    }
+  }
+  @container (width < 25rem) {
+    .aca-media-show-25 {
+      display: none !important;
+    }
+  }
+  /* Same threshold on the whole widget, for elements inside the large player's text column. */
+  @container aca-media-widget (width < 25rem) {
+    .aca-media-widget-show-25 {
+      display: none !important;
+    }
+  }
+
+  /* ── Artwork well ────────────────────────────────────────────────────────────── */
+  .aca-media-art.aca-m {
+    display: block;
+    flex: none;
+    width: var(--aca-media-art-size, 4.25rem);
+    height: var(--aca-media-art-size, 4.25rem);
+  }
+  .aca-media-art > .aca-m__outer,
+  .aca-media-art.aca-m--rounded > .aca-m__outer > .aca-m__face {
+    width: 100%;
+    height: 100%;
+  }
+  .aca-media-art .aca-media-art__content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    color: var(--aca-ink-muted);
+  }
+  .aca-media-art--small.aca-m {
+    --aca-media-art-size: 3rem;
+  }
+  .aca-media-art--medium.aca-m {
+    --aca-media-art-size: 5rem;
+  }
+  .aca-media-art--large.aca-m {
+    --aca-media-art-size: 8rem;
+  }
+  .aca-media-art--tall.aca-m {
+    width: auto;
+    height: 100%;
+    max-width: 50%;
+    aspect-ratio: 1 / 1;
+  }
+  .aca-media-art--window.aca-m {
+    width: 100%;
+    height: auto;
+    flex: 1 1 0;
+    min-height: 3rem;
+  }
+  .aca-media-art--video.aca-m {
+    width: min(100%, 26rem);
+    height: auto;
+    align-self: center;
+    aspect-ratio: 16 / 9;
+  }
+  .aca-media-art__img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .aca-media-art__img--contain {
+    object-fit: contain;
+    padding: 12%;
+    box-sizing: border-box;
+  }
+  .aca-media-icon--xl {
+    width: 2.5em;
+    height: 2.5em;
+  }
+
+  /* ── Transport, progress, volume ─────────────────────────────────────────────── */
+  .aca-media-transport {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+  }
+  .aca-media-transport--start {
+    justify-content: flex-start;
+  }
+  .aca-media-progress {
+    position: relative;
+    height: 0.375rem;
+    border-radius: var(--aca-radius-pill);
+    background-image: var(--aca-face-well);
+    box-shadow: var(--aca-face-pressed);
+    overflow: hidden;
+  }
+  .aca-media-progress__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--aca-ratio, 0) * 100%);
+    border-radius: inherit;
+    background-image: var(--aca-fill);
+  }
+  .aca-media-times {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5em;
+  }
+  .aca-media-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .aca-media-progress-row > .aca-media-progress {
+    flex: 1 1 auto;
+  }
+  .aca-media-volume {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .aca-media-volume > .aca-slider {
+    flex: 1 1 auto;
+    min-width: 4rem;
+  }
+
+  /* ── Detail sheets ───────────────────────────────────────────────────────────── */
+  .aca-media-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+  }
+  .aca-media-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+  }
+  .aca-media-section + .aca-media-section {
+    padding-top: 1em;
+    border-top: var(--aca-ring) solid var(--aca-socket);
+  }
+  .aca-media-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+  .aca-media-status {
+    min-height: 1.5em;
+  }
+
+  /* Content tiles of «Scegli contenuto». */
+  .aca-media-choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    gap: 0.75em;
+  }
+  .aca-media-choice.aca-m {
+    display: block;
+    width: 100%;
+  }
+  .aca-media-choice .aca-media-choice__content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5em;
+    width: 100%;
+    text-align: start;
+  }
+  .aca-media-choice__label {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    min-height: 2.6em;
+  }
+  .aca-media-choice .aca-media-art.aca-m {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  /* Player rows: the select button grows, group buttons sit at the end. */
+  .aca-media-players {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .aca-media-player {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .aca-media-player__select.aca-m {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* Rounded buttons of the kit are square icons: rows and tiles take their content's size. */
+  .aca-media-player__select.aca-m--rounded,
+  .aca-media-choice.aca-m--rounded {
+    --aca-pad: 0.5em 0.75em;
+  }
+  .aca-media-player__select.aca-m--rounded > .aca-m__outer > .aca-m__face,
+  .aca-media-choice.aca-m--rounded > .aca-m__outer > .aca-m__face {
+    width: 100%;
+    height: auto;
+  }
+  .aca-media-player__select .aca-media-player__content {
+    justify-content: flex-start;
+    gap: 0.75em;
+    min-width: 0;
+    text-align: start;
+  }
+  .aca-media-player--idle .aca-media-player__select {
+    opacity: 0.8;
+  }
+
+  /* ── TV remote ───────────────────────────────────────────────────────────────── */
+  .aca-media-dpad {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    grid-template-areas:
+      '. up .'
+      'left ok right'
+      '. down .';
+    justify-content: center;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .aca-media-dpad__up {
+    grid-area: up;
+  }
+  .aca-media-dpad__down {
+    grid-area: down;
+  }
+  .aca-media-dpad__left {
+    grid-area: left;
+  }
+  .aca-media-dpad__right {
+    grid-area: right;
+  }
+  .aca-media-dpad__ok {
+    grid-area: ok;
+  }
+  .aca-media-keys {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+    gap: 0.5em;
+  }
+  .aca-media-keys > .aca-m {
+    display: block;
+  }
+
+  /* ── Camera feed ─────────────────────────────────────────────────────────────── */
+  .aca-media-feed {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: var(--aca-radius-rounded);
+    background-color: var(--aca-ink-solid);
+  }
+  .aca-media-feed__media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background-color: var(--aca-ink-solid);
+  }
+  .aca-media-feed__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75em;
+    padding: 1em;
+    text-align: center;
+    color: var(--aca-page);
+  }
+  .aca-media-feed__overlay--loading {
+    pointer-events: none;
+  }
+  /* The next snapshot loads invisibly on top of the shown one. */
+  .aca-media-snapshot__next {
+    opacity: 0;
+  }
+  .aca-media-snapshot__state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375em;
+    padding: 0.5em;
+    text-align: center;
+  }
+  .aca-media-snapshot--thumb.aca-m {
+    width: 40%;
+    height: 100%;
+  }
+  .aca-media-feed--fill {
+    aspect-ratio: auto;
+    height: 100%;
+  }
+
+  /* ── Media and Sonos pages ───────────────────────────────────────────────────── */
+  /*
+   * The launcher's page host gives the margin and the title and scrolls: the page is not a scroll
+   * container of its own, so it does not clip the shadows of its cards at its edges.
+   */
+  .aca-media-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+  .aca-media-page__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.85fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+  .aca-media-page__now.aca-m,
+  .aca-media-page__side.aca-m,
+  .aca-media-page__empty.aca-m {
+    display: block;
+  }
+  /* The scroll box reaches past the rows by the reach of their raised shadow, so it does not cut it. */
+  .aca-media-page__scroll {
+    max-height: min(60dvh, 30rem);
+    margin: -1.25em;
+    padding: 1.25em;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Command error of the two-row player: two lines, so the invitation to retry is not cut. */
+  .aca-media-open .aca-media-error-caption {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 56rem) {
+    .aca-media-page__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

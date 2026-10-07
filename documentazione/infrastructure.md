@@ -1,14 +1,26 @@
 # Infrastruttura e operazioni
 
-Aggiornato: 2026-10-05. Banco prova locale HA/Tunet disponibile; ambiente finale del prodotto ancora progettuale. Direzione locale in [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md), installazione in [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md); problemi nello [stato del progetto](project-status.md).
+Aggiornato: 2026-10-07. Banco prova locale Acasystem 0.1/HA disponibile; ambiente finale del prodotto ancora progettuale. Direzione locale in [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md), installazione iniziale in [REP-20261005-004](reports/REP-20261005-004-installazione-tunet.md), aggiornamento e verifiche correnti in [REP-20261006-002](reports/REP-20261006-002-ripresa-revisione.md); problemi nello [stato del progetto](project-status.md).
+
+## Banco corrente verificato il 2026-10-07
+
+- [Compose](../progetto/compose.tunet.yaml): progetto `aca-tunet`, container `aca-tunet-tunet-1`, immagine `aca-system:0.2` dal 2026-10-07 (REP-20261007-001; prima `aca-system:0.1`, `sha256:be0f93a…7b09c8`), porta `127.0.0.1:3002`. Immagine in esecuzione `sha256:de33f566b4927ca340f4fd7d9025d0d322df46f2d136843881d578de04d88ae7`, stato `healthy`; `/api/health` risponde `{"status":"ok","version":"0.1.0"}`.
+- Sorgenti in `progetto/acasystem/`: workspace frontend React/Vite e backend Express, applicativo TypeScript con controlli strict. Dockerfile Node 26 Alpine; frontend compilato e backend TypeScript eseguito da Node. Il codice dell'interfaccia Tunet sostituita è stato cancellato il 2026-10-07 (ISSUE-029); le istantanee `usa-come-git/v009`–`v011` lo conservano.
+- Volume persistente invariato: `aca-tunet_tunet-data` → `/app/data`. Cifratura applicativa `off`. Copia a freddo del volume presente in `backup/banco/tunet-data-20261007-pre-acasystem-freddo.tgz` (8516 byte), eseguita prima dell'aggiornamento autorizzato. Nessuna prova di ripristino dei dati, nessun backup automatico o nuovo backup HA.
+- Backend → HA: `TUNET_INTERNAL_HA_URL=http://host.docker.internal:8123`. L'identità viene verificata soltanto presso gli URL configurati sul server; un URL HA inviato dal client non viene usato. Senza configurazione valida, le API protette rispondono 503 `HA_URL_NOT_CONFIGURED` (SEC-1).
+- **Dal 2026-10-07 (ADR-0009, REP-20261007-002), Browser → Acasystem → HA:** il browser parla solo con `http://localhost:3002/`. Il server inoltra a HA sotto `/ha` (lista consentita, WebSocket incluso) e l'accesso avviene con la pagina Acasystem. Requisiti di HA e limiti nel [README del progetto](../progetto/acasystem/README.md). Esposizione di HA in rete (porta 8123) invariata: la chiusura è una decisione da prendere con l'installazione del pilota.
+- Storico, prima di ADR-0009: Browser → HA con sessione OAuth2 preesistente conservata dopo il ricaricamento su `http://localhost:3002/`. Il pannello Sistema mostra «Collegato» a `http://localhost:8123`; copertina, pagina Principale e ritorno da Sistema verificati nel browser laterale. Nessun comando a dispositivi fisici eseguito.
+- Inter è servito localmente. Mappe OpenStreetMap, loghi esterni e risorse fornite dalle integrazioni HA possono richiedere internet (ISSUE-016); questa verifica non certifica funzionamento completo offline, LAN/remoto o dispositivi.
+
+Per avviare l'immagine già costruita: `docker compose -f progetto/compose.tunet.yaml up -d --no-build`. Per ricostruire dai sorgenti: stesso comando con `--build`; questo crea un nuovo artefatto e richiede le verifiche del relativo incarico. Il ripristino della versione precedente è documentato in REP-20261006-002; non è una prova di ripristino dei dati. Le sezioni datate 2026-10-05 sotto conservano lo stato storico.
 
 ## Inventario verificato e previsto
 
 | Risorsa | Evidenza attuale | Destinazione prevista |
 |---|---|---|
 | Repository locale | Git inizializzato; documentazione e copia originale versionate | Storico di codice, configurazioni e documenti quando autorizzati. |
-| Area backup locale | ZIP, estrazione e schermate dell'acquisizione Tunet in backup/tunet-acquisizione-20261005/, esclusi da Git | Nessun backup dei dati HA/Tunet; frequenza, accessi e ripristino da progettare. |
-| Sorgenti e banco prova Tunet | 1.22.1, revisione 5dec995; Compose e sorgenti in [progetto/](../progetto/README.md). Node 26.10.0/npm 11.19.1 nel container | Personalizzazione UI e sviluppo con ricaricamento automatico ancora da assegnare. |
+| Area backup locale | Acquisizione Tunet in backup/tunet-acquisizione-20261005/; copie manuali del volume in backup/banco/, escluse da Git | Backup HA, automazione, frequenza, accessi e ripristino da progettare e provare. |
+| Sorgenti e banco prova Acasystem | 0.1.0, derivato da Tunet 1.22.1 revisione 5dec995; [progetto/](../progetto/README.md), frontend «OS» Metallo e backend TypeScript | Demo in ufficio; ulteriore sviluppo solo su incarico. |
 | Ambiente test/staging | Banco prova su Windows 11 Home, Docker Desktop/WSL 2; HA e Tunet locali | Non è un ambiente di produzione o staging con dispositivi fisici collaudati. |
 | Cloud Hetzner storico | Nessuna configurazione acquisita; REQ-01 ritirato dall'utente | Escluso dalla direzione corrente; nessun fornitore sostitutivo scelto. |
 | DNS e TLS | Domini del PRD sono esempi; nessuna proprietà o configurazione verificata | Endpoint e certificati da definire. |
@@ -21,7 +33,7 @@ Non registrare segreti o identificativi personali non necessari. Per ogni futura
 
 ## Componenti candidati
 
-Home Assistant e il riferimento frontend React Tunet sono approvati come direzione. Nel banco prova sono installati HA Container 2026.9.4 e Tunet 1.22.1; il metodo/versioni dell'hardware finale restano aperti. Il lockfile upstream conserva le dipendenze Tunet; HAKit non è stato aggiunto.
+Home Assistant e il riferimento frontend React Tunet sono approvati come direzione. Nel banco prova sono installati HA Container 2026.9.4 e Acasystem 0.1, derivato da Tunet 1.22.1; il metodo/versioni dell'hardware finale restano aperti. Le dipendenze correnti sono nel lockfile dei workspace; HAKit non è stato aggiunto.
 
 Docker Compose, reverse proxy, tunnel, database e motore AI erano candidati originali; non sono tutti prerequisiti della fase grafica. Se necessari, motivarne uso e collocazione locale nel relativo incarico. Hetzner e i tier CPX originali restano soltanto nello storico della proposta ritirata.
 

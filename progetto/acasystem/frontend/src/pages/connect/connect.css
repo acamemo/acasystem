@@ -1,0 +1,59 @@
+/* Login page of Acasystem: layout on top of the «Metallo» kit, --aca-* tokens only. */
+@layer components {
+  .aca-connect {
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: 2rem 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    background-color: var(--aca-page);
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+  }
+  .aca-m.aca-connect__panel {
+    width: 100%;
+    max-width: 30rem;
+  }
+  .aca-m.aca-connect__panel > .aca-m__outer > .aca-m__face > .aca-connect__content {
+    display: flex;
+    flex-direction: column;
+    /* The material centres its content: the page uses the whole width of the panel. */
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+  .aca-connect__intro {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .aca-connect-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+  .aca-connect-form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+  .aca-connect__options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid color-mix(in oklch, var(--aca-ink-solid) 14%, transparent);
+  }
+  .aca-connect__options-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-self: stretch;
+  }
+  .aca-connect__back {
+    display: flex;
+    justify-content: flex-start;
+  }
+}
