@@ -253,3 +253,71 @@ body {
     gap: 0.25rem;
   }
 }
+
+/* Composition gallery (ADR-0010): specimens with the classes read back from the page. */
+.kit-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 1.5rem 1.25rem;
+  align-items: start;
+}
+.kit-spec {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+}
+.kit-spec--wide {
+  grid-column: span 2;
+}
+.kit-spec__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  padding: 1rem;
+}
+.kit-spec--wide .kit-spec__stage > * {
+  flex: 1;
+}
+.kit-spec__tall {
+  display: flex;
+  justify-content: center;
+  height: 12rem;
+}
+.kit-spec__caption {
+  display: grid;
+  gap: 0.25rem;
+}
+.kit-spec__classes {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--aca-ink-muted);
+  word-break: break-word;
+}
+.kit-spec__label {
+  font-size: 0.875rem;
+}
+.kit-families {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+.kit-families__row {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 1rem;
+  align-items: baseline;
+}
+.kit-families__row dd {
+  margin: 0;
+}
+.kit-badge-host {
+  position: relative;
+  display: inline-block;
+}
+@media (max-width: 480px) {
+  .kit-spec--wide {
+    grid-column: auto;
+  }
+}

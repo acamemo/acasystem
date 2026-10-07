@@ -2,7 +2,7 @@ name: aca-tunet
 
 services:
   tunet:
-    image: aca-system:0.2
+    image: aca-system:0.5
     build:
       context: ./acasystem
     ports:

@@ -16,21 +16,21 @@ La fase 1 minima è Home Assistant personalizzato graficamente, con Tunet come p
 
 | Livello | Aspetto |
 |---|---|
-| Socket | Grafite rgb(96 96 96) |
+| Socket | Grafite derivata dalla base (luminosità × 0,5, circa rgb(99)); nei pozzetti un grigio più tenue (base − 0,30) |
 | Guscio | Ombre di contatto |
-| Faccia | Gradiente metallico 230→180, sette ombre interne più lo strato LED |
+| Faccia | Gradiente dalla base bianca (255) a un passo più scuro (circa 222), sette ombre interne più lo strato LED |
 | Contenuto | Inter, etichetta incisa |
 
 | Comportamento | Uso |
 |---|---|
-| `press` | Hover: guscio a zero, faccia ristretta dal `clip-path`, contenuto a 0,975. Click: faccia a 0,975. |
+| `press` | Hover solo con mouse: faccia leggermente più luminosa (`brightness(1.04)`), nessun incasso. Click: guscio e faccia scalano insieme a 0,96 (0,985 sulla card), così l'ombra di contatto segue la faccia e il bordo resta uniforme; socket e ombre esterne fermi (REP-20261007-003, REP-20261007-005). |
 | `static` | Superfici informative. |
 | `well` | Incassato, per campi e tracce. |
 
 - **Forme:** pillola, cerchio, arrotondata, card (24px, eccezione voluta alle regole impeccable, come il testo inciso a gradiente).
 - **Fisica:** una sola per stato. Luce dall'alto a sinistra; l'ombra scura in alto a sinistra solo sugli elementi incassati.
 
-**Colori.** Tema unico chiaro metallico, pagina rgb(222). Socket ≥3:1 contro ogni faccia.
+**Colori.** Dal 2026-10-07 (REP-20261007-005) ogni famiglia deriva da una sola base con i colori relativi OKLCH: `--aca-base` (bianco puro, `#ffffff`) per pagina (base − 0,035), facce, pozzetti, grafite e inchiostri; `--aca-orange`, `--aca-blue` e `--aca-danger` per chiaro, inchiostro (luminosità 0,40, croma × 0,6) e inchiostro per icone (0,49, × 0,75). Cambiando una base cambia l'intera scala; i passi di luminosità fissi mantengono i contrasti (≥ 4,5:1 testo, ≥ 3:1 icone), verificati anche per una base verde. Socket ≥ 3:1 contro ogni faccia. I valori esadecimali della tabella seguente descrivono le basi e le varianti alla data della loro introduzione.
 
 | Ruolo | Valore | Uso |
 |---|---|---|
@@ -55,7 +55,7 @@ Il colore non è mai l'unico segnale: restano la profondità, il LED e il testo.
 
 **Schermata di base e celle «+»** (richiesta dell'utente del 2026-10-07, [REP-20261007-001](../reports/REP-20261007-001-launcher-polish.md)):
 - All'avvio il launcher apre sempre «Principale», la prima pagina di widget, anche se vuota. La copertina resta alla sua sinistra, raggiungibile con lo swipe. La pagina vista l'ultima volta non decide più l'avvio.
-- Su ogni pagina di widget, in vista normale e in modifica, ogni cella libera è un pozzetto tenue con un «+» discreto. Il tocco apre l'aggiunta e il widget va nella cella toccata, alla taglia scelta, oppure nel punto libero più vicino. La griglia ha una sola fermata di tabulazione e si percorre con le frecce.
+- Su ogni pagina di widget, in vista normale e in modifica, ogni cella libera è un pozzetto tenue con un «+» discreto. Hover, focus e tocco lasciano il pozzetto trasparente come a riposo: il bordo interno si scurisce appena (fino al 28% al tocco, 18% a riposo) e la pressione è data dalla scala; niente riempimento metallico né ombre al 55% (alleggerito il 2026-10-07, REP-20261007-004). Il tocco apre l'aggiunta e il widget va nella cella toccata, alla taglia scelta, oppure nel punto libero più vicino. La griglia ha una sola fermata di tabulazione e si percorre con le frecce.
 - La griglia non cambia cella né posizione tra vista normale e modifica: il piè di pagina è una fascia di altezza costante che contiene l'indicatore e, in modifica, la barra dei comandi.
 - In modifica l'unica azione arancione è «Fine». «Aggiungi widget», «Pagina» e «Nuova pagina» sono controlli metallici della stessa altezza. La × di rimozione è un piccolo pomello centrato sullo spigolo, con area di tocco di 44 px.
 - La conferma di rimozione usa la variante «danger» del pulsante (inchiostro rosso sul metallo). Il pallino degli aggiornamenti di Sistema è blu, perché è un'informazione e non un errore.
@@ -114,7 +114,7 @@ Testi italiani e mx-icons per i controlli; nomi e catalogo delle icone già salv
 
 Richiesta umana del 2026-10-05, [REP-20261005-011](../reports/REP-20261005-011-materiale-pressione.md): applicare lo stile di [UI-003](componenti/originali/UI-003-pulsante-pressione.jsx.txt) a pillola di navigazione, pulsanti circolari Modifica/Impostazioni, card di stato, emblema di benvenuto e pulsanti «Aggiungi scheda»/«Carica profilo». Materiale in src/styles/neumorphism.css; il pulsante principale e quello secondario usano le stesse primitive Button e la card la nuova primitiva Card.
 
-**Strati.** Socket (l'elemento, scuro), guscio (ombra esterna) e faccia (`::before`, gradiente più sette ombre interne). Riposo: il guscio solleva l'elemento. Hover: il guscio si annulla, la faccia si restringe di 1,5 px (2 px sulla card) scoprendo un anello del socket, le ombre interne diventano più profonde e il contenuto scala a 0,975. Click: la faccia scala a 0,975 (0,985 sulla card). Selezione stabile (aria-current/pressed/expanded): aspetto premuto mantenuto con inchiostro d'accento e bagliore; il colore non è l'unico segnale. Transizioni 300 ms (ombre) e 250 ms (faccia e contenuto) come nell'originale.
+**Strati.** Socket (l'elemento, scuro), guscio (ombra esterna) e faccia (`::before`, gradiente più sette ombre interne). Riposo: il guscio solleva l'elemento. Pressione alleggerita il 2026-10-07 su richiesta dell'utente (REP-20261007-003): nessuna sequenza in hover; al click scala soltanto la faccia, a 0,96 (0,985 sulla card, 0,95 per il pomello ospitato), con socket, guscio e ombre fermi. Fino a quella data: hover con guscio a zero, faccia ristretta di 1,5 px e contenuto a 0,975; click con faccia a 0,975. Selezione stabile (aria-current/pressed/expanded): aspetto premuto mantenuto con inchiostro d'accento e bagliore; il colore non è l'unico segnale. Rilievo alleggerito (2026-10-07, REP-20261007-004): la coppia soft UI del socket, ombra scura e luce bianca, è al 10% di alpha (prima 16% e 80%; sulla card ombra al 6%); la linea di contatto del guscio porta il bordo. Accessibilità del rilievo (2026-10-07, REP-20261007-003): linea di contatto del guscio al 45% (27% sulla card); LED di selezione più spesso sulle card; disabilitato al 45% di opacità; contorno di sistema nei temi a contrasto di Windows (`forced-colors`) e contorno grafite con LED più spesso con `prefers-contrast: more`. Transizioni: pressione 120 ms, rilascio 200–220 ms con ease-out marcato; pomello dell'interruttore 220 ms (l'originale usava 300 e 250 ms).
 
 **Adattamenti, scelte esecutive non approvate come colori ufficiali.**
 

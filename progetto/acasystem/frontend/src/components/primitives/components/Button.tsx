@@ -3,6 +3,7 @@ import {
   MaterialLayers,
   engrave,
   materialClass,
+  type KitState,
   type MaterialShape,
   type MaterialSize,
 } from './Material';
@@ -22,6 +23,11 @@ export type ButtonProps = ComponentPropsWithRef<'button'> & {
    * The button stays focusable, so focus is not lost while waiting.
    */
   loading?: boolean;
+  /**
+   * Visual state of the kit (ADR-0010): on = orange line (a device that is on), current = blue
+   * line, selected = blue soft press. Pair it with the ARIA attribute that carries the meaning.
+   */
+  state?: KitState | false | null;
 };
 
 const variants = {
@@ -38,6 +44,7 @@ export function Button({
   size,
   contentClassName,
   loading = false,
+  state,
   className = '',
   onClick,
   children,
@@ -62,6 +69,7 @@ export function Button({
   const classes = materialClass(
     { behavior: 'press', shape: shape ?? preset.shape, size: size ?? preset.size },
     preset.extra,
+    state && `aca-${state}`,
     className
   );
   return (

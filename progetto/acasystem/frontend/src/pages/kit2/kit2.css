@@ -1,0 +1,188 @@
+/* Layout of the «Kit 2» page (REP-20261007-007); component styles live in themes/kit2. */
+.k2p {
+  min-height: 100%;
+  padding: 32px 24px 64px;
+  background: var(--k2-bg);
+  color: var(--k2-ink);
+  font-family: var(--k2-font);
+  transition: background-color 300ms var(--k2-ease);
+}
+.k2p > * {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.k2p-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+.k2p-h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 500;
+}
+.k2p-h2 {
+  margin: 0 0 24px;
+  font-size: 24px;
+  font-weight: 500;
+}
+.k2p-lead {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--k2-ink-muted);
+  line-height: 1.5;
+}
+.k2p-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+}
+.k2p-swatches {
+  display: flex;
+  gap: 16px;
+}
+.k2p-swatch {
+  width: 44px;
+  height: 44px;
+}
+.k2p-swatch::after {
+  content: '';
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--k2-accent);
+}
+.k2p-section {
+  margin-bottom: 56px;
+}
+
+/* Component board: the reference's large raised panel. */
+.k2p-board {
+  padding: 40px;
+}
+.k2p-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 40px 32px;
+}
+.k2p-spec {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.k2p-spec__stage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+.k2p-spec__stage > .k2-slider {
+  flex: 1;
+}
+.k2p-caption {
+  color: var(--k2-ink-muted);
+  font-size: 14px;
+  text-align: center;
+}
+.k2p-stack {
+  display: grid;
+  gap: 24px;
+  width: 100%;
+  justify-items: center;
+}
+
+/* Principale and Temperatura screens. */
+.k2p-screens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+  align-items: flex-start;
+}
+.k2p-phone {
+  display: grid;
+  gap: 28px;
+  width: 352px;
+  max-width: 100%;
+  padding: 40px 32px;
+}
+.k2p-phone__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.k2p-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--k2-ink);
+}
+.k2p-accent {
+  color: var(--k2-accent);
+}
+.k2p-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+.k2p-reading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.k2p-label {
+  font-size: 18px;
+  font-weight: 500;
+}
+.k2p-value {
+  color: var(--k2-ink-muted);
+  font-size: 40px;
+  font-weight: 300;
+}
+.k2p-nav {
+  display: flex;
+  justify-content: space-between;
+}
+.k2p-climate {
+  display: grid;
+  grid-template-columns: 1fr 56px;
+  gap: 24px;
+}
+.k2p-climate__main {
+  display: grid;
+  gap: 20px;
+  justify-items: start;
+}
+.k2p-big {
+  color: var(--k2-ink-muted);
+  font-size: 80px;
+  font-weight: 300;
+  line-height: 1;
+}
+.k2p-big__unit {
+  font-size: 36px;
+  vertical-align: top;
+}
+.k2p-outside {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--k2-ink-muted);
+  font-size: 18px;
+}
+.k2p-power {
+  width: 88px;
+  height: 88px;
+}
+.k2p-row {
+  display: flex;
+  gap: 16px;
+}
+.k2p-climate .k2-slider--column {
+  height: 100%;
+}

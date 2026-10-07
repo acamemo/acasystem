@@ -57,7 +57,10 @@ export const previewEntities: HassEntity[] = [
     unit_of_measurement: 'W',
     device_class: 'power',
   }),
-  fixtureEntity('binary_sensor.porta', 'on', { friendly_name: 'Porta d’ingresso', device_class: 'door' }),
+  fixtureEntity('binary_sensor.porta', 'on', {
+    friendly_name: 'Porta d’ingresso',
+    device_class: 'door',
+  }),
   // States in words, as on the real 2×2 of the office demo (L-19): short and long.
   fixtureEntity('sensor.backup_manager', 'idle', { friendly_name: 'Backup Backup Manager state' }),
   fixtureEntity('sensor.lavatrice', 'Risciacquo e centrifuga finale in corso', {
@@ -71,7 +74,10 @@ export const previewEntities: HassEntity[] = [
     max: 10,
     step: 1,
   }),
-  fixtureEntity('select.caldaia', 'Eco', { friendly_name: 'Modalità caldaia', options: ['Eco', 'Comfort', 'Spento'] }),
+  fixtureEntity('select.caldaia', 'Eco', {
+    friendly_name: 'Modalità caldaia',
+    options: ['Eco', 'Comfort', 'Spento'],
+  }),
   fixtureEntity('automation.luci_notte', 'on', {
     friendly_name: 'Luci della notte',
     last_triggered: '2026-10-06T06:30:00Z',
@@ -87,7 +93,10 @@ export const previewEntities: HassEntity[] = [
     preset_mode: 'normale',
     preset_modes: ['normale', 'notte', 'turbo'],
   }),
-  fixtureEntity('fan.bagno', 'off', { friendly_name: 'Aspiratore del bagno', supported_features: 48 }),
+  fixtureEntity('fan.bagno', 'off', {
+    friendly_name: 'Aspiratore del bagno',
+    supported_features: 48,
+  }),
   fixtureEntity('fan.guasto', 'on', {
     friendly_name: 'Ventilatore dello studio',
     supported_features: 49,
@@ -106,7 +115,10 @@ export const previewEntities: HassEntity[] = [
     current_position: 20,
     device_class: 'curtain',
   }),
-  fixtureEntity('lock.ingresso', 'locked', { friendly_name: 'Porta di casa', supported_features: 1 }),
+  fixtureEntity('lock.ingresso', 'locked', {
+    friendly_name: 'Porta di casa',
+    supported_features: 1,
+  }),
   fixtureEntity('lock.garage', 'jammed', { friendly_name: 'Garage' }),
 ];
 
@@ -136,7 +148,12 @@ export const previewSections: Array<{ title: string; cards: PreviewCard[] }> = [
       {
         id: 'entity_card_9',
         size: { w: 2, h: 2 },
-        settings: { entityId: 'sensor.umidita', sensorVariant: 'gauge', sensorMin: 0, sensorMax: 100 },
+        settings: {
+          entityId: 'sensor.umidita',
+          sensorVariant: 'gauge',
+          sensorMin: 0,
+          sensorMax: 100,
+        },
       },
       { id: 'entity_card_10', size: { w: 1, h: 2 }, settings: { entityId: 'sensor.temperatura' } },
     ],
@@ -144,7 +161,11 @@ export const previewSections: Array<{ title: string; cards: PreviewCard[] }> = [
   {
     title: 'Due poli del 2×2: nome in alto, lettura in basso',
     cards: [
-      { id: 'entity_card_11', size: { w: 2, h: 2 }, settings: { entityId: 'sensor.backup_manager' } },
+      {
+        id: 'entity_card_11',
+        size: { w: 2, h: 2 },
+        settings: { entityId: 'sensor.backup_manager' },
+      },
       { id: 'entity_card_12', size: { w: 2, h: 2 }, settings: { entityId: 'sensor.lavatrice' } },
       {
         id: 'entity_card_13',
@@ -189,12 +210,21 @@ export function previewHistory(entityId: string, state: string | undefined) {
   const base = Number.parseFloat(String(state));
   if (Number.isNaN(base)) {
     const now = Date.now() / 1000;
-    return { [entityId]: [{ s: 'off', lc: now - 7200 }, { s: 'on', lc: now - 3000 }, { s: 'off', lc: now - 1200 }, { s: state ?? 'on', lc: now - 300 }] };
+    return {
+      [entityId]: [
+        { s: 'off', lc: now - 7200 },
+        { s: 'on', lc: now - 3000 },
+        { s: 'off', lc: now - 1200 },
+        { s: state ?? 'on', lc: now - 300 },
+      ],
+    };
   }
   const now = Date.now() / 1000;
   return {
     [entityId]: Array.from({ length: 48 }, (_, index) => ({
-      s: String(Math.round((base + Math.sin(index / 6) * base * 0.08 + (index % 5) * 0.05) * 10) / 10),
+      s: String(
+        Math.round((base + Math.sin(index / 6) * base * 0.08 + (index % 5) * 0.05) * 10) / 10
+      ),
       lc: now - (48 - index) * 1800,
     })),
   };

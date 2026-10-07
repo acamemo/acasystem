@@ -1,14 +1,18 @@
-import { useCallback, useLayoutEffect, useRef } from 'react';
+import { lazy, Suspense, useCallback, useLayoutEffect, useRef } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ConnectPage } from '@/pages/connect';
 import { LauncherPage } from '@/pages/launcher/LauncherPage';
 import { SystemPage } from '@/pages/system';
 
-/** Hash routes of the app: the launcher (default) and the Sistema page. */
+/** Hash routes of the app: the launcher (default), the Sistema page and the UI kit preview. */
 export const ROUTES = {
   launcher: '/',
   system: '/sistema',
+  uiKit: '/ui-kit',
 } as const;
+
+// Prototypes in preview (REP-20261007-004), loaded only when the page is opened.
+const UiKitPage = lazy(() => import('@/pages/ui-kit/UiKitPage'));
 
 export interface AppRoutesProps {
   /** No Home Assistant connection configured yet: only the connection page is shown. */
@@ -47,6 +51,17 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
     wasInSystem.current = inSystem;
   }, [inSystem, showConnect]);
 
+  // The UI kit page shows static prototypes: no connection or launcher needed.
+  if (location.pathname === ROUTES.uiKit || location.pathname === '/kit') {
+    return (
+      <div className="aca-app-root">
+        <Suspense fallback={null}>
+          <UiKitPage />
+        </Suspense>
+      </div>
+    );
+  }
+
   if (showConnect) {
     return (
       <div className="aca-app-root">
@@ -64,6 +79,7 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
       <Routes>
         <Route path={ROUTES.launcher} element={null} />
         <Route path={ROUTES.system} element={null} />
+        <Route path={ROUTES.uiKit} element={null} />
         <Route path="*" element={<Navigate to={ROUTES.launcher} replace />} />
       </Routes>
     </div>

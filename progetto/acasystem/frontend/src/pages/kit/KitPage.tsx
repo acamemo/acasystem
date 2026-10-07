@@ -24,6 +24,7 @@ import {
   materialClass,
   type IconName,
 } from '@/components/primitives';
+import CompositionGallery from './CompositionGallery';
 import StateMatrix from './StateMatrix';
 
 type Period = 'week' | 'month';
@@ -98,6 +99,8 @@ export default function KitPage() {
           livelli del pulsante UI-003. Usa il mouse per hover e pressione, Tab per il focus.
         </Body>
       </header>
+
+      <CompositionGallery />
 
       <section className="kit-block" aria-labelledby="kit-matrice">
         <Heading level={2} size="lg" id="kit-matrice">

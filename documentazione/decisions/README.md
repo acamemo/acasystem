@@ -13,6 +13,8 @@ Aggiornato: 2026-10-05. Usare il [modello di decisione](../templates/decision.md
 | [ADR-0007](ADR-0007-acasystem-os.md) | Acasystem «OS»: accenti, tema unico, launcher a widget, tipografia | Accettata | Chat e risposte umane del 2026-10-05/06, piano approvato. |
 | [ADR-0008](ADR-0008-struttura-frontend-backend.md) | Struttura frontend/backend, TypeScript completo, istantanee | Accettata | Chat e risposte umane del 2026-10-06, piano approvato. |
 | [ADR-0009](ADR-0009-home-assistant-dietro-acasystem.md) | Home Assistant dietro Acasystem: proxy del server e accesso proprietario | Accettata | Chat e risposte umane del 2026-10-07. |
+| [ADR-0011](ADR-0011-kit2-base-grafica.md) | Kit 2 (soft UI) come base grafica; Metallo conservato | Accettata | Chat del 2026-10-07. |
+| [ADR-0010](ADR-0010-kit-componibile.md) | Kit Metallo componibile per famiglie di classi | Accettata | Chat del 2026-10-07; perimetro «Kit + galleria». |
 
 Gli stati consentiti sono Proposta, Accettata, Rifiutata e Superata. Numero progressivo a quattro cifre, mai riutilizzato. Non registrare una nuova soluzione tecnica come accettata sulla base di una valutazione dell'agente.
 

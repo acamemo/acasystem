@@ -1,4 +1,13 @@
-export { MaterialLayers, materialClass } from './components/Material';
+export { MaterialLayers, kitClass, materialClass } from './components/Material';
+export type {
+  KitMotion,
+  KitOptions,
+  KitRelief,
+  KitState,
+  KitTone,
+  MaterialShape,
+  MaterialSize,
+} from './components/Material';
 export { Button } from './components/Button';
 export { Surface } from './components/Surface';
 export { Card } from './components/Card';
@@ -29,6 +38,8 @@ export { Toggle } from './components/Toggle';
 export { Segmented } from './components/Segmented';
 export { Field } from './components/Field';
 export { Slider } from './components/Slider';
+export { Meter } from './components/Meter';
+export { AddTile, Tile } from './components/Tile';
 export { ProgressRing } from './components/ProgressRing';
 export { Badge } from './components/Badge';
 export { SelectTrigger } from './components/SelectTrigger';

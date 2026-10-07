@@ -1,0 +1,128 @@
+/* «UI kit» page (#/ui-kit): prototypes in preview, laid over the launcher with its own scroll. */
+.uik-page {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  overflow-y: auto;
+  padding: var(--aca-space-6, 2rem) var(--aca-gutter, 1rem) var(--aca-space-7, 3rem);
+  background: var(--aca-page);
+  color: var(--aca-ink-solid);
+  font-family: var(--aca-font);
+}
+.uik-page > * {
+  max-width: 1280px;
+  margin-inline: auto;
+}
+
+.uik-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--aca-space-4, 1rem);
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: var(--aca-space-6, 2rem);
+}
+.uik-header__title {
+  display: grid;
+  gap: var(--aca-space-2, 0.5rem);
+}
+.uik-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--aca-space-3, 0.75rem);
+  align-items: center;
+}
+
+.uik-block {
+  display: grid;
+  gap: var(--aca-space-4, 1rem);
+  margin-bottom: var(--aca-space-7, 3rem);
+}
+.uik-lead {
+  max-width: 70ch;
+}
+
+/* Two phone-sized screens side by side, stacked on narrow viewports. */
+.uik-screens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--aca-space-7, 3rem);
+  align-items: start;
+}
+.uik-phone {
+  inline-size: min(100%, 22rem);
+}
+.uik-phone__content {
+  display: grid;
+  /*
+   * One full-width column. The kit centres the content of surfaces (justify-content: center):
+   * without an explicit track the grid shrank to its content (237.775 px) and was centred,
+   * so every child landed on fractional pixels (stepped press, blurred edges at 125% zoom).
+   */
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  gap: var(--aca-space-5, 1.5rem);
+  padding: var(--aca-space-6, 2rem) var(--aca-space-5, 1.5rem);
+}
+.uik-phone__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.uik-phone__heading {
+  display: grid;
+  gap: var(--aca-space-1, 0.25rem);
+}
+
+/* Square tiles: icon top left, name bottom left. */
+.uik-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--aca-space-4, 1rem);
+}
+.uik-reading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* Bottom navigation: four equal square keys. */
+.uik-nav {
+  display: grid;
+  /* Four keys of the kit's rounded sm size, spread over the row. */
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between;
+  gap: var(--aca-space-3, 0.75rem);
+}
+.uik-climate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--aca-space-5, 1.5rem);
+}
+.uik-climate__main {
+  display: grid;
+  gap: var(--aca-space-4, 1rem);
+  justify-items: start;
+}
+.uik-climate__value {
+  font-size: clamp(3.5rem, 12vw, 4.5rem);
+  line-height: 1;
+}
+.uik-climate__unit {
+  font-size: 0.45em;
+  vertical-align: top;
+}
+.uik-climate__tiles {
+  display: grid;
+  /* Fixed 80 px tiles: whole device pixels at 100%, 125%, 150% and 200% zoom. */
+  grid-template-columns: repeat(2, 5rem);
+  gap: var(--aca-space-3, 0.75rem);
+}
+.uik-steppers {
+  display: flex;
+  gap: var(--aca-space-3, 0.75rem);
+}
+/* The thermometer column stretches to the height of the values beside it. */
+.uik-climate__thermo {
+  align-self: stretch;
+}

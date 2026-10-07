@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Button } from '@/components/primitives';
 import { TearCalendar } from '@/components/system/tear-calendar/TearCalendar';
 import StateMatrix from '@/pages/kit/StateMatrix';
+import { kitSurfaces, tokenRgb } from './kitColors';
 
 /**
  * REP-20261007-001, corsia kit: K21 (variante danger del Button), K16/K19 (orologio della
@@ -62,31 +63,9 @@ function token(name: string): string {
   return declaration(tokens, name);
 }
 
-/** oklch(L% C H) → sRGB 0–255 (CSS Color 4), as MetalMaterial.test.jsx does. */
-function oklchToRgb(value: string): number[] {
-  const match = /oklch\(([\d.]+)% ([\d.]+) ([\d.]+)/.exec(value);
-  if (!match) throw new Error(`non è oklch: ${value}`);
-  const [L, C, H] = [Number(match[1]) / 100, Number(match[2]), Number(match[3])];
-  const a = C * Math.cos((H * Math.PI) / 180);
-  const b = C * Math.sin((H * Math.PI) / 180);
-  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
-  return [
-    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
-  ].map((v) => {
-    const c = Math.min(1, Math.max(0, v));
-    return Math.round((c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055) * 255);
-  });
-}
-
-/** Colour of a token, following var() aliases to the oklch value. */
+/** Colour of a token, resolving aliases and the derived scales (kitColors). */
 function color(name: string): number[] {
-  const value = token(name);
-  const alias = /^var\((--aca-[\w-]+)\)$/.exec(value);
-  return alias?.[1] ? color(alias[1]) : oklchToRgb(value);
+  return tokenRgb(tokens, name);
 }
 
 function contrast(a: number[], b: number[]): number {
@@ -99,8 +78,9 @@ function contrast(a: number[], b: number[]): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Faces 230→180, well 196→226 and page 222: every metal surface text sits on. */
-const surfaces = [230, 180, 196, 226, 222].map((v) => [v, v, v]);
+/** Faces, well and page of the kit: every metal surface text sits on. */
+// Read lazily: the tokens are loaded in beforeAll.
+const surfaces = () => kitSurfaces(tokens);
 
 describe('K21: variante danger del Button', () => {
   it('è un pulsante del materiale con la propria classe, mai l’arancione di primary', () => {
@@ -145,20 +125,20 @@ describe('K21: variante danger del Button', () => {
   });
 
   it('cambia solo l’inchiostro: rosso ≥ 4,5:1 su ogni faccia, nessuna ombra né LED propri', () => {
-    const content = rule(
-      material,
-      '.aca-m--danger > .aca-m__outer > .aca-m__face > .aca-m__content'
-    );
+    // Tone family of the composable kit, with the first kit's alias (ADR-0010).
+    const flat = material.replace(/\s+/g, ' ');
+    const tone = ':is(.aca-tone-danger, .aca-m--danger)';
+    const content = rule(flat, `${tone} > .aca-m__outer > .aca-m__face > .aca-m__content`);
     const label = rule(
-      material,
-      '.aca-m--danger > .aca-m__outer > .aca-m__face > .aca-m__content .aca-m__label'
+      flat,
+      `${tone} > .aca-m__outer > .aca-m__face > .aca-m__content .aca-m__label`
     );
     expect(declaration(content, 'color')).toBe('var(--aca-danger-ink)');
     expect(declaration(label, 'background-image')).toBe('var(--aca-ink-danger)');
     expect(token('--aca-ink-danger')).toBe(
       'linear-gradient(var(--aca-danger-ink), var(--aca-danger-ink))'
     );
-    for (const surface of surfaces) {
+    for (const surface of surfaces()) {
       expect(contrast(color('--aca-danger-ink'), surface)).toBeGreaterThanOrEqual(4.5);
     }
     // Same number of shadow layers in every state: the variant declares no shadow, clip or LED.
@@ -192,7 +172,7 @@ describe('K17: data grande della copertina arancione e leggibile', () => {
       'var(--aca-orange-ink-large)'
     );
     const large = color('--aca-orange-ink-large');
-    for (const surface of surfaces) expect(contrast(large, surface)).toBeGreaterThanOrEqual(3);
+    for (const surface of surfaces()) expect(contrast(large, surface)).toBeGreaterThanOrEqual(3);
     const sum = (rgb: number[]) => rgb.reduce((total, v) => total + v, 0);
     expect(sum(large)).toBeGreaterThan(sum(color('--aca-orange-ink')));
   });

@@ -9,36 +9,62 @@
 :root {
   --aca-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* Surfaces */
-  --aca-page: rgb(222 222 222);
-  /* Graphite: the lightest value still ≥ 3:1 against every face (3.0 on 180, 3.6 on the well,
-     5.0 on 230, 4.7 on the page). */
-  --aca-socket: rgb(96 96 96);
-  --aca-face: linear-gradient(135deg, rgb(230 230 230), rgb(180 180 180));
-  --aca-face-well: linear-gradient(135deg, rgb(196 196 196), rgb(226 226 226));
+  /*
+   * Colour system (2026-10-07, REP-20261007-005): one base per family, every variant derived
+   * from it with OKLCH relative colours. Change a base and its whole scale follows:
+   * --aca-base for the neutrals (surfaces, graphite, ink), --aca-orange / --aca-blue /
+   * --aca-danger for the accents. Lightness steps are fixed, so the contrast pairs hold for any
+   * hue (verified by MetalMaterial.test.jsx).
+   */
+  --aca-base: oklch(100% 0 0); /* #ffffff */
 
-  /* Ink. The reference ends the text gradient at 75; 60 keeps ≥ 4.5:1 on the darkest face. */
-  --aca-ink: linear-gradient(135deg, rgb(25 25 25), rgb(60 60 60));
-  --aca-ink-strong: linear-gradient(135deg, rgb(5 5 5), rgb(35 35 35));
-  --aca-ink-solid: rgb(32 32 32);
-  --aca-ink-muted: rgb(66 66 66);
+  /* Surfaces: steps of lightness below the base. */
+  --aca-page: oklch(from var(--aca-base) calc(l - 0.035) c h);
+  /* Graphite ring of raised elements: ≥ 3:1 against every face and the page. */
+  --aca-socket: oklch(from var(--aca-base) calc(l * 0.5) c h);
+  /* Softer ring of wells (slider, thermometer, fields): the hole without a black outline. */
+  --aca-socket-well: oklch(from var(--aca-base) calc(l - 0.3) c h);
+  --aca-face: linear-gradient(
+    135deg,
+    var(--aca-base),
+    oklch(from var(--aca-base) calc(l - 0.1) c h)
+  );
+  --aca-face-well: linear-gradient(
+    135deg,
+    oklch(from var(--aca-base) calc(l - 0.08) c h),
+    oklch(from var(--aca-base) calc(l - 0.02) c h)
+  );
 
-  /* Accents (ADR-0007), OKLCH with the sRGB reference in the comment. */
+  /* Ink: dark steps of the same base, ≥ 4.5:1 on every surface. */
+  --aca-ink: linear-gradient(
+    135deg,
+    oklch(from var(--aca-base) calc(l * 0.2) c h),
+    oklch(from var(--aca-base) calc(l * 0.36) c h)
+  );
+  --aca-ink-strong: linear-gradient(
+    135deg,
+    oklch(from var(--aca-base) calc(l * 0.13) c h),
+    oklch(from var(--aca-base) calc(l * 0.28) c h)
+  );
+  --aca-ink-solid: oklch(from var(--aca-base) calc(l * 0.25) c h);
+  --aca-ink-muted: oklch(from var(--aca-base) calc(l * 0.37) c h);
+
+  /* Accent bases (ADR-0007), OKLCH with the sRGB reference in the comment. */
   --aca-orange: oklch(69.24% 0.2024 38.37); /* #ff622a */
-  --aca-orange-light: oklch(80% 0.12 55); /* #f9a870 */
   --aca-blue: oklch(55.01% 0.2481 265.28); /* #295bff */
   --aca-danger: oklch(50.54% 0.1905 27.52); /* #b91c1c */
 
-  /* Ink variants on metal: -icon ≥ 3:1, plain ≥ 4.5:1 on faces 230→180, the well 196→226 and
-     the page 222 (pairs verified by MetalMaterial.test.jsx). */
-  --aca-orange-ink-icon: oklch(49% 0.15 38.37); /* #a3380f */
-  --aca-orange-ink: oklch(40% 0.12 38.37); /* #7b290b */
-  --aca-blue-ink-icon: oklch(49% 0.24 265.28); /* #1d48e5 */
-  --aca-blue-ink: oklch(40% 0.2 265.28); /* #1233b1 */
-  --aca-danger-ink-icon: oklch(49% 0.18 27.52); /* #b01f1d */
-  --aca-danger-ink: oklch(40% 0.15 27.52); /* #861212 */
-  /* Orange for large text only (≥ 24 px, e.g. the date of the cover): WCAG asks 3:1 there, and
-     the ≥ 3:1 ink is already the most saturated orange that keeps it on the darkest face. */
+  /* Light end of the fills: lighter, softer, hue turned a little towards yellow. */
+  --aca-orange-light: oklch(from var(--aca-orange) calc(l + 0.11) calc(c * 0.6) calc(h + 17));
+
+  /* Ink variants on metal, fixed lightness: -icon ≥ 3:1, plain ≥ 4.5:1 on every surface. */
+  --aca-orange-ink-icon: oklch(from var(--aca-orange) 0.49 calc(c * 0.75) h);
+  --aca-orange-ink: oklch(from var(--aca-orange) 0.4 calc(c * 0.6) h);
+  --aca-blue-ink-icon: oklch(from var(--aca-blue) 0.49 calc(c * 0.75) h);
+  --aca-blue-ink: oklch(from var(--aca-blue) 0.4 calc(c * 0.6) h);
+  --aca-danger-ink-icon: oklch(from var(--aca-danger) 0.49 calc(c * 0.75) h);
+  --aca-danger-ink: oklch(from var(--aca-danger) 0.4 calc(c * 0.6) h);
+  /* Orange for large text only (≥ 24 px, e.g. the date of the cover): WCAG asks 3:1 there. */
   --aca-orange-ink-large: var(--aca-orange-ink-icon);
   /* Destructive action on metal (Button variant danger): the ≥ 4.5:1 red ink as a flat text
      gradient, like the other engraved labels. */
@@ -60,9 +86,16 @@
   /* Requested but not yet confirmed: the same orange at 45%. */
   --aca-fill-pending: linear-gradient(
     135deg,
-    oklch(69.24% 0.2024 38.37 / 45%),
-    oklch(80% 0.12 55 / 45%)
+    oklch(from var(--aca-orange) l c h / 45%),
+    oklch(from var(--aca-orange-light) l c h / 45%)
   );
+  /* On / current lines (ADR-0010): the accents a little lighter and more saturated, plus halo. */
+  --aca-orange-bright: oklch(from var(--aca-orange) calc(l + 0.05) calc(c + 0.03) h);
+  --aca-blue-bright: oklch(from var(--aca-blue) calc(l + 0.08) calc(c + 0.02) h);
+  --aca-orange-glow: oklch(from var(--aca-orange) calc(l + 0.05) c h / 45%);
+  --aca-blue-glow: oklch(from var(--aca-blue) calc(l + 0.08) c h / 40%);
+  /* Vertical fills (thermometer): orange at the bottom, light at the top. */
+  --aca-fill-vertical: linear-gradient(0deg, var(--aca-orange), var(--aca-orange-light));
   --aca-arc-from: var(--aca-orange-light);
   --aca-arc-to: var(--aca-orange);
 
@@ -116,27 +149,30 @@
    */
   --aca-socket-shadow:
     -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 10%),
-    0.45em 0.55em 1em 0 rgb(5 5 5 / 16%), -0.4em -0.4em 0.9em 0 rgb(255 255 255 / 80%);
+    0.45em 0.55em 1em 0 rgb(5 5 5 / 10%), -0.4em -0.4em 0.9em 0 rgb(255 255 255 / 10%);
   --aca-socket-shadow-flat:
     -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 10%),
-    0.15em 0.2em 0.4em 0 rgb(5 5 5 / 10%), -0.15em -0.15em 0.35em 0 rgb(255 255 255 / 60%);
+    0.15em 0.2em 0.4em 0 rgb(5 5 5 / 10%), -0.15em -0.15em 0.35em 0 rgb(255 255 255 / 10%);
   --aca-socket-shadow-well:
-    -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 25%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 10%),
-    0.3em 0.3em 0.6em 0 rgb(255 255 255 / 75%), -0.2em -0.2em 0.5em 0 rgb(5 5 5 / 12%);
-  /* Cards and tiles: dark layers about 40% lighter, they cover a larger area. */
+    -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 14%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 6%),
+    0.3em 0.3em 0.6em 0 rgb(255 255 255 / 60%), -0.2em -0.2em 0.5em 0 rgb(5 5 5 / 6%);
+  /*
+   * Soft UI pair (drop and light) at 10% alpha since 2026-10-07 (REP-20261007-004): a lighter
+   * relief; the shell's contact line keeps the edge. Cards: dark layers about 40% lighter (drop 6%).
+   */
   --aca-socket-shadow-card:
     -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 6%),
-    0.45em 0.55em 1em 0 rgb(5 5 5 / 10%), -0.4em -0.4em 0.9em 0 rgb(255 255 255 / 80%);
+    0.45em 0.55em 1em 0 rgb(5 5 5 / 6%), -0.4em -0.4em 0.9em 0 rgb(255 255 255 / 10%);
   --aca-socket-shadow-card-flat:
     -0.15em -0.15em 0.15em -0.075em rgb(5 5 5 / 0%), 0.0375em 0.0375em 0.0675em 0 rgb(5 5 5 / 6%),
-    0.15em 0.2em 0.4em 0 rgb(5 5 5 / 6%), -0.15em -0.15em 0.35em 0 rgb(255 255 255 / 60%);
+    0.15em 0.2em 0.4em 0 rgb(5 5 5 / 6%), -0.15em -0.15em 0.35em 0 rgb(255 255 255 / 10%);
 
   /* Shell (outer layer): contact line, hairline and short drop shadow; flat = hover/pressed. */
   --aca-shell:
-    0 0.05em 0.05em -0.01em rgb(5 5 5 / 35%), 0 0.01em 0.01em -0.01em rgb(5 5 5 / 50%),
+    0 0.05em 0.05em -0.01em rgb(5 5 5 / 45%), 0 0.01em 0.01em -0.01em rgb(5 5 5 / 50%),
     0.12em 0.25em 0.25em -0.01em rgb(5 5 5 / 15%);
   --aca-shell-card:
-    0 0.05em 0.05em -0.01em rgb(5 5 5 / 21%), 0 0.01em 0.01em -0.01em rgb(5 5 5 / 30%),
+    0 0.05em 0.05em -0.01em rgb(5 5 5 / 27%), 0 0.01em 0.01em -0.01em rgb(5 5 5 / 30%),
     0.12em 0.25em 0.25em -0.01em rgb(5 5 5 / 9%);
   --aca-shell-flat: 0 0 0 0 rgb(5 5 5 / 0%), 0 0 0 0 rgb(5 5 5 / 0%), 0 0 0 0 rgb(5 5 5 / 0%);
 
@@ -158,9 +194,9 @@
     0 0 0 0 inset rgb(255 255 255 / 100%), 0.12em 0.12em 0.12em 0 inset rgb(255 255 255 / 25%),
     -0.075em -0.12em 0.2em 0.1em inset rgb(5 5 5 / 25%);
   --aca-face-pressed-layers:
-    0.1em 0.15em 0.05em 0 inset rgb(5 5 5 / 55%),
-    -0.025em -0.03em 0.05em 0.025em inset rgb(5 5 5 / 38%),
-    0.25em 0.25em 0.2em 0 inset rgb(5 5 5 / 36%), 0 0 0.05em 0.5em inset rgb(255 255 255 / 15%),
+    0.1em 0.15em 0.05em 0 inset rgb(5 5 5 / 30%),
+    -0.025em -0.03em 0.05em 0.025em inset rgb(5 5 5 / 18%),
+    0.25em 0.25em 0.2em 0 inset rgb(5 5 5 / 18%), 0 0 0.05em 0.5em inset rgb(255 255 255 / 15%),
     0 0 0 0 inset rgb(255 255 255 / 100%), 0.12em 0.12em 0.12em 0 inset rgb(255 255 255 / 25%),
     -0.075em -0.12em 0.2em 0.1em inset rgb(5 5 5 / 25%);
   --aca-led-off: 0 0 0.15em 0.0625em inset transparent;

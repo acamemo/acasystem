@@ -223,6 +223,10 @@ Chiusura con le misure sul tablet pilota e sul telefono.
 
 L'elenco viene da un tracciamento delle importazioni (`backup/legacy-da-cancellare.txt`). Il classificatore dei permessi ha negato la cancellazione all'agente, quindi l'ha eseguita l'utente. Ripuliti `tsconfig.strict.json`, lo script di tipografia, la regola ESLint delle primitive, l'ingresso `main.tsx`/`app.tsx` e la configurazione e2e. Esito: suite frontend 1161/1161 senza fallimenti; build, budget e immagine verificati (verification.md). Le istantanee `usa-come-git/v009`–`v011` conservano il codice cancellato.
 
+### ISSUE-030
+
+**Colori relativi OKLCH e browser del tablet — Aperto.** Categoria: compatibilità, ipotesi da misurare. Requisiti: REQ-03. Dal 2026-10-07 le scale del kit sono derivate con `oklch(from …)` (REP-20261007-005), supportato da Chrome/Edge 119+, Safari 18+, Firefox 128+; un browser o WebView più vecchio ignora le dichiarazioni e lascia i colori indefiniti. Evidenza: resa corretta nel browser integrato del banco; nessuna prova sul tablet del pilota. Chiusura: verifica sul dispositivo del pilota, oppure decisione su un ripiego precalcolato al build.
+
 ## Incarichi e punto di ripresa
 
 | Report | Incarico | Stato |
@@ -245,15 +249,20 @@ L'elenco viene da un tracciamento delle importazioni (`backup/legacy-da-cancella
 | [REP-20261006-001](reports/REP-20261006-001-acasystem-os.md) | Rifacimento del frontend come «OS» Metallo, con subagenti | Completato con le ondate 0–4; correzioni della revisione finale chiuse in REP-20261006-002. |
 | [REP-20261006-002](reports/REP-20261006-002-ripresa-revisione.md) | Ripresa e chiusura della revisione OS | Completato e verificato; SEC-1 «rifiuta sempre» e banco su `aca-system:0.1` il 2026-10-07 (annotazione nel report). |
 | [REP-20261007-001](reports/REP-20261007-001-launcher-polish.md) | Polish e layout del launcher, «Principale» come schermata di base | Completato e verificato; banco su `aca-system:0.2`. |
-| [REP-20261007-002](reports/REP-20261007-002-animazioni-principale.md) | Revisione animazioni della «Principale» e tempi del kit | Completato; verifiche automatiche verdi, banco non aggiornato. |
-| [REP-20261007-002](reports/REP-20261007-002-ha-dietro-acasystem.md) | Home Assistant dietro Acasystem: proxy e accesso proprietario (ADR-0009) | In corso. |
+| [REP-20261007-003](reports/REP-20261007-003-animazioni-principale.md) | Revisione animazioni della «Principale» e kit alleggerito | Completato e verificato; banco su `aca-system:0.4`. |
+| [REP-20261007-004](reports/REP-20261007-004-prototipi-ui-kit.md) | Pagina «UI kit» con prototipi Principale e Temperatura | Completato; banco su `aca-system:0.5`. |
+| [REP-20261007-005](reports/REP-20261007-005-colori-derivati.md) | Colori derivati da una base, neutri sul bianco, pozzetti più leggeri | Completato; banco su `aca-system:0.5`. Compatibilità dei colori relativi col tablet da verificare. |
+| [REP-20261007-006](reports/REP-20261007-006-kit-componibile.md) | Kit Metallo componibile e galleria (ADR-0010) | Sospeso; codice verificato, controllo visivo da fare. |
+| [REP-20261007-007](reports/REP-20261007-007-kit2.md) | Kit 2 soft UI per confronto | Completato come prototipo; scelta della base da parte dell'utente. |
+| [REP-20261007-002](reports/REP-20261007-002-ha-dietro-acasystem.md) | Home Assistant dietro Acasystem: proxy e accesso proprietario (ADR-0009) | Completato e verificato; banco su `aca-system:0.3`. |
 
 **Incarico attivo:** nessun incarico applicativo aperto. Acasystem 0.1 (base Tunet con il frontend «OS» Metallo e le correzioni della revisione finale) è la versione da mostrare in ufficio il 2026-10-07. Le modifiche successive dipenderanno dal parere raccolto lì (richiesta dell'utente del 2026-10-06).
 
 **Punto di ripresa (2026-10-07):**
-- Banco su localhost:3002 con `aca-system:0.2` dal 2026-10-07 (dati e integrazione HA invariati): «Principale» come schermata di base con celle «+», polish e layout del launcher, legacy cancellato (REP-20261007-001).
+- Banco su localhost:3002 con `aca-system:0.5` dal 2026-10-07: pagina dei prototipi su `/ui-kit` (REP-20261007-004) e accessibilità del rilievo (REP-20261007-003); `aca-system:0.4` con animazioni e kit alleggerito. In precedenza `aca-system:0.3`: Home Assistant dietro Acasystem (ADR-0009, REP-20261007-002). Il browser parla solo con Acasystem, il server inoltra a HA sotto `/ha` e l'accesso avviene con la pagina Acasystem (utente e password di HA). Al primo uso serve un nuovo accesso. Include «Principale» con celle «+» e il polish del launcher (REP-20261007-001).
   - Ripristino possibile su `aca-system:0.1` o `aca-tunet:1.22.1-aca-press-neu1`, cambiando `image:` in `progetto/compose.tunet.yaml`.
-  - Copie del volume in `backup/banco/`, l'ultima a freddo prima di 0.2: `tunet-data-20261007-pre-0.2-freddo.tgz`.
+  - Copie del volume in `backup/banco/`, l'ultima a freddo prima di 0.3: `tunet-data-20261007-pre-0.3-freddo.tgz`.
+  - Ripristino: `image: aca-system:0.2` (senza proxy) o `0.1` in `progetto/compose.tunet.yaml`.
 - Codice verificato:
   - typecheck, lint, tipografia e colori a 0;
   - frontend 1281/1281;
@@ -263,5 +272,7 @@ L'elenco viene da un tracciamento delle importazioni (`backup/legacy-da-cancella
   - `v009`: demo 0.1;
   - `v012`: legacy cancellato;
   - `v013`: polish e layout del launcher.
+  - `v014`: Home Assistant dietro Acasystem; immagine `aca-system:0.3` costruita da questa copia.
+- Git: commit `13e5537` su `master`, su richiesta dell'utente, con il lavoro fino alle correzioni del proxy. Le correzioni finali e la documentazione successive non sono committate.
 - Prossimo passo: il parere dell'ufficio sull'interfaccia, poi le modifiche indicate dall'utente.
 - Questioni aperte: ISSUE-026/027/028 e le decisioni di REP-20261006-002 e REP-20261007-001 (griglia per schermi larghi, righe del telefono, ritorno a Principale dopo inattività, dipendenze inutilizzate).

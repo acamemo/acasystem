@@ -22,7 +22,11 @@ Aggiornato: 2026-10-06. Stato corrente degli incarichi in [project-status.md](..
 | [REP-20261006-001](REP-20261006-001-acasystem-os.md) | Rifacimento del frontend come «OS» Metallo | Struttura frontend/backend, TypeScript, kit bilanciato, launcher a widget, subagenti e revisione finale. |
 | [REP-20261006-002](REP-20261006-002-ripresa-revisione.md) | Ripresa della revisione OS | 35 rilievi corretti o registrati, verifiche avversarie e banco `aca-system:0.1` aggiornato su autorizzazione; sessione HA reale e documentazione operativa verificate alla ripresa del 2026-10-07. |
 | [REP-20261007-001](REP-20261007-001-launcher-polish.md) | Polish e layout del launcher | «Principale» come schermata di base con celle «+», controllo del kit Metallo sulle schermate reali, polish e layout delle superfici del launcher. |
-| [REP-20261007-002](REP-20261007-002-animazioni-principale.md) | Animazioni della Principale | Revisione emil-design-eng: tempi del kit (pressione 120 ms, rilascio 220 ms), hover senza incasso, wiggle ridotto, tastiera senza animazione. |
+| [REP-20261007-007](REP-20261007-007-kit2.md) | Kit 2 | Soft UI sul modello delle reference neumorphism, per confronto, in `#/ui-kit`. |
+| [REP-20261007-006](REP-20261007-006-kit-componibile.md) | Kit componibile | Famiglie di classi (ADR-0010), componenti dei prototipi nel kit, galleria; sospeso. |
+| [REP-20261007-005](REP-20261007-005-colori-derivati.md) | Colori derivati | Scale da una base OKLCH, neutri sul bianco puro, pozzetti più leggeri. |
+| [REP-20261007-004](REP-20261007-004-prototipi-ui-kit.md) | Prototipi «UI kit» | Pagina `#/ui-kit` con Principale e Temperatura in metallo e la galleria del kit. |
+| [REP-20261007-003](REP-20261007-003-animazioni-principale.md) | Animazioni della Principale | Revisione emil-design-eng: tempi del kit (pressione 120 ms, rilascio 220 ms), hover senza incasso, wiggle ridotto, tastiera senza animazione. |
 | [REP-20261007-002](REP-20261007-002-ha-dietro-acasystem.md) | Home Assistant dietro Acasystem | Proxy HTTP/WebSocket nel backend, accesso proprietario con l'API di login di HA, nessun indirizzo chiesto nel browser (ADR-0009). |
 
 ## Regole

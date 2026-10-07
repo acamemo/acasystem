@@ -68,13 +68,17 @@ function expand(text: string, scope: string): string {
 describe('soft well of the kit (.aca-m--well-soft)', () => {
   it('keeps the layer counts of the kit in every state: socket 4, shell 3, face 7 + LED', () => {
     const rules = wellSoftRules();
-    const base = rules.find(([selector]) => selector === '.aca-m--well-soft')?.[1] ?? '';
+    const base =
+      rules.find(([selector]) => selector === ':is(.aca-well-soft, .aca-m--well-soft)')?.[1] ?? '';
     expect(base).not.toBe('');
     for (const name of ['--aca-well-soft-rest', '--aca-well-soft-hover', '--aca-well-soft-press']) {
       expect(layers(value(base, name)), name).toHaveLength(7);
     }
     expect(layers(value(base, 'box-shadow'))).toHaveLength(4);
-    const shells = rules.filter(([selector]) => /> \.aca-m__outer$/.test(selector));
+    // Shell rules that set a shadow (the press rule only scales the shell).
+    const shells = rules.filter(
+      ([selector, body]) => /> \.aca-m__outer$/.test(selector) && value(body, 'box-shadow')
+    );
     expect(shells.length).toBeGreaterThan(0);
     for (const [, body] of shells)
       expect(layers(expand(value(body, 'box-shadow'), base))).toHaveLength(3);
@@ -88,7 +92,10 @@ describe('soft well of the kit (.aca-m--well-soft)', () => {
   });
 
   it('has no hole shade or graphite ring, and a quieter edge than the well', () => {
-    const base = wellSoftRules().find(([selector]) => selector === '.aca-m--well-soft')?.[1] ?? '';
+    const base =
+      wellSoftRules().find(
+        ([selector]) => selector === ':is(.aca-well-soft, .aca-m--well-soft)'
+      )?.[1] ?? '';
     expect(value(base, 'background-color')).toBe('transparent');
     expect(material).not.toMatch(/well-soft[^{}]*::after/);
     const darkAlphas = (text: string) =>
@@ -96,13 +103,15 @@ describe('soft well of the kit (.aca-m--well-soft)', () => {
     // Rest: at most 20% dark (the round-one cells had 40%), the press of the kit at most 55%.
     expect(Math.max(...darkAlphas(value(base, '--aca-well-soft-rest')))).toBeLessThanOrEqual(20);
     expect(Math.max(...darkAlphas(value(base, '--aca-well-soft-press')))).toBeLessThanOrEqual(55);
-    // States on buttons only, written with the preview classes of the kit.
+    // States on buttons, or on the composed .aca-well-soft.aca-fx-press (ADR-0010), written
+    // with the preview classes of the kit.
     const selectors = wellSoftRules()
-      .map(([selector]) => selector)
+      .map(([selector]) => selector.replace(/\s+/g, ' ').replace(/\( /g, '('))
       .join('\n');
-    expect(selectors).toContain('button.aca-m--well-soft:is(:hover, .is-hover)');
-    expect(selectors).toContain('button.aca-m--well-soft:is(:active, .is-active)');
-    expect(selectors).toContain('button.aca-m--well-soft:is(:focus-visible, .is-focus)');
+    const pressable = ':is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press)';
+    expect(selectors).toContain(`${pressable}:is(:hover, .is-hover)`);
+    expect(selectors).toContain(`${pressable}:is(:active, .is-active)`);
+    expect(selectors).toContain(`${pressable}:is(:focus-visible, .is-focus)`);
   });
 
   it('is used by the launcher cells without reaching into the material layers', () => {

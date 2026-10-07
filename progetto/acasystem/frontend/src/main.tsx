@@ -25,6 +25,14 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// localhost:3002/ui-kit (or /kit, /ui) typed without the hash: open the UI kit page.
+if (
+  typeof window !== 'undefined' &&
+  ['/ui-kit', '/kit', '/ui'].includes(window.location.pathname.replace(/\/$/, ''))
+) {
+  window.history.replaceState(null, '', '/#/ui-kit');
+}
+
 const root = document.getElementById('root');
 if (root) {
   createRoot(root).render(

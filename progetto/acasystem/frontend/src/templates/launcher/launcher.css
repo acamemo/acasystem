@@ -133,17 +133,11 @@
   .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
     transition-duration: var(--aca-press);
   }
-  .aca-launcher-widget__frame:has([data-widget-open]:active) {
-    box-shadow: var(--aca-m-socket-flat);
+  /* Own compositor layer for the press scale, as for the kit's pressable elements. */
+  .aca-launcher-widget__frame:has([data-widget-open]) > .aca-m__outer {
+    will-change: transform;
   }
   .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer {
-    box-shadow: var(--aca-shell-flat);
-  }
-  .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
-    clip-path: inset(
-      var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
-    );
-    box-shadow: var(--aca-face-pressed);
     transform: scale(var(--aca-press-scale));
   }
 

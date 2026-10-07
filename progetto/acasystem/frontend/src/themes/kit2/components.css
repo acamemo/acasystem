@@ -1,0 +1,499 @@
+/*
+ * «Kit 2» components (REP-20261007-007), composable by families like the Metallo kit
+ * (ADR-0010), one class per family:
+ *   base       .k2-el
+ *   relief     .k2-raised · .k2-inset · .k2-flat
+ *   shape      .k2-pill · .k2-round · .k2-rounded · .k2-square · .k2-panel
+ *   tone       .k2-tone-accent
+ *   motion     .k2-fx-press (raised → recessed while pressed) · .k2-fx-hover-accent
+ *   state      .k2-on (recessed + accent ink) · disabled
+ *   component  .k2-switch · .k2-check · .k2-radio · .k2-btn · .k2-iconbtn · .k2-play · .k2-clock
+ *              · .k2-chip · .k2-tabs · .k2-field · .k2-slider · .k2-tile · .k2-nav
+ * Sizes are whole pixels (4 px grid), so edges stay sharp at 125% and 150% zoom.
+ */
+@layer components {
+  /* ── Base ── */
+  .k2-el {
+    position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--k2-r, var(--k2-radius));
+    background: var(--k2-bg);
+    color: var(--k2-ink-muted);
+    font: 500 16px/1.2 var(--k2-font);
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      box-shadow 200ms var(--k2-ease),
+      color 200ms var(--k2-ease),
+      background-color 200ms var(--k2-ease);
+  }
+  button.k2-el,
+  label.k2-el {
+    cursor: pointer;
+  }
+  .k2-el:focus-visible,
+  .k2-el:has(:focus-visible) {
+    outline: 2px solid var(--k2-accent);
+    outline-offset: 3px;
+  }
+  .k2-el:is(:disabled, [aria-disabled='true']) {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  /* ── Relief ── */
+  .k2-raised {
+    box-shadow: var(--k2-raised);
+  }
+  .k2-inset {
+    box-shadow: var(--k2-inset);
+  }
+  .k2-flat {
+    box-shadow: none;
+  }
+
+  /* ── Shape ── */
+  .k2-pill {
+    --k2-r: 999px;
+  }
+  .k2-round {
+    --k2-r: 50%;
+    aspect-ratio: 1;
+  }
+  .k2-rounded {
+    --k2-r: var(--k2-radius);
+  }
+  .k2-square {
+    --k2-r: 16px;
+    aspect-ratio: 1;
+  }
+  .k2-panel {
+    --k2-r: var(--k2-radius-lg);
+    display: block;
+    box-shadow: var(--k2-raised-lg);
+  }
+
+  /* ── Motion ── */
+  .k2-fx-press:is(:active, .is-active):not(:disabled, [aria-disabled='true']) {
+    box-shadow: var(--k2-inset);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .k2-fx-hover-accent:hover:not(:disabled, [aria-disabled='true']) {
+      color: var(--k2-accent);
+    }
+  }
+
+  /* ── Tone ── */
+  .k2-tone-accent {
+    background: var(--k2-accent);
+    box-shadow: var(--k2-accent-face), var(--k2-raised);
+    color: var(--k2-on-accent);
+  }
+  .k2-tone-accent.k2-fx-press:is(:active, .is-active):not(:disabled) {
+    box-shadow: var(--k2-accent-face-pressed);
+  }
+
+  /* ── State: on = recessed with the accent ink (checkbox, tab, tile, key) ── */
+  .k2-el.k2-on {
+    box-shadow: var(--k2-inset);
+    color: var(--k2-accent);
+  }
+
+  /* ── Switch: raised track, the accent gradient fades in, the knob slides ── */
+  .k2-switch {
+    --k2-r: 999px;
+    width: 96px;
+    height: 48px;
+    justify-content: flex-start;
+    box-shadow: var(--k2-raised);
+    overflow: hidden;
+  }
+  .k2-switch::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--k2-fill);
+    opacity: 0;
+    transition: opacity 300ms var(--k2-ease);
+  }
+  .k2-switch::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--k2-knob);
+    transition:
+      transform 300ms var(--k2-ease),
+      background-color 300ms var(--k2-ease);
+  }
+  .k2-switch[aria-checked='true']::before {
+    opacity: 1;
+  }
+  .k2-switch[aria-checked='true']::after {
+    transform: translateX(48px);
+    background: var(--k2-knob-on);
+  }
+
+  /* ── Checkbox and radio: native input hidden, the label is the control ── */
+  .k2-check,
+  .k2-radio {
+    width: 44px;
+    height: 44px;
+    box-shadow: var(--k2-raised);
+  }
+  .k2-check {
+    --k2-r: 8px;
+  }
+  .k2-radio {
+    --k2-r: 50%;
+  }
+  .k2-check input,
+  .k2-radio input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .k2-check:has(input:checked),
+  .k2-radio:has(input:checked) {
+    box-shadow: var(--k2-inset);
+    color: var(--k2-accent);
+  }
+  .k2-radio::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--k2-knob);
+    transition: background-color 200ms var(--k2-ease);
+  }
+  .k2-radio:has(input:checked)::after {
+    background: var(--k2-accent);
+  }
+
+  /* ── Buttons ── */
+  .k2-btn {
+    min-width: 200px;
+    height: 56px;
+    padding: 0 24px;
+    font-size: 18px;
+  }
+  .k2-iconbtn {
+    width: 56px;
+    height: 56px;
+  }
+
+  /* ── Play: round key with two waves while playing ── */
+  .k2-play {
+    width: 96px;
+    height: 96px;
+    color: var(--k2-accent);
+    box-shadow: var(--k2-raised);
+  }
+  .k2-play-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 160px;
+    height: 160px;
+  }
+  .k2-play-wave {
+    position: absolute;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    box-shadow:
+      6px 6px 12px var(--k2-shade),
+      -6px -6px 12px var(--k2-light);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .k2-play-wrap.is-playing .k2-play-wave {
+    animation: k2-wave 4s linear infinite;
+  }
+  .k2-play-wrap.is-playing .k2-play-wave + .k2-play-wave {
+    animation-delay: 2s;
+  }
+  @keyframes k2-wave {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+
+  /* ── Clock: raised dial, recessed ring, accent second hand ── */
+  .k2-clock {
+    --k2-r: 50%;
+    width: 192px;
+    height: 192px;
+    box-shadow: var(--k2-raised);
+  }
+  .k2-clock__dial {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    box-shadow: var(--k2-inset);
+  }
+  .k2-clock__dial::after {
+    content: '';
+    position: absolute;
+    inset: 36px;
+    border-radius: 50%;
+    box-shadow: var(--k2-inset-soft);
+  }
+  .k2-clock__hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    border-radius: 2px;
+    transform-origin: bottom center;
+  }
+  .k2-clock__hand--h {
+    width: 4px;
+    height: 48px;
+    margin-left: -2px;
+    background: var(--k2-knob);
+  }
+  .k2-clock__hand--m {
+    width: 4px;
+    height: 68px;
+    margin-left: -2px;
+    background: var(--k2-ink-muted);
+  }
+  .k2-clock__hand--s {
+    width: 2px;
+    height: 76px;
+    margin-left: -1px;
+    background: var(--k2-accent);
+  }
+  .k2-clock__pin {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: 50%;
+    background: var(--k2-accent);
+  }
+
+  /* ── Chip ── */
+  .k2-chip {
+    height: 56px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+  .k2-chip__icon {
+    color: var(--k2-accent);
+  }
+  .k2-chip__close {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--k2-ink-muted);
+    cursor: pointer;
+  }
+
+  /* ── Tabs: raised strip, the current tab recessed with accent ink ── */
+  .k2-tabs {
+    --k2-r: 12px;
+    gap: 4px;
+    height: 72px;
+    padding: 8px;
+    box-shadow: var(--k2-raised);
+  }
+  .k2-tabs__item {
+    --k2-r: 8px;
+    height: 56px;
+    padding: 0 20px;
+    font-size: 20px;
+    font-weight: 400;
+  }
+
+  /* ── Field: recessed, optional icon ── */
+  .k2-field {
+    justify-content: flex-start;
+    width: 100%;
+    height: 56px;
+    padding: 0 20px;
+    box-shadow: var(--k2-inset);
+    cursor: text;
+  }
+  .k2-field input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--k2-ink);
+    font: 400 18px var(--k2-font);
+    outline: none;
+  }
+  .k2-field input::placeholder {
+    color: var(--k2-ink-muted);
+  }
+  .k2-field.is-error {
+    color: var(--k2-error, oklch(55% 0.2 25));
+  }
+
+  /* ── Slider: thin recessed track, accent fill, white knob ── */
+  .k2-slider {
+    --k2-ratio: 0;
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 24px;
+  }
+  .k2-slider__track {
+    position: absolute;
+    top: 8px;
+    right: 0;
+    left: 0;
+    height: 8px;
+    border-radius: 999px;
+    box-shadow: var(--k2-inset-soft);
+  }
+  .k2-slider__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: calc(var(--k2-ratio) * 100%);
+    border-radius: inherit;
+    background: var(--k2-fill);
+  }
+  .k2-slider__knob {
+    position: absolute;
+    top: 0;
+    left: calc((100% - 24px) * var(--k2-ratio));
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--k2-light);
+    box-shadow: 0 2px 4px var(--k2-shade);
+    pointer-events: none;
+  }
+  .k2-slider__knob::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    box-shadow: var(--k2-inset-soft);
+  }
+  .k2-slider input {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 44px;
+    margin: 0;
+    transform: translateY(-50%);
+    opacity: 0;
+    cursor: pointer;
+  }
+  .k2-slider:has(input:focus-visible) .k2-slider__knob {
+    outline: 2px solid var(--k2-accent);
+    outline-offset: 3px;
+  }
+  /* Vertical column (thermometer): thick recessed track, the fill rises, no knob. */
+  .k2-slider--column {
+    width: 56px;
+    height: 100%;
+    min-height: 200px;
+  }
+  .k2-slider--column .k2-slider__track {
+    inset: 0;
+    height: auto;
+    padding: 6px;
+    border-radius: 999px;
+    box-shadow: var(--k2-inset);
+  }
+  .k2-slider--column .k2-slider__fill {
+    top: auto;
+    right: 6px;
+    bottom: 6px;
+    left: 6px;
+    width: auto;
+    height: calc(var(--k2-ratio) * (100% - 12px));
+    min-height: 44px;
+    background: linear-gradient(
+      0deg,
+      var(--k2-accent-dark),
+      var(--k2-accent),
+      var(--k2-accent-light)
+    );
+  }
+  .k2-slider--column input {
+    top: 0;
+    height: 100%;
+    width: 100%;
+    transform: none;
+    writing-mode: vertical-lr;
+    direction: rtl;
+  }
+  .k2-slider--column:has(input:focus-visible) .k2-slider__track {
+    outline: 2px solid var(--k2-accent);
+    outline-offset: 3px;
+  }
+
+  /* ── Tile: square, icon top left, name at the bottom ── */
+  .k2-tile {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: var(--k2-dim, 100%);
+    padding: 16px;
+    text-align: start;
+  }
+  .k2-tile--add {
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: var(--k2-inset-soft);
+  }
+  .k2-tile__name {
+    font-size: 16px;
+    color: var(--k2-ink);
+  }
+  .k2-on .k2-tile__name {
+    color: var(--k2-accent);
+  }
+
+  /* ── Navigation keys ── */
+  .k2-nav {
+    width: 56px;
+    height: 56px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .k2-el,
+    .k2-switch::before,
+    .k2-switch::after,
+    .k2-radio::after {
+      transition: none;
+    }
+    .k2-play-wrap.is-playing .k2-play-wave {
+      animation: none;
+    }
+  }
+}

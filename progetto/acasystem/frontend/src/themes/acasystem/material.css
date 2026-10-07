@@ -1,29 +1,39 @@
 /*
- * ACA «Metallo» material (ADR-0006, ADR-0007): the four layers of the UI-003 pressure button.
+ * ACA «Metallo» material (ADR-0006, ADR-0007), composable by families (ADR-0010).
  *
- *   .aca-m                        socket   graphite slot, soft lift (wells: hole shade + ::after)
- *   └ .aca-m__outer               shell    contact line and drop shadow; collapses on hover/press
+ *   .aca-m                        socket   soft lift under the element (wells: ring + hole shade)
+ *   └ .aca-m__outer               shell    contact line and drop shadow; scales on press
  *     └ .aca-m__face              face     metal gradient, seven inset shadows + LED, clip-path
- *       └ .aca-m__content         content  Inter, engraved labels; scales on hover
+ *       └ .aca-m__content         content  Inter, engraved labels
  *
- * Behaviour  --press  hover/active of the reference (buttons, clickable cards)
- *            --static rest only (informative surfaces)
- *            --well   permanently recessed (fields, tracks, rings)
- * One physics per state, light from the top left: raised elements never show the hole shade.
- * Pressures  hover = soft press, click = press; selection = soft press + blue LED, full face.
- * Shapes set --aca-radius, so clip-path rounds exactly like border-radius.
- * A host (.aca-m-host) forwards its hover/press to a hosted material (.aca-m--hosted),
- * e.g. a toggle knob or a slider thumb: hover only collapses its shell, click scales it a little.
- * Preview classes .is-hover, .is-active and .is-focus force the states in the development
- * gallery; they sit in the same selectors as the real pseudo-classes.
+ * One class per family, combined like utilities:
+ *   base       .aca-m
+ *   relief     .aca-raised (default) · .aca-well · .aca-well-soft
+ *   shape      .aca-pill · .aca-circle · .aca-rounded · .aca-square · .aca-card
+ *   size       .aca-sm · .aca-md · .aca-lg · .aca-xl
+ *   tone       .aca-tone-primary · .aca-tone-quiet · .aca-tone-danger
+ *   motion     .aca-fx-press · .aca-fx-hover-light · .aca-fx-wiggle
+ *   state      .aca-on · .aca-current · .aca-selected · .aca-error (+ ARIA, see below)
+ *   layout     .aca-stretch (fills the parent's height)
+ * e.g. «aca-m aca-raised aca-square aca-fx-press aca-tile aca-on» is a lit tile.
+ *
+ * The aca-m--* classes of the first kit are aliases kept until the app is migrated:
+ * --press = raised + fx-press + fx-hover-light; --static = raised; --well, --well-soft,
+ * --pill, --circle, --rounded, --card, --sm/md/lg, --primary, --quiet, --danger, --error,
+ * --fill = the family class of the same name. Every rule answers both names.
+ *
+ * A host (.aca-m-host) forwards its press to a hosted material (.aca-m--hosted), e.g. a toggle
+ * knob or a slider thumb. Preview classes .is-hover, .is-active and .is-focus force the states
+ * in the gallery; they sit in the same selectors as the real pseudo-classes.
  */
 
 /* Component layer: Tailwind utilities on the same element still win, as for any component style. */
 @layer components {
+  /* ── Base ─────────────────────────────────────────────────────────────── */
   .aca-m {
     --aca-radius: var(--aca-radius-pill);
-    --aca-press-scale: 0.975;
-    --aca-hosted-press-scale: 0.96;
+    --aca-press-scale: 0.96;
+    --aca-hosted-press-scale: 0.95;
     /* Motion of the kit: quick press, softer release (emil-design-eng review, 2026-10-07). */
     --aca-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --aca-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -42,7 +52,12 @@
     padding: 0;
     border: 0;
     border-radius: var(--aca-radius);
-    background-color: var(--aca-socket);
+    /*
+     * Raised elements: no socket colour under the face. With fractional sizes (e.g. 72.89 px at
+     * 125% zoom) the anti-aliased rounded edge of the face let a hairline of graphite through.
+     * The ring stays only where it is meant to show: wells set --aca-socket-well.
+     */
+    background-color: transparent;
     box-shadow: var(--aca-m-socket);
     color: var(--aca-ink-solid);
     font-family: var(--aca-font);
@@ -58,7 +73,9 @@
     display: block;
     border-radius: inherit;
     box-shadow: var(--aca-m-shell);
-    transition: box-shadow var(--aca-release) var(--aca-ease-out);
+    transition:
+      box-shadow var(--aca-release) var(--aca-ease-out),
+      transform 200ms var(--aca-ease-out);
   }
 
   .aca-m__face {
@@ -76,14 +93,8 @@
       box-shadow var(--aca-release) var(--aca-ease-out),
       clip-path 200ms var(--aca-ease-out),
       background-image 200ms var(--aca-ease-out),
-      transform 200ms var(--aca-ease-out);
-  }
-  /* Pressing answers within the press budget; the release keeps the softer timing above. */
-  :is(.aca-m, .aca-m-host):is(:active, .is-active),
-  :is(.aca-m, .aca-m-host):is(:active, .is-active) .aca-m__outer,
-  :is(.aca-m, .aca-m-host):is(:active, .is-active) .aca-m__face,
-  :is(.aca-m, .aca-m-host):is(:active, .is-active) .aca-m__content {
-    transition-duration: var(--aca-press);
+      transform 200ms var(--aca-ease-out),
+      filter 160ms var(--aca-ease-out);
   }
 
   .aca-m__content {
@@ -123,17 +134,6 @@
     color: var(--aca-ink-muted);
   }
 
-  /* Sizes: only the font size changes; shadows, padding and radius follow in em. */
-  .aca-m--sm {
-    font-size: 0.875rem;
-  }
-  .aca-m--md {
-    font-size: 1rem;
-  }
-  .aca-m--lg {
-    font-size: 1.125rem;
-  }
-
   /*
    * Touch target of at least 44 px (kit rule) without changing the look: a transparent ::before
    * centred on the socket grows only along the sides shorter than 44 px. :where() keeps it below
@@ -146,191 +146,98 @@
     border-radius: inherit;
   }
 
-  /* Shapes */
-  .aca-m--pill {
+  /* ── Size: only the font size changes; shadows, padding and radius follow in em ── */
+  :is(.aca-sm, .aca-m--sm) {
+    font-size: 0.875rem;
+  }
+  :is(.aca-md, .aca-m--md) {
+    font-size: 1rem;
+  }
+  :is(.aca-lg, .aca-m--lg) {
+    font-size: 1.125rem;
+  }
+  .aca-xl {
+    font-size: 1.5rem;
+  }
+
+  /* ── Shape ────────────────────────────────────────────────────────────── */
+  :is(.aca-pill, .aca-m--pill) {
     --aca-radius: var(--aca-radius-pill);
   }
-  .aca-m--circle {
+  :is(.aca-circle, .aca-m--circle) {
     --aca-radius: 50%;
     --aca-pad: 0;
   }
-  .aca-m--rounded {
+  :is(.aca-rounded, .aca-m--rounded) {
     --aca-radius: var(--aca-radius-rounded);
     --aca-pad: 0;
     --aca-dim: 3.75em;
   }
-  .aca-m--circle > .aca-m__outer > .aca-m__face,
-  .aca-m--rounded > .aca-m__outer > .aca-m__face {
-    width: var(--aca-dim, 2.75em);
-    height: var(--aca-dim, 2.75em);
+  /*
+   * Fixed-size shapes snap to a 4 px grid: whole device pixels at 100%, 125%, 150% and 200%
+   * zoom, so edges stay sharp and the press scales from a whole-pixel box.
+   */
+  :is(.aca-circle, .aca-m--circle, .aca-rounded, .aca-m--rounded) > .aca-m__outer > .aca-m__face {
+    width: round(nearest, var(--aca-dim, 2.75em), 4px);
+    height: round(nearest, var(--aca-dim, 2.75em), 4px);
   }
-  .aca-m--circle > .aca-m__outer > .aca-m__face > .aca-m__content,
-  .aca-m--rounded > .aca-m__outer > .aca-m__face > .aca-m__content {
+  :is(.aca-circle, .aca-m--circle, .aca-rounded, .aca-m--rounded)
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content {
     height: 100%;
   }
-  .aca-m--card {
+  :is(.aca-card, .aca-m--card, .aca-square) {
     --aca-radius: var(--aca-radius-card);
     --aca-pad: 1.5em;
     --aca-press-scale: 0.985;
     --aca-m-socket: var(--aca-socket-shadow-card);
     --aca-m-socket-flat: var(--aca-socket-shadow-card-flat);
     --aca-m-shell: var(--aca-shell-card);
+    /* Larger LED: the 1 px glow of controls is lost on a card-sized face. */
+    --aca-face-selected: var(--aca-face-soft-layers), 0 0 0.2em 0.125em inset var(--aca-blue);
     display: block;
     text-align: start;
   }
-  .aca-m--card > .aca-m__outer > .aca-m__face > .aca-m__content {
+  :is(.aca-card, .aca-m--card) > .aca-m__outer > .aca-m__face > .aca-m__content {
     display: block;
   }
-  .aca-m--fill,
-  .aca-m--fill > .aca-m__outer,
-  .aca-m--fill > .aca-m__outer > .aca-m__face,
-  .aca-m--fill > .aca-m__outer > .aca-m__face > .aca-m__content {
+  /*
+   * Square: a card-like tile with a 1:1 ratio. Its side is --aca-dim (snapped to 4 px) or, by
+   * default, the width of its cell. Deeper press than a card: on 80–120 px a 0.985 scale moved
+   * about 1 px, too little to read as motion.
+   */
+  .aca-square {
+    --aca-pad: 1em;
+    --aca-press-scale: 0.97;
+    /* Rounded down to 4 px, so a tile that fills its cell never overflows it. */
+    inline-size: round(down, var(--aca-dim, 100%), 4px);
+    aspect-ratio: 1;
+  }
+  .aca-square > .aca-m__outer,
+  .aca-square > .aca-m__outer > .aca-m__face,
+  .aca-square > .aca-m__outer > .aca-m__face > .aca-m__content {
+    height: 100%;
+  }
+  :is(.aca-stretch, .aca-m--fill),
+  :is(.aca-stretch, .aca-m--fill) > .aca-m__outer,
+  :is(.aca-stretch, .aca-m--fill) > .aca-m__outer > .aca-m__face,
+  :is(.aca-stretch, .aca-m--fill) > .aca-m__outer > .aca-m__face > .aca-m__content {
     height: 100%;
   }
 
-  /* Behaviour */
-  .aca-m--press {
-    cursor: pointer;
-  }
-
-  .aca-m:is(:focus-visible, .is-focus) {
-    outline: 2px solid var(--aca-focus);
-    outline-offset: 3px;
-  }
-
-  /* Hover (pointer devices only): shell to zero, ring of socket, soft press, content 0.975. */
-  @media (hover: hover) {
-    .aca-m--press:is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) {
-      box-shadow: var(--aca-m-socket-flat);
-    }
-    .aca-m--press:is(:hover, .is-hover):not(:disabled, [aria-disabled='true']) > .aca-m__outer,
-    .aca-m-host:is(:hover, .is-hover):not(:disabled, [aria-disabled='true'])
-      .aca-m--hosted
-      > .aca-m__outer {
-      box-shadow: var(--aca-shell-flat);
-    }
-    .aca-m--press:is(:hover, .is-hover):not(:disabled, [aria-disabled='true'])
-      > .aca-m__outer
-      > .aca-m__face {
-      clip-path: inset(
-        var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
-      );
-      box-shadow: var(--aca-face-pressed-soft);
-    }
-    .aca-m--press:is(:hover, .is-hover):not(:disabled, [aria-disabled='true'])
-      > .aca-m__outer
-      > .aca-m__face
-      > .aca-m__content {
-      transform: scale(0.975);
-    }
-  }
-
-  /* Press: the hover sequence plus the full press and the face scaling down (touch feedback). */
-  .aca-m--press:is(:active, .is-active):not(:disabled, [aria-disabled='true']) {
-    box-shadow: var(--aca-m-socket-flat);
-  }
-  .aca-m--press:is(:active, .is-active):not(:disabled, [aria-disabled='true']) > .aca-m__outer,
-  .aca-m-host:is(:active, .is-active):not(:disabled, [aria-disabled='true'])
-    .aca-m--hosted
-    > .aca-m__outer {
-    box-shadow: var(--aca-shell-flat);
-  }
-  .aca-m--press:is(:active, .is-active):not(:disabled, [aria-disabled='true'])
-    > .aca-m__outer
-    > .aca-m__face {
-    clip-path: inset(
-      var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
-    );
-    box-shadow: var(--aca-face-pressed);
-    transform: scale(var(--aca-press-scale));
-  }
-  .aca-m-host:is(:active, .is-active):not(:disabled, [aria-disabled='true'])
-    .aca-m--hosted
-    > .aca-m__outer
-    > .aca-m__face {
-    transform: scale(var(--aca-hosted-press-scale));
-  }
-
-  /*
-   * Stable selection: soft press, blue LED and blue ink, with the full face (no ring, no scale).
-   * Depth and ink carry the state as well, so colour is never the only signal.
-   */
-  .aca-m--press:is(
-    [aria-pressed='true'],
-    [aria-current='page'],
-    [aria-current='true'],
-    [aria-selected='true'],
-    [aria-expanded='true']
-  ) {
-    box-shadow: var(--aca-m-socket-flat);
-  }
-  .aca-m--press:is(
-      [aria-pressed='true'],
-      [aria-current='page'],
-      [aria-current='true'],
-      [aria-selected='true'],
-      [aria-expanded='true']
-    )
-    > .aca-m__outer {
-    box-shadow: var(--aca-shell-flat);
-  }
-  .aca-m--press:is(
-      [aria-pressed='true'],
-      [aria-current='page'],
-      [aria-current='true'],
-      [aria-selected='true'],
-      [aria-expanded='true']
-    )
-    > .aca-m__outer
-    > .aca-m__face {
-    box-shadow: var(--aca-face-selected);
-  }
-  .aca-m--press:is(
-      [aria-pressed='true'],
-      [aria-current='page'],
-      [aria-current='true'],
-      [aria-selected='true'],
-      [aria-expanded='true']
-    )
-    > .aca-m__outer
-    > .aca-m__face
-    > .aca-m__content {
-    color: var(--aca-blue-ink);
-  }
-  .aca-m--press:is(
-      [aria-pressed='true'],
-      [aria-current='page'],
-      [aria-current='true'],
-      [aria-selected='true'],
-      [aria-expanded='true']
-    )
-    > .aca-m__outer
-    > .aca-m__face
-    > .aca-m__content
-    .aca-m__label {
-    background-image: var(--aca-ink-selected);
-  }
-  /* Hovering a selected element keeps the LED and the full face. */
-  @media (hover: hover) {
-    .aca-m--press:is(
-        [aria-pressed='true'],
-        [aria-current='page'],
-        [aria-current='true'],
-        [aria-selected='true'],
-        [aria-expanded='true']
-      ):is(:hover, .is-hover):not(:disabled, [aria-disabled='true'])
-      > .aca-m__outer
-      > .aca-m__face {
-      clip-path: inset(0 0 0 0 round var(--aca-radius));
-      box-shadow: var(--aca-face-selected);
-    }
+  /* ── Relief ───────────────────────────────────────────────────────────── */
+  /* Raised is the base look; the class names the choice explicitly in a composition. */
+  :is(.aca-raised, .aca-m--static) {
+    box-shadow: var(--aca-m-socket);
   }
 
   /* Well: permanently recessed into the page; the only place for the hole shade and ::after. */
-  .aca-m--well {
+  :is(.aca-well, .aca-m--well) {
+    background-color: var(--aca-socket-well);
     box-shadow: var(--aca-socket-shadow-well);
   }
-  .aca-m--well::after {
+  :is(.aca-well, .aca-m--well)::after {
     content: '';
     position: absolute;
     z-index: 0;
@@ -341,14 +248,14 @@
     border-radius: inherit;
     background: linear-gradient(-135deg, rgb(5 5 5 / 50%), transparent 20%, transparent 100%);
     filter: blur(0.0125em);
-    opacity: 0.25;
+    opacity: 0.15;
     mix-blend-mode: multiply;
     pointer-events: none;
   }
-  .aca-m--well > .aca-m__outer {
+  :is(.aca-well, .aca-m--well) > .aca-m__outer {
     box-shadow: var(--aca-shell-flat);
   }
-  .aca-m--well > .aca-m__outer > .aca-m__face {
+  :is(.aca-well, .aca-m--well) > .aca-m__outer > .aca-m__face {
     background-image: var(--aca-face-well);
     clip-path: inset(
       var(--aca-ring) var(--aca-ring) var(--aca-ring) var(--aca-ring) round var(--aca-radius)
@@ -357,18 +264,15 @@
   }
 
   /*
-   * Soft well, a modifier of a static material: a quiet recess for slots repeated many times
-   * (the free cells of the launcher grid), which must stay below the content around them. The
-   * page shows through: no graphite ring, no hole shade (::after stays on .aca-m--well), only a
-   * light inner edge at the top left (about 1.5:1 on the page, where the well has 3.5:1) and a
-   * lit lip at the bottom right, so the edge reads on every side with the kit's light; the
-   * content is in muted ink and carries the meaning. As a button it adds the states: hover and
-   * focus fill it with the well face and a little more depth, with full ink; click sinks it
-   * with the kit press and scale; focus keeps the blue ring of every material. Socket 4, shell
-   * 3 and face 7 + LED layers in every state, as for the other materials, so the transitions
-   * interpolate.
+   * Soft well: a quiet recess for slots repeated many times (the free cells of the launcher
+   * grid), which must stay below the content around them. The page shows through: no ring, no
+   * hole shade, only a light inner edge at the top left and a lit lip at the bottom right; the
+   * content is in muted ink and carries the meaning. Pressable (a button, or with .aca-fx-press)
+   * it deepens the edge a little on hover, focus and click and scales, never filling with metal
+   * (lighter kit, 2026-10-07). Socket 4, shell 3 and face 7 + LED layers in every state, as for
+   * the other materials, so the transitions interpolate.
    */
-  .aca-m--well-soft {
+  :is(.aca-well-soft, .aca-m--well-soft) {
     --aca-well-soft-rest:
       0.06em 0.09em 0.06em 0 inset rgb(5 5 5 / 18%),
       -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 4%),
@@ -377,19 +281,19 @@
       -0.06em -0.06em 0.06em 0 inset rgb(255 255 255 / 50%),
       -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 0%);
     --aca-well-soft-hover:
-      0.06em 0.09em 0.04em 0 inset rgb(5 5 5 / 32%),
-      -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 16%),
-      0.125em 0.125em 0.1em 0 inset rgb(5 5 5 / 18%),
-      0 0 0.025em 0.25em inset rgb(255 255 255 / 15%), 0 0 0 0 inset rgb(255 255 255 / 0%),
+      0.06em 0.09em 0.06em 0 inset rgb(5 5 5 / 24%),
+      -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 8%),
+      0.125em 0.125em 0.15em 0 inset rgb(5 5 5 / 9%),
+      0 0 0.025em 0.25em inset rgb(255 255 255 / 10%), 0 0 0 0 inset rgb(255 255 255 / 0%),
       -0.06em -0.06em 0.06em 0 inset rgb(255 255 255 / 50%),
-      -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 14%);
+      -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 6%);
     --aca-well-soft-press:
-      0.05em 0.075em 0.025em 0 inset rgb(5 5 5 / 55%),
-      -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 38%),
-      0.125em 0.125em 0.1em 0 inset rgb(5 5 5 / 36%),
-      0 0 0.025em 0.25em inset rgb(255 255 255 / 15%), 0 0 0 0 inset rgb(255 255 255 / 0%),
-      -0.05em -0.05em 0.05em 0 inset rgb(255 255 255 / 25%),
-      -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 25%);
+      0.06em 0.09em 0.06em 0 inset rgb(5 5 5 / 28%),
+      -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 10%),
+      0.125em 0.125em 0.15em 0 inset rgb(5 5 5 / 11%),
+      0 0 0.025em 0.25em inset rgb(255 255 255 / 10%), 0 0 0 0 inset rgb(255 255 255 / 0%),
+      -0.06em -0.06em 0.06em 0 inset rgb(255 255 255 / 50%),
+      -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 8%);
     background-color: transparent;
     box-shadow:
       0 0 0 0 rgb(5 5 5 / 0%),
@@ -397,56 +301,283 @@
       0 0 0 0 rgb(5 5 5 / 0%),
       0 0 0 0 rgb(5 5 5 / 0%);
   }
-  .aca-m--well-soft > .aca-m__outer {
+  :is(.aca-well-soft, .aca-m--well-soft) > .aca-m__outer {
     box-shadow: var(--aca-shell-flat);
   }
-  .aca-m--well-soft > .aca-m__outer > .aca-m__face {
+  :is(.aca-well-soft, .aca-m--well-soft) > .aca-m__outer > .aca-m__face {
     background-image: none;
     box-shadow: var(--aca-well-soft-rest), var(--aca-led-off);
   }
-  .aca-m--well-soft > .aca-m__outer > .aca-m__face > .aca-m__content {
+  :is(.aca-well-soft, .aca-m--well-soft) > .aca-m__outer > .aca-m__face > .aca-m__content {
     color: var(--aca-ink-muted);
   }
-  button.aca-m--well-soft {
+  :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press) {
     cursor: pointer;
   }
   @media (hover: hover) {
-    button.aca-m--well-soft:is(:hover, .is-hover):not(:disabled, [aria-disabled='true'])
+    :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press):is(:hover, .is-hover):not(
+        :disabled,
+        [aria-disabled='true']
+      )
       > .aca-m__outer
       > .aca-m__face {
-      background-image: var(--aca-face-well);
       box-shadow: var(--aca-well-soft-hover), var(--aca-led-off);
     }
-    button.aca-m--well-soft:is(:hover, .is-hover):not(:disabled, [aria-disabled='true'])
+    :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press):is(:hover, .is-hover):not(
+        :disabled,
+        [aria-disabled='true']
+      )
       > .aca-m__outer
       > .aca-m__face
       > .aca-m__content {
       color: var(--aca-ink-solid);
     }
   }
-  button.aca-m--well-soft:is(:focus-visible, .is-focus) > .aca-m__outer > .aca-m__face {
-    background-image: var(--aca-face-well);
-    box-shadow: var(--aca-well-soft-hover), var(--aca-led-off);
-  }
-  button.aca-m--well-soft:is(:active, .is-active):not(:disabled, [aria-disabled='true'])
+  :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press):is(:focus-visible, .is-focus)
     > .aca-m__outer
     > .aca-m__face {
-    background-image: var(--aca-face-well);
+    box-shadow: var(--aca-well-soft-hover), var(--aca-led-off);
+  }
+  :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press):is(:active, .is-active):not(
+      :disabled,
+      [aria-disabled='true']
+    )
+    > .aca-m__outer
+    > .aca-m__face {
     box-shadow: var(--aca-well-soft-press), var(--aca-led-off);
+  }
+  button.aca-m--well-soft:is(:active, .is-active):not(:disabled, [aria-disabled='true'])
+    > .aca-m__outer {
     transform: scale(var(--aca-press-scale));
   }
-  button.aca-m--well-soft:is(:focus-visible, .is-focus, :active, .is-active)
+  :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press):is(
+      :focus-visible,
+      .is-focus,
+      :active,
+      .is-active
+    )
     > .aca-m__outer
     > .aca-m__face
     > .aca-m__content {
     color: var(--aca-ink-solid);
   }
 
+  /* ── Tone ─────────────────────────────────────────────────────────────── */
+  /* Primary: orange face, dark text on it (5.5:1 or more). */
+  :is(.aca-tone-primary, .aca-m--primary) > .aca-m__outer > .aca-m__face {
+    background-image: var(--aca-face-orange);
+  }
+  :is(.aca-tone-primary, .aca-m--primary) > .aca-m__outer > .aca-m__face > .aca-m__content {
+    color: var(--aca-on-orange);
+  }
+  :is(.aca-tone-primary, .aca-m--primary)
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content
+    .aca-m__label {
+    background-image: var(--aca-ink-on-orange);
+  }
+  :is(.aca-tone-quiet, .aca-m--quiet) {
+    --aca-m-socket: var(--aca-socket-shadow-flat);
+  }
+  /*
+   * Danger: a destructive action (remove, delete). Red ink (≥ 4.5:1) on the metal face, never
+   * the orange of «primary» nor the LED, which means error. Only the ink changes: socket, shell
+   * and face keep the shadows of every other state, so hover, press, focus, disabled and
+   * loading work as for any button. The label names the action: colour is not the only signal.
+   */
+  :is(.aca-tone-danger, .aca-m--danger) > .aca-m__outer > .aca-m__face > .aca-m__content {
+    color: var(--aca-danger-ink);
+  }
+  :is(.aca-tone-danger, .aca-m--danger)
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content
+    .aca-m__label {
+    background-image: var(--aca-ink-danger);
+  }
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  :is(.aca-fx-press, .aca-m--press) {
+    cursor: pointer;
+  }
+  /*
+   * Press: shell and face scale together, so the contact shadow follows the face and the edge
+   * stays even; socket and outer shadows stay still. The shell keeps its own compositor layer,
+   * so the GPU interpolates the scale at sub-pixel precision (no repaint, no snap at the end).
+   */
+  :is(.aca-fx-press, .aca-m--press, .aca-m-host .aca-m--hosted) > .aca-m__outer {
+    will-change: transform;
+  }
+  :is(.aca-fx-press, .aca-m--press):is(:active, .is-active):not(:disabled, [aria-disabled='true'])
+    > .aca-m__outer {
+    transform: scale(var(--aca-press-scale));
+  }
+  .aca-m-host:is(:active, .is-active):not(:disabled, [aria-disabled='true'])
+    .aca-m--hosted
+    > .aca-m__outer {
+    transform: scale(var(--aca-hosted-press-scale));
+  }
+  /* Pressing answers within the press budget; the release keeps the softer timing above. */
+  :is(.aca-m, .aca-m-host):is(:active, .is-active),
+  :is(.aca-m, .aca-m-host):is(:active, .is-active) .aca-m__outer,
+  :is(.aca-m, .aca-m-host):is(:active, .is-active) .aca-m__face,
+  :is(.aca-m, .aca-m-host):is(:active, .is-active) .aca-m__content {
+    transition-duration: var(--aca-press);
+  }
+  /*
+   * Hover light (mouse only): the face catches a little more light; nothing sinks before the
+   * click. It stays during the press, so the press animates the scale alone.
+   */
+  @media (hover: hover) and (pointer: fine) {
+    :is(.aca-fx-hover-light, .aca-m--press):is(:hover, .is-hover):not(
+        :disabled,
+        [aria-disabled='true']
+      )
+      > .aca-m__outer
+      > .aca-m__face {
+      filter: brightness(1.04);
+    }
+  }
+  /* Wiggle: says the element can be moved (edit mode); each element may set --aca-wiggle-delay. */
+  .aca-fx-wiggle {
+    animation: aca-fx-wiggle 320ms ease-in-out infinite alternate;
+    animation-delay: var(--aca-wiggle-delay, 0ms);
+  }
+  .aca-fx-wiggle:is(:hover, :focus-within, .is-dragging) {
+    animation-play-state: paused;
+  }
+  @keyframes aca-fx-wiggle {
+    from {
+      rotate: -0.25deg;
+    }
+    to {
+      rotate: 0.25deg;
+    }
+  }
+
+  /* ── State ────────────────────────────────────────────────────────────── */
+  /*
+   * Selected: soft press, blue LED and blue ink, with the full face (no ring, no scale). Set by
+   * .aca-selected or, on pressable elements, by ARIA (pressed, current, selected, expanded).
+   * Depth and ink carry the state as well, so colour is never the only signal.
+   */
+  :is(
+    .aca-selected,
+    :is(.aca-fx-press, .aca-m--press):is(
+      [aria-pressed='true'],
+      [aria-current='page'],
+      [aria-current='true'],
+      [aria-selected='true'],
+      [aria-expanded='true']
+    )
+  ):not(.aca-on, .aca-current) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  :is(
+      .aca-selected,
+      :is(.aca-fx-press, .aca-m--press):is(
+        [aria-pressed='true'],
+        [aria-current='page'],
+        [aria-current='true'],
+        [aria-selected='true'],
+        [aria-expanded='true']
+      )
+    ):not(.aca-on, .aca-current)
+    > .aca-m__outer {
+    box-shadow: var(--aca-shell-flat);
+  }
+  :is(
+      .aca-selected,
+      :is(.aca-fx-press, .aca-m--press):is(
+        [aria-pressed='true'],
+        [aria-current='page'],
+        [aria-current='true'],
+        [aria-selected='true'],
+        [aria-expanded='true']
+      )
+    ):not(.aca-on, .aca-current)
+    > .aca-m__outer
+    > .aca-m__face {
+    clip-path: inset(0 0 0 0 round var(--aca-radius));
+    box-shadow: var(--aca-face-selected);
+  }
+  :is(
+      .aca-selected,
+      :is(.aca-fx-press, .aca-m--press):is(
+        [aria-pressed='true'],
+        [aria-current='page'],
+        [aria-current='true'],
+        [aria-selected='true'],
+        [aria-expanded='true']
+      )
+    ):not(.aca-on, .aca-current)
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content {
+    color: var(--aca-blue-ink);
+  }
+  :is(
+      .aca-selected,
+      :is(.aca-fx-press, .aca-m--press):is(
+        [aria-pressed='true'],
+        [aria-current='page'],
+        [aria-current='true'],
+        [aria-selected='true'],
+        [aria-expanded='true']
+      )
+    ):not(.aca-on, .aca-current)
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content
+    .aca-m__label {
+    background-image: var(--aca-ink-selected);
+  }
+
+  /*
+   * On (orange) and current (blue): a 2 px line of the brighter accent with a soft halo around
+   * the element, which stays raised with its rest face; accent ink for icon and name. The line
+   * is an outline, drawn above face and shell and even on every side.
+   */
+  .aca-m.aca-on {
+    --aca-state-line: var(--aca-orange-bright);
+    --aca-state-glow: var(--aca-orange-glow);
+    --aca-state-ink: var(--aca-orange-ink);
+    --aca-state-icon: var(--aca-orange-ink-icon);
+  }
+  .aca-m.aca-current {
+    --aca-state-line: var(--aca-blue-bright);
+    --aca-state-glow: var(--aca-blue-glow);
+    --aca-state-ink: var(--aca-blue-ink);
+    --aca-state-icon: var(--aca-blue-ink-icon);
+  }
+  .aca-m:is(.aca-on, .aca-current) {
+    box-shadow:
+      var(--aca-m-socket),
+      0 0 0.6rem 0.05rem var(--aca-state-glow);
+    outline: 2px solid var(--aca-state-line);
+    outline-offset: 1px;
+  }
+  .aca-m:is(.aca-on, .aca-current) > .aca-m__outer {
+    box-shadow: var(--aca-m-shell);
+  }
+  .aca-m:is(.aca-on, .aca-current) > .aca-m__outer > .aca-m__face {
+    box-shadow: var(--aca-face-rest);
+  }
+  .aca-m:is(.aca-on, .aca-current) > .aca-m__outer > .aca-m__face > .aca-m__content {
+    color: var(--aca-state-icon);
+  }
+  .aca-m:is(.aca-on, .aca-current) > .aca-m__outer > .aca-m__face > .aca-m__content .aca-m__label {
+    background-image: linear-gradient(var(--aca-state-ink), var(--aca-state-ink));
+  }
+
   /* Error: danger LED on the face; the owner adds a mark or a message (never colour alone). */
-  .aca-m:is(.aca-m--error, [aria-invalid='true']) > .aca-m__outer > .aca-m__face {
+  .aca-m:is(.aca-error, .aca-m--error, [aria-invalid='true']) > .aca-m__outer > .aca-m__face {
     box-shadow: var(--aca-face-error);
   }
-  .aca-m--well:is(.aca-m--error, [aria-invalid='true']) > .aca-m__outer > .aca-m__face {
+  :is(.aca-well, .aca-m--well):is(.aca-error, .aca-m--error, [aria-invalid='true'])
+    > .aca-m__outer
+    > .aca-m__face {
     box-shadow: var(--aca-face-well-error);
   }
 
@@ -454,46 +585,74 @@
   .aca-m[aria-busy='true'] {
     cursor: progress;
   }
-  :is(.aca-m--press, .aca-toggle)[aria-busy='true']
+  :is(.aca-fx-press, .aca-m--press, .aca-toggle)[aria-busy='true']
     > .aca-m__outer
     > .aca-m__face
     > .aca-m__content {
     animation: aca-pulse 900ms ease-in-out infinite alternate;
   }
 
-  /* Primary: orange face, dark text on it (5.5:1 or more). */
-  .aca-m--primary > .aca-m__outer > .aca-m__face {
-    background-image: var(--aca-face-orange);
+  .aca-m:is(:disabled, [aria-disabled='true']) {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
-  .aca-m--primary > .aca-m__outer > .aca-m__face > .aca-m__content {
-    color: var(--aca-on-orange);
+  :is(.aca-fx-press, .aca-m--press):is(:disabled, [aria-disabled='true']) {
+    box-shadow: var(--aca-m-socket-flat);
   }
-  .aca-m--primary > .aca-m__outer > .aca-m__face > .aca-m__content .aca-m__label {
-    background-image: var(--aca-ink-on-orange);
-  }
-  .aca-m--quiet {
-    --aca-m-socket: var(--aca-socket-shadow-flat);
+
+  /* Focus last: the blue ring wins over the on/current line while the element has focus. */
+  .aca-m:is(:focus-visible, .is-focus) {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
   }
 
   /*
-   * Danger: a destructive action (remove, delete). Red ink (≥ 4.5:1) on the metal face, never
-   * the orange of «primary» nor the LED, which means error. Only the ink changes: socket, shell
-   * and face keep the shadows of every other state, so hover, press, focus, disabled and
-   * loading work as for any button. The label names the action: colour is not the only signal.
+   * Windows contrast themes drop every shadow: a system-colour outline keeps the edge of each
+   * element, selection and errors get a thicker one (focus keeps its own 2 px ring).
    */
-  .aca-m--danger > .aca-m__outer > .aca-m__face > .aca-m__content {
-    color: var(--aca-danger-ink);
-  }
-  .aca-m--danger > .aca-m__outer > .aca-m__face > .aca-m__content .aca-m__label {
-    background-image: var(--aca-ink-danger);
+  @media (forced-colors: active) {
+    .aca-m {
+      outline: 1px solid ButtonText;
+      outline-offset: 0;
+    }
+    .aca-m:is(
+      .aca-on,
+      .aca-current,
+      .aca-selected,
+      [aria-pressed='true'],
+      [aria-current='page'],
+      [aria-current='true'],
+      [aria-selected='true'],
+      [aria-expanded='true']
+    ) {
+      outline: 3px solid Highlight;
+    }
+    .aca-m:is(.aca-error, .aca-m--error, [aria-invalid='true']) {
+      outline: 2px dashed ButtonText;
+    }
+    .aca-m:is(:focus-visible, .is-focus) {
+      outline: 2px solid Highlight;
+      outline-offset: 3px;
+    }
+    .aca-m:is(:disabled, [aria-disabled='true']) {
+      outline-color: GrayText;
+    }
   }
 
-  .aca-m:is(:disabled, [aria-disabled='true']) {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-  .aca-m--press:is(:disabled, [aria-disabled='true']) {
-    box-shadow: var(--aca-m-socket-flat);
+  /* More contrast requested by the system: graphite edge and a thicker selection LED. */
+  @media (prefers-contrast: more) {
+    .aca-m {
+      --aca-face-selected: var(--aca-face-soft-layers), 0 0 0.25em 0.15em inset var(--aca-blue);
+      outline: 1px solid var(--aca-ink-muted);
+      outline-offset: 0;
+    }
+    .aca-m:is(.aca-on, .aca-current) {
+      outline: 2px solid var(--aca-state-line);
+    }
+    .aca-m:is(:focus-visible, .is-focus) {
+      outline: 2px solid var(--aca-focus);
+      outline-offset: 3px;
+    }
   }
 
   @keyframes aca-pulse {
@@ -512,15 +671,19 @@
     .aca-m__content {
       transition: none !important;
     }
+    .aca-m__outer,
     .aca-m__face,
     .aca-m__content {
       transform: none !important;
+    }
+    .aca-fx-wiggle {
+      animation: none !important;
     }
     /* No pulse: the dimmed content and aria-busy keep the information. */
     .aca-m__content {
       animation: none !important;
     }
-    :is(.aca-m--press, .aca-toggle)[aria-busy='true']
+    :is(.aca-fx-press, .aca-m--press, .aca-toggle)[aria-busy='true']
       > .aca-m__outer
       > .aca-m__face
       > .aca-m__content {

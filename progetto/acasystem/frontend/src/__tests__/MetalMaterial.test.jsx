@@ -78,11 +78,8 @@ const contrast = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-/** oklch(L% C H) → sRGB 0–255 (CSS Color 4 matrices), clamped to the gamut. */
-const oklchToRgb = (value) => {
-  const m = value.match(/oklch\(([\d.]+)% ([\d.]+) ([\d.]+)/);
-  expect(m, value).not.toBeNull();
-  const [L, C, H] = [Number(m[1]) / 100, Number(m[2]), Number(m[3])];
+/** OKLCH (L 0–1, C, H in degrees) → sRGB 0–255 (CSS Color 4 matrices), clamped to the gamut. */
+const lchToRgb = ([L, C, H]) => {
   const a = C * Math.cos((H * Math.PI) / 180);
   const b = C * Math.sin((H * Math.PI) / 180);
   const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
@@ -100,11 +97,54 @@ const oklchToRgb = (value) => {
   });
 };
 
+/** One channel of a relative colour: a number, the source channel, or calc(x op n). */
+const channel = (expr, src) => {
+  const named = { l: src[0], c: src[1], h: src[2] };
+  if (expr in named) return named[expr];
+  const calc = expr.match(/^calc\((\w) ([+*-]) ([\d.]+)\)$/);
+  if (calc) {
+    const [, name, op, n] = calc;
+    const v = named[name];
+    return op === '+' ? v + Number(n) : op === '-' ? v - Number(n) : v * Number(n);
+  }
+  const number = Number(expr.replace('%', ''));
+  expect(Number.isNaN(number), expr).toBe(false);
+  return expr.endsWith('%') ? number / 100 : number;
+};
+
+/** Resolves a colour (literal oklch, rgb, var() or oklch(from …)) to OKLCH [L, C, H]. */
+const lch = (value) => {
+  const v = value.trim();
+  const ref = v.match(/^var\((--aca-[\w-]+)\)$/);
+  if (ref) return lch(raw(ref[1]));
+  const literal = v.match(/^oklch\(([\d.]+)% ([\d.]+) ([\d.]+)(?: \/ [\d.]+%)?\)$/);
+  if (literal) return [Number(literal[1]) / 100, Number(literal[2]), Number(literal[3])];
+  const part = String.raw`(calc\(\w [+*-] [\d.]+\)|[^\s)]+)`;
+  const relative = v.match(
+    new RegExp(String.raw`^oklch\(from (var\([^)]+\)) ${part} ${part} ${part}`)
+  );
+  expect(relative, v).not.toBeNull();
+  const src = lch(relative[1]);
+  return [channel(relative[2], src), channel(relative[3], src), channel(relative[4], src)];
+};
+
+const oklchToRgb = (value) => lchToRgb(lch(value));
+
+/** Colour stops of a gradient (or a single colour) as sRGB. */
+const stops = (value) => {
+  const gradient = value.match(/^linear-gradient\((.*)\)$/);
+  const parts = gradient ? layers(gradient[1]).filter((part) => !/deg$/.test(part)) : [value];
+  return parts.map((part) => oklchToRgb(part));
+};
+
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const color = (name) => oklchToRgb(raw(name));
-const gray = (v) => [v, v, v];
-/** Faces 230→180, well 196→226 and page 222: every metal surface text and icons sit on. */
-const surfaces = [gray(230), gray(180), gray(196), gray(226), gray(222)];
+/** Faces, well and page: every metal surface text and icons sit on. */
+const surfaces = [
+  ...stops(raw('--aca-face')),
+  ...stops(raw('--aca-face-well')),
+  color('--aca-page'),
+];
 
 describe('materiale Metallo (UI-003)', () => {
   it('mantiene lo stesso numero di strati in ogni stato, così le transizioni interpolano', () => {
@@ -154,16 +194,15 @@ describe('materiale Metallo (UI-003)', () => {
     ]) {
       expect(first(name), name).toMatch(/^-0\.15em -0\.15em .* rgb\(5 5 5 \/ 0%\)$/);
     }
-    expect(first('--aca-socket-shadow-well')).toContain('rgb(5 5 5 / 25%)');
+    // Lighter hole shade since 2026-10-07 (REP-20261007-005).
+    expect(first('--aca-socket-shadow-well')).toContain('rgb(5 5 5 / 14%)');
     const after = rules(material).filter((rule) => rule.selector.includes('::after'));
-    expect(after.map((rule) => rule.selector)).toEqual(['.aca-m--well::after']);
+    expect(after.map((rule) => rule.selector)).toEqual([':is(.aca-well, .aca-m--well)::after']);
   });
 
   it('usa un socket grafite ≥ 3:1 contro ogni faccia e la pagina', () => {
-    expect(raw('--aca-socket')).toBe('rgb(96 96 96)');
-    const socket = rgbStops(raw('--aca-socket'))[0];
-    const faces = [...rgbStops(raw('--aca-face')), ...rgbStops(raw('--aca-face-well'))];
-    for (const surface of [...faces, ...rgbStops(raw('--aca-page'))]) {
+    const socket = color('--aca-socket');
+    for (const surface of surfaces) {
       expect(contrast(socket, surface), `${surface}`).toBeGreaterThanOrEqual(3);
     }
   });
@@ -193,7 +232,8 @@ describe('materiale Metallo (UI-003)', () => {
       [...token(name).matchAll(/rgb\(5 5 5 \/ ([\d.]+)%\)/g)].map((m) => Number(m[1]));
     expect(Math.max(...darkAlphas('--aca-face-pressed-soft'))).toBeLessThanOrEqual(40);
     expect(Math.max(...darkAlphas('--aca-face-pressed'))).toBeLessThanOrEqual(55);
-    expect(layers(token('--aca-shell'))[0]).toContain('rgb(5 5 5 / 35%)');
+    // Contact line raised to 45% for the edge contrast of the soft UI (REP-20261007-003).
+    expect(layers(token('--aca-shell'))[0]).toContain('rgb(5 5 5 / 45%)');
     expect(layers(token('--aca-shell'))[2]).toBe('0.12em 0.25em 0.25em -0.01em rgb(5 5 5 / 15%)');
     // Cards: dark layers about 40% lighter.
     const ratio = (a, b) => Math.max(...darkAlphas(a)) / Math.max(...darkAlphas(b));
@@ -203,7 +243,9 @@ describe('materiale Metallo (UI-003)', () => {
 
   it('usa i colori e il font del pulsante di riferimento', () => {
     expect(raw('--aca-font')).toMatch(/^'Inter'/);
-    expect(raw('--aca-face')).toBe('linear-gradient(135deg, rgb(230 230 230), rgb(180 180 180))');
+    // Face: from the pure-white base to one step darker, both derived from --aca-base.
+    expect(raw('--aca-base')).toBe('oklch(100% 0 0)');
+    expect(stops(raw('--aca-face'))).toEqual([[255, 255, 255], lchToRgb([0.9, 0, 0])]);
   });
 
   it('arrotonda il clip-path con lo stesso raggio del bordo', () => {
@@ -213,36 +255,29 @@ describe('materiale Metallo (UI-003)', () => {
     );
   });
 
-  it('replica la sequenza dell’originale con due pressioni', () => {
+  it('preme scalando guscio e faccia insieme, con socket e ombre esterne fermi', () => {
     const all = rules(material);
-    const withDecl = (decl) => all.filter((rule) => rule.body.includes(decl));
-    expect(material).toMatch(
-      /@media \(hover: hover\)[\s\S]*\.aca-m--press:is\(:hover, \.is-hover\)/
+    expect(material).toMatch(/--aca-press-scale: 0\.96/);
+    // Hover light (fx-hover-light, alias --press): only brightens the face, mouse only.
+    const hover = all.filter((rule) =>
+      rule.selector.includes(':is(.aca-fx-hover-light, .aca-m--press):is(:hover, .is-hover)')
     );
-    expect(material).toMatch(/transform: scale\(0\.975\)/);
-    expect(material).toMatch(/--aca-press-scale: 0\.975/);
-    // Hover: soft press on raised press elements only; click: full press and scale.
-    const soft = withDecl('box-shadow: var(--aca-face-pressed-soft)');
-    expect(soft).toHaveLength(1);
-    expect(soft[0].selector).toContain('.aca-m--press:is(:hover, .is-hover)');
-    expect(soft[0].selector).not.toContain('aca-m-host');
-    expect(soft[0].body).toContain('clip-path: inset(');
-    const press = all.find(
-      (rule) =>
-        rule.selector.includes('.aca-m--press:is(:active, .is-active)') &&
-        rule.body.includes('var(--aca-face-pressed)')
+    expect(hover).toHaveLength(1);
+    expect(hover[0].body.trim()).toBe('filter: brightness(1.04);');
+    expect(material).not.toContain('var(--aca-face-pressed-soft)');
+    // Press (fx-press, alias --press): the shell scales, carrying the face with it.
+    const press = all.filter((rule) =>
+      rule.selector.includes(':is(.aca-fx-press, .aca-m--press):is(:active, .is-active)')
     );
-    expect(press?.body).toContain('transform: scale(var(--aca-press-scale))');
-    expect(press?.body).toContain('clip-path: inset(');
+    expect(press).toHaveLength(1);
+    expect(press[0].body.trim()).toBe('transform: scale(var(--aca-press-scale));');
+    expect(press[0].selector).toMatch(/> \.aca-m__outer$/);
   });
 
-  it('su toggle e cursore il pomello ospitato perde solo il guscio in hover e scala al click', () => {
+  it('su toggle e cursore il pomello ospitato non cambia in hover e scala al click', () => {
     const all = rules(material);
     const hosted = all.filter((rule) => rule.selector.includes('.aca-m-host'));
-    const hover = hosted.filter((rule) => rule.selector.includes(':hover'));
-    expect(hover).toHaveLength(1);
-    expect(hover[0].selector).toMatch(/\.aca-m--hosted\s*>\s*\.aca-m__outer$/);
-    expect(hover[0].body.trim()).toBe('box-shadow: var(--aca-shell-flat);');
+    expect(hosted.filter((rule) => rule.selector.includes(':hover'))).toHaveLength(0);
     const click = hosted.find((rule) => rule.body.includes('--aca-hosted-press-scale'));
     expect(click?.selector).toContain(':is(:active, .is-active)');
     expect(click?.body).not.toContain('clip-path');
@@ -294,35 +329,30 @@ describe('materiale Metallo (UI-003)', () => {
   });
 
   it('mantiene il testo leggibile su tutta la faccia e sulla pagina', () => {
-    const faces = [...rgbStops(raw('--aca-face')), ...rgbStops(raw('--aca-face-well'))];
-    const page = rgbStops(raw('--aca-page'));
     const inks = [
-      ...rgbStops(raw('--aca-ink')),
-      ...rgbStops(raw('--aca-ink-solid')),
-      ...rgbStops(raw('--aca-ink-muted')),
+      ...stops(raw('--aca-ink')),
+      ...stops(raw('--aca-ink-strong')),
+      color('--aca-ink-solid'),
+      color('--aca-ink-muted'),
     ];
     for (const ink of inks) {
-      for (const surface of [...faces, ...page]) {
+      for (const surface of surfaces) {
         expect(contrast(ink, surface), `${ink} su ${surface}`).toBeGreaterThanOrEqual(4.5);
       }
     }
   });
 
-  it('scrive gli accenti in OKLCH con l’hex di riferimento nel commento', () => {
+  it('scrive le basi in OKLCH con l’hex di riferimento nel commento e ne deriva le varianti', () => {
     const declared = [
       ...tokens.matchAll(/(--aca-[\w-]+):\s*(oklch\([^)]*\));\s*\/\*\s*(#[0-9a-f]{6})\s*\*\//g),
     ];
     const names = declared.map((m) => m[1]);
     expect(names).toEqual(
       expect.arrayContaining([
+        '--aca-base',
         '--aca-orange',
         '--aca-blue',
-        '--aca-orange-ink',
-        '--aca-orange-ink-icon',
-        '--aca-blue-ink',
-        '--aca-blue-ink-icon',
-        '--aca-danger-ink',
-        '--aca-danger-ink-icon',
+        '--aca-danger',
         '--aca-on-orange',
         '--aca-on-blue',
       ])
@@ -335,6 +365,31 @@ describe('materiale Metallo (UI-003)', () => {
     }
     expect(tokens).toMatch(/--aca-orange: oklch\([^)]*\); \/\* #ff622a \*\//);
     expect(tokens).toMatch(/--aca-blue: oklch\([^)]*\); \/\* #295bff \*\//);
+    // Every variant comes from its base: changing a base recolours the whole scale.
+    const derived = {
+      '--aca-base': [
+        '--aca-page',
+        '--aca-socket',
+        '--aca-socket-well',
+        '--aca-ink-solid',
+        '--aca-ink-muted',
+      ],
+      '--aca-orange': ['--aca-orange-light', '--aca-orange-ink', '--aca-orange-ink-icon'],
+      '--aca-blue': ['--aca-blue-ink', '--aca-blue-ink-icon'],
+      '--aca-danger': ['--aca-danger-ink', '--aca-danger-ink-icon'],
+    };
+    for (const [base, names] of Object.entries(derived)) {
+      for (const name of names) expect(raw(name), name).toContain(`oklch(from var(${base})`);
+    }
+  });
+
+  it('mantiene i contrasti se la base di un accento cambia tinta (es. verde)', () => {
+    const green = [0.65, 0.2, 145];
+    const derive = (L, k) => lchToRgb([L, green[1] * k, green[2]]);
+    for (const surface of surfaces) {
+      expect(contrast(derive(0.4, 0.6), surface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(derive(0.49, 0.75), surface)).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it('rispetta le coppie di contrasto di accenti e varianti ink', () => {
