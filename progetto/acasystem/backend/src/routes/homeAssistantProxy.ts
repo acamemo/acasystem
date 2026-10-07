@@ -57,6 +57,11 @@ const LOGIN_BODY_TOO_LARGE: ApiErrorBody = {
   code: 'HA_LOGIN_BODY_TOO_LARGE',
 };
 
+const LOGIN_BODY_TIMEOUT: ApiErrorBody = {
+  error: 'Richiesta di accesso incompleta.',
+  code: 'HA_LOGIN_BODY_TIMEOUT',
+};
+
 const WEBSOCKET_RATE_LIMITED: ApiErrorBody = {
   error: 'Troppi collegamenti a Home Assistant. Riprova tra qualche minuto.',
   code: 'HA_WEBSOCKET_RATE_LIMITED',
@@ -126,6 +131,11 @@ export const createHomeAssistantProxyRouter = (): RequestHandler => {
       if (body.status === 'too-large') {
         res.setHeader('Connection', 'close');
         sendBody(res, 413, LOGIN_BODY_TOO_LARGE);
+        return;
+      }
+      if (body.status === 'timeout') {
+        res.setHeader('Connection', 'close');
+        sendBody(res, 408, LOGIN_BODY_TIMEOUT);
         return;
       }
       if (!isPasswordLoginFlowStart(body.bytes)) {

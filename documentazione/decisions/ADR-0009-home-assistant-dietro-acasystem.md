@@ -47,7 +47,13 @@ Il frontend usa Home Assistant in pochi punti, verificati sul codice:
 - **Configurazione unica sul server:** il browser non chiede indirizzi. Una sola porta da esporre, anche per l'accesso remoto futuro.
 - **Credenziali:** le credenziali di Home Assistant passano dalla pagina Acasystem e dal server Acasystem verso HA. Il server non le salva e non le registra nei log.
 - **Token:** i token nel browser restano legati all'origine di Acasystem. Il primo accesso dopo il cambio richiede un nuovo login.
-- **Protezioni di Home Assistant:** il limite ai tentativi e il ban per IP di HA vedono l'indirizzo del proxy, quindi i tentativi sono limitati dal proxy. Per far vedere a HA l'indirizzo reale serve configurare `trusted_proxies` in Home Assistant e attivare `X-Forwarded-For` nel proxy: è una decisione dell'installazione.
+- **Protezioni di Home Assistant:** il limite ai tentativi e il ban per IP di HA vedono l'indirizzo del proxy. Annotazione del 2026-10-07 dopo la revisione di sicurezza (REP-20261007-002, SR-2/R-3):
+  - il proxy limita per indirizzo del client solo l'avvio e i passi del login e gli upgrade WebSocket;
+  - le autenticazioni con token non valido via REST non hanno un limite proprio e HA le attribuisce all'indirizzo del proxy;
+  - finché il proxy non inoltra `X-Forwarded-For` con `trusted_proxies` in HA, la soglia di ban di HA (`login_attempts_threshold`) deve restare disattivata, come è di serie;
+  - il provider `trusted_networks` non deve comprendere l'indirizzo del server Acasystem, e il proxy avvia solo il login con utente e password;
+  - gli utenti HA «solo rete locale» non sono distinguibili attraverso il proxy.
+  Inoltrare l'indirizzo reale resta una decisione dell'installazione.
 - **Esposizione di HA in rete:** per ora invariata. Chiuderla, in modo che solo il server Acasystem raggiunga Home Assistant, resta una decisione dell'utente da prendere con l'installazione del pilota. Il proxy funziona in entrambi i casi.
 
 ## Verifiche e revisione

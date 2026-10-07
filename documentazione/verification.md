@@ -180,6 +180,17 @@ Fonte corrente: [REP-20261006-002](reports/REP-20261006-002-ripresa-revisione.md
 | Backup e ripristino | Copia presente; ripristino non eseguito | Copia manuale a freddo del volume, 8516 byte, precedente all'aggiornamento. Nessuna prova di recupero, backup automatico o nuovo backup HA. |
 | Dispositivi, offline, LAN/remoto | Non eseguito | Il banco browser/Docker non prova il prodotto sul tablet e sull'impianto. Nessuna CI attiva. |
 
+## Home Assistant dietro Acasystem — 2026-10-07
+
+Fonte: [REP-20261007-002](reports/REP-20261007-002-ha-dietro-acasystem.md), [ADR-0009](decisions/ADR-0009-home-assistant-dietro-acasystem.md).
+
+| Controllo | Esito | Evidenza / limite |
+|---|---|---|
+| Proxy, test e revisione | Superato | Backend 138/138; 40 tentativi di aggirare il login, 29 risposte malformate, mutazioni 9/10. |
+| Accesso end-to-end con finto HA | Superato | Credenziali errate, due fattori, ricarica, rinnovo, revoca, token kiosk, HA spento, limite. |
+| Frontend completo | Superato | 1327/1327; build e budget ok. |
+| Banco con HA reale | Superato senza credenziali | Provider 200, percorsi vietati 404, WebSocket fino a `auth_required`; il login reale lo esegue l'utente. |
+
 ## Launcher: polish, layout e celle «+» — 2026-10-07
 
 Fonte: [REP-20261007-001](reports/REP-20261007-001-launcher-polish.md).

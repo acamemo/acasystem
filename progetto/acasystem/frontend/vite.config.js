@@ -153,5 +153,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/__tests__/setup.js',
+    // The shell and launcher tests mount the whole app: under a loaded machine the 5 s
+    // default fails them without a real error (REP-20261007-002, R-4).
+    testTimeout: 15_000,
   },
 });

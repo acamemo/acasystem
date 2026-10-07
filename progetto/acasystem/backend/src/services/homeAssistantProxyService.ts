@@ -95,10 +95,14 @@ const createUpstreamRequest = (
   });
 };
 
-/** Stato di una risposta di HA da restituire: intero tra 100 e 599, altrimenti eccezione. */
-const readForwardableStatus = (upstreamRes: IncomingMessage): number => {
+/**
+ * Stato di una risposta di HA da restituire: intero tra `min` e 599, altrimenti eccezione.
+ * Una risposta HTTP inoltrata deve essere finale (da 200, R-1): un 101 senza upgrade
+ * lascerebbe il client in attesa.
+ */
+const readForwardableStatus = (upstreamRes: IncomingMessage, min = 100): number => {
   const status = upstreamRes.statusCode;
-  if (status === undefined || !Number.isInteger(status) || status < 100 || status > 599) {
+  if (status === undefined || !Number.isInteger(status) || status < min || status > 599) {
     throw new Error('risposta di Home Assistant con stato HTTP non valido');
   }
   return status;
@@ -116,7 +120,7 @@ const assertValidHeader = (name: string, value: string | string[]): void => {
  * Tutto viene controllato prima di toccare la risposta.
  */
 const writeForwardedHead = (upstreamRes: IncomingMessage, res: ServerResponse): void => {
-  const statusCode = readForwardableStatus(upstreamRes);
+  const statusCode = readForwardableStatus(upstreamRes, 200);
   const connectionTokens = listConnectionTokens(upstreamRes.headers.connection);
   const headers: [string, string | string[]][] = [];
   for (const [name, value] of Object.entries(upstreamRes.headers)) {
@@ -254,15 +258,19 @@ export const forwardHttpRequest = (
 export type LimitedRequestBody =
   | { status: 'ok'; bytes: Buffer }
   | { status: 'too-large' }
+  | { status: 'timeout' }
   | { status: 'aborted' };
 
 /**
- * Legge il corpo della richiesta fino a `limitBytes`. Oltre il limite (dichiarato o
- * ricevuto) smette di conservarlo e scarta il resto; il chiamante risponde 413.
+ * Legge il corpo della richiesta fino a `limitBytes` ed entro `timeoutMs` (R-6: un client
+ * lento non tiene aperto il socket fino al requestTimeout di Node). Oltre il limite
+ * (dichiarato o ricevuto) smette di conservarlo e scarta il resto: il chiamante risponde
+ * 413; allo scadere del tempo risponde 408.
  */
 export const readLimitedRequestBody = (
   req: IncomingMessage,
-  limitBytes: number
+  limitBytes: number,
+  timeoutMs = 10_000
 ): Promise<LimitedRequestBody> =>
   new Promise((resolve) => {
     if (Number(req.headers['content-length']) > limitBytes) {
@@ -272,7 +280,9 @@ export const readLimitedRequestBody = (
 
     const chunks: Buffer[] = [];
     let size = 0;
+    const timer = setTimeout(() => finish({ status: 'timeout' }), timeoutMs);
     const finish = (result: LimitedRequestBody): void => {
+      clearTimeout(timer);
       req.off('data', onData);
       req.off('end', onEnd);
       req.off('error', onAborted);
@@ -472,6 +482,9 @@ export const openWebSocketTunnel = (
     try {
       responseHead = formatResponseHead(upstreamRes, (name) => DROPPED_RESPONSE_HEADERS.has(name), [
         'Connection: close',
+        // Same isolation as the HTTP answers forwarded from /ha (SR-8, R-2).
+        `Content-Security-Policy: ${HOME_ASSISTANT_PROXY_CONTENT_SECURITY_POLICY}`,
+        'X-Content-Type-Options: nosniff',
       ]);
     } catch (error) {
       upstreamRes.destroy();
