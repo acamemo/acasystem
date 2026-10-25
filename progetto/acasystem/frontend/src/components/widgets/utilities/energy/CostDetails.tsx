@@ -147,10 +147,24 @@ export function CostDetails({ settings }: WidgetDetailsProps) {
         <StatList
           items={[
             ...(config.todayId
-              ? [{ key: 'today', label: config.todayLabel, value: costValue(today, config.decimals), unit: currency }]
+              ? [
+                  {
+                    key: 'today',
+                    label: config.todayLabel,
+                    value: costValue(today, config.decimals),
+                    unit: currency,
+                  },
+                ]
               : []),
             ...(config.monthId
-              ? [{ key: 'month', label: config.monthLabel, value: monthValue(month), unit: currency }]
+              ? [
+                  {
+                    key: 'month',
+                    label: config.monthLabel,
+                    value: monthValue(month),
+                    unit: currency,
+                  },
+                ]
               : []),
           ]}
         />
@@ -195,7 +209,11 @@ export function CostDetails({ settings }: WidgetDetailsProps) {
           />
         </div>
         {fetched.status === 'loading' && series.length === 0 ? (
-          <Skeleton variant="chart" label="Caricamento dello storico dei costi…" style={{ height: '12rem' }} />
+          <Skeleton
+            variant="chart"
+            label="Caricamento dello storico dei costi…"
+            style={{ height: '12rem' }}
+          />
         ) : fetched.status === 'offline' ? (
           <Notice icon="wifi">Storico non disponibile: Home Assistant non è collegato.</Notice>
         ) : fetched.status === 'error' ? (
@@ -211,7 +229,9 @@ export function CostDetails({ settings }: WidgetDetailsProps) {
             data={series}
             kind={kind}
             label={`Costi ${source === 'month' ? 'del mese' : 'di oggi'}, ultime ${range} ore${
-              stats ? `: da ${money(stats.min)} a ${money(stats.max)}${currency ? ` ${currency}` : ''}` : ''
+              stats
+                ? `: da ${money(stats.min)} a ${money(stats.max)}${currency ? ` ${currency}` : ''}`
+                : ''
             }`}
             formatValue={(value) => formatNumber(value, Math.abs(value) >= 100 ? 0 : 2)}
             formatTime={(time) => formatAxisTime(time, range)}
@@ -228,7 +248,9 @@ export function CostDetails({ settings }: WidgetDetailsProps) {
           />
         )}
         {current === null && entity && (
-          <Notice icon="warning">Il sensore selezionato non è disponibile in questo momento.</Notice>
+          <Notice icon="warning">
+            Il sensore selezionato non è disponibile in questo momento.
+          </Notice>
         )}
       </Section>
     </DetailsBody>

@@ -1,4 +1,4 @@
-/* Frame of the «OS»: exactly one screen high, status bar, pager and the footer band. */
+/* Frame of the «OS»: exactly one screen high, the pager at full screen with the gear, the top bar and the bottom bars laid over it (ADR-0016). */
 @layer components {
   /* One light metal theme (ADR-0007): native controls stay light. */
   html:has(.aca-app-root) {
@@ -13,17 +13,53 @@
   }
 
   .aca-shell {
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100dvh;
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--aca-shell-head);
+    padding-bottom: var(--aca-shell-foot);
     box-sizing: border-box;
-    overflow: hidden;
+    /* clip, not hidden: focus or a new page can never scroll the whole shell (REP-20261007-028). */
+    overflow: clip;
     background: var(--aca-page);
     color: var(--aca-ink-solid);
     font-family: var(--aca-font);
     -webkit-touch-callout: none;
+    /*
+     * The two bands around the pages, one source for the frame and for the pager (launcher.css):
+     * the pager reaches under them, so its clip edge is the edge of the screen and nothing a page
+     * draws (a shadow, a lifted card) is cut at a line (REP-20261009-006). Since ADR-0016 (C2)
+     * nothing is built into them: the gear, the top bar, the notice and the bottom bars are laid
+     * over the pages, so the grid has the whole screen less the safe areas, and the same area in
+     * normal view and in edit mode. On a tablet in landscape the head keeps a little room for the
+     * gear (--aca-gear-room), so the corner of the first row stays free.
+     */
+    --aca-gear-room: 0px;
+    --aca-shell-head: calc(env(safe-area-inset-top, 0px) + var(--aca-gear-room));
+    --aca-shell-foot: env(safe-area-inset-bottom, 0px);
+    /* Page name under the indicator: one line plus a small gap (REP-20261007-012). */
+    --aca-indicator-label-gap: var(--aca-space-1);
+    --aca-indicator-label-line: 1.25rem;
+    --aca-indicator-height: calc(
+      var(--aca-control-height) + var(--aca-indicator-label-gap) + var(--aca-indicator-label-line)
+    );
+    /* Floating bars of edit mode: 44 px controls plus the bar padding (REP-20261007-017). */
+    --aca-float-height: calc(var(--aca-control-height) + 2 * var(--aca-space-1));
+    /* The band of the bottom bars, safe area included; they lie over the pages (ADR-0016). */
+    --aca-bars-foot: calc(
+      var(--aca-float-height) + var(--aca-space-2) + var(--aca-space-3) +
+        env(safe-area-inset-bottom, 0px)
+    );
+    /* What the page overview keeps free at the bottom for its bar: the band less the safe area. */
+    --aca-overview-foot: calc(var(--aca-bars-foot) - env(safe-area-inset-bottom, 0px));
+  }
+  /* A tablet in landscape (the Tab M11, 1280 px): 20 px at the top for the gear (ADR-0016). */
+  @media (min-width: 60rem) and (orientation: landscape) {
+    .aca-shell {
+      --aca-gear-room: 1.25rem;
+    }
   }
 
   .aca-shell__main {
@@ -33,87 +69,233 @@
   }
 
   /*
-   * Footer band (REP-20261007-001, L-01/K05, V-01, V-02, V-05): the same height in normal view
-   * and in edit mode, so the area measured by the grid never changes cell or position. Where
-   * there is room (from 40rem, phones in landscape included) it is one row: the page indicator
-   * in the centre and, in edit mode, the edit bar with its two groups at the two ends. On
-   * narrower screens the edit bar has its own row under the indicator (within reach of the
-   * thumb), kept empty outside edit mode, so the indicator never moves. The move/resize controls
-   * take the whole band.
-   * The band is the container of the indicator (100cqw): its track and page name are sized on
-   * it. footerBand.ts measures the edit bar and sets data-band-density (text, short, icons),
-   * --aca-band-room (room of the indicator) and --aca-band-end (cover setting after the name).
+   * Bottom bars of edit mode (REP-20261007-001, ADR-0016): laid over the pages in a band of
+   * constant height, so the grid never changes cell or position when edit mode opens. One row at
+   * every width: the edit bar has «+ Widget» at the start and «Pagine» and «Fine» at the end, the
+   * bar of a widget and the bar of the pages take the row. The page indicator is not here: it is
+   * the top bar. footerBand.ts measures the visible bar (data-band-bar) and sets data-band-density
+   * (text, short, icons) on it. Out of edit mode the bars wait below the screen, inert.
    */
   .aca-shell__footer {
-    /* Read by footerBand.ts: rows of the band, gap between the page name and the cover setting. */
-    --aca-band-rows: 2;
+    /* Read by footerBand.ts: one row in the band, gap between the page name and «Pagine». */
+    --aca-band-rows: 1;
     --aca-band-label-gap: var(--aca-space-5);
+    /* Over the pager; only the bars take the pointer. */
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: var(--aca-z-sticky);
     container-type: inline-size;
     display: grid;
-    flex: none;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--aca-control-height) var(--aca-control-height);
-    row-gap: var(--aca-space-3);
+    grid-template-rows: var(--aca-float-height);
     align-items: center;
-    height: calc(
-      2 * var(--aca-control-height) + var(--aca-space-3) + var(--aca-space-2) + var(--aca-space-3) +
-        env(safe-area-inset-bottom, 0px)
-    );
+    height: var(--aca-bars-foot);
+    pointer-events: none;
     padding: var(--aca-space-2) var(--aca-gutter)
       calc(var(--aca-space-3) + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
   }
-  .aca-shell__footer > .aca-indicator {
+  .aca-shell__footer > * {
     grid-column: 1;
     grid-row: 1;
-    justify-self: center;
-  }
-  .aca-shell__footer > :not(.aca-indicator) {
-    grid-column: 1 / -1;
-    grid-row: 2;
     min-width: 0;
   }
-  .aca-shell__footer > .aca-widget-position {
-    grid-row: 1 / -1;
+
+  /*
+   * Top bar (ADR-0016, C2): the page indicator, centred, laid over the pages. It comes down from
+   * the top with a fade in edit mode and for a moment after a page change (pageIndicator.css).
+   * The sides keep the room of the gear, so it stays centred and clear of it; the root takes no
+   * pointer, the indicator does when it is not only a cue.
+   */
+  .aca-shell__top {
+    position: absolute;
+    z-index: var(--aca-z-sticky);
+    top: calc(env(safe-area-inset-top, 0px) + var(--aca-space-2));
+    inset-inline: 0;
+    container-type: inline-size;
+    display: flex;
+    justify-content: center;
+    padding-inline: calc(var(--aca-control-height) + var(--aca-space-3));
+    box-sizing: border-box;
+    pointer-events: none;
   }
-  /* Moving a widget with the on-screen controls: they replace the indicator for a while. */
-  .aca-shell__footer:has(> .aca-widget-position) > .aca-indicator {
-    visibility: hidden;
+  /*
+   * On a phone only the gear takes room (on its right): the groove keeps its width for a dozen
+   * pages, with its stops at 24 px (WCAG 2.5.8) instead of 28.
+   */
+  @media (max-width: 39.99rem) {
+    .aca-shell__top {
+      padding-inline: var(--aca-gutter) calc(var(--aca-control-height) + var(--aca-space-3));
+    }
+    .aca-shell__top .aca-indicator__track {
+      --aca-ball: 1.5rem;
+    }
   }
 
-  @media (min-width: 40rem) {
-    /* The sides never go under their content; the indicator gives way (footerBand.ts). */
-    .aca-shell__footer {
-      --aca-band-rows: 1;
-      grid-template-columns: minmax(min-content, 1fr) minmax(0, auto) minmax(min-content, 1fr);
-      grid-template-rows: var(--aca-control-height);
-      column-gap: var(--aca-space-4);
-      height: calc(
-        var(--aca-control-height) + var(--aca-space-2) + var(--aca-space-3) +
-          env(safe-area-inset-bottom, 0px)
-      );
+  /*
+   * Sistema, the gear (ADR-0016, C1): at the top right in every state, small and quiet. The
+   * target is 44 px; the disc is the size of the icon plus a little. The dot is the Badge: blue
+   * for updates, red for a connection problem.
+   */
+  .aca-system-gear {
+    --aca-badge: var(--aca-blue);
+    position: absolute;
+    z-index: var(--aca-z-sticky);
+    top: calc(env(safe-area-inset-top, 0px) + var(--aca-space-1));
+    right: calc(env(safe-area-inset-right, 0px) + var(--aca-space-1));
+    display: inline-flex;
+  }
+  .aca-system-gear--problem {
+    --aca-badge: var(--aca-danger);
+  }
+  .aca-system-gear .aca-bar-button {
+    color: var(--aca-ink-solid);
+  }
+  .aca-system-gear .aca-bar-button::before {
+    content: '';
+    position: absolute;
+    inset: 0.375rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--aca-page) 72%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--aca-ink-muted) 28%, transparent);
+  }
+  .aca-system-gear .aca-bar-button > svg {
+    position: relative;
+  }
+  /* On the edge of the disc (45°), not beyond the corner of the target. */
+  .aca-system-gear .aca-badge {
+    top: 0.45rem;
+    right: 0.45rem;
+  }
+  /*
+   * A widget is being dragged: the gear takes no touch (ADR-0016). It dims and comes back over
+   * 160 ms instead of at once (REP-20261023-006, D-M14, F-11).
+   */
+  .aca-system-gear {
+    transition: opacity var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in-out, ease-in-out);
+  }
+  .aca-system-gear[inert] {
+    opacity: 0.5;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-system-gear {
+      transition-duration: var(--aca-dur-reduced, 120ms);
+      transition-timing-function: linear;
     }
-    .aca-shell__footer > .aca-indicator {
-      grid-column: 2;
-      grid-row: 1;
+  }
+
+  /*
+   * Commands with no face (ADR-0016, C3): for the keyboard and assistive technology. Invisible
+   * and out of the way until one of them has the keyboard focus; then the three show together,
+   * at the top left, over the pages.
+   */
+  .aca-screen-commands {
+    position: absolute;
+    z-index: var(--aca-z-sticky);
+    top: calc(env(safe-area-inset-top, 0px) + var(--aca-space-1));
+    left: calc(env(safe-area-inset-left, 0px) + var(--aca-space-1));
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--aca-space-2);
+    max-width: calc(100% - 2 * var(--aca-control-height) - 2 * var(--aca-space-3));
+    pointer-events: none;
+  }
+  .aca-screen-commands:not(:has(:focus-visible)) {
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .aca-screen-commands:has(:focus-visible) > * {
+    pointer-events: auto;
+  }
+
+  /*
+   * A connection notice (a problem past the grace period, or an expired sign-in): over the
+   * pages, so the grid stays still while it comes and goes (ADR-0016, C1). It leaves the corner
+   * of the gear free; only the card takes the pointer.
+   */
+  .aca-shell > .aca-connection-notice {
+    position: absolute;
+    inset-inline: 0;
+    top: env(safe-area-inset-top, 0px);
+    padding-inline-end: calc(var(--aca-gutter) + var(--aca-control-height));
+    box-sizing: border-box;
+  }
+
+  /*
+   * Sistema over the launcher (REP-20261023-006, D-M12). The page is a layer of its own, over the
+   * launcher, while both are on screen: it fades in with a scale of 4 % (--aca-scale-page) in
+   * 140 ms and out in 96 ms (240 and 160 until 2026-10-24: the user chose the same fade, shorter,
+   * for the cost of two full-screen layers on the tablet), `opacity` and `scale` only. It is mounted transparent (wait) and
+   * moves two frames later (in); on the way out the launcher is already shown under it (out-wait)
+   * and the page fades away after that (out). The scroll of the page is the layer's own.
+   */
+  .aca-overlay-scene {
+    position: fixed;
+    inset: 0;
+    z-index: var(--aca-z-overlay, 250);
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--aca-page);
+    /*
+     * A layer from the wait to the end (0.9.28, tracings of 2026-10-24): waiting at opacity 0 it
+     * must already be a layer, or the browser does not draw what is transparent and the whole page
+     * of Sistema was drawn on the first frames of the fade, with the launcher still composited
+     * under it (measurement of 2026-10-23: frames of 98 and 156 ms). And it stays one in `on`:
+     * when `will-change` went away at the end of the fade the page was rasterised a second time
+     * (the GPU of the tablet was saturated twice, 480-680 and 780-940 ms; the 0.9.27, with no
+     * scene, once). In the wait it is rasterised at its scale of rest, out of sight.
+     */
+    will-change: opacity, scale;
+  }
+  /* Transparent in the wait, at the scale of rest: it is rasterised once, at the size it ends at. */
+  .aca-overlay-scene[data-scene='wait'] {
+    opacity: 0;
+  }
+  .aca-overlay-scene[data-scene='out'] {
+    opacity: 0;
+    scale: var(--aca-scale-page, 0.96);
+  }
+  /*
+   * The way in is an animation from the look of the wait to the one of rest (the same values as
+   * before: opacity 0 to 1, scale 0.96 to 1), not a transition from a layer waiting at 0.96: the
+   * layer waits at scale 1 and has only one raster. `both`: it holds the first keyframe if it is
+   * delayed and the last one until the scene says `on`.
+   */
+  @keyframes aca-system-in {
+    from {
+      opacity: 0;
+      scale: var(--aca-scale-page, 0.96);
     }
-    .aca-shell__footer > :not(.aca-indicator),
-    .aca-shell__footer > .aca-widget-position {
-      grid-row: 1;
+  }
+  .aca-overlay-scene[data-scene='in'] {
+    animation: aca-system-in var(--aca-dur-system-in, 140ms) var(--aca-motion-ease-out, ease-out)
+      both;
+  }
+  .aca-overlay-scene[data-scene='out'] {
+    pointer-events: none;
+    transition:
+      opacity var(--aca-dur-system-out, 96ms) var(--aca-motion-ease-in, ease-in),
+      scale var(--aca-dur-system-out, 96ms) var(--aca-motion-ease-in, ease-in);
+  }
+  @keyframes aca-system-in-reduced {
+    from {
+      opacity: 0;
     }
-    /* The edit bar takes the columns of the band: its groups never reach the indicator. */
-    .aca-shell__footer > .aca-edit-toolbar {
-      display: grid;
-      grid-template-columns: subgrid;
-      gap: normal;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-overlay-scene[data-scene='out'] {
+      scale: none;
     }
-    .aca-shell__footer > .aca-edit-toolbar > .aca-edit-toolbar__actions {
-      grid-column: 1;
-      justify-self: start;
+    .aca-overlay-scene[data-scene='in'] {
+      animation: aca-system-in-reduced var(--aca-dur-reduced, 120ms) linear both;
     }
-    .aca-shell__footer > .aca-edit-toolbar > .aca-edit-toolbar__cover {
-      grid-column: 3;
-      justify-self: end;
+    .aca-overlay-scene[data-scene='out'] {
+      transition: opacity var(--aca-dur-reduced, 120ms) linear;
     }
   }
 

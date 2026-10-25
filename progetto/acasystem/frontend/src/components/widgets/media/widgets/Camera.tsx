@@ -7,8 +7,19 @@ import { MediaIcon } from '../icons';
 import { isMotionState, readCameraSettings, type CameraSettings } from '../model/camera';
 import { attrString, type Entity } from '../model/entity';
 import { testi } from '../testi';
-import { CameraStream, SnapshotWindow, asCameraConnection, useSnapshotUrl } from '../parts/CameraFeed';
-import { OpenButton, WidgetLoading, WidgetMessage, WidgetShell, missingDevice } from '../parts/WidgetShell';
+import {
+  CameraStream,
+  SnapshotWindow,
+  asCameraConnection,
+  useSnapshotUrl,
+} from '../parts/CameraFeed';
+import {
+  OpenButton,
+  WidgetLoading,
+  WidgetMessage,
+  WidgetShell,
+  missingDevice,
+} from '../parts/WidgetShell';
 
 const isOffline = (entity: Entity | undefined) =>
   !entity || entity.state === 'unavailable' || entity.state === 'unknown' || entity.state === 'off';
@@ -20,7 +31,11 @@ const formatTime = (at: number) =>
  * Snapshot refresh of the legacy CameraCard: every `cameraRefreshInterval` seconds (minimum 2,
  * default 10), or on each new detection of `cameraMotionSensor` in motion mode.
  */
-function useSnapshotRefresh(camera: CameraSettings, motionState: string | undefined, active: boolean) {
+function useSnapshotRefresh(
+  camera: CameraSettings,
+  motionState: string | undefined,
+  active: boolean
+) {
   const [refreshKey, setRefreshKey] = useState(() => Date.now());
   const previousMotion = useRef(false);
   const wasActive = useRef(active);
@@ -76,7 +91,9 @@ export function CameraWidget({ id, settings, size, editMode }: WidgetProps) {
   const camera = readCameraSettings(settings);
   const entity = camera.cameraId ? runtime.entities[camera.cameraId] : undefined;
   const offline = isOffline(entity);
-  const motionState = camera.motionSensorId ? runtime.entities[camera.motionSensorId]?.state : undefined;
+  const motionState = camera.motionSensorId
+    ? runtime.entities[camera.motionSensorId]?.state
+    : undefined;
   const active = visible && Boolean(entity) && !offline;
   const { refreshKey, refresh } = useSnapshotRefresh(camera, motionState, active);
   const conn = asCameraConnection(runtime.conn);
@@ -90,7 +107,8 @@ export function CameraWidget({ id, settings, size, editMode }: WidgetProps) {
   );
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
 
-  if (!runtime.entitiesLoaded) return <WidgetLoading size={size} label={testi.caricamentoVideocamera} />;
+  if (!runtime.entitiesLoaded)
+    return <WidgetLoading size={size} label={testi.caricamentoVideocamera} />;
   if (!camera.cameraId || !entity) {
     return <WidgetMessage size={size} editMode={editMode} {...missingDevice(camera.cameraId)} />;
   }
@@ -151,7 +169,9 @@ export function CameraDetails({ id, settings }: WidgetDetailsProps) {
   const entity = camera.cameraId ? runtime.entities[camera.cameraId] : undefined;
   const [view, setView] = useState<CameraView>('stream');
   const [refreshKey, setRefreshKey] = useState(() => Date.now());
-  const motionState = camera.motionSensorId ? runtime.entities[camera.motionSensorId]?.state : undefined;
+  const motionState = camera.motionSensorId
+    ? runtime.entities[camera.motionSensorId]?.state
+    : undefined;
 
   if (!camera.cameraId || !entity) {
     return (

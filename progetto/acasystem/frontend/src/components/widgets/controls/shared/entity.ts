@@ -28,7 +28,10 @@ export function attr(entity: HassEntity | null | undefined, key: string): unknow
 export function numberAttr(entity: HassEntity | null | undefined, key: string): number | null {
   const value = attr(entity, key);
   const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value));
-  return typeof value !== 'boolean' && value !== null && value !== undefined && Number.isFinite(parsed)
+  return typeof value !== 'boolean' &&
+    value !== null &&
+    value !== undefined &&
+    Number.isFinite(parsed)
     ? parsed
     : null;
 }

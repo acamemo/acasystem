@@ -1,11 +1,11 @@
 # Documentazione — ACA SYSTEM 2.0
 
-Direzione corrente: Home Assistant locale con frontend personalizzato a partire da Tunet; pilota in ufficio e fase 1 minima grafica, secondo ADR-0003. Il repository contiene documentazione, Git locale e sorgenti Tunet 1.22.1; banco prova HA/Tunet disponibile. Stato e limiti in [project-status.md](project-status.md), avvio in [progetto/README.md](../progetto/README.md); UI ACA e collaudo del prodotto ancora da realizzare.
+Direzione corrente: Home Assistant locale con frontend personalizzato a partire da Tunet; pilota in ufficio e fase 1 minima grafica, secondo ADR-0003. Il repository contiene documentazione, Git locale e sorgenti ACA derivati da Tunet 1.22.1. Al 2026-10-14 il banco locale è `aca-system:0.9.7`, con UI kit e pagine di categoria, verifiche sul Tab M11 e limiti di collaudo registrati. Stato corrente in [project-status.md](project-status.md), passaggio di consegne in [LEGGIMI.md](LEGGIMI.md), avvio in [progetto/README.md](../progetto/README.md).
 
 ## Da dove iniziare
 
 1. Leggere [le regole di lavoro](../AGENTS.md).
-2. Consultare [lo stato effettivo](project-status.md) e il report dell'incarico da riprendere.
+2. Per una nuova chat leggere [LEGGIMI.md](LEGGIMI.md); consultare [lo stato effettivo](project-status.md) e il report dell'incarico da riprendere.
 3. Leggere il [modulo funzionalità](funzionalita/README.md) per requisiti e comportamenti e il [modulo design](design/README.md) per presentazione e interazione, secondo l'incarico.
 4. Verificare [le decisioni approvate](decisions/README.md). Le proposte non autorizzano modifiche.
 
@@ -15,6 +15,7 @@ La documentazione è divisa in due moduli: **funzionalità**, con product.md e p
 
 | Fonte | Responsabilità |
 |---|---|
+| [LEGGIMI.md](LEGGIMI.md) | Sintesi datata per una nuova chat, distinzione kit/HA e collegamenti alle fonti correnti. |
 | [product.md](funzionalita/product.md) | Visione, requisiti proposti/approvati/ritirati, priorità storiche e criteri di accettazione proposti. |
 | [Pilota e fase 1](funzionalita/pilot-scope.md) | Indicazioni umane, perimetro minimo grafico, obiettivi successivi e informazioni mancanti. |
 | [design.md](design/design.md) | Stile Neumorphism, colori confermati, spiegazione, proposte sui componenti e verifiche visive previste. |

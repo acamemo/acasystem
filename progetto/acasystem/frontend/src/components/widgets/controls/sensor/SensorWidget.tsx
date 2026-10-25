@@ -100,7 +100,10 @@ function SensorIcon({
   }
   return (
     <span
-      className={materialClass({ behavior: 'static', shape: 'circle', size: 'md' }, 'ctl-badge-icon')}
+      className={materialClass(
+        { behavior: 'static', shape: 'circle', size: 'md' },
+        'ctl-badge-icon'
+      )}
       aria-hidden="true"
     >
       <MaterialLayers>{glyph}</MaterialLayers>
@@ -202,7 +205,13 @@ export function SensorWidget({ id, settings, size, editMode }: WidgetProps) {
     </Text>
   ) : null;
   const iconEl = model.showIcon ? (
-    <SensorIcon controls={controls} icon={icon} name={name} editMode={editMode} asToggle={asToggle} />
+    <SensorIcon
+      controls={controls}
+      icon={icon}
+      name={name}
+      editMode={editMode}
+      asToggle={asToggle}
+    />
   ) : null;
   const detailsButton = cardAction && action.type !== 'more-info' && (
     <Button

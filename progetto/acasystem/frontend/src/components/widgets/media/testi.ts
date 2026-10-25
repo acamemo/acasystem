@@ -59,7 +59,8 @@ export const testi = {
   nessunLettore: 'Nessun lettore trovato',
   nessunLettoreSonos: 'Nessun lettore Sonos trovato',
   nessunLettoreNota: 'Aggiungi un lettore multimediale in Home Assistant per vederlo qui.',
-  nessunLettoreSonosNota: 'Collega l’integrazione Sonos in Home Assistant per vedere qui i diffusori.',
+  nessunLettoreSonosNota:
+    'Collega l’integrazione Sonos in Home Assistant per vedere qui i diffusori.',
   raggruppaTutti: 'Raggruppa tutti',
   separaTutti: 'Separa tutti',
   aggiungiAlGruppo: (nome: string) => `Aggiungi ${nome} al gruppo`,
@@ -67,6 +68,9 @@ export const testi = {
   collegato: 'Collegato al gruppo',
   aggiungiSonos: 'Aggiungi un lettore Sonos',
   nessunSonosDisponibile: 'Nessun altro lettore Sonos disponibile',
+  nessunLettoreDisponibile: 'Nessun lettore disponibile in Home Assistant.',
+  mostraTutti: 'Mostra tutti',
+  nessunLettoreScelto: 'In questa pagina non è scelto nessun lettore.',
   togli: 'Togli',
   selezionaLettoriNota: 'Scegli quali lettori mostrare in questa pagina.',
   nessunRisultato: 'Nessun risultato',
@@ -117,7 +121,8 @@ export const testi = {
   aggiorna: 'Aggiorna',
   immagineNonDisponibile: 'Immagine non disponibile',
   streamNonDisponibile: 'Stream non disponibile',
-  streamNonDisponibileNota: 'Nessuna sorgente video ha risposto. Controlla la videocamera e riprova.',
+  streamNonDisponibileNota:
+    'Nessuna sorgente video ha risposto. Controlla la videocamera e riprova.',
   riprova: 'Riprova',
   videocameraSpenta: 'La videocamera è spenta o non raggiungibile.',
 } as const;

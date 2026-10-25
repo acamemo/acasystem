@@ -1,10 +1,6 @@
 import { act, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import {
-  COVER_SETTING_LABEL,
-  COVER_SETTING_SHORT_LABEL,
-  EditToolbar,
-} from '@/components/system/edit/EditToolbar';
+import { EditToolbar } from '@/components/system/edit/EditToolbar';
 import { PageIndicator } from '@/components/system/page-indicator/PageIndicator';
 import { AppShell } from '@/templates/app-shell/AppShell';
 import {
@@ -20,7 +16,7 @@ import {
 /**
  * REP-20261007-001, secondo giro, corsia cornice: V-01 (barra di modifica e indicatore non si
  * sovrappongono mai), V-02 (fascia a una riga dove c'è spazio), V-05 (minimo leggibile del nome
- * della pagina), V-06 (nome visibile breve dell'interruttore della copertina sul telefono), R-05
+ * della pagina), V-06 (densità sul telefono; dal REP-20261008-001 il gruppo finale è «Pagine»), R-05
  * (strati con nome), R-06 (valori della scala e larghezza ricavata dalla struttura), R-07
  * (commento del margine). jsdom non calcola il layout: la scelta è verificata sulla funzione pura
  * con le larghezze misurate in Chromium (resoconto della corsia) e sul DOM con misure simulate.
@@ -57,14 +53,18 @@ function rule(file: string, selector: string): string {
   );
 }
 
-/** Widths measured in Chromium on launcher.html (px), first round and this round. */
+/**
+ * Widths measured in Chromium on launcher.html (px) for the bar before REP-20261008-001, with
+ * three page actions and the cover switch at the end. They stay as inputs of fitBand; the bar
+ * of «+ Widget» and «Pagine» has not been measured again.
+ */
 const MEASURED: Record<BandDensity, BandGroups> = {
-  text: { actions: 475, cover: 256 },
-  short: { actions: 148, cover: 153 },
-  icons: { actions: 148, cover: 116 },
+  text: { actions: 475, end: 256 },
+  short: { actions: 148, end: 153 },
+  icons: { actions: 148, end: 116 },
 };
 const GAP = 16; // --aca-space-4, column gap of the band
-const LABEL_GAP = 24; // --aca-space-5, between the page name and the cover setting
+const LABEL_GAP = 24; // --aca-space-5, between the page name and the end group
 const LABEL_MIN = 80; // --aca-label-min, 5rem
 const STOP = 44; // --aca-control-height
 const BALL = 28; // --aca-ball, the narrowest stop
@@ -122,8 +122,8 @@ describe('V-01, V-05: barra di modifica e indicatore sulla stessa riga', () => {
       const side = (measures.width - indicator - 2 * GAP) / 2;
       // Start side: the actions never reach the groove.
       expect(side).toBeGreaterThanOrEqual(MEASURED[fit.density].actions);
-      // End side: the page name keeps its readable minimum before the cover setting.
-      expect(fit.end).toBe(Math.ceil(MEASURED[fit.density].cover + LABEL_GAP));
+      // End side: the page name keeps its readable minimum before the end group.
+      expect(fit.end).toBe(Math.ceil(MEASURED[fit.density].end + LABEL_GAP));
       expect(side - (fit.end ?? 0)).toBeGreaterThanOrEqual(LABEL_MIN);
     }
   );
@@ -143,11 +143,11 @@ describe('V-01, V-05: barra di modifica e indicatore sulla stessa riga', () => {
   });
 
   it('non torna a una densità più ricca alla stessa larghezza e con le stesse pagine', () => {
-    // The cover has fewer actions (one button and a note): alone it would fit «text».
+    // A page with fewer actions (a note instead of a button): alone it would fit «text».
     const cover: Record<BandDensity, BandGroups> = {
-      text: { actions: 286, cover: 256 },
-      short: { actions: 132, cover: 153 },
-      icons: { actions: 132, cover: 116 },
+      text: { actions: 286, end: 256 },
+      short: { actions: 132, end: 153 },
+      icons: { actions: 132, end: 116 },
     };
     expect(oneRow(1536, 12, { groups: cover }).fit.density).toBe('text');
     expect(oneRow(1536, 12, { groups: cover, floor: 'short' }).fit.density).toBe('short');
@@ -155,7 +155,7 @@ describe('V-01, V-05: barra di modifica e indicatore sulla stessa riga', () => {
   });
 });
 
-describe('V-02, V-06: barra di modifica su una riga propria (telefono verticale)', () => {
+describe('V-02, V-06: barra di modifica su una riga (ADR-0016)', () => {
   const twoRows = (width: number, groups: Record<BandDensity, BandGroups>): BandMeasures => ({
     width,
     rows: 2,
@@ -167,13 +167,13 @@ describe('V-02, V-06: barra di modifica su una riga propria (telefono verticale)
     groups,
   });
   const coverPage: Record<BandDensity, BandGroups> = {
-    // «Nuova pagina» and the note at its minimum (5rem).
-    text: { actions: 158 + 8 + 80, cover: 256 },
-    short: { actions: 44 + 8 + 80, cover: 153 },
-    icons: { actions: 44 + 8 + 80, cover: 116 },
+    // A button and a note at its minimum (5rem), as measured in the first round.
+    text: { actions: 158 + 8 + 80, end: 256 },
+    short: { actions: 44 + 8 + 80, end: 153 },
+    icons: { actions: 44 + 8 + 80, end: 116 },
   };
 
-  it('sulla copertina a 360, 375 e 390 px l’interruttore ha il nome breve visibile', () => {
+  it('con una nota nel gruppo iniziale a 360, 375 e 390 px resta la densità «short»', () => {
     for (const viewport of [360, 375, 390]) {
       expect(fitBand(twoRows(viewport - 32, coverPage))).toEqual({
         density: 'short',
@@ -188,35 +188,32 @@ describe('V-02, V-06: barra di modifica su una riga propria (telefono verticale)
     expect(fitBand(twoRows(320 - 32, MEASURED)).density).toBe('icons');
   });
 
-  it('la fascia è a una riga da 40rem (telefoni orizzontali) e a due righe sotto', () => {
+  it('la fascia è a una riga a ogni larghezza: l’indicatore è la barra in alto (ADR-0016)', () => {
     const shell = uncommented('shell');
-    expect(rule('shell', '.aca-shell__footer')).toMatch(/--aca-band-rows:\s*2;/);
-    expect(shell).toMatch(
-      /@media \(min-width: 40rem\) \{\s*\.aca-shell__footer \{[^}]*--aca-band-rows:\s*1;/
+    expect(rule('shell', '.aca-shell__footer')).toMatch(/--aca-band-rows:\s*1;/);
+    // No second row under 40rem and no columns for the indicator: the bar has the whole row.
+    expect(rule('shell', '.aca-shell__footer')).not.toMatch(
+      /grid-template-columns:[^;]*min-content/
     );
-    expect(shell).not.toMatch(/48rem|75rem/);
-    // The move controls follow the band: two rows only below 40rem.
-    expect(uncommented('edit')).toMatch(
-      /@media \(max-width: 39\.99rem\) \{\s*\.aca-widget-position \{/
-    );
+    expect(shell).not.toMatch(/@media \(min-width: 40rem\)/);
+    expect(shell).not.toMatch(/(?<![\d.])(48|75)rem/);
+    // The on-screen move controls are gone (REP-20261008-001): no rule of theirs is left.
+    expect(uncommented('edit')).not.toMatch(/\.aca-widget-position/);
+    expect(shell).not.toMatch(/\.aca-widget-position/);
     expect(uncommented('edit')).not.toMatch(/47\.99rem|74\.99rem/);
   });
 });
 
-describe('V-01: le colonne laterali non scendono sotto il contenuto', () => {
-  it('usa minmax(min-content, 1fr) ai lati e lascia cedere la colonna dell’indicatore', () => {
-    const wide = /@media \(min-width: 40rem\) \{\s*\.aca-shell__footer \{([^}]*)\}/.exec(
-      uncommented('shell')
-    )?.[1];
-    expect(wide).toMatch(
-      /grid-template-columns:\s*minmax\(min-content, 1fr\) minmax\(0, auto\) minmax\(min-content, 1fr\);/
+describe('V-01: la barra in alto è il contenitore dell’indicatore', () => {
+  it('la barra in alto è un contenitore in linea, con ai lati lo spazio dell’ingranaggio', () => {
+    const top = rule('shell', '.aca-shell__top');
+    expect(top).toMatch(/container-type:\s*inline-size;/);
+    expect(top).toMatch(
+      /padding-inline:\s*calc\(var\(--aca-control-height\) \+ var\(--aca-space-3\)\)/
     );
-    // The band is the container of the indicator: track and name are sized on it.
-    expect(rule('shell', '.aca-shell__footer')).toMatch(/container-type:\s*inline-size;/);
+    // Track and name are sized on it (100cqw), unless the band gives the room (footerBand.ts).
     const track = rule('indicator', '.aca-indicator__track');
-    expect(track).toMatch(
-      /--aca-room:\s*var\(\s*--aca-band-room,\s*calc\(100cqw - 2 \* \(var\(--aca-label-min\) \+ var\(--aca-space-4\)\)\)\s*\)/
-    );
+    expect(track).toMatch(/--aca-room:\s*var\(\s*--aca-band-room,\s*100cqw\s*\)/);
     expect(track).toMatch(
       /calc\(\(var\(--aca-room\) - 2 \* var\(--aca-pad\)\) \/ var\(--aca-steps\)\)/
     );
@@ -229,13 +226,8 @@ describe('V-01: le colonne laterali non scendono sotto il contenuto', () => {
         ":is([data-band-density='short'], [data-band-density='icons']) .aca-edit-toolbar__text"
       )
     ).toMatch(/display:\s*none/);
-    expect(rule('edit', "[data-band-density='short'] .aca-edit-toolbar__short")).toMatch(
-      /display:\s*inline/
-    );
-    expect(rule('edit', "[data-band-density='short'] .aca-edit-toolbar__cover-icon")).toMatch(
-      /display:\s*none/
-    );
-    expect(rule('edit', '.aca-edit-toolbar__short')).toMatch(/display:\s*none/);
+    // The cover setting and its short name left the bar (REP-20261008-001).
+    expect(uncommented('edit')).not.toMatch(/aca-edit-toolbar__(short|cover)/);
     const measure = rule('edit', '[data-band-measure] .aca-edit-toolbar__group');
     expect(measure).toMatch(/flex:\s*none/);
     expect(measure).toMatch(/width:\s*max-content/);
@@ -245,52 +237,47 @@ describe('V-01: le colonne laterali non scendono sotto il contenuto', () => {
   });
 });
 
-describe('V-06: interruttore della copertina con un nome visibile breve', () => {
-  const props = {
-    onAddWidget: () => undefined,
-    onPageSettings: () => undefined,
-    onNewPage: () => undefined,
-    coverEnabled: true,
-    onCoverChange: () => undefined,
-  };
-
-  it('mostra «Copertina» accanto all’interruttore, separato dalla nota', () => {
-    render(<EditToolbar {...props} canAddWidget={false} canEditPage={false} />);
-    const bar = screen.getByRole('group', { name: 'Modifica della disposizione' });
-    const cover = bar.querySelector('.aca-edit-toolbar__cover');
-    const short = cover?.querySelector('.aca-edit-toolbar__short');
-    expect(short).toHaveTextContent(COVER_SETTING_SHORT_LABEL);
-    expect(short).toHaveAttribute('aria-hidden', 'true');
-    // The visible short name belongs to the switch group, not to the note's group.
-    expect(bar.querySelector('.aca-edit-toolbar__actions')).toHaveTextContent(
-      'La copertina non contiene widget'
+describe('V-06: gruppo finale «Pagine» (REP-20261008-001)', () => {
+  it('sta nel gruppo finale, separato dalla nota del gruppo iniziale', () => {
+    render(
+      <EditToolbar
+        onAddWidget={() => undefined}
+        onPages={() => undefined}
+        onDone={() => undefined}
+        canAddWidget={false}
+      />
     );
-    expect(cover).not.toHaveTextContent('La copertina non contiene widget');
+    const bar = screen.getByRole('group', { name: 'Modifica della disposizione' });
+    const end = bar.querySelector('.aca-edit-toolbar__pages');
+    expect(bar.querySelector('.aca-edit-toolbar__actions')).toHaveTextContent(
+      'Questa pagina non contiene widget'
+    );
+    expect(end).not.toHaveTextContent('Questa pagina non contiene widget');
     // WCAG 2.5.3: the accessible name contains the visible name.
-    const toggle = within(bar).getByRole('switch', { name: COVER_SETTING_LABEL });
-    expect(COVER_SETTING_LABEL.toLowerCase()).toContain(COVER_SETTING_SHORT_LABEL.toLowerCase());
-    expect(toggle).toBeInTheDocument();
+    const pages = within(bar).getByRole('button', { name: 'Modifica le pagine' });
+    expect(end).toContainElement(pages);
+    expect(pages).toHaveTextContent('Pagine');
   });
 });
 
 describe('R-05, R-06, R-07: strati, scala e commenti', () => {
-  it('la × e il pomello usano lo strato di modifica della griglia, non numeri', () => {
-    expect(rule('edit', '.aca-widget-edit__remove.aca-m')).toMatch(
-      /z-index:\s*var\(--aca-layer-edit\);/
-    );
-    expect(rule('edit', '.aca-resize-handle')).toMatch(/z-index:\s*var\(--aca-layer-edit\);/);
+  it('la cornice di presa del widget selezionato usa lo strato di modifica, non numeri', () => {
+    // Sides and dots live inside the frame, which takes the edit layer (REP-20261008-001).
+    expect(rule('edit', '.aca-resize-frame')).toMatch(/z-index:\s*var\(--aca-layer-edit\);/);
+    expect(uncommented('edit')).not.toMatch(/\.aca-widget-knob|\.aca-resize-band/);
     expect(uncommented('edit')).not.toMatch(/z-index:\s*\d/);
   });
 
   it('l’etichetta usa i passi della scala e il minimo leggibile, senza 100vw', () => {
     const label = rule('indicator', '.aca-indicator__label');
-    expect(label).toMatch(/left:\s*calc\(100% \+ var\(--aca-space-4\)\);/);
+    // Under the groove since REP-20261007-012: no side offset.
+    expect(label).not.toMatch(/left:/);
     expect(rule('indicator', '.aca-indicator')).toMatch(/--aca-label-min:\s*5rem;/);
     // The first-round estimates: (100vw - 12rem) for the stops, 1rem and 1.5rem for the name.
     expect(uncommented('indicator')).not.toMatch(/100vw|[\s(]12rem|[\s-]1\.5rem|100% \+ 1rem/);
   });
 
-  it('il commento della × cita il margine attuale della pagina', () => {
+  it('il commento dei pomelli cita il margine attuale della pagina', () => {
     expect(css.edit).not.toMatch(/keeps 0\.75rem around the grid/);
     expect(css.edit).toMatch(/--aca-launcher-edge-room \(1\.5rem\)/);
   });
@@ -310,14 +297,14 @@ describe('footerBand: misura e applicazione sul DOM', () => {
     footer.innerHTML = `
       <div class="aca-edit-toolbar">
         <div class="aca-edit-toolbar__group aca-edit-toolbar__actions"></div>
-        <div class="aca-edit-toolbar__group aca-edit-toolbar__cover"></div>
+        <div class="aca-edit-toolbar__group aca-edit-toolbar__pages"></div>
       </div>
       <div class="aca-indicator">${'<span class="aca-indicator__dot"></span>'.repeat(entries)}</div>`;
     document.body.appendChild(footer);
     const density = () => (footer.dataset.bandDensity ?? 'text') as BandDensity;
     const measured = new Map<Element | null, () => number>([
       [footer.querySelector('.aca-edit-toolbar__actions'), () => MEASURED[density()].actions],
-      [footer.querySelector('.aca-edit-toolbar__cover'), () => MEASURED[density()].cover],
+      [footer.querySelector('.aca-edit-toolbar__pages'), () => MEASURED[density()].end],
       [footer.querySelector('.aca-indicator'), () => indicatorWidth(entries, STOP)],
     ]);
     for (const [element, width] of measured) {
@@ -403,8 +390,8 @@ describe('footerBand: misura e applicazione sul DOM', () => {
       const density = (band?.dataset.bandDensity ?? 'text') as BandDensity;
       if (this.classList.contains('aca-edit-toolbar__actions'))
         return { width: MEASURED[density].actions } as DOMRect;
-      if (this.classList.contains('aca-edit-toolbar__cover'))
-        return { width: MEASURED[density].cover } as DOMRect;
+      if (this.classList.contains('aca-edit-toolbar__pages'))
+        return { width: MEASURED[density].end } as DOMRect;
       if (this.classList.contains('aca-indicator')) return { width: indicatorPx } as DOMRect;
       return { width: 0 } as DOMRect;
     });
@@ -440,19 +427,15 @@ describe('footerBand: misura e applicazione sul DOM', () => {
     ];
     const shell = (editing: boolean, onCover = false) => (
       <AppShell
-        statusBar={<header />}
         editMode={editing}
         footer={
           <>
             {editing && (
               <EditToolbar
                 onAddWidget={() => undefined}
-                onPageSettings={() => undefined}
-                onNewPage={() => undefined}
+                onPages={() => undefined}
+                onDone={() => undefined}
                 canAddWidget={!onCover}
-                canEditPage={!onCover}
-                coverEnabled
-                onCoverChange={() => undefined}
               />
             )}
             <PageIndicator labels={labels} index={1} onChange={() => undefined} />
@@ -462,9 +445,11 @@ describe('footerBand: misura e applicazione sul DOM', () => {
         <div />
       </AppShell>
     );
+    // The measure of the band waits for the next frame, ahead of this callback (REP-20261019-002).
     const flush = () =>
       act(async () => {
         await Promise.resolve();
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       });
     try {
       const { container, rerender } = render(shell(true));
@@ -495,5 +480,73 @@ describe('footerBand: misura e applicazione sul DOM', () => {
     } finally {
       Reflect.deleteProperty(document, 'fonts');
     }
+  });
+});
+
+/*
+ * Guard of REP-20261013-002 (stage 1, ADR-0013): the exact outcomes of fitBand for the edit bar
+ * as it is today («+ Widget» and «Pagine»), with the widths of its groups in CURRENT. The stages
+ * that put the status bar in the same band change footerBand.ts; for the edit bar these values
+ * must not move. (MEASURED, above, belongs to the bar before REP-20261008-001.)
+ */
+const CURRENT: Record<BandDensity, BandGroups> = {
+  text: { actions: 126, end: 201 },
+  short: { actions: 52, end: 129 },
+  icons: { actions: 52, end: 129 },
+};
+
+describe('fitBand: esiti per la barra di modifica attuale', () => {
+  // Widths of CURRENT measured in headless Chromium on launcher.html at 1024x640 and 1280x665
+  // (2026-10-13), 4 pages: data-band-density «text» and --aca-band-end 225px, no band room.
+  const cases: Array<[number, number, BandDensity, number | null, number]> = [
+    // viewport, pages, density, room of the indicator, room kept after the page name
+    [700, 4, 'icons', 167, 153],
+    [700, 12, 'icons', 167, 153],
+    [1024, 4, 'text', null, 225],
+    [1024, 8, 'short', null, 153],
+    [1024, 12, 'icons', 474, 153],
+    [1100, 12, 'icons', 547, 153],
+    [1280, 4, 'text', null, 225],
+    [1280, 12, 'text', null, 225],
+  ];
+
+  it.each(cases)('a %ipx con %i pagine: «%s», spazio %s, coda %i', (viewport, pages, ...want) => {
+    const { fit } = oneRow(viewport, pages, { groups: CURRENT });
+    expect([fit.density, fit.room, fit.end]).toEqual(want);
+  });
+
+  it('su due righe sceglie la densità più ricca i cui gruppi stanno nella riga', () => {
+    // text: 126 + 16 + 201 = 343; short and icons: 52 + 16 + 129 = 197.
+    const rows2 = (width: number) =>
+      fitBand({
+        width,
+        rows: 2,
+        gap: 0,
+        groupGap: GAP,
+        indicator: 0,
+        labelMin: LABEL_MIN,
+        labelGap: LABEL_GAP,
+        groups: CURRENT,
+      });
+    expect(rows2(343)).toEqual({ density: 'text', room: null, end: null });
+    expect(rows2(342)).toEqual({ density: 'short', room: null, end: null });
+    expect(rows2(197)).toEqual({ density: 'short', room: null, end: null });
+    expect(rows2(196)).toEqual({ density: 'icons', room: null, end: null });
+    expect(rows2(100)).toEqual({ density: 'icons', room: null, end: null });
+  });
+
+  it('con la densità già scelta non torna indietro, anche su due righe', () => {
+    const rows2 = fitBand({
+      width: 343,
+      rows: 2,
+      gap: 0,
+      groupGap: GAP,
+      indicator: 0,
+      labelMin: LABEL_MIN,
+      labelGap: LABEL_GAP,
+      groups: CURRENT,
+      floor: 'short',
+    });
+    expect(rows2.density).toBe('short');
   });
 });

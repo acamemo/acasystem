@@ -17,6 +17,7 @@ import {
 } from '@/api/settingsApi';
 import type { BackendRequestInit } from '@/api/backendClient';
 import { collectSnapshot, applySnapshot, isValidSnapshot } from '@/api/snapshot';
+import { readStoredCasa3dQuality, subscribeCasa3dQuality } from '@/casa3d/quality';
 import { errorMessage, readKey } from '@/validators/guards';
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'conflict' | 'error';
@@ -90,6 +91,25 @@ const getStoredDeviceLabel = (): string => {
   } catch {
     return '';
   }
+};
+
+/**
+ * The same serialised snapshot without its `device` block. That block holds the preferences of the
+ * device that wrote the row (Casa 3D quality): it differs between devices without any local edit,
+ * so it must not count when deciding whether this device has unsynced changes.
+ */
+const withoutDeviceBlock = (serialized: string): string => {
+  try {
+    const parsed: unknown = JSON.parse(serialized);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'device' in parsed) {
+      const rest: Record<string, unknown> = { ...parsed };
+      delete rest.device;
+      return JSON.stringify(rest);
+    }
+  } catch {
+    // not JSON: compare as it is
+  }
+  return serialized;
 };
 
 const READ_CURRENT_FAILED = Symbol('READ_CURRENT_FAILED');
@@ -275,12 +295,16 @@ export function useSettingsSync({
       }
 
       const hasKnownBaseline = Boolean(lastUploadedHashRef.current);
-      if (hasKnownBaseline && localSerialized && localSerialized !== lastUploadedHashRef.current) {
+      if (
+        hasKnownBaseline &&
+        localSerialized &&
+        withoutDeviceBlock(localSerialized) !== withoutDeviceBlock(lastUploadedHashRef.current)
+      ) {
         return false;
       }
 
       if (!row.data || typeof row.data !== 'object') return false;
-      applySnapshot(row.data, contextSettersRef?.current || {});
+      applySnapshot(row.data, contextSettersRef?.current || {}, { device: true });
 
       const serialized = JSON.stringify(row.data || {});
       lastUploadedHashRef.current = serialized;
@@ -376,7 +400,8 @@ export function useSettingsSync({
           setStatus('conflict');
           setError('Revision conflict');
           const hasLocalChanges =
-            !lastUploadedHashRef.current || serialized !== lastUploadedHashRef.current;
+            !lastUploadedHashRef.current ||
+            withoutDeviceBlock(serialized) !== withoutDeviceBlock(lastUploadedHashRef.current);
 
           if (!hasLocalChanges) {
             const appliedServer = await reconcileFromServer({
@@ -520,6 +545,32 @@ export function useSettingsSync({
     };
   }, [haUserId, queueAutoSync]);
 
+  // A new Casa 3D quality is part of the current settings: copy it without waiting for an edit.
+  // The check runs after the current tick, so a level that arrives from the server (applied just
+  // now, already in the uploaded copy) does not send anything back. The copy counts only when it
+  // carries this device's own block: a block of another device is replaced by this one's.
+  useEffect(() => {
+    if (!haUserId) return undefined;
+    return subscribeCasa3dQuality(() => {
+      setTimeout(() => {
+        let uploaded: unknown = null;
+        try {
+          uploaded = lastUploadedHashRef.current ? JSON.parse(lastUploadedHashRef.current) : null;
+        } catch {
+          uploaded = null;
+        }
+        const uploadedDevice = (
+          uploaded as { device?: { id?: unknown; casa3dQuality?: unknown } } | null
+        )?.device;
+        if (
+          uploadedDevice?.id !== deviceIdRef.current ||
+          uploadedDevice?.casa3dQuality !== readStoredCasa3dQuality()
+        )
+          queueAutoSync();
+      }, 0);
+    });
+  }, [haUserId, queueAutoSync]);
+
   const loadCurrentFromServer = useCallback(
     async (revision?: unknown) => {
       const row = Number.isFinite(Number(revision))
@@ -535,7 +586,7 @@ export function useSettingsSync({
         setLastSyncedAt(row.updated_at);
       }
 
-      applySnapshot(row.data, contextSettersRef?.current || {});
+      applySnapshot(row.data, contextSettersRef?.current || {}, { device: true });
     },
     [haUserId, readCurrentFromServer, contextSettersRef, setCurrentRevision]
   );

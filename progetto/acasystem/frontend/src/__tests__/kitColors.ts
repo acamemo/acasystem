@@ -40,6 +40,16 @@ function channel(expr: string, [l, c, h]: Lch): number {
     const n = Number(calc[3]);
     return calc[2] === '+' ? v + n : calc[2] === '-' ? v - n : v * n;
   }
+  // Chroma scaled with a lightness cap: calc(c * min(1, cap / l)).
+  const scaled = /^calc\((\w) \* min\(1, ([\d.]+) \/ (\w)\)\)$/.exec(expr);
+  if (scaled) {
+    return (
+      (named[scaled[1] as string] as number) *
+      Math.min(1, Number(scaled[2]) / (named[scaled[3] as string] as number))
+    );
+  }
+  const min = /^min\((\w), ([\d.]+)\)$/.exec(expr);
+  if (min) return Math.min(named[min[1] as string] as number, Number(min[2]));
   const number = Number(expr.replace('%', ''));
   if (Number.isNaN(number)) throw new Error(`canale non riconosciuto: ${expr}`);
   return expr.endsWith('%') ? number / 100 : number;
@@ -52,7 +62,7 @@ export function lch(css: string, value: string): Lch {
   if (ref) return lch(css, declared(css, ref[1] as string));
   const literal = /^oklch\(([\d.]+)% ([\d.]+) ([\d.]+)(?: \/ [\d.]+%)?\)$/.exec(v);
   if (literal) return [Number(literal[1]) / 100, Number(literal[2]), Number(literal[3])];
-  const part = String.raw`(calc\(\w [+*-] [\d.]+\)|[^\s)]+)`;
+  const part = String.raw`(calc\(\w [+*-] [\d.]+\)|calc\(\w \* min\(1, [\d.]+ \/ \w\)\)|min\(\w, [\d.]+\)|[^\s)]+)`;
   const relative = new RegExp(String.raw`^oklch\(from (var\([^)]+\)) ${part} ${part} ${part}`).exec(
     v
   );
@@ -96,4 +106,15 @@ export function kitSurfaces(css: string): number[][] {
     ...gradientRgb(css, '--aca-face-well'),
     tokenRgb(css, '--aca-page'),
   ];
+}
+
+/** WCAG contrast ratio between two sRGB colours. */
+export function contrast(a: number[], b: number[]): number {
+  const lum = (rgb: number[]) =>
+    rgb
+      .map((v) => v / 255)
+      .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+      .reduce((sum, v, i) => sum + v * ([0.2126, 0.7152, 0.0722][i] ?? 0), 0);
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
 }

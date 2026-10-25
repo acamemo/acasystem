@@ -5,17 +5,32 @@ import type { Connection } from 'home-assistant-js-websocket';
 import type { WidgetRuntime } from '@/@types/launcher';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
-import { MediaGroupDetails, MediaPlayerDetails } from '@/components/widgets/media/widgets/MediaDetails';
+import {
+  MediaGroupDetails,
+  MediaPlayerDetails,
+} from '@/components/widgets/media/widgets/MediaDetails';
 
 const recent = () => new Date().toISOString();
-const entity = (id: string, state: string, attributes: Record<string, unknown> = {}): HassEntity => ({
+const entity = (
+  id: string,
+  state: string,
+  attributes: Record<string, unknown> = {}
+): HassEntity => ({
   ...fixtureEntity(id, state, attributes),
   last_updated: recent(),
 });
 
-function renderDetails(node: React.ReactNode, entities: HassEntity[], overrides: Partial<WidgetRuntime> = {}) {
+function renderDetails(
+  node: React.ReactNode,
+  entities: HassEntity[],
+  overrides: Partial<WidgetRuntime> = {}
+) {
   const callService = vi.fn(async () => undefined);
-  const runtime = createFixtureRuntime({ entities: fixtureEntities(entities), callService, ...overrides });
+  const runtime = createFixtureRuntime({
+    entities: fixtureEntities(entities),
+    callService,
+    ...overrides,
+  });
   render(<WidgetRuntimeProvider value={runtime}>{node}</WidgetRuntimeProvider>);
   return { callService };
 }
@@ -72,33 +87,35 @@ describe('Dettagli del lettore: servizi identici al MediaModal legacy', () => {
   });
 
   it('Scegli contenuto: esplora i preferiti e invia play_media', async () => {
-    const sendMessagePromise = vi.fn(async (message: { type: string; media_content_id?: string }) => {
-      if (!message.media_content_id) {
+    const sendMessagePromise = vi.fn(
+      async (message: { type: string; media_content_id?: string }) => {
+        if (!message.media_content_id) {
+          return {
+            title: 'Spotify',
+            children: [
+              {
+                title: 'Preferiti',
+                media_content_id: 'fav',
+                media_content_type: 'favorites_folder',
+                can_expand: true,
+                can_play: false,
+              },
+            ],
+          };
+        }
         return {
-          title: 'Spotify',
+          title: 'Preferiti',
           children: [
             {
-              title: 'Preferiti',
-              media_content_id: 'fav',
-              media_content_type: 'favorites_folder',
-              can_expand: true,
-              can_play: false,
+              title: 'Kind of blue',
+              media_content_id: 'spotify:album:kob',
+              media_content_type: 'album',
+              can_play: true,
             },
           ],
         };
       }
-      return {
-        title: 'Preferiti',
-        children: [
-          {
-            title: 'Kind of blue',
-            media_content_id: 'spotify:album:kob',
-            media_content_type: 'album',
-            can_play: true,
-          },
-        ],
-      };
-    });
+    );
     const conn = { sendMessagePromise } as unknown as Connection;
     const { callService } = renderDetails(
       <MediaPlayerDetails id={ID} settingsKey={ID} settings={{}} onClose={() => undefined} />,
@@ -107,7 +124,10 @@ describe('Dettagli del lettore: servizi identici al MediaModal legacy', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Scegli contenuto' }));
     const tile = await screen.findByRole('button', { name: /Kind of blue/ });
-    expect(sendMessagePromise).toHaveBeenCalledWith({ type: 'media_player/browse_media', entity_id: ID });
+    expect(sendMessagePromise).toHaveBeenCalledWith({
+      type: 'media_player/browse_media',
+      entity_id: ID,
+    });
     fireEvent.click(tile);
     expect(callService).toHaveBeenCalledWith('media_player', 'play_media', {
       entity_id: ID,
@@ -127,14 +147,21 @@ describe('Dettagli del lettore: servizi identici al MediaModal legacy', () => {
 
 describe('Dettagli del gruppo Sonos', () => {
   const sonos = (id: string, name: string, members: string[], state = 'playing') =>
-    entity(id, state, { friendly_name: name, media_title: `${name} in onda`, group_members: members });
+    entity(id, state, {
+      friendly_name: name,
+      media_title: `${name} in onda`,
+      group_members: members,
+    });
 
   it('aggiunge un lettore al gruppo con join e lo toglie con unjoin', () => {
     const { callService } = renderDetails(
       <MediaGroupDetails
         id="sonos_group_1"
         settingsKey="sonos_group_1"
-        settings={{ mediaIds: ['media_player.sonos_sala', 'media_player.sonos_cucina'], activeId: 'media_player.sonos_sala' }}
+        settings={{
+          mediaIds: ['media_player.sonos_sala', 'media_player.sonos_cucina'],
+          activeId: 'media_player.sonos_sala',
+        }}
         onClose={() => undefined}
       />,
       [
@@ -158,8 +185,16 @@ describe('Dettagli del gruppo Sonos', () => {
   it('separa tutti con unjoin degli altri membri', () => {
     const members = ['media_player.sonos_sala', 'media_player.sonos_cucina'];
     const { callService } = renderDetails(
-      <MediaGroupDetails id="sonos_group_1" settingsKey="sonos_group_1" settings={{ mediaIds: members }} onClose={() => undefined} />,
-      [sonos('media_player.sonos_sala', 'Sonos sala', members), sonos('media_player.sonos_cucina', 'Sonos cucina', members)]
+      <MediaGroupDetails
+        id="sonos_group_1"
+        settingsKey="sonos_group_1"
+        settings={{ mediaIds: members }}
+        onClose={() => undefined}
+      />,
+      [
+        sonos('media_player.sonos_sala', 'Sonos sala', members),
+        sonos('media_player.sonos_cucina', 'Sonos cucina', members),
+      ]
     );
     fireEvent.click(screen.getByRole('button', { name: /Separa tutti/ }));
     expect(callService).toHaveBeenCalledTimes(1);

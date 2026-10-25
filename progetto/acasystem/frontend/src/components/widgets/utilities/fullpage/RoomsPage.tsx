@@ -40,7 +40,15 @@ type LoadState =
   | { status: 'offline' | 'loading' | 'error' }
   | { status: 'ready'; areas: HaAreaEntry[]; ids: Record<string, string[]> };
 
-function RoomTile({ area, stats, onSelect }: { area: HaAreaEntry; stats: AreaStats; onSelect: () => void }) {
+function RoomTile({
+  area,
+  stats,
+  onSelect,
+}: {
+  area: HaAreaEntry;
+  stats: AreaStats;
+  onSelect: () => void;
+}) {
   const { haConfig } = useWidgetRuntime();
   const name = area.name ?? area.area_id;
   const active = stats.lightsOn > 0 || stats.activeCount > 0;
@@ -72,7 +80,9 @@ function RoomTile({ area, stats, onSelect }: { area: HaAreaEntry; stats: AreaSta
             <Chip icon="thermostat">{`${formatCompact(temperature.value, 1)} ${temperature.unit}`}</Chip>
           )}
           {stats.humidity !== null && <Chip icon="humidity">{stats.humidity}%</Chip>}
-          {stats.activeCount > 0 && <Chip icon="energy">{`${stats.activeCount} ${stats.activeCount === 1 ? 'attivo' : 'attivi'}`}</Chip>}
+          {stats.activeCount > 0 && (
+            <Chip icon="energy">{`${stats.activeCount} ${stats.activeCount === 1 ? 'attivo' : 'attivi'}`}</Chip>
+          )}
           {stats.unavailableCount > 0 && (
             <Chip icon="wifi" tone="danger">
               {stats.unavailableCount} offline
@@ -108,7 +118,12 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
     setLoad({ status: 'loading' });
     Promise.all([getAreas(conn), getEntityRegistry(conn), getDeviceRegistry(conn)])
       .then(([areas, entityRegistry, deviceRegistry]) => {
-        if (!cancelled) setLoad({ status: 'ready', areas, ids: entitiesByArea(areas, entityRegistry, deviceRegistry) });
+        if (!cancelled)
+          setLoad({
+            status: 'ready',
+            areas,
+            ids: entitiesByArea(areas, entityRegistry, deviceRegistry),
+          });
       })
       .catch(() => {
         if (!cancelled) setLoad({ status: 'error' });
@@ -119,10 +134,14 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
   }, [conn]);
 
   const areas = useMemo(() => (load.status === 'ready' ? load.areas : []), [load]);
-  const areaIds = useMemo<Record<string, string[]>>(() => (load.status === 'ready' ? load.ids : {}), [load]);
+  const areaIds = useMemo<Record<string, string[]>>(
+    () => (load.status === 'ready' ? load.ids : {}),
+    [load]
+  );
   const stats = useMemo(() => {
     const result: Record<string, AreaStats> = {};
-    for (const area of areas) result[area.area_id] = areaStats(areaIds[area.area_id] ?? [], entities);
+    for (const area of areas)
+      result[area.area_id] = areaStats(areaIds[area.area_id] ?? [], entities);
     return result;
   }, [areas, areaIds, entities]);
 
@@ -142,11 +161,16 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
   // ── Detail of one area ────────────────────────────────────────────────────────────
   if (selectedArea) {
     const ids = (areaIds[selectedArea.area_id] ?? []).filter((id) => entities[id]);
-    const domains = [...new Set(ids.map(domainOf))].sort((a, b) => domainPriority(a) - domainPriority(b));
+    const domains = [...new Set(ids.map(domainOf))].sort(
+      (a, b) => domainPriority(a) - domainPriority(b)
+    );
     const visible = ids.filter((id) => {
       if (domainFilter !== 'all' && domainOf(id) !== domainFilter) return false;
       if (!term) return true;
-      return friendlyName(entities[id], id).toLowerCase().includes(term) || id.toLowerCase().includes(term);
+      return (
+        friendlyName(entities[id], id).toLowerCase().includes(term) ||
+        id.toLowerCase().includes(term)
+      );
     });
     const groups = domains
       .map((domain) => [domain, visible.filter((id) => domainOf(id) === domain)] as const)
@@ -156,19 +180,27 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
     const toggleLights = () => {
       const service = lightsOn > 0 ? 'turn_off' : 'turn_on';
       setLightsError(false);
-      Promise.allSettled(lights.map((id) => callAll(() => callService('light', service, { entity_id: id })))).then(
-        (results) => setLightsError(results.some((result) => result.status === 'rejected'))
-      );
+      Promise.allSettled(
+        lights.map((id) => callAll(() => callService('light', service, { entity_id: id })))
+      ).then((results) => setLightsError(results.some((result) => result.status === 'rejected')));
     };
 
     return (
       <div className="utility-page" data-page={pageId}>
         <header className="utility-page__head">
-          <Button variant="control" shape="circle" size="md" aria-label="Torna alle stanze" onClick={() => open(null)}>
+          <Button
+            variant="control"
+            shape="circle"
+            size="md"
+            aria-label="Torna alle stanze"
+            onClick={() => open(null)}
+          >
             <UtilityIcon name="chevronLeft" size="md" />
           </Button>
           <div className="utility-page__title">
-            <Heading level={2} size="md">{selectedArea.name ?? selectedArea.area_id}</Heading>
+            <Heading level={2} size="md">
+              {selectedArea.name ?? selectedArea.area_id}
+            </Heading>
             <Body size="sm" tone="muted">
               {visible.length} dispositivi
             </Body>
@@ -186,7 +218,12 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
         </div>
         {domains.length > 1 && (
           <div className="utility-toolbar" role="group" aria-label="Filtra per tipo">
-            <Button variant="control" size="sm" aria-pressed={domainFilter === 'all'} onClick={() => setDomainFilter('all')}>
+            <Button
+              variant="control"
+              size="sm"
+              aria-pressed={domainFilter === 'all'}
+              onClick={() => setDomainFilter('all')}
+            >
               Tutti
             </Button>
             {domains.map((domain) => (
@@ -206,7 +243,11 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
         {lights.length > 0 && (
           <Surface className="utility-panel">
             <div className="utility-list__row">
-              <UtilityIcon name="light" size="lg" color={lightsOn > 0 ? 'var(--aca-orange-ink-icon)' : 'var(--aca-ink-muted)'} />
+              <UtilityIcon
+                name="light"
+                size="lg"
+                color={lightsOn > 0 ? 'var(--aca-orange-ink-icon)' : 'var(--aca-ink-muted)'}
+              />
               <span className="utility-list__main">
                 <Body as="span" size="sm" tone="ink">
                   {`${lightsOn} su ${lights.length} ${lights.length === 1 ? 'luce accesa' : 'luci accese'}`}
@@ -229,7 +270,9 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
         )}
         {groups.length === 0 ? (
           <Body size="sm" tone="muted" role="status">
-            {term ? 'Nessun dispositivo corrisponde alla ricerca.' : 'Nessun dispositivo in questa stanza.'}
+            {term
+              ? 'Nessun dispositivo corrisponde alla ricerca.'
+              : 'Nessun dispositivo in questa stanza.'}
           </Body>
         ) : (
           groups.map(([domain, list]) => (
@@ -258,7 +301,9 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
 
   // ── Overview of the areas ─────────────────────────────────────────────────────────
   const sorted = sortAreas(areas, sort, stats);
-  const filtered = term ? sorted.filter((area) => (area.name ?? '').toLowerCase().includes(term)) : sorted;
+  const filtered = term
+    ? sorted.filter((area) => (area.name ?? '').toLowerCase().includes(term))
+    : sorted;
   const totals = Object.values(stats).reduce(
     (sum, item) => ({ active: sum.active + item.activeCount, lights: sum.lights + item.lightsOn }),
     { active: 0, lights: 0 }
@@ -282,7 +327,9 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
         </div>
       </header>
       {load.status === 'offline' ? (
-        <Notice icon="wifi">Le stanze arrivano da Home Assistant: il collegamento non è attivo.</Notice>
+        <Notice icon="wifi">
+          Le stanze arrivano da Home Assistant: il collegamento non è attivo.
+        </Notice>
       ) : load.status === 'error' ? (
         <Notice icon="warning" tone="danger">
           Impossibile leggere le stanze da Home Assistant. Riprova più tardi.

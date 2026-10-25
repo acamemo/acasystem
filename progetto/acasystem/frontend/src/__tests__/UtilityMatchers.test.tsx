@@ -9,7 +9,8 @@ import {
 } from '@/components/widgets/utilities/shared/UtilityIcon';
 import { findPageKindDefinition, findWidgetDefinition } from '@/components/widgets/registry';
 
-const typeOf = (id: string) => utilityWidgets.find((definition) => definition.matches(id, {}))?.type;
+const typeOf = (id: string) =>
+  utilityWidgets.find((definition) => definition.matches(id, {}))?.type;
 
 describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
   it.each([
@@ -26,7 +27,14 @@ describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
   });
 
   it('non riconosce id di altri gruppi o simili', () => {
-    for (const id of ['cars', 'car_card', 'light.cucina', 'sensor.vacuum_battery', 'media_player.tv', 'climate_card_1']) {
+    for (const id of [
+      'cars',
+      'car_card',
+      'light.cucina',
+      'sensor.vacuum_battery',
+      'media_player.tv',
+      'climate_card_1',
+    ]) {
       expect(typeOf(id)).toBeUndefined();
     }
   });
@@ -52,12 +60,16 @@ describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
   });
 
   it('il separatore è senza cornice; gli altri widget hanno la cornice del launcher', () => {
-    const frameless = utilityWidgets.filter((definition) => definition.frameless === true).map((definition) => definition.type);
+    const frameless = utilityWidgets
+      .filter((definition) => definition.frameless === true)
+      .map((definition) => definition.type);
     expect(frameless).toEqual(['spacer']);
   });
 
   it('icone del foglio di aggiunta dalla primitiva, con il glifo del dominio', () => {
-    const icons = Object.fromEntries(utilityWidgets.map((definition) => [definition.type, definition.icon]));
+    const icons = Object.fromEntries(
+      utilityWidgets.map((definition) => [definition.type, definition.icon])
+    );
     expect(icons).toEqual({
       cost: 'wallet',
       nordpool: 'energy',
@@ -79,7 +91,9 @@ describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
   it('UtilityIcon disegna le icone del kit con la primitiva e pochi glifi extra esistenti a runtime', () => {
     // The extras never shadow a kit name: those are always drawn by the primitive.
     expect(UTILITY_EXTRA_ICON_NAMES.filter((name) => isIconName(name))).toEqual([]);
-    expect(UTILITY_ICON_NAMES).toEqual(expect.arrayContaining([...iconNames, ...UTILITY_EXTRA_ICON_NAMES]));
+    expect(UTILITY_ICON_NAMES).toEqual(
+      expect.arrayContaining([...iconNames, ...UTILITY_EXTRA_ICON_NAMES])
+    );
     for (const name of UTILITY_ICON_NAMES) {
       const { container, unmount } = render(<UtilityIcon name={name} size="sm" />);
       const svg = container.querySelector('svg');

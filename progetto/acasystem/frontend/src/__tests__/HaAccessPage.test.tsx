@@ -192,10 +192,7 @@ describe('pagina di accesso', () => {
     expect(usernameField()).toHaveAttribute('autocomplete', 'username');
     expect(passwordField()).toHaveAttribute('type', 'password');
     expect(passwordField()).toHaveAttribute('autocomplete', 'current-password');
-    expect(screen.getByText(CREDENTIALS_NOTE)).toBeVisible();
-    expect(CREDENTIALS_NOTE).toBe(
-      'Utente e password arrivano a Home Assistant attraverso il server Acasystem, che non li salva e non li registra nei log. Questo browser conserva solo il token della sessione.'
-    );
+    expect(screen.queryByText(CREDENTIALS_NOTE)).toBeNull();
     expect(screen.queryByText(/indirizzo/i)).toBeNull();
     expect(screen.queryByRole('textbox', { name: /indirizzo/i })).toBeNull();
     // No «Annulla» without a session to go back to.
@@ -223,6 +220,7 @@ describe('pagina di accesso', () => {
     const order = [
       usernameField(),
       passwordField(),
+      screen.getByRole('button', { name: 'Mostra password' }),
       screen.getByRole('button', { name: 'Accedi' }),
       screen.getByRole('button', { name: 'Altre opzioni' }),
     ];
@@ -236,6 +234,22 @@ describe('pagina di accesso', () => {
     // Enter in a field submits the form (implicit submission).
     fireEvent.submit(screen.getByRole('form', { name: 'Accesso' }));
     await waitFor(() => expect(onConnected).toHaveBeenCalledOnce());
+  });
+
+  it('mostra e nasconde la password con il pulsante occhio', () => {
+    installFakeHa();
+    renderPage();
+    const toggle = screen.getByRole('button', { name: 'Mostra password' });
+    expect(toggle).toBeVisible();
+    expect(passwordField()).toHaveAttribute('type', 'password');
+
+    fireEvent.click(toggle);
+    expect(passwordField()).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Nascondi password' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nascondi password' }));
+    expect(passwordField()).toHaveAttribute('type', 'password');
+    expect(screen.getByRole('button', { name: 'Mostra password' })).toBeVisible();
   });
 
   it('credenziali errate: messaggio in linea, password svuotata e di nuovo a fuoco', async () => {

@@ -1,11 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import {
-  Body,
-  Caption,
-  MaterialLayers,
-  Skeleton,
-  materialClass,
-} from '@/components/primitives';
+import { Body, Caption, MaterialLayers, Skeleton, materialClass } from '@/components/primitives';
 import { UtilityIcon, iconTone, type UtilityIconName, type UtilityIconTone } from './UtilityIcon';
 import '../utilities.css';
 
@@ -102,7 +96,11 @@ export function Chip({
   label?: string;
 }) {
   return (
-    <span className={['utility-chip', tone !== 'neutral' && `utility-chip--${tone}`].filter(Boolean).join(' ')}>
+    <span
+      className={['utility-chip', tone !== 'neutral' && `utility-chip--${tone}`]
+        .filter(Boolean)
+        .join(' ')}
+    >
       {icon && <UtilityIcon name={icon} size="sm" />}
       {label ? (
         <>

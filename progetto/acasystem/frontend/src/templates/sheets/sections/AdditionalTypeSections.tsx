@@ -11,6 +11,7 @@ import type { EditKind } from '../editTarget';
 import { EntityPicker, EntitySelect } from '../parts/EntityPicker';
 import { ChoiceGroup, FormRow, SheetSection, ToggleRow } from '../parts/Form';
 import { useDomId } from '../parts/hooks';
+import { DEVICE_SCOPE_NOTE } from '@/utils/launcher/deviceMemory';
 
 interface Props {
   kind: EditKind;
@@ -125,7 +126,7 @@ function MultipleEntities({
   );
 }
 
-const VACUUM_MAPPINGS = [
+export const VACUUM_MAPPINGS = [
   ['batterySensorId', 'Batteria', 'sensor.'],
   ['currentRoomSensorId', 'Stanza corrente', 'sensor.'],
   ['cleaningTimeSensorId', 'Durata della pulizia', 'sensor.'],
@@ -410,7 +411,7 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
     case 'androidtv':
     case 'appletv':
       return (
-        <SheetSection title="Lettori collegati">
+        <SheetSection title="Lettori collegati" description={`${DEVICE_SCOPE_NOTE}.`}>
           <MultipleEntities
             {...common}
             label="Lettori multimediali"
@@ -452,7 +453,7 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
       const motion = settings.cameraRefreshMode === 'motion';
       const motionSensor = text(settings.cameraMotionSensor);
       return (
-        <SheetSection title="Videocamera">
+        <SheetSection title="Videocamera" description={`${DEVICE_SCOPE_NOTE}.`}>
           <ChoiceGroup<CameraEngineChoice>
             label="Motore video"
             value={engine}
@@ -517,7 +518,7 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
       return (
         <SheetSection
           title="Aspirapolvere"
-          description="Le associazioni vuote conservano il rilevamento automatico."
+          description={`Le associazioni vuote conservano il rilevamento automatico. ${DEVICE_SCOPE_NOTE}.`}
         >
           {VACUUM_MAPPINGS.map(([key, label, prefix]) => (
             <EntitySelect

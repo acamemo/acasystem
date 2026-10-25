@@ -4,7 +4,10 @@ import type { HassEntity } from 'home-assistant-js-websocket';
 import type { CellSize, WidgetRuntime } from '@/@types/launcher';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
-import { MediaGroupWidget, MediaPlayerWidget } from '@/components/widgets/media/widgets/MediaWidgets';
+import {
+  MediaGroupWidget,
+  MediaPlayerWidget,
+} from '@/components/widgets/media/widgets/MediaWidgets';
 
 const ID = 'media_player.cucina';
 const recent = () => new Date().toISOString();
@@ -26,7 +29,10 @@ function renderWidget(
   entity: HassEntity | null,
   size: CellSize,
   overrides: Partial<WidgetRuntime> = {},
-  { settings = {}, editMode = false }: { settings?: Record<string, unknown>; editMode?: boolean } = {}
+  {
+    settings = {},
+    editMode = false,
+  }: { settings?: Record<string, unknown>; editMode?: boolean } = {}
 ) {
   const callService = vi.fn(async () => undefined);
   const openDetails = vi.fn();
@@ -38,7 +44,13 @@ function renderWidget(
   });
   const view = (value: WidgetRuntime) => (
     <WidgetRuntimeProvider value={value}>
-      <MediaPlayerWidget id={ID} settingsKey={ID} settings={settings} size={size} editMode={editMode} />
+      <MediaPlayerWidget
+        id={ID}
+        settingsKey={ID}
+        settings={settings}
+        size={size}
+        editMode={editMode}
+      />
     </WidgetRuntimeProvider>
   );
   const result = render(view(runtime));
@@ -69,10 +81,13 @@ describe('Lettore multimediale: densità per dimensione', () => {
   });
 
   it('2×2 aggiunge il volume; 4×2 anche la posizione nel brano', () => {
-    const { unmount } = renderWidget(player('playing', { media_duration: 200, media_position: 20 }), {
-      w: 2,
-      h: 2,
-    });
+    const { unmount } = renderWidget(
+      player('playing', { media_duration: 200, media_position: 20 }),
+      {
+        w: 2,
+        h: 2,
+      }
+    );
     expect(screen.getByRole('slider', { name: 'Volume' })).toHaveValue('50');
     expect(screen.queryByRole('progressbar')).toBeNull();
     unmount();
@@ -103,11 +118,16 @@ describe('Lettore multimediale: stati', () => {
   it('non disponibile: nessun comando', () => {
     renderWidget(player('unavailable'), { w: 2, h: 2 });
     expect(screen.getByText('Non disponibile')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Riproduci|Metti in pausa|Accendi|Spegni/ })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /Riproduci|Metti in pausa|Accendi|Spegni/ })
+    ).toBeNull();
   });
 
   it('inattivo e spento: accende con turn_on se supportato', () => {
-    const entity = { ...player('off', { supported_features: 128 }), last_updated: '2020-01-01T00:00:00Z' };
+    const entity = {
+      ...player('off', { supported_features: 128 }),
+      last_updated: '2020-01-01T00:00:00Z',
+    };
     const { callService } = renderWidget(entity, { w: 2, h: 2 });
     expect(screen.getByText('Niente in riproduzione')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Accendi' }));
@@ -116,21 +136,35 @@ describe('Lettore multimediale: stati', () => {
 
   it('copertina mancante o rotta: segnaposto del kit, mai un’immagine rotta', () => {
     const { container, unmount } = renderWidget(player('playing'), { w: 2, h: 2 });
-    expect(container.querySelector('[data-artwork]')).toHaveAttribute('data-artwork', 'placeholder');
+    expect(container.querySelector('[data-artwork]')).toHaveAttribute(
+      'data-artwork',
+      'placeholder'
+    );
     unmount();
-    const withPicture = renderWidget(player('playing', { entity_picture: '/api/media_player_proxy/x' }), {
-      w: 2,
-      h: 2,
-    });
+    const withPicture = renderWidget(
+      player('playing', { entity_picture: '/api/media_player_proxy/x' }),
+      {
+        w: 2,
+        h: 2,
+      }
+    );
     const img = withPicture.container.querySelector('img');
     expect(img).toHaveAttribute('src', 'http://ha.local/api/media_player_proxy/x');
     fireEvent.error(img as HTMLImageElement);
     expect(withPicture.container.querySelector('img')).toBeNull();
-    expect(withPicture.container.querySelector('[data-artwork]')).toHaveAttribute('data-artwork', 'placeholder');
+    expect(withPicture.container.querySelector('[data-artwork]')).toHaveAttribute(
+      'data-artwork',
+      'placeholder'
+    );
   });
 
   it('modalità modifica: comandi e apertura dei dettagli disabilitati', () => {
-    const { openDetails, container } = renderWidget(player('playing'), { w: 4, h: 2 }, {}, { editMode: true });
+    const { openDetails, container } = renderWidget(
+      player('playing'),
+      { w: 4, h: 2 },
+      {},
+      { editMode: true }
+    );
     expect(screen.getByRole('button', { name: 'Metti in pausa' })).toBeDisabled();
     const opener = container.querySelector('[data-widget-open]') as HTMLButtonElement;
     expect(opener).toBeDisabled();
@@ -153,7 +187,10 @@ describe('Lettore multimediale: stati', () => {
 
 describe('Lettore multimediale: servizi identici al legacy', () => {
   it('riproduci/pausa, precedente, successivo, spegni', () => {
-    const { callService } = renderWidget(player('playing', { supported_features: 0xffffff }), { w: 4, h: 2 });
+    const { callService } = renderWidget(player('playing', { supported_features: 0xffffff }), {
+      w: 4,
+      h: 2,
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Metti in pausa' }));
     fireEvent.click(screen.getByRole('button', { name: 'Brano precedente' }));
     fireEvent.click(screen.getByRole('button', { name: 'Brano successivo' }));
@@ -211,8 +248,20 @@ describe('Lettore multimediale: richiesto e confermato', () => {
 
 describe('Gruppo di lettori', () => {
   const members = () => [
-    { ...fixtureEntity('media_player.sala', 'playing', { friendly_name: 'Sala', media_title: 'Uno' }), last_updated: recent() },
-    { ...fixtureEntity('media_player.bagno', 'playing', { friendly_name: 'Bagno', media_title: 'Due' }), last_updated: recent() },
+    {
+      ...fixtureEntity('media_player.sala', 'playing', {
+        friendly_name: 'Sala',
+        media_title: 'Uno',
+      }),
+      last_updated: recent(),
+    },
+    {
+      ...fixtureEntity('media_player.bagno', 'playing', {
+        friendly_name: 'Bagno',
+        media_title: 'Due',
+      }),
+      last_updated: recent(),
+    },
   ];
 
   it('mostra il lettore salvato e passa al successivo salvando activeId', () => {
@@ -223,7 +272,10 @@ describe('Gruppo di lettori', () => {
         <MediaGroupWidget
           id="media_group_1"
           settingsKey="home::media_group_1"
-          settings={{ mediaIds: ['media_player.sala', 'media_player.bagno'], activeId: 'media_player.bagno' }}
+          settings={{
+            mediaIds: ['media_player.sala', 'media_player.bagno'],
+            activeId: 'media_player.bagno',
+          }}
           size={{ w: 2, h: 2 }}
           editMode={false}
         />
@@ -231,13 +283,23 @@ describe('Gruppo di lettori', () => {
     );
     expect(screen.getByText('Due')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Passa al lettore successivo/ }));
-    expect(saveCardSetting).toHaveBeenCalledWith('home::media_group_1', 'activeId', 'media_player.sala');
+    expect(saveCardSetting).toHaveBeenCalledWith(
+      'home::media_group_1',
+      'activeId',
+      'media_player.sala'
+    );
   });
 
   it('gruppo senza lettori: messaggio', () => {
     render(
       <WidgetRuntimeProvider value={createFixtureRuntime()}>
-        <MediaGroupWidget id="sonos_group_1" settingsKey="sonos_group_1" settings={{}} size={{ w: 2, h: 1 }} editMode={false} />
+        <MediaGroupWidget
+          id="sonos_group_1"
+          settingsKey="sonos_group_1"
+          settings={{}}
+          size={{ w: 2, h: 1 }}
+          editMode={false}
+        />
       </WidgetRuntimeProvider>
     );
     const status = screen.getByRole('status');

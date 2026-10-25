@@ -12,7 +12,12 @@ const REMOTE = 'remote.tv_sala';
 const EMBY = 'media_player.emby_sala';
 
 const tv = (state: string, attributes: Record<string, unknown> = {}): HassEntity =>
-  fixtureEntity(TV, state, { friendly_name: 'TV sala', app_name: 'Netflix', media_title: 'Dark', ...attributes });
+  fixtureEntity(TV, state, {
+    friendly_name: 'TV sala',
+    app_name: 'Netflix',
+    media_title: 'Dark',
+    ...attributes,
+  });
 
 function setup(entities: HassEntity[], overrides: Partial<WidgetRuntime> = {}) {
   const callService = vi.fn(async () => undefined);
@@ -23,7 +28,8 @@ function setup(entities: HassEntity[], overrides: Partial<WidgetRuntime> = {}) {
     openDetails,
     ...overrides,
   });
-  const wrap = (node: React.ReactNode) => render(<WidgetRuntimeProvider value={runtime}>{node}</WidgetRuntimeProvider>);
+  const wrap = (node: React.ReactNode) =>
+    render(<WidgetRuntimeProvider value={runtime}>{node}</WidgetRuntimeProvider>);
   return { callService, openDetails, wrap };
 }
 
@@ -49,11 +55,16 @@ describe('Android TV: widget', () => {
     expect(screen.getByText('TV sala')).toBeInTheDocument();
     expect(screen.getByText('Episodio 3')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Metti in pausa' }));
-    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', { entity_id: EMBY });
+    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', {
+      entity_id: EMBY,
+    });
   });
 
   it('Android: con il lettore collegato in pausa comanda la TV (regola legacy)', () => {
-    const { callService, wrap } = setup([tv('on'), fixtureEntity(EMBY, 'paused', { media_title: 'Film' })]);
+    const { callService, wrap } = setup([
+      tv('on'),
+      fixtureEntity(EMBY, 'paused', { media_title: 'Film' }),
+    ]);
     wrap(
       <AndroidTvWidget
         id="androidtv_card_1"
@@ -70,12 +81,26 @@ describe('Android TV: widget', () => {
   it('spenta: nessun play/pausa; non configurata: messaggio', () => {
     const { wrap } = setup([tv('off')]);
     const { unmount } = wrap(
-      <AndroidTvWidget id="androidtv_card_1" settingsKey="k" settings={{ mediaPlayerId: TV }} size={size2x2} editMode={false} />
+      <AndroidTvWidget
+        id="androidtv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: TV }}
+        size={size2x2}
+        editMode={false}
+      />
     );
     expect(screen.getAllByText('Spento').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: /Riproduci|Metti in pausa/ })).toBeNull();
     unmount();
-    wrap(<AndroidTvWidget id="androidtv_card_2" settingsKey="k" settings={{}} size={{ w: 2, h: 1 }} editMode={false} />);
+    wrap(
+      <AndroidTvWidget
+        id="androidtv_card_2"
+        settingsKey="k"
+        settings={{}}
+        size={{ w: 2, h: 1 }}
+        editMode={false}
+      />
+    );
     expect(screen.getByText('Dispositivo non configurato')).toBeInTheDocument();
   });
 });
@@ -83,7 +108,15 @@ describe('Android TV: widget', () => {
 describe('Apple TV: widget', () => {
   it('accensione diretta: turn_off mentre è accesa, con attesa di conferma', () => {
     const { callService, wrap } = setup([tv('playing')]);
-    wrap(<AppleTvWidget id="appletv_card_1" settingsKey="k" settings={{ mediaPlayerId: TV }} size={size2x2} editMode={false} />);
+    wrap(
+      <AppleTvWidget
+        id="appletv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: TV }}
+        size={size2x2}
+        editMode={false}
+      />
+    );
     const power = screen.getByRole('button', { name: 'Spegni' });
     fireEvent.click(power);
     expect(callService).toHaveBeenCalledWith('media_player', 'turn_off', { entity_id: TV });
@@ -94,7 +127,15 @@ describe('Apple TV: widget', () => {
 
   it('turn_on da spenta e standby', () => {
     const { callService, wrap } = setup([tv('standby')]);
-    wrap(<AppleTvWidget id="appletv_card_1" settingsKey="k" settings={{ mediaPlayerId: TV }} size={{ w: 2, h: 1 }} editMode={false} />);
+    wrap(
+      <AppleTvWidget
+        id="appletv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: TV }}
+        size={{ w: 2, h: 1 }}
+        editMode={false}
+      />
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Accendi' }));
     expect(callService).toHaveBeenCalledWith('media_player', 'turn_on', { entity_id: TV });
   });
@@ -122,7 +163,10 @@ describe('Apple TV: widget', () => {
   });
 
   it('play/pausa sul lettore collegato attivo anche se in pausa', () => {
-    const { callService, wrap } = setup([tv('on'), fixtureEntity(EMBY, 'paused', { media_title: 'Film' })]);
+    const { callService, wrap } = setup([
+      tv('on'),
+      fixtureEntity(EMBY, 'paused', { media_title: 'Film' }),
+    ]);
     wrap(
       <AppleTvWidget
         id="appletv_card_1"
@@ -133,7 +177,9 @@ describe('Apple TV: widget', () => {
       />
     );
     fireEvent.click(screen.getByRole('button', { name: 'Riproduci' }));
-    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', { entity_id: EMBY });
+    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', {
+      entity_id: EMBY,
+    });
   });
 
   it('errore del comando: messaggio e stato confermato', async () => {
@@ -141,7 +187,15 @@ describe('Apple TV: widget', () => {
       throw new Error('no');
     });
     const { wrap } = setup([tv('on')], { callService });
-    wrap(<AppleTvWidget id="appletv_card_1" settingsKey="k" settings={{ mediaPlayerId: TV }} size={size2x2} editMode={false} />);
+    wrap(
+      <AppleTvWidget
+        id="appletv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: TV }}
+        size={size2x2}
+        editMode={false}
+      />
+    );
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Spegni' }));
     });
@@ -168,9 +222,16 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Abbassa il volume' }));
     fireEvent.click(screen.getByRole('button', { name: 'Spegni' }));
     expect(callService.mock.calls).toEqual([
-      ...['DPAD_UP', 'DPAD_DOWN', 'DPAD_LEFT', 'DPAD_RIGHT', 'DPAD_CENTER', 'BACK', 'HOME', 'MENU'].map(
-        (command) => ['remote', 'send_command', { entity_id: REMOTE, command }]
-      ),
+      ...[
+        'DPAD_UP',
+        'DPAD_DOWN',
+        'DPAD_LEFT',
+        'DPAD_RIGHT',
+        'DPAD_CENTER',
+        'BACK',
+        'HOME',
+        'MENU',
+      ].map((command) => ['remote', 'send_command', { entity_id: REMOTE, command }]),
       ['media_player', 'volume_up', { entity_id: TV }],
       ['media_player', 'volume_down', { entity_id: TV }],
       ['media_player', 'turn_off', { entity_id: TV }],
@@ -179,7 +240,14 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
 
   it('Android: senza telecomando nasconde D-pad, volume e accensione', () => {
     const { wrap } = setup([tv('on')]);
-    wrap(<AndroidTvDetails id="androidtv_card_1" settingsKey="k" settings={{ mediaPlayerId: TV }} onClose={() => undefined} />);
+    wrap(
+      <AndroidTvDetails
+        id="androidtv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: TV }}
+        onClose={() => undefined}
+      />
+    );
     expect(screen.queryByRole('button', { name: 'Su' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alza il volume' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Spegni' })).toBeNull();
@@ -201,7 +269,10 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
     for (const name of ['Su', 'Giù', 'Sinistra', 'Destra', 'OK', 'Indietro', 'Home']) {
       fireEvent.click(screen.getByRole('button', { name }));
     }
-    expect(screen.getByRole('button', { name: 'Netflix' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Netflix' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
     fireEvent.click(screen.getByRole('button', { name: 'YouTube' }));
     fireEvent.click(screen.getByRole('button', { name: /Disattiva l’audio/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Alza il volume' }));
@@ -223,7 +294,14 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
 
   it('Apple: riattiva l’audio con lo stato esplicito di HA e accende', () => {
     const { callService, wrap } = setup([tv('off', { is_volume_muted: true })]);
-    wrap(<AppleTvDetails id="appletv_card_1" settingsKey="k" settings={{ mediaPlayerId: TV }} onClose={() => undefined} />);
+    wrap(
+      <AppleTvDetails
+        id="appletv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: TV }}
+        onClose={() => undefined}
+      />
+    );
     fireEvent.click(screen.getByRole('button', { name: /Riattiva l’audio/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Accendi' }));
     expect(callService.mock.calls).toEqual([

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Button } from './Button';
 import { DialogShell } from './DialogShell';
 import { Icon } from './Icon';
 import { Heading } from '../typography/Heading';
@@ -43,14 +42,14 @@ export function Modal({
             <Heading level={2} id={resolvedTitleId} className="aca-modal__title">
               {title}
             </Heading>
-            <Button
-              variant="control"
+            <button
+              type="button"
               onClick={onClose}
               aria-label={closeLabel}
-              className="modal-close aca-icon-control"
+              className="aca-bar-button modal-close"
             >
-              <Icon name="close" size={20} />
-            </Button>
+              <Icon name="close" size="lg" />
+            </button>
           </header>
           <div className="aca-modal__body custom-scrollbar">{children}</div>
           {footer && <footer className="aca-modal__footer">{footer}</footer>}

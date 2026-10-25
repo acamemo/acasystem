@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { HaHistoryEntry, HaStatistic } from '@/@types/ha';
 import { getHistory, getStatistics } from '@/api/haClient';
-import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
+import { useOptionalWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { downsampleTimeSeries, type TimePoint } from '@/utils/sensorHistory';
 import { toDate } from './format';
 
@@ -63,7 +63,11 @@ export function statisticPoints(stats: HaStatistic[]): TimePoint[] {
   const points: TimePoint[] = [];
   for (const stat of stats) {
     const value =
-      typeof stat.mean === 'number' ? stat.mean : typeof stat.state === 'number' ? stat.state : stat.sum;
+      typeof stat.mean === 'number'
+        ? stat.mean
+        : typeof stat.state === 'number'
+          ? stat.state
+          : stat.sum;
     const time = toDate(stat.start);
     if (typeof value === 'number' && Number.isFinite(value) && time) points.push({ value, time });
   }
@@ -87,7 +91,9 @@ export function useEntityHistory(
   hours: number,
   { enabled = true, detailed = false }: { enabled?: boolean; detailed?: boolean } = {}
 ): EntityHistory {
-  const { conn, entities } = useWidgetRuntime();
+  const runtime = useOptionalWidgetRuntime();
+  const conn = runtime?.conn;
+  const entities = runtime?.entities ?? {};
   const currentState = entityId ? entities[entityId]?.state : undefined;
   const stateRef = useRef(currentState);
   // The sparkline follows the state like the legacy card; the detail history does not.

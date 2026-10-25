@@ -45,17 +45,17 @@ const nameOf = (entity: Entity | undefined, fallback: string) =>
 
 /**
  * Media and Sonos pages (legacy MediaPage with `mode`): the selected player with transport and
- * volume, the list of players with Sonos grouping and the content chooser. The choice of players
- * shown lives in the page settings sheet (`pageSettings[pageId].mediaIds`, all when absent). The page
- * settings (`mediaIds`, `activeId`) come from the launcher through PageKindProps.
+ * volume, the list of players with Sonos grouping and the content chooser. The players shown
+ * are chosen in «Gestisci» of the page itself, on both pages (REP-20261008-001), and saved in
+ * `pageSettings[pageId].mediaIds` (all when absent: «Mostra tutti»). The page settings
+ * (`mediaIds`, `activeId`) come from the launcher through PageKindProps.
  */
 export function MediaPageView({
   mode,
   settings,
   onSaveSetting: save,
 }: PageKindProps & { mode: PageMode }) {
-  const { entities, conn, callService, getEntityImageUrl, entitiesLoaded } =
-    useWidgetRuntime();
+  const { entities, conn, callService, getEntityImageUrl, entitiesLoaded } = useWidgetRuntime();
   const visible = usePageVisible();
   const now = useNow(1000, visible);
   const [panel, setPanel] = useState<SidePanel>('players');
@@ -71,7 +71,9 @@ export function MediaPageView({
   const mediaEntities = selectedIds
     .map((id) => entities[id])
     .filter((entity): entity is Entity => Boolean(entity));
-  const activeSonos = mediaEntities.filter((entity) => isSonosMediaEntity(entity) && isSonosActive(entity, now));
+  const activeSonos = mediaEntities.filter(
+    (entity) => isSonosMediaEntity(entity) && isSonosActive(entity, now)
+  );
   const current =
     mediaEntities.find((entity) => entity.entity_id === settings.activeId) ??
     mediaEntities.find((entity) => entity.entity_id === selectedId) ??
@@ -88,7 +90,6 @@ export function MediaPageView({
   });
   const groupMembers = stringList(current?.attributes?.group_members);
   const groupedOthers = groupMembers.filter((id) => id !== currentId);
-  const activePanel: SidePanel = !sonosMode && panel === 'manage' ? 'players' : panel;
 
   const selectPlayer = (id: string) => {
     save('activeId', id);
@@ -139,12 +140,7 @@ export function MediaPageView({
           </Text>
           <Caption translate="no">{id}</Caption>
         </span>
-        <Toggle
-          compact
-          checked={isAdded(id)}
-          aria-label={name}
-          onClick={() => togglePlayer(id)}
-        />
+        <Toggle compact checked={isAdded(id)} aria-label={name} onClick={() => togglePlayer(id)} />
       </li>
     );
   };
@@ -152,7 +148,11 @@ export function MediaPageView({
   if (!current || !currentId) {
     return (
       <div className="aca-media-page" data-mode={mode}>
-        <Surface className="aca-media-page__empty" contentClassName="aca-media-widget__state" role="status">
+        <Surface
+          className="aca-media-page__empty"
+          contentClassName="aca-media-widget__state"
+          role="status"
+        >
           <MediaIcon name="speaker" size="xl" tone="muted" />
           <Heading level={2} size="md">
             {!entitiesLoaded
@@ -161,11 +161,22 @@ export function MediaPageView({
                 ? testi.nessunLettoreSonos
                 : testi.nessunLettore}
           </Heading>
-          {entitiesLoaded && (
-            <Body size="sm" tone="muted">
-              {sonosMode ? testi.nessunLettoreSonosNota : testi.nessunLettoreNota}
-            </Body>
-          )}
+          {entitiesLoaded &&
+            (!showAll && allMediaIds.length > 0 ? (
+              // Every player was left out: the way back, now that no sheet holds the choice.
+              <>
+                <Body size="sm" tone="muted">
+                  {testi.nessunLettoreScelto}
+                </Body>
+                <Button variant="control" size="md" onClick={() => save('mediaIds', null)}>
+                  {testi.mostraTutti}
+                </Button>
+              </>
+            ) : (
+              <Body size="sm" tone="muted">
+                {sonosMode ? testi.nessunLettoreSonosNota : testi.nessunLettoreNota}
+              </Body>
+            ))}
         </Surface>
       </div>
     );
@@ -176,13 +187,17 @@ export function MediaPageView({
   const panels = [
     { value: 'players' as const, label: testi.lettori },
     { value: 'choose' as const, label: testi.contenuti },
-    ...(sonosMode ? [{ value: 'manage' as const, label: testi.gestisci }] : []),
+    { value: 'manage' as const, label: testi.gestisci },
   ];
 
   return (
     <div className="aca-media-page" data-mode={mode}>
       <div className="aca-media-page__grid">
-        <Surface className="aca-media-page__now" contentClassName="aca-media-section" aria-label={sonosMode ? testi.sonos : testi.media}>
+        <Surface
+          className="aca-media-page__now"
+          contentClassName="aca-media-section"
+          aria-label={sonosMode ? testi.sonos : testi.media}
+        >
           <IconText icon={sonosMode ? 'speaker' : 'music'} iconSize="sm" tone="muted">
             {sonosMode ? `${testi.sonos} · ${testi.lettoriAttivi(players.length)}` : testi.media}
           </IconText>
@@ -214,10 +229,19 @@ export function MediaPageView({
           <CommandStatus error={controls.error || groupActions.failed !== null} />
         </Surface>
 
-        <Surface className="aca-media-page__side" contentClassName="aca-media-section aca-media-page__side-content">
+        <Surface
+          className="aca-media-page__side"
+          contentClassName="aca-media-section aca-media-page__side-content"
+        >
           <div className="aca-media-row aca-media-row--between aca-media-row--wrap">
-            <Segmented<SidePanel> options={panels} value={activePanel} onChange={setPanel} label={testi.vista} size="sm" />
-            {sonosMode && activePanel === 'players' && players.length > 1 && (
+            <Segmented<SidePanel>
+              options={panels}
+              value={panel}
+              onChange={setPanel}
+              label={testi.vista}
+              size="sm"
+            />
+            {sonosMode && panel === 'players' && players.length > 1 && (
               <Button
                 variant="control"
                 size="sm"
@@ -230,7 +254,7 @@ export function MediaPageView({
             )}
           </div>
           <div className="aca-media-page__scroll">
-            {activePanel === 'players' && (
+            {panel === 'players' && (
               <PlayerList
                 players={players}
                 currentId={currentId}
@@ -243,17 +267,27 @@ export function MediaPageView({
                 onToggleMember={toggleMember}
               />
             )}
-            {activePanel === 'choose' && <MediaChooser entityId={currentId} open />}
-            {activePanel === 'manage' && (
+            {panel === 'choose' && <MediaChooser entityId={currentId} open />}
+            {panel === 'manage' && (
               <div className="aca-media-section">
-                <Caption>{testi.selezionaLettoriNota}</Caption>
+                <div className="aca-media-row aca-media-row--between aca-media-row--wrap">
+                  <Caption>{testi.selezionaLettoriNota}</Caption>
+                  {!showAll && (
+                    <Button variant="control" size="sm" onClick={() => save('mediaIds', null)}>
+                      {testi.mostraTutti}
+                    </Button>
+                  )}
+                </div>
                 <ul className="aca-media-players">
-                  {allMediaIds
-                    .filter((id) => isSonosMediaEntity(entities[id]))
+                  {[...allMediaIds]
                     .sort((a, b) => nameOf(entities[a], a).localeCompare(nameOf(entities[b], b)))
                     .map(switchRow)}
                 </ul>
-                {allMediaIds.length === 0 && <Caption>{testi.nessunSonosDisponibile}</Caption>}
+                {allMediaIds.length === 0 && (
+                  <Caption>
+                    {sonosMode ? testi.nessunSonosDisponibile : testi.nessunLettoreDisponibile}
+                  </Caption>
+                )}
               </div>
             )}
           </div>

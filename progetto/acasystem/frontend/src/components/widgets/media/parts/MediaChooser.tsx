@@ -3,12 +3,7 @@ import { Body, Button, Caption, Field, Segmented, Skeleton } from '@/components/
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useServiceActions } from '../hooks/commands';
 import { useMediaBrowse } from '../hooks/useMediaBrowse';
-import {
-  filterChoices,
-  mergeChoices,
-  normalizeChoices,
-  type MediaChoice,
-} from '../model/choices';
+import { filterChoices, mergeChoices, normalizeChoices, type MediaChoice } from '../model/choices';
 import { resolveImage } from '../model/entity';
 import { testi } from '../testi';
 import { Artwork } from './Artwork';
@@ -81,7 +76,13 @@ export function MediaChooser({ entityId, open, onPlayed }: MediaChooserProps) {
 
   return (
     <div className="aca-media-section">
-      <Segmented<ChooseTab> options={TABS} value={tab} onChange={setTab} label={testi.schede} size="sm" />
+      <Segmented<ChooseTab>
+        options={TABS}
+        value={tab}
+        onChange={setTab}
+        label={testi.schede}
+        size="sm"
+      />
       {tab === 'search' && (
         <Field
           type="search"
@@ -121,7 +122,11 @@ export function MediaChooser({ entityId, open, onPlayed }: MediaChooserProps) {
                   loading={actions.busy === `play:${key}`}
                   onClick={() => play(choice)}
                 >
-                  <Artwork src={image} icon={tab === 'favorites' ? 'heart' : 'music'} variant="window" />
+                  <Artwork
+                    src={image}
+                    icon={tab === 'favorites' ? 'heart' : 'music'}
+                    variant="window"
+                  />
                   <Body as="span" size="sm" className="aca-media-choice__label">
                     {choice.label}
                   </Body>

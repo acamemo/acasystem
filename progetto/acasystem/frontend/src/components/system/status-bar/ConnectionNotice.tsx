@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Body, Button, Caption, Icon, Surface } from '@/components/primitives';
+import { useExitPresence } from '@/hooks/launcher/useLeaving';
 import './statusBar.css';
 
 export interface ConnectionNoticeProps {
@@ -11,6 +12,9 @@ export interface ConnectionNoticeProps {
   onSignIn: () => void;
 }
 
+/** `--aca-dur-exit-sm` (tokens.css): the notice that goes stays this long, fading (D-M14). */
+export const NOTICE_EXIT_MS = 160;
+
 /** «2 min 5 s», «1 h 3 min»: time since the connection dropped. */
 export function formatElapsed(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));
@@ -21,8 +25,10 @@ export function formatElapsed(seconds: number): string {
 }
 
 /**
- * Message under the status bar while Home Assistant is unreachable (with the time since it
- * dropped and a retry) or the sign-in has expired (with the way back to the connection).
+ * Message at the top of the screen while Home Assistant is unreachable (with the time since it
+ * dropped and a retry) or the sign-in has expired (with the way back to the connection). The
+ * status bar is in the footer band (REP-20261013-002, ADR-0013). It comes in with a fade and a
+ * small scale (240 ms) and goes in 160 ms (REP-20261023-006, D-M14); the grid under it stays still.
  */
 export function ConnectionNotice({
   visible,
@@ -37,13 +43,18 @@ export function ConnectionNotice({
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [visible, disconnectedSince, oauthExpired]);
+  const { mounted, leaving } = useExitPresence(visible, NOTICE_EXIT_MS);
 
-  if (!visible) return null;
+  if (!mounted) return null;
   const elapsed =
     disconnectedSince && !oauthExpired ? formatElapsed((now - disconnectedSince) / 1000) : null;
 
   return (
-    <div className="aca-connection-notice">
+    <div
+      className={leaving ? 'aca-connection-notice is-leaving' : 'aca-connection-notice'}
+      aria-hidden={leaving || undefined}
+      inert={leaving || undefined}
+    >
       <Surface error>
         <div className="aca-connection-notice__content">
           <Icon name="warning" size="md" className="aca-connection-notice__icon" />

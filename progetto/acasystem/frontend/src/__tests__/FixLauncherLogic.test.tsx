@@ -10,11 +10,13 @@ import {
   GRID_GAPS,
   cellMetrics,
   deviceClassFor,
+  gridFor,
 } from '@/utils/launcher/deviceClass';
 import { packItems } from '@/utils/launcher/grid';
 import {
   ensureDeviceClass,
   moveWidgetToPageInLayout,
+  pageClass,
   placeWidgetInLayout,
   removeWidgetFromLayout,
 } from '@/utils/launcher/layout';
@@ -78,7 +80,8 @@ describe('launcher final-review regressions', () => {
       grids: DEFAULT_GRIDS,
       sizesOf: () => sizes,
     });
-    expect(idsOf(landscape, 'phoneLandscape').sort()).toEqual([...ids, 'light.nuova'].sort());
+    // A landscape phone shows the pages without columns on 8×2 (REP-20261008-001).
+    expect(idsOf(landscape, 'phoneLandscape@8x2').sort()).toEqual([...ids, 'light.nuova'].sort());
     expect(
       ensureDeviceClass(landscape, {
         deviceClass: 'phoneLandscape',
@@ -236,18 +239,29 @@ describe('launcher final-review regressions', () => {
 
   // Grid area (.aca-launcher-page without padding) measured with Playwright on launcher.html,
   // view and edit mode (REP-20261006-002). Portrait phone 390×844 in view mode: 366×641,
-  // 84 px cells, the reference size at which every widget shows its controls whole.
+  // 84 px cells, the reference size at which every widget shows its controls whole. The
+  // smaller edit areas predate REP-20261007-001: since then the frame has the same height in
+  // view and edit mode. The dynamic gap (REP-20261008-001) leaves these cells unchanged; the
+  // pages without a choice of columns use the tablet's 8 columns where the width allows them.
   const measured = [
-    { viewport: [844, 390], view: [802, 247], edit: [802, 185], cells: [118, 87] },
-    { viewport: [853, 533], view: [810, 390], edit: [810, 328], cells: [126, 126] },
-    { viewport: [640, 400], view: [608, 257], edit: [608, 142], cells: [93, 66] },
+    { viewport: [844, 390], view: [802, 247], edit: [802, 185], grid: 8, cells: [91, 87] },
+    { viewport: [853, 533], view: [810, 390], edit: [810, 328], grid: 8, cells: [92, 92] },
+    { viewport: [640, 400], view: [608, 257], edit: [608, 142], grid: 6, cells: [93, 66] },
   ] as const;
   const portraitCell = cellMetrics(366, 641, DEFAULT_GRIDS.phone, GRID_GAPS.phone).cell;
+  /** Grid of a page without a choice of columns on a landscape screen this wide. */
+  const shownGrid = (width: number) => {
+    const page = { id: 'home', label: 'Casa', kind: 'widgets' as const, placements: {} };
+    const layout: LauncherLayout = { version: 1, cover: { enabled: false }, pages: [page] };
+    const ctx = { deviceClass: 'phoneLandscape' as const, grids: DEFAULT_GRIDS };
+    return gridFor(DEFAULT_GRIDS, pageClass(layout, page, { ...ctx, viewportWidth: width }));
+  };
 
   it.each(measured)('uses a landscape grid with usable cells at $viewport', (sample) => {
     const deviceClass = deviceClassFor(sample.viewport[0], sample.viewport[1]);
     expect(deviceClass).toBe('phoneLandscape');
-    const grid = DEFAULT_GRIDS[deviceClass];
+    const grid = shownGrid(sample.viewport[0]);
+    expect(grid).toEqual({ w: sample.grid, h: 2 });
     const gap = GRID_GAPS[deviceClass];
     const view = cellMetrics(sample.view[0], sample.view[1], grid, gap).cell;
     const edit = cellMetrics(sample.edit[0], sample.edit[1], grid, gap).cell;
@@ -265,17 +279,20 @@ describe('launcher final-review regressions', () => {
   });
 
   it('keeps the densest landscape grid that stays usable', () => {
-    const grid = DEFAULT_GRIDS.phoneLandscape;
     const gap = GRID_GAPS.phoneLandscape;
-    const cellsWith = (size: { w: number; h: number }, mode: 'view' | 'edit') =>
-      measured.map((sample) => cellMetrics(sample[mode][0], sample[mode][1], size, gap).cell);
+    const cellsWith = (more: { w: number; h: number }, mode: 'view' | 'edit') =>
+      measured.map((sample) => {
+        const grid = shownGrid(sample.viewport[0]);
+        const size = { w: grid.w + more.w, h: grid.h + more.h };
+        return cellMetrics(sample[mode][0], sample[mode][1], size, gap).cell;
+      });
     // One more column: the 640×400 cells fall below the portrait phone (2×1 lights cut).
-    expect(Math.min(...cellsWith({ w: grid.w + 1, h: grid.h }, 'view'))).toBeLessThan(portraitCell);
+    expect(Math.min(...cellsWith({ w: 1, h: 0 }, 'view'))).toBeLessThan(portraitCell);
     // One more row: edit mode on the phone drops far below 72 px.
-    expect(Math.min(...cellsWith({ w: grid.w, h: grid.h + 1 }, 'edit'))).toBeLessThan(72);
+    expect(Math.min(...cellsWith({ w: 0, h: 1 }, 'edit'))).toBeLessThan(72);
   });
 
-  it('cancels a rapid release after edge navigation instead of dropping into the old page', () => {
+  it('drops a rapid release after edge navigation into the new page, never the old one', () => {
     class Pointer extends MouseEvent {
       pointerId: number;
       constructor(type: string, options: MouseEventInit & { pointerId?: number } = {}) {
@@ -290,7 +307,14 @@ describe('launcher final-review regressions', () => {
       const onEdge = vi.fn(() => 'p2');
       const { result } = renderHook(() =>
         useWidgetDrag({
-          getGeometry: () => ({ left: 0, top: 0, cell: 100, gap: 0, grid: { w: 8, h: 5 } }),
+          getGeometry: () => ({
+            left: 0,
+            top: 0,
+            cell: 100,
+            gapX: 0,
+            gapY: 0,
+            grid: { w: 8, h: 5 },
+          }),
           getPlacements: () => ({ a: { x: 0, y: 0, w: 1, h: 1 } }),
           sizesFor: () => undefined,
           getPagerBounds: () => ({ left: 0, right: 800 }),
@@ -315,9 +339,10 @@ describe('launcher final-review regressions', () => {
       fireEvent.pointerMove(window, { pointerId: 1, clientX: 781, clientY: 20 });
       act(() => vi.advanceTimersByTime(700));
       expect(onEdge).toHaveBeenCalledOnce();
-      expect(result.current.session?.target).toBeNull();
+      // The new page is a target at once (REP-20261009-004): the grids report where they rest.
+      expect(result.current.session?.target?.pageId).toBe('p2');
       fireEvent.pointerUp(window, { pointerId: 1, clientX: 781, clientY: 20 });
-      expect(onDrop.mock.calls[0][0].target).toBeNull();
+      expect(onDrop.mock.calls[0][0].target).toMatchObject({ pageId: 'p2', valid: true });
       expect(result.current.session).toBeNull();
       act(() => vi.advanceTimersByTime(500));
       expect(result.current.session).toBeNull();

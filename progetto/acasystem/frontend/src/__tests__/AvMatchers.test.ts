@@ -28,7 +28,13 @@ describe('matcher dei widget multimediali (prefissi del CARD_REGISTRY legacy)', 
   });
 
   it('non prende id di altri gruppi', () => {
-    for (const id of ['light.sala', 'camera.ingresso', 'media_player', 'entity_card_1', 'climate_card_1']) {
+    for (const id of [
+      'light.sala',
+      'camera.ingresso',
+      'media_player',
+      'entity_card_1',
+      'climate_card_1',
+    ]) {
       expect(typeOf(id)).toEqual([]);
     }
   });
@@ -72,31 +78,42 @@ describe('modello', () => {
     expect(resolveImage('/api/media_player_proxy/media_player.x', url)).toBe(
       'http://ha.local/api/media_player_proxy/media_player.x'
     );
-    expect(resolveImage('https://cdn.simpleicons.org/plex', url)).toBe('https://cdn.simpleicons.org/plex');
-    expect(resolveImage('data:image/svg+xml;base64,AAA', url)).toBe('data:image/svg+xml;base64,AAA');
+    expect(resolveImage('https://cdn.simpleicons.org/plex', url)).toBe(
+      'https://cdn.simpleicons.org/plex'
+    );
+    expect(resolveImage('data:image/svg+xml;base64,AAA', url)).toBe(
+      'data:image/svg+xml;base64,AAA'
+    );
     expect(resolveImage('javascript:alert(1)', () => 'javascript:alert(1)')).toBeNull();
     expect(resolveImage(undefined, url)).toBeNull();
   });
 
   it('normalizza preferiti e playlist togliendo i doppioni', () => {
     const choices = normalizeChoices(
-      ['spotify:playlist:1', { title: 'Radio', media_content_id: 'radio:1', media_content_type: 'music' }, 'spotify:playlist:1'],
+      [
+        'spotify:playlist:1',
+        { title: 'Radio', media_content_id: 'radio:1', media_content_type: 'music' },
+        'spotify:playlist:1',
+      ],
       'music'
     );
     expect(choices).toEqual([
-      { id: 'spotify:playlist:1', label: 'spotify:playlist:1', type: 'music', source: 'Spotify', image: null },
+      {
+        id: 'spotify:playlist:1',
+        label: 'spotify:playlist:1',
+        type: 'music',
+        source: 'Spotify',
+        image: null,
+      },
       { id: 'radio:1', label: 'Radio', type: 'music', source: 'Radio', image: null },
     ]);
   });
 
   it('piano delle sorgenti della videocamera identico al legacy', () => {
     const base = { customPlayerUrl: '', hasConnection: true, hasAccessToken: true };
-    expect(getCameraSourcePlan({ ...base, engine: 'auto', frontendStreamTypes: ['web_rtc', 'hls'] })).toEqual([
-      'webrtc',
-      'hls',
-      'mjpeg',
-      'snapshot',
-    ]);
+    expect(
+      getCameraSourcePlan({ ...base, engine: 'auto', frontendStreamTypes: ['web_rtc', 'hls'] })
+    ).toEqual(['webrtc', 'hls', 'mjpeg', 'snapshot']);
     expect(
       getCameraSourcePlan({
         ...base,
@@ -106,16 +123,23 @@ describe('modello', () => {
       })
     ).toEqual(['custom', 'webrtc', 'hls', 'mjpeg', 'snapshot']);
     expect(
-      getCameraSourcePlan({ ...base, engine: 'auto', frontendStreamTypes: null, hasAccessToken: false })
+      getCameraSourcePlan({
+        ...base,
+        engine: 'auto',
+        frontendStreamTypes: null,
+        hasAccessToken: false,
+      })
     ).toEqual(['hls', 'snapshot']);
-    expect(getCameraSourcePlan({ ...base, engine: 'snapshot', frontendStreamTypes: ['hls'] })).toEqual([
-      'snapshot',
-    ]);
+    expect(
+      getCameraSourcePlan({ ...base, engine: 'snapshot', frontendStreamTypes: ['hls'] })
+    ).toEqual(['snapshot']);
     expect(normalizeCameraStreamEngine('HA-STREAM')).toBe('ha');
     expect(normalizeCameraStreamEngine('mse')).toBe('go2rtc');
     expect(resolveCameraTemplate('https://g.local/s?src={entity_object_id}', 'camera.porta')).toBe(
       'https://g.local/s?src=porta'
     );
-    expect(applyGo2rtcMode('https://g.local/s?src=a&mode=webrtc#p', 'auto')).toBe('https://g.local/s?src=a#p');
+    expect(applyGo2rtcMode('https://g.local/s?src=a&mode=webrtc#p', 'auto')).toBe(
+      'https://g.local/s?src=a#p'
+    );
   });
 });

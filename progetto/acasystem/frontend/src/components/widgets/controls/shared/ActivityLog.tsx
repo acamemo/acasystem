@@ -26,7 +26,12 @@ export function ActivityTimeline({
       const next = ordered[index + 1];
       const left = Math.max(0, (event.time.getTime() - from) / total);
       const right = Math.min(1, ((next ? next.time.getTime() : end.getTime()) - from) / total);
-      return { key: `${event.time.getTime()}-${index}`, left, width: right - left, active: isActive(event.state) };
+      return {
+        key: `${event.time.getTime()}-${index}`,
+        left,
+        width: right - left,
+        active: isActive(event.state),
+      };
     })
     .filter((segment) => segment.width > 0 && segment.active);
   return (

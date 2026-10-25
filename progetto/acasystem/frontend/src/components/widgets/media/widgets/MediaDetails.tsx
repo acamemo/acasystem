@@ -311,7 +311,9 @@ function MediaDetailsView({ cardId, baseIds, initialId, isGroup }: MediaDetailsV
                           variant="control"
                           size="sm"
                           aria-label={`${testi.togli}: ${nameOf(player)}`}
-                          onClick={() => updateExtras(extras.filter((id) => id !== player.entity_id))}
+                          onClick={() =>
+                            updateExtras(extras.filter((id) => id !== player.entity_id))
+                          }
                         >
                           {testi.togli}
                         </Button>
@@ -356,7 +358,9 @@ export function MediaGroupDetails({ id, settings }: WidgetDetailsProps) {
   const { entities } = useWidgetRuntime();
   const [initial] = useState(() => {
     const ids = stringList(settings.mediaIds);
-    return selectGroupPlayer(entities, ids, settings.activeId, Date.now()).current?.entity_id ?? null;
+    return (
+      selectGroupPlayer(entities, ids, settings.activeId, Date.now()).current?.entity_id ?? null
+    );
   });
   return (
     <MediaDetailsView

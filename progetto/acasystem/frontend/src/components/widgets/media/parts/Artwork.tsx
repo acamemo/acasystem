@@ -39,6 +39,7 @@ export function Artwork({
         className
       )}
       data-artwork={showImage ? 'image' : 'placeholder'}
+      data-placeholder-icon={!showImage ? icon : undefined}
     >
       <MaterialLayers element="div" contentClassName="aca-media-art__content">
         {showImage && src ? (
@@ -50,12 +51,17 @@ export function Artwork({
             decoding="async"
             referrerPolicy="no-referrer"
             className={
-              fit === 'contain' ? 'aca-media-art__img aca-media-art__img--contain' : 'aca-media-art__img'
+              fit === 'contain'
+                ? 'aca-media-art__img aca-media-art__img--contain'
+                : 'aca-media-art__img'
             }
             onError={() => setFailed(src)}
           />
         ) : (
-          <MediaIcon name={icon} size={variant === 'compact' || variant === 'small' ? 'lg' : 'xl'} />
+          <MediaIcon
+            name={icon}
+            size={variant === 'compact' || variant === 'small' ? 'lg' : 'xl'}
+          />
         )}
       </MaterialLayers>
     </div>

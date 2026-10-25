@@ -1,17 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Body, Button, Caption, Field, Heading, Icon, Sheet } from '@/components/primitives';
 import type { PagesConfig } from '@/@types/dashboard';
-import type { CellSize } from '@/@types/launcher';
 import { useAddCard } from '@/hooks/useAddCard';
 import { usePages } from '@/hooks/context';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import {
   ADD_WIDGET_TYPES,
   candidateEntityIds,
-  definitionForType,
-  sizeChoices,
-  sizeKey,
-  sizeLabel,
   temperatureSensorIds,
   typeVisuals,
   type AddWidgetType,
@@ -20,7 +15,6 @@ import { cardSettingsKey } from './cardKeys';
 import { EntityPicker, PickRow, entityName } from './parts/EntityPicker';
 import { ChoiceGroup, Notice } from './parts/Form';
 import { usePresence } from './parts/hooks';
-import { SizePreview } from './parts/SizePreview';
 import { RoomPicker, type RoomSelection } from './RoomPicker';
 import { buildRoomCards } from './roomCards';
 import type { AddWidgetSheetProps } from './types';
@@ -30,17 +24,28 @@ type Step = 'type' | 'details';
 
 const EMPTY_ROOMS: RoomSelection = { areas: [], entitiesById: {} };
 
+/** Types added without any choice (their entities are chosen later in their settings). */
+const NO_CHOICE_FLOWS = new Set(['simple', 'spacer']);
+
 /**
  * «Aggiungi un widget»: the type first, then the entities or options it needs. Cards and
  * cardSettings are created by the legacy useAddCard/handleAddSelected (same ids and settings);
- * each new card id is then handed to the launcher with onAdded, which places it on the grid.
+ * each new card id is then handed to the launcher with onAdded, which places it on the grid at
+ * the default size: the size is changed on the grid by dragging (REP-20261007-027). From a tile
+ * of the tray (`initialType`) the sheet starts from the details of that type.
  */
-export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetSheetProps) {
+export function AddWidgetSheet({
+  open,
+  onClose,
+  pageId,
+  onAdded,
+  initialType,
+  autoAdd = false,
+}: AddWidgetSheetProps) {
   const runtime = useWidgetRuntime();
   const pages = usePages();
   const mounted = usePresence(open);
   const [step, setStep] = useState<Step>('type');
-  const [size, setSize] = useState<CellSize | undefined>(undefined);
   const [rooms, setRooms] = useState<RoomSelection>(EMPTY_ROOMS);
   const typesRef = useRef<HTMLDivElement>(null);
   const detailsRef = useRef<HTMLHeadingElement>(null);
@@ -53,7 +58,6 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
     setWasOpen(open);
     if (open) {
       setStep('type');
-      setSize(undefined);
       setRooms(EMPTY_ROOMS);
     }
   }
@@ -63,7 +67,11 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
     const before = new Set(pages.pagesConfig[pageId] ?? []);
     const added = (next[pageId] ?? []).filter((id) => !before.has(id));
     pages.persistConfig(next);
-    added.forEach((id) => onAdded(id, size));
+    added.forEach((id) => {
+      onAdded(id);
+      // A widget made for a device takes the configuration kept for it (ADR-0019).
+      pages.requestWidgetAdoption(pageId, id);
+    });
   };
 
   const addCard = useAddCard({
@@ -73,8 +81,6 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
     persistConfig: persistAndPlace,
     cardSettings: pages.cardSettings,
     persistCardSettings: pages.persistCardSettings,
-    hiddenCards: pages.hiddenCards,
-    persistHiddenCards: pages.persistHiddenCards,
     getCardSettingsKey: (cardId, page = pageId) => cardSettingsKey(page, cardId),
     saveCardSetting: pages.saveCardSetting,
     setShowAddCardModal: (show) => {
@@ -89,8 +95,6 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
   const labelOf = (item: AddWidgetType) => visuals.get(item.type)?.label ?? item.label;
   const iconOf = (item: AddWidgetType) => visuals.get(item.type)?.icon ?? item.icon;
   const entry = ADD_WIDGET_TYPES.find((item) => item.type === addCard.addCardType);
-  const definition = entry ? definitionForType(entry) : undefined;
-  const sizes = sizeChoices(definition);
 
   useEffect(() => {
     if (step === 'details') detailsRef.current?.focus();
@@ -105,10 +109,22 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
     lastTypeRef.current = item.type;
     addCard.setAddCardType(item.type);
     addCard.setSearchTerm('');
-    setSize(definitionForType(item)?.sizes.default);
     setRooms(EMPTY_ROOMS);
     setStep('details');
   };
+
+  // Opened from a tile of the tray: straight to the details of that type. Declared after
+  // useAddCard, so it runs after the hook's own reset of the type on opening.
+  const [autoPending, setAutoPending] = useState(false);
+  useEffect(() => {
+    if (!open || !initialType) return;
+    const item = ADD_WIDGET_TYPES.find((candidate) => candidate.type === initialType);
+    if (!item) return;
+    chooseType(item);
+    setAutoPending(autoAdd && NO_CHOICE_FLOWS.has(item.flow));
+    // Only on opening: the type is the one of the tile.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialType]);
 
   const addRooms = () => {
     const payload = buildRoomCards({
@@ -119,7 +135,11 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
       cardSettings: pages.cardSettings,
     });
     if (!payload) return;
-    payload.customNames.forEach(({ cardId, name }) => pages.saveCustomName(cardId, name));
+    // The name a room is born with is not an edit: a new room can still take back what was kept.
+    pages.persistCustomNames({
+      ...pages.customNames,
+      ...Object.fromEntries(payload.customNames.map(({ cardId, name }) => [cardId, name])),
+    });
     pages.persistCardSettings(payload.newSettings);
     persistAndPlace(payload.newConfig);
     onClose();
@@ -203,15 +223,25 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
       </>
     );
 
+  // A type that needs no choice, dropped from the tray: added as soon as the type is set,
+  // without showing the sheet.
+  useEffect(() => {
+    if (!autoPending || !open || !entry || entry.type !== initialType) return;
+    setAutoPending(false);
+    submit();
+    // submit reads the state of this render, where the type is the dropped one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPending, open, entry]);
+
   return (
     <Sheet
-      open={open}
+      open={open && !autoPending}
       onClose={onClose}
       title="Aggiungi un widget"
       description={
         step === 'type'
           ? 'Scegli che cosa mostrare nella pagina.'
-          : 'Scegli le entità e la dimensione del widget.'
+          : 'Scegli che cosa mostra il widget.'
       }
       footer={footer}
       className="aca-add-widget"
@@ -252,12 +282,9 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
             </div>
           </div>
 
-          <SizeSection
-            sizes={sizes}
-            value={size}
-            frame={definition?.sizes.max}
-            onChange={setSize}
-          />
+          <Caption as="p" className="aca-add-details__size">
+            Dopo l’aggiunta trascina i lati o gli angoli del widget per cambiarne la misura.
+          </Caption>
 
           {flow !== 'simple' && flow !== 'spacer' && (
             <Field
@@ -280,44 +307,6 @@ export function AddWidgetSheet({ open, onClose, pageId, onAdded }: AddWidgetShee
         </div>
       )}
     </Sheet>
-  );
-}
-
-function SizeSection({
-  sizes,
-  value,
-  frame,
-  onChange,
-}: {
-  sizes: CellSize[];
-  value: CellSize | undefined;
-  frame: CellSize | undefined;
-  onChange: (size: CellSize) => void;
-}) {
-  if (sizes.length === 0 || !value) {
-    return (
-      <Caption as="p" className="aca-add-details__size">
-        Dimensione: quella predefinita del widget, modificabile poi nella pagina.
-      </Caption>
-    );
-  }
-  const current = sizes.find((size) => sizeKey(size) === sizeKey(value)) ?? sizes[0];
-  return (
-    <div className="aca-add-details__size">
-      {sizes.length > 1 && (
-        <ChoiceGroup<string>
-          label="Dimensione"
-          hint="Potrai cambiarla anche dopo, nella modalità modifica."
-          options={sizes.map((size) => ({ value: sizeKey(size), label: sizeLabel(size) }))}
-          value={sizeKey(current)}
-          onChange={(key) => {
-            const next = sizes.find((size) => sizeKey(size) === key);
-            if (next) onChange(next);
-          }}
-        />
-      )}
-      <SizePreview size={current} frame={frame ?? current} />
-    </div>
   );
 }
 

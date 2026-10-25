@@ -1,16 +1,79 @@
 /*
  * Launcher (ADR-0007): pager on scroll snap, pages of square cells, widgets placed by cell
- * through --aca-lx/ly/lw/lh, free cells with «+», drop preview, wiggle and the dragged copy.
+ * through --aca-lx/ly/lw/lh, free cells with «+», drop preview and the dragged copy.
  */
+
+/*
+ * What places a page (REP-20261012-003): Pager writes --aca-o, --aca-d, --aca-card-shift and
+ * --aca-card-drag on each page, and the pan writes --aca-overview-pan on each page too (one write
+ * a frame while the cards follow the finger); only that page reads them. Registered as not
+ * inherited, a write recalculates the style of the page alone: unregistered, a custom property is
+ * inherited, and every write recalculated the ~700 elements below it.
+ */
+@property --aca-o {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --aca-d {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --aca-card-shift {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --aca-card-drag {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --aca-overview-pan {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+/*
+ * The gap before the cards move in the scene of the pages view (REP-20261023-006, D-M3, D-M25).
+ * Registered as not inherited for the same reason: it is written on the pages and their bodies
+ * alone (below), and a class of the pager that changes it restyles those, not the ~700 elements of
+ * each page. 0 at rest, and for a card let go after a pan.
+ */
+@property --aca-card-delay {
+  syntax: '<time>';
+  inherits: false;
+  initial-value: 0ms;
+}
+
 @layer components {
+  /*
+   * The pager reaches under the bands (REP-20261009-006): a scroll container clips on both axes
+   * at its padding edge, so the edge goes out to the edge of the screen, where a shadow or a
+   * lifted card is not cut at a line in the empty band (the top one is the safe area alone since
+   * the status bar went down to the footer band, REP-20261013-002, ADR-0013). The margin takes
+   * the bands back and the padding gives them to the pages again: the area of the pages is the
+   * one between the bars, to the pixel. The bands are --aca-shell-head and --aca-shell-foot
+   * (appShell.css); since ADR-0016 they are the safe areas (and, on a tablet, a few pixels for the
+   * gear), because the bars are laid over the pages. The bands stay empty and deaf: the pager takes
+   * no pointer of its own (the pages do), so a press there reaches no long press and no pan. The
+   * overview gives it back, where the gap between the cards is its to take (Pager.tsx leaves the
+   * bands out). The overview keeps the room of its bar at the bottom of the area by itself
+   * (--aca-overview-foot, below).
+   */
   .aca-pager {
     display: flex;
-    height: 100%;
+    box-sizing: border-box;
+    height: calc(100% + var(--aca-shell-head, 0px) + var(--aca-shell-foot, 0px));
+    margin-block: calc(-1 * var(--aca-shell-head, 0px)) calc(-1 * var(--aca-shell-foot, 0px));
+    padding-block: var(--aca-shell-head, 0px) var(--aca-shell-foot, 0px);
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    pointer-events: none;
   }
   .aca-pager::-webkit-scrollbar {
     display: none;
@@ -26,23 +89,428 @@
     width: 100%;
     min-width: 0;
     height: 100%;
-    overflow: hidden;
+    /* Sideways only: the neighbour page is not seen (nor its halo); up and down it draws on. */
+    overflow-x: clip;
+    /*
+     * Constant (REP-20261019-002): the boxes of the pages overlap in the overview, so only the
+     * body (at rest), the opener and the controls (overview) take the pointer. Changing it on
+     * the page at each entry and exit restyled everything below it.
+     */
+    pointer-events: none;
     scroll-snap-align: start;
     scroll-snap-stop: always;
   }
+  /*
+   * A page keeps its box (REP-20261009-003): the overview moves and scales it by transform
+   * alone, so the grid inside keeps its cells and does not measure again. A page other than the
+   * one shown is cancelled out from its place in the row: `transform` takes it back to the left
+   * edge by --aca-o pages and `translate` brings it again, the same distance (a net of zero).
+   * The overview animates `translate` only; a page added or removed there moves the others in
+   * the row, which `transform` follows at once, so nothing jumps.
+   */
+  .aca-pager__page:not(.is-current) {
+    transform: translateX(calc(var(--aca-o, 0) * -100%));
+    translate: calc(var(--aca-o, 0) * 100%);
+  }
+  .aca-pager__body {
+    position: relative;
+    z-index: 0;
+    pointer-events: auto;
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    transition: scale 120ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  /* What the card clips (REP-20261012-003): the body cannot, its shadow must stay whole. */
+  .aca-pager__clip {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+  }
+  /*
+   * The pages out of the window of the pager (ISSUE-109, R2, ADR-0018): the browser skips the style,
+   * layout and paint of their content, and a change of state high in the tree (edit mode, a sheet,
+   * the overview) no longer restyles them. They stay in the tree, with their size (the clip is
+   * flex, the box does not depend on the content), their state and their observers; the pager
+   * writes the attribute and takes it off before a page can be seen (Pager.tsx).
+   */
+  .aca-pager__page[data-far] > .aca-pager__body > .aca-pager__clip {
+    content-visibility: hidden;
+  }
+  /*
+   * The look of a card on a page, radius and shadow (REP-20261012-003). They used to be the
+   * radius and the shadow of the body, animated, and every frame drew the page again; now the
+   * radius is the final one from the first frame and the shadow is a shape of its own (::after
+   * the card, ::before the lift of the card held) that only fades by opacity. Out of the flow,
+   * and invisible at rest; the body is not clipped (the clip is .aca-pager__clip), so they show.
+   * They sit under the page and under the ring of the card (a stacking context of its own: the
+   * body has a z-index), as the shadow of the body did.
+   */
+  .aca-pager__body::before,
+  .aca-pager__body::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: var(--aca-radius-card);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 360ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  .aca-pager__body::before {
+    box-shadow: 0.6rem 1rem 1.6rem rgb(5 5 5 / 18%);
+  }
+  .aca-pager__body::after {
+    box-shadow: var(--aca-socket-shadow-card);
+  }
 
   /*
-   * A page of widgets. The grid hangs from the top (on phones and portrait tablets, limited by
-   * the width, the spare height goes to the bottom) and stays centred across. Above and below
-   * it keeps --aca-launcher-edge-room: the light halo of the first row and the «×» that sits on
-   * the corner of a widget in edit mode (half of --aca-dim, 0.75rem, out) are not clipped by the pager. The
-   * padding is measured by WidgetGrid, so cellMetrics only gets the area inside it.
+   * Page overview (REP-20261007-028, REP-20261009-003): every page becomes a card, a picture of
+   * the page at --aca-overview-k of its size (Pager.tsx writes it for the area), the one in the
+   * centre with its neighbours in view. Only transforms move: the page keeps its size, the grid
+   * inside its cells, and everything goes in and out with one time and one curve, both literal
+   * (the easing tokens live on .aca-m only). The scroll of the pager rests on the page the
+   * overview opened on; --aca-o is the distance of a page from it, --aca-d from the page in the
+   * centre, --aca-overview-pitch the distance between two cards (Pager.tsx measures it; the
+   * fallback is the same sum). Under the card in the centre are its controls (arrows and
+   * columns on one row, REP-20261008-001, REP-20261009-002, edit.css), under the others their
+   * name: the row keeps one height for every card, so the cards stay the same size.
+   *
+   * Over the cards: the room of the «Annulla» pill, which comes down from the top in the overview
+   * (edit.css, .aca-undo--top: space-3 under the safe area, one bar high). The status bar no
+   * longer leaves the top band empty for it, so the group of card and controls is measured and
+   * centred in the area under that room, and the pill never covers the card in the centre
+   * (REP-20261013-002, ADR-0013). It is constant, shown or not: the cards do not jump. The bar of
+   * the pages lies over the area (ADR-0016), so the room under the cards keeps its height too
+   * (--aca-overview-foot, appShell.css): the group moves up by half of it.
+   */
+  .aca-pager {
+    position: relative;
+    --aca-card-gap: var(--aca-space-5);
+    --aca-card-footer: var(--aca-control-height);
+    --aca-undo-room: calc(var(--aca-space-3) + var(--aca-float-height));
+    /* How far the group of card and controls sits from the centre of the page: down by half the
+       room of the pill, up by half the controls and by half the room of the bar. */
+    --aca-card-offset: calc(
+      (
+          var(--aca-undo-room) - var(--aca-overview-foot, 0px) - var(--aca-card-footer) -
+            var(--aca-space-2)
+        ) /
+        2
+    );
+    --aca-overview-ms: 360ms;
+    --aca-overview-ease: cubic-bezier(0.23, 1, 0.32, 1);
+    --aca-overview-pitch: calc(var(--aca-overview-k, 0.72) * 100% + var(--aca-card-gap));
+  }
+  /*
+   * The order of the scene (REP-20261023-006, D-M3, D-M25), from T0, the first frame after the
+   * block of the commit (Pager.tsx stages it): the empty cells go first (--aca-dur-clear), the
+   * cards follow after two gaps, the indicator after three, the bar after four, the controls
+   * after five (here, pageIndicator.css, edit.css). Back, the cards leave after one gap. The
+   * delay is on the cards alone and only while the scene runs (`is-entering`, `is-closing`): a card
+   * let go after a pan glides at once.
+   */
+  .aca-pager.is-entering > .aca-pager__page,
+  .aca-pager.is-entering > .aca-pager__page > .aca-pager__body,
+  .aca-pager.is-entering > .aca-pager__page > .aca-pager__body::after {
+    --aca-card-delay: calc(var(--aca-stagger, 40ms) * 2);
+  }
+  .aca-pager.is-closing > .aca-pager__page,
+  .aca-pager.is-closing > .aca-pager__page > .aca-pager__body,
+  .aca-pager.is-closing > .aca-pager__page > .aca-pager__body::after {
+    --aca-card-delay: var(--aca-stagger, 40ms);
+  }
+  .aca-pager:is(.is-overview, .is-closing) {
+    overflow-x: hidden;
+    scroll-snap-type: none;
+    pointer-events: auto;
+  }
+  /*
+   * The pointer moves the cards (Pager.tsx); the browser does not scroll them (REP-20261019-002,
+   * ISSUE-062). touch-action is not set on the pager: Blink hands it down to every element
+   * below, so changing it at each entry and exit restyled the whole subtree (about 140 ms of a
+   * 4x throttled desktop for 6000 elements). The gaps between the cards belong to a layer of
+   * their own, the first child of the pager (under the pages, which take no pointer): it covers
+   * the area the scroll rests on (left: the base page, written by Pager.tsx), as the pager did
+   * with its own box. The opener and the controls of each card set their own touch action. A
+   * pseudo-element would not do: the browser reads the touch action of the element it hits, and
+   * that of a pseudo-element is the pager's.
+   */
+  .aca-pager__surface {
+    position: absolute;
+    inset-block: 0;
+    width: 100%;
+    touch-action: none;
+    pointer-events: auto;
+  }
+  .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page {
+    overflow: visible;
+    transform: translateX(calc(var(--aca-o, 0) * -100%));
+    translate: calc(
+      (var(--aca-d, 0) + var(--aca-card-shift, 0)) * var(--aca-overview-pitch) +
+        var(--aca-overview-pan, 0px) + var(--aca-card-drag, 0px)
+    );
+    transition:
+      translate var(--aca-overview-ms) var(--aca-overview-ease) var(--aca-card-delay),
+      opacity var(--aca-dur-enter-sm, 240ms) var(--aca-motion-ease-out, var(--aca-overview-ease));
+  }
+  /*
+   * A card just added comes forward in its place (REP-20261007-029); one moved does not. It is
+   * committed hidden and a little smaller, and Pager.tsx lets it in two frames later (D-M24,
+   * D-M25): a fade and a scale of 8 %, no slide. A real state, not @starting-style, so a card
+   * that React moves in the DOM does not start again from nothing.
+   */
+  .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page.is-new {
+    opacity: 0;
+  }
+  /*
+   * A card that is leaving (a page deleted): it shrinks and fades before the row closes, and the
+   * cards at its right then take its place (D-M24). The exit is the shorter of the two.
+   */
+  .aca-pager.is-overview > .aca-pager__page.is-leaving {
+    opacity: 0;
+    transition: opacity var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in);
+  }
+  .aca-pager.is-overview > .aca-pager__page.is-leaving > .aca-pager__body {
+    scale: calc(var(--aca-overview-k, 0.72) * var(--aca-scale-enter, 0.92));
+    transition: scale var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /* A card React moved goes over the one that glides by its own transition (Pager.tsx). */
+  .aca-pager.is-overview > .aca-pager__page.is-moved {
+    z-index: 1;
+  }
+  /* Closing (Pager.tsx): the pages go back to their places in the row, then it rests there. */
+  .aca-pager.is-closing > .aca-pager__page {
+    translate: calc(var(--aca-d, 0) * 100%);
+  }
+  /* The cards follow the finger without lag; let go, they glide to their places. */
+  .aca-pager[data-panning] > .aca-pager__page {
+    transition: none;
+  }
+  .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page > .aca-pager__body {
+    /* The radius of the card is the final one for the whole overview (REP-20261012-003). */
+    border-radius: calc(var(--aca-radius-card) / var(--aca-overview-k, 0.72));
+    /*
+     * The group of card and controls is centred under the room of the pill: the card goes up by
+     * half the controls and down by half that room.
+     */
+    scale: var(--aca-overview-k, 0.72);
+    translate: 0 var(--aca-card-offset);
+    transition:
+      scale var(--aca-overview-ms) var(--aca-overview-ease) var(--aca-card-delay),
+      translate var(--aca-overview-ms) var(--aca-overview-ease) var(--aca-card-delay),
+      opacity var(--aca-overview-ms) var(--aca-overview-ease);
+  }
+  .aca-pager:is(.is-overview, .is-closing)
+    > .aca-pager__page
+    > .aca-pager__body
+    > .aca-pager__clip {
+    overflow: hidden;
+    border-radius: inherit;
+    background: var(--aca-page);
+  }
+  .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page > .aca-pager__body::after {
+    border-radius: inherit;
+    opacity: 1;
+    transition: opacity var(--aca-overview-ms) var(--aca-overview-ease) var(--aca-card-delay);
+  }
+  .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page.is-new > .aca-pager__body {
+    scale: calc(var(--aca-overview-k, 0.72) * var(--aca-scale-enter, 0.92));
+  }
+  .aca-pager.is-closing > .aca-pager__page > .aca-pager__body {
+    /*
+     * The corner stays rounded while the card grows (REP-20261023-006, D-M21): squared at once at
+     * the start of the closing, as it was, it changed on a card still small, with no frame in
+     * between. It becomes square when the closing ends and the card covers the screen.
+     */
+    scale: 1;
+    translate: 0 0;
+  }
+  .aca-pager.is-closing > .aca-pager__page > .aca-pager__body::after {
+    opacity: 0;
+  }
+  /*
+   * ISSUE-062 / REP-20261015-001: the empty «+» cells of a page fade out smoothly during the
+   * overview animation to eliminate GPU raster spikes during card scaling, and fade back in
+   * once the pager has settled at rest.
+   */
+  .aca-pager:is(.is-overview, .is-closing, .is-settling) .aca-launcher-cells {
+    opacity: 0;
+    /*
+     * No composition hint while hidden: with `will-change: opacity` Blink keeps every cell a
+     * composited layer that paints (soft-well shadows included) even at opacity 0; without it the
+     * hidden cells are skipped by paint (REP-20261019-002 review, N4).
+     */
+    will-change: auto;
+    /* They go before anything else moves (D-M3), and quickly: --aca-dur-clear. */
+    transition: opacity var(--aca-dur-clear, 100ms) var(--aca-motion-ease-in, ease-in);
+  }
+  .aca-pager.is-overview > .aca-pager__page.is-current > .aca-pager__body {
+    outline: calc(2px / var(--aca-overview-k, 0.72)) solid var(--aca-blue);
+    outline-offset: calc(3px / var(--aca-overview-k, 0.72));
+  }
+  /*
+   * Where the card stands in its page: the top edge of the scaled body, controls under it. Declared
+   * on the opener and on the controls, the only elements that read them and exist in the overview
+   * alone: on the page they were inherited by everything below it, and leaving or entering the
+   * overview restyled the whole subtree (REP-20261019-002, ISSUE-062).
+   */
+  :is(.aca-pager__open, .aca-pager__footer) {
+    --aca-card-top: calc(50% * (1 - var(--aca-overview-k, 0.72)) + var(--aca-card-offset));
+    --aca-card-left: calc(50% * (1 - var(--aca-overview-k, 0.72)));
+    --aca-card-width: calc(100% * var(--aca-overview-k, 0.72));
+  }
+  /* A hidden page (or the cover that is off): its picture faded (the card says «nascosta» aloud). */
+  .aca-pager.is-overview > .aca-pager__page.is-hidden > .aca-pager__body {
+    opacity: 0.55;
+  }
+  /*
+   * Held (REP-20261008-001, REP-20261009-004, 0.9.28): a card held in the pages view shows nothing
+   * while the press is counted (usePageDrag; `.is-pressing` has no rule), as the empty part of a
+   * page does. At the threshold it grows to --aca-scale-lift (5 %, the user's answer of
+   * 2026-10-23: only small scales, no shake) and keeps still under the finger.
+   */
+  /* The card under the finger: above the others, without lag. */
+  .aca-pager.is-overview > .aca-pager__page.is-lifted {
+    z-index: 2;
+    transition: none;
+  }
+  .aca-pager.is-overview > .aca-pager__page.is-lifted > .aca-pager__body {
+    /* Around its centre: no transform-origin at the top, which would move the card up. */
+    scale: calc(var(--aca-overview-k, 0.72) * var(--aca-scale-lift, 1.05));
+    transition: scale var(--aca-dur-lift, 150ms)
+      var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  /* The shadow of the lift rises with it (REP-20261012-003: a shape that fades, not a box-shadow). */
+  .aca-pager.is-overview > .aca-pager__page.is-lifted > .aca-pager__body::before {
+    border-radius: inherit;
+    opacity: 1;
+    transition: opacity var(--aca-dur-lift, 150ms)
+      var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  /* A card is a picture of the page: no edit chrome, no wiggle. */
+  .aca-pager.is-overview :is(.aca-resize-frame, .aca-resize-dot) {
+    display: none;
+  }
+  /* The opener covers the card (the scaled body); the controls sit outside it. */
+  .aca-pager__open {
+    position: absolute;
+    z-index: 1;
+    top: var(--aca-card-top);
+    left: var(--aca-card-left);
+    width: var(--aca-card-width);
+    height: var(--aca-card-width);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--aca-radius-card);
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+    /* The cards move with the finger; held still, the card lifts (no text selection, no menu). */
+    touch-action: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .aca-pager__open:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+  }
+  .aca-pager__footer {
+    position: absolute;
+    z-index: 2;
+    top: calc(var(--aca-card-top) + var(--aca-card-width) + var(--aca-space-2));
+    left: var(--aca-card-left);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--aca-card-width);
+    min-width: 0;
+    min-height: var(--aca-card-footer);
+    pointer-events: auto;
+    /* As the opener: a drag on the controls moves the cards (the pager no longer says so). */
+    touch-action: none;
+    /*
+     * They sit at the final place of the card from the first frame, and the body is still
+     * shrinking towards it: they come last (D-M3), five gaps after T0, once the body is clear of
+     * them. Hidden by default, shown with the overview, so a footer that React moves in the DOM
+     * (the arrows, D-M24) does not start from nothing again, as with @starting-style. They stay
+     * mounted, out of reach (inert), while the cards go back and fade out in --aca-dur-swap-out.
+     */
+    opacity: 0;
+    transition: opacity var(--aca-dur-swap-out, 120ms) var(--aca-motion-ease-in, ease-in);
+  }
+  .aca-pager.is-overview .aca-pager__footer {
+    opacity: 1;
+    transition: opacity var(--aca-dur-fade-in, 180ms) var(--aca-motion-ease-out, ease-out)
+      calc(var(--aca-stagger, 40ms) * 5);
+  }
+  /* A tap on the name of a side card centres it: a target of 44 px at least. */
+  .aca-pager__name {
+    align-content: center;
+    min-height: var(--aca-control-height);
+    padding-inline: var(--aca-space-3);
+    overflow: hidden;
+    color: var(--aca-ink-solid);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  /*
+   * Press and hold (REP-20261008-001, REP-20261009-004): for --aca-hold-ms what is held (a
+   * widget, a card) shrinks evenly to --aca-hold-scale, around its centre and without shaking.
+   * The cue waits for --aca-hold-delay, so a tap shows nothing; released, it goes back in a
+   * short transition. The empty part of a page has no cue while it is held (0.9.28, request of
+   * 2026-10-23): the page shrinks only when the long press fires, with the overview animation
+   * above. The tokens sit on :root, since the floating copy is drawn outside the shell.
+   */
+  :root {
+    --aca-hold-ms: 500ms;
+    --aca-hold-delay: 60ms;
+    --aca-hold-scale: 0.9;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-pager__body,
+    .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page,
+    .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page > .aca-pager__body {
+      transition: none;
+    }
+    .aca-pager__footer,
+    .aca-pager.is-overview .aca-pager__footer {
+      transition: none;
+    }
+    /* No growth of a lifted card: only its shadow and ring. */
+    .aca-pager.is-overview > .aca-pager__page.is-lifted > .aca-pager__body {
+      scale: var(--aca-overview-k, 0.72);
+      transition: none;
+    }
+    .aca-pager__body::before,
+    .aca-pager__body::after,
+    .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page > .aca-pager__body::after,
+    .aca-pager.is-overview > .aca-pager__page.is-lifted > .aca-pager__body::before {
+      transition: none;
+    }
+  }
+
+  /* The shell of a page (PageShell) takes no box: its page is the child of the pager body. */
+  .aca-page-shell {
+    display: contents;
+  }
+  /*
+   * A page of widgets. The spare space of each axis goes to its gaps (REP-20261008-001), so the
+   * grid normally fills the area; beyond the largest gap, or with one row or one column, it
+   * stays centred on both axes. Above and below it keeps --aca-launcher-edge-room: the light
+   * halo of the first row and the «×» that sits on the corner of a widget in edit mode (half of
+   * --aca-dim, 0.75rem, out) are not clipped by the pager. The padding is measured by
+   * WidgetGrid, so cellMetrics only gets the area inside it.
    */
   .aca-launcher-page {
     --aca-launcher-edge-room: var(--aca-space-5);
     display: grid;
     flex: 1 1 auto;
-    place-items: start center;
+    place-items: center;
     min-width: 0;
     min-height: 0;
     padding: var(--aca-launcher-edge-room) var(--aca-gutter);
@@ -62,6 +530,8 @@
     --aca-layer-widget: 2;
     --aca-layer-handle: 5;
     --aca-layer-edit: 6;
+    /* One colour for the selection ring and its dots (REP-20261008-001). */
+    --aca-selection: var(--aca-blue);
     position: relative;
   }
 
@@ -71,21 +541,141 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(var(--aca-lw) * var(--aca-cell) + (var(--aca-lw) - 1) * var(--aca-gap));
-    height: calc(var(--aca-lh) * var(--aca-cell) + (var(--aca-lh) - 1) * var(--aca-gap));
+    width: calc(var(--aca-lw) * var(--aca-cell) + (var(--aca-lw) - 1) * var(--aca-gap-x));
+    height: calc(var(--aca-lh) * var(--aca-cell) + (var(--aca-lh) - 1) * var(--aca-gap-y));
     box-sizing: border-box;
-    transform: translate(
-      calc(var(--aca-lx) * (var(--aca-cell) + var(--aca-gap))),
-      calc(var(--aca-ly) * (var(--aca-cell) + var(--aca-gap)))
-    );
+    /* translate, not transform: the press scales around the centre of the box that stays put. */
+    translate: calc(var(--aca-lx) * (var(--aca-cell) + var(--aca-gap-x)))
+      calc(var(--aca-ly) * (var(--aca-cell) + var(--aca-gap-y)));
   }
 
+  /*
+   * Own compositor layer for each widget and free cell (REP-20261012-003). Their soft shadows
+   * cost a raster on the GPU, and without a layer of their own it came again at every frame in
+   * which the page scaled or scrolled (the Tab M11 class, Mali-G57 at 2x: the longest block in
+   * the GPU process went from 157-236 ms to 17-35 ms in the overview, 39-142 to 22 in the
+   * scroll). The box already has `translate`, so it is already a stacking context and the
+   * containing block of fixed descendants: nothing else changes. Kept with reduced motion: it is
+   * a layer, not an animation.
+   */
+  .aca-launcher-widget,
+  .aca-launcher-cell.aca-m {
+    will-change: transform;
+  }
+
+  /*
+   * A widget that changes cell moves by `translate`, `width` and `height`; it has no shadow of its
+   * own to animate (the shadows are the frame's, at rest, and the floating copy's, on a layer that
+   * fades: D-M17), so no box-shadow is in the list.
+   */
   .aca-launcher-widget {
     z-index: var(--aca-layer-widget);
-    transition: transform 240ms var(--aca-ease-in-out, cubic-bezier(0.77, 0, 0.175, 1));
+    transition:
+      translate 240ms var(--aca-ease-in-out, cubic-bezier(0.77, 0, 0.175, 1)),
+      width 240ms var(--aca-ease-in-out, cubic-bezier(0.77, 0, 0.175, 1)),
+      height 240ms var(--aca-ease-in-out, cubic-bezier(0.77, 0, 0.175, 1)),
+      scale 120ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   }
   .aca-launcher-widget.is-dragging {
     visibility: hidden;
+  }
+  /* Resized live: above the others, size and place follow the pointer quickly. */
+  .aca-launcher-widget.is-resizing {
+    z-index: var(--aca-layer-handle);
+    transition:
+      translate 120ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      width 120ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      height 120ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  /* Just dropped: it appears where it lands (no trip back from its old cell). */
+  .aca-launcher-widget.is-landing {
+    transition: none;
+  }
+  /*
+   * Held before it lifts, in edit mode only (REP-20261008-001, REP-20261009-004, ADR-0016): after
+   * --aca-hold-delay (a tap shows nothing) it shrinks evenly to --aca-hold-scale until
+   * --aca-hold-ms, around its centre, without shadow, growth or shake; at the end of the hold the
+   * floating copy takes its place.
+   * Only the picture shrinks: the box, and the handle that takes the touch in edit mode, keep
+   * their size, so a slow tap near the edge still ends on the widget and its click arrives.
+   */
+  .aca-launcher-widget > :is(.aca-launcher-widget__frame, .aca-launcher-widget__bare) {
+    transition:
+      scale 120ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      opacity var(--aca-dur-reveal, 200ms)
+        var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      box-shadow var(--aca-release, 220ms) var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  .aca-launcher-widget.is-pressing > :is(.aca-launcher-widget__frame, .aca-launcher-widget__bare) {
+    scale: var(--aca-hold-scale, 0.9);
+    transition:
+      scale calc(var(--aca-hold-ms) - var(--aca-hold-delay)) linear var(--aca-hold-delay),
+      box-shadow var(--aca-release, 220ms) var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  /*
+   * A widget in use takes no long press (ADR-0016, G1): a held button or knob stays the
+   * widget's, so the browser must not start its own gestures on it either (text selection, the
+   * touch callout, dragging a picture). Fields keep selection and paste.
+   */
+  .aca-launcher-widget:not(.is-editing) {
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .aca-launcher-widget:not(.is-editing) :is(input:not([type='range']), textarea) {
+    user-select: text;
+  }
+  .aca-launcher-widget:not(.is-editing) :is(img, a) {
+    -webkit-user-drag: none;
+  }
+  /*
+   * Selected in edit mode: an accent ring around the frame (REP-20261007-027, -029), above the
+   * neighbours, so its grip frame and dots are never covered by them (REP-20261008-001).
+   */
+  .aca-launcher-widget.is-selected {
+    z-index: var(--aca-layer-handle);
+  }
+  .aca-launcher-widget.is-selected::after {
+    content: '';
+    position: absolute;
+    z-index: var(--aca-layer-handle);
+    inset: calc(-1 * var(--aca-space-1));
+    border: 2px solid var(--aca-selection);
+    border-radius: calc(var(--aca-radius-cell) + var(--aca-space-1));
+    opacity: 1;
+    pointer-events: none;
+    /* The ring fades in (D-M8, D-M11: after the widget has landed or come in), it does not appear. */
+    transition: opacity var(--aca-dur-ring, 120ms) var(--aca-motion-ease-out, ease-out);
+  }
+  @starting-style {
+    .aca-launcher-widget.is-selected::after {
+      opacity: 0;
+    }
+  }
+  /*
+   * The widget under the finger is hidden with its ring and dots: they come back with it, after
+   * it has landed (ring +40 ms, dots +80 ms, REP-20261023-006, D-M8), or after it has come in
+   * (ring +40 ms, dots +60 ms, D-M11), instead of being there from the first frame.
+   */
+  .aca-launcher-widget.is-dragging::after,
+  .aca-launcher-widget.is-dragging .aca-resize-dot,
+  .aca-launcher-widget.is-entering:not(.is-go)::after,
+  .aca-launcher-widget.is-entering:not(.is-go) .aca-resize-dot {
+    opacity: 0;
+    transition: none;
+  }
+  .aca-launcher-widget.is-dragging .aca-resize-dot,
+  .aca-launcher-widget.is-entering:not(.is-go) .aca-resize-dot {
+    scale: var(--aca-scale-enter, 0.92);
+  }
+  .aca-launcher-widget.is-landing.is-selected::after,
+  .aca-launcher-widget.is-entering.is-go.is-selected::after {
+    transition-delay: var(--aca-stagger, 40ms);
+  }
+  .aca-launcher-widget.is-landing .aca-resize-dot {
+    transition-delay: calc(2 * var(--aca-stagger, 40ms));
+  }
+  .aca-launcher-widget.is-entering.is-go .aca-resize-dot {
+    transition-delay: calc(1.5 * var(--aca-stagger, 40ms));
   }
 
   /* Frame of the kit around every widget; the radius follows small cells on phones. */
@@ -110,6 +700,13 @@
   .aca-launcher-widget__frame:has([data-widget-error='true']) > .aca-m__outer > .aca-m__face {
     box-shadow: var(--aca-face-error);
   }
+  /*
+   * See-through widget (REP-20261007-036): the face lets the page (or the wallpaper) through by
+   * --aca-widget-glass (the share of the face colour kept); the relief stays.
+   */
+  .aca-launcher-widget.has-glass .aca-launcher-widget__frame > .aca-m__outer > .aca-m__face {
+    background: color-mix(in oklch, var(--aca-page) var(--aca-widget-glass, 100%), transparent);
+  }
   .aca-launcher-widget__bare {
     height: 100%;
     min-height: 0;
@@ -133,6 +730,26 @@
   .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
     transition-duration: var(--aca-press);
   }
+  /*
+   * Entering the edit mode disables the commands of every widget (REP-20261012-003): their
+   * sockets and faces would each run a transition of box-shadow, clip-path or filter, none of
+   * them on the compositor, a redraw per frame for as many controls as there are on the page.
+   * They change at once; the opacity of a disabled control was never transitioned.
+   *
+   * Not under `.is-editing` (G2 tracing of 2026-10-24): with that class as ancestor, each entry to
+   * or exit from the edit mode restyled every `.aca-m` of every widget drawn (848 elements in the
+   * frame of the threshold of the page view, more than 1700 on the tap on «Fine»). The state is
+   * the attribute of the control (`[disabled]` instead of `:disabled`, so that the change of the
+   * attribute is what invalidates), and the widgets disable their controls in the edit mode. The
+   * class of the widget is written twice to keep the specificity of the old selector. A control
+   * that becomes unavailable outside the edit mode no longer transitions its shadow.
+   */
+  .aca-launcher-widget.aca-launcher-widget .aca-m:is([disabled], [aria-disabled='true']),
+  .aca-launcher-widget.aca-launcher-widget
+    .aca-m:is([disabled], [aria-disabled='true'])
+    :is(.aca-m__outer, .aca-m__face, .aca-m__content) {
+    transition: none;
+  }
   /* Own compositor layer for the press scale, as for the kit's pressable elements. */
   .aca-launcher-widget__frame:has([data-widget-open]) > .aca-m__outer {
     will-change: transform;
@@ -145,27 +762,125 @@
     opacity: 0.55;
   }
 
-  /* Edit mode: a light wiggle says the widgets can move. */
-  .aca-launcher-widget.is-editing .aca-launcher-widget__frame {
-    animation: aca-wiggle 320ms ease-in-out infinite alternate;
-    animation-delay: var(--aca-wiggle-delay, 0ms);
+  /*
+   * The shape of a resize (REP-20261023-006, D-M6, D-M7, D-M23, answer of 2026-10-23: «la sagoma
+   * piatta con i bordi che al posto di essere solidi sono spezzettati»): while the widget is
+   * resized its face, shadow and content go and a flat cell takes their place, with a dashed edge
+   * and no shadow, whatever the widget (framed, see-through or without a frame). It is drawn by the
+   * box every widget has (WidgetHost), never inside a widget, and follows the cell under the
+   * finger. Only `opacity` moves: the face and the shape cross-fade in --aca-dur-clear on the way
+   * in and --aca-dur-reveal on the way out. Skipped, the content costs no layout, no paint and no
+   * observer for the length of the gesture (useResizeShape). The ring and the dots stay.
+   */
+  .aca-launcher-widget::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    border: 2px dashed color-mix(in oklab, var(--aca-ink-muted) 55%, transparent);
+    border-radius: var(--aca-radius-cell);
+    background: color-mix(in oklab, var(--aca-ink-muted) 6%, var(--aca-page));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--aca-dur-reveal, 200ms) var(--aca-motion-ease-out, ease-out);
   }
-  /* Still while a widget is dragged or pointed at: the moving one is the one being handled. */
-  .aca-launcher-grid.is-dragging .aca-launcher-widget.is-editing .aca-launcher-widget__frame,
-  .aca-launcher-widget.is-editing:is(:hover, :focus-within) .aca-launcher-widget__frame {
-    animation-play-state: paused;
+  .aca-launcher-widget.is-shaped::before {
+    opacity: 1;
+    transition-duration: var(--aca-dur-clear, 100ms);
   }
+  .aca-launcher-widget.is-shape-invalid::before {
+    border-color: var(--aca-danger-ink-icon);
+    background: color-mix(in oklab, var(--aca-danger) 8%, var(--aca-page));
+  }
+  .aca-launcher-widget.is-shaped > :is(.aca-launcher-widget__frame, .aca-launcher-widget__bare) {
+    opacity: 0;
+    transition: opacity var(--aca-dur-clear, 100ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /* The box keeps the size of the cell: skipped content has none of its own. */
+  .aca-launcher-widget.is-skipped > :is(.aca-launcher-widget__frame, .aca-launcher-widget__bare) {
+    width: 100%;
+    height: 100%;
+    content-visibility: hidden;
+  }
+
+  /*
+   * A widget that leaves from its bar shrinks a little and fades before the removal is committed
+   * (D-M10: 0.92 and opacity, 160 ms ease-in); its ring and dots go with it. «Annulla» puts it back
+   * from the same look (240 ms ease-out, 60 ms after the cells that held its place began to go);
+   * a widget just added waits for the sheet to go (D-M11) and comes in from it too. Mounted at the
+   * look it comes from, it moves when `go` is set: no animation of keyframes, so an interrupted
+   * entrance goes on from where it is.
+   */
+  .aca-launcher-widget.is-exiting {
+    opacity: 0;
+    scale: var(--aca-scale-enter, 0.92);
+    pointer-events: none;
+    transition:
+      opacity var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in),
+      scale var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /* Out of reach of the pointer, handles included, but not inert: the focus stays until it goes. */
+  .aca-launcher-widget.is-exiting * {
+    pointer-events: none;
+  }
+  .aca-launcher-widget.is-entering {
+    opacity: 0;
+    scale: var(--aca-scale-enter, 0.92);
+    transition: none;
+  }
+  .aca-launcher-widget.is-entering.is-go {
+    opacity: 1;
+    scale: 1;
+    transition:
+      opacity var(--aca-dur-enter-sm, 240ms) var(--aca-motion-ease-out, ease-out),
+      scale var(--aca-dur-enter-sm, 240ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-launcher-widget.is-entering.is-go.is-restored {
+    transition-delay: calc(1.5 * var(--aca-stagger, 40ms));
+  }
+
+  /*
+   * No wiggle in edit mode (user answer of 2026-10-23): the widget being edited is only
+   * highlighted, by the ring and the grip frame of the selected widget.
+   */
+
   /* Moves from the keyboard land immediately. */
   :root[data-aca-input='keyboard'] .aca-launcher-widget {
     transition: none;
   }
-  @keyframes aca-wiggle {
-    from {
-      rotate: -0.25deg;
-    }
-    to {
-      rotate: 0.25deg;
-    }
+
+  /*
+   * The widgets and the cells of the pages out of sight run no transition (REP-20261023-006, 0.9.28,
+   * measurement of 2026-10-23): a page that is skipped (`data-far`, ADR-0018) and drawn again finds
+   * its widgets with a size or a radius different from the last style it had, and the browser
+   * started their transitions (width, height, translate, clip-path of the faces; scale and transform
+   * of the «+») in the same task as the unlock, about 60 of them on the landing of a swipe. The page
+   * is off screen while it happens, so nothing visible is lost.
+   *
+   * The condition is an attribute of the page (`data-quiet`, Pager.tsx), not the classes of the
+   * pager: each class that came and went in a scene (is-entering, is-closing, is-settling) restyled
+   * the 850 elements of these pages, whether or not it changed the outcome (tracing of 2026-10-24,
+   * 109-162 ms on the opening, 63-126 ms at the end of «Fine»). Without the rule the resize costs
+   * more, so the rule stays and its form changes. The attribute depends only on which page is
+   * current and is written when that changes, never in a scene (G2 tracing: written at the end of
+   * the wait of the opening and of the settling it restyled 1100 and 880 elements): the widgets and
+   * the cells of the side cards do not transition in the page view either (the «+» fade on their
+   * container, `.aca-launcher-cells`, outside this rule). The class of the page is written twice
+   * to keep the specificity of the old selector (0,6,0): rules of the widgets in edit mode weigh
+   * up to 0,5,0.
+   */
+  .aca-pager
+    > .aca-pager__page.aca-pager__page[data-quiet]
+    :is(
+      .aca-launcher-widget,
+      .aca-launcher-widget__frame,
+      .aca-launcher-widget__bare,
+      .aca-launcher-widget :is(.aca-m, .aca-m__outer, .aca-m__face, .aca-m__content),
+      .aca-launcher-cell,
+      .aca-launcher-cell :is(.aca-m__outer, .aca-m__face, .aca-m__content),
+      .aca-launcher-cell__content
+    ) {
+    transition: none;
   }
 
   .aca-launcher-widget__handle {
@@ -178,15 +893,18 @@
     border-radius: var(--aca-radius-cell);
     background: transparent;
     cursor: grab;
+    /*
+     * The finger on a widget in edit mode moves it at once, selected or not (ADR-0016, G5): the
+     * touch is the widget's, the page does not scroll under it. The page turns from the
+     * indicator, from the empty part of the page or from the edge while a widget is dragged.
+     */
     touch-action: none;
   }
-  .aca-launcher-widget__handle:focus-visible,
-  .aca-launcher-widget.is-keyboard .aca-launcher-widget__handle {
+  .aca-launcher-widget__handle:focus-visible {
     outline: 2px solid var(--aca-focus);
     outline-offset: 3px;
   }
 
-  /* The move/resize hint is in the footer (WidgetPositionControls): never clipped by the page. */
   .aca-launcher-widget__badge {
     position: absolute;
     z-index: var(--aca-layer-edit);
@@ -203,15 +921,28 @@
    * Free cells: the soft well of the kit (.aca-m--well-soft: page colour, light inner edge,
    * muted «+»; hover, focus and click from the kit) with the cell radius, and a small «+» about
    * a fifth of the cell that grows a little under the pointer. Cells kept by a hidden widget
-   * show the same well without «+» and do not react. The drop preview keeps the full well, so
-   * the target of a drag stands out from the cells around it.
+   * show the same well without «+» and do not react, and so do the free cells of the cover
+   * outside edit mode. The drop preview keeps the full well, so the target of a drag stands out
+   * from the cells around it.
    */
   .aca-launcher-cells {
     position: absolute;
     z-index: var(--aca-layer-cell);
     inset: 0;
     pointer-events: none;
+    opacity: 1;
+    will-change: opacity;
+    /* They come back with the page, a little quicker than before (D-M20: 240 to 180 ms). */
+    transition: opacity var(--aca-dur-fade-in, 180ms) var(--aca-motion-ease-out, ease-out);
   }
+  /*
+   * Free cells (REP-20261007-007, REP-20261015-001): the soft well of the kit (.aca-m--well-soft:
+   * page colour, light inner edge, muted «+»; hover, focus and click from the kit) with the
+   * cell radius, and a small «+» that scales under the pointer. The full Neumorphism effect
+   * is shown at rest; while the pages view is open, closing or settling, the cells are completely
+   * hidden (.aca-pager:is(.is-overview, .is-closing, .is-settling) .aca-launcher-cell) to prevent
+   * GPU raster lag during page scaling and animation.
+   */
   .aca-launcher-cell.aca-m {
     --aca-radius: var(--aca-radius-cell);
     --aca-pad: 0;
@@ -219,7 +950,7 @@
     display: block;
     pointer-events: auto;
   }
-  .aca-launcher-cell.is-reserved {
+  .aca-launcher-cell:is(.is-reserved, .is-well) {
     pointer-events: none;
   }
   .aca-launcher-cell > .aca-m__outer,
@@ -243,15 +974,61 @@
       --aca-cell-plus-scale: 1.06;
     }
   }
-  .aca-launcher-cell.aca-m:active {
-    --aca-cell-plus-scale: 0.94;
+  .aca-launcher-cell.aca-m:focus-visible {
+    --aca-cell-plus-scale: 1.06;
   }
-  /* While a widget is dragged the wells stay as the grid of reference, without «+». */
+  /*
+   * Press on a «+» (0.9.28, request of 2026-10-23, answer of 2026-10-23: only small scales, no
+   * rotation, no dip): from the touch (a class written at once, WidgetGrid: `:active` waits for
+   * Chrome's «show press») the cell goes down to --aca-scale-press, «+» included, and stays so
+   * until the sheet it opens starts to move; a finger that slips away or a swipe that takes the
+   * touch gives it back in a short transition. Only `scale`, on the layer the cell already has.
+   */
+  .aca-launcher-cell.aca-m {
+    transition:
+      box-shadow var(--aca-release, 220ms) var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      scale var(--aca-dur-press-out, 180ms)
+        var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      /* A cell that comes back while it is still leaving fades in from where it is: no jump. */
+        opacity var(--aca-dur-cell, 160ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-launcher-cell.aca-m.is-pressed {
+    scale: var(--aca-scale-press, 0.93);
+    transition:
+      box-shadow var(--aca-release, 220ms) var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      scale var(--aca-dur-press, 120ms) var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  /*
+   * A «+» cell that comes (a widget shrank, moved or went) fades in from the scale of an element
+   * coming in; one that goes (a widget grew or landed over it) stays for its exit, inert, and fades
+   * out with the same scale (REP-20261023-006, D-M6: «comparsa delle caselle col +», answer of
+   * 2026-10-23: dissolvenza and scale within 10 %, never all at once). Only `opacity` and `scale`,
+   * on the layer each cell already has. The cells a page is drawn with do not animate.
+   */
+  .aca-launcher-cell.aca-m.is-entering {
+    animation: aca-cell-in var(--aca-dur-cell, 160ms) var(--aca-motion-ease-out, ease-out) backwards;
+  }
+  @keyframes aca-cell-in {
+    from {
+      opacity: 0;
+      scale: var(--aca-scale-enter, 0.92);
+    }
+  }
+  .aca-launcher-cell.aca-m.is-leaving {
+    opacity: 0;
+    scale: var(--aca-scale-enter, 0.92);
+    pointer-events: none;
+    transition:
+      opacity var(--aca-dur-cell, 160ms) var(--aca-motion-ease-in, ease-in),
+      scale var(--aca-dur-cell, 160ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /* While a widget is dragged the wells stay as the grid of reference, and the «+» goes in 120 ms. */
   .aca-launcher-grid.is-dragging .aca-launcher-cell {
     pointer-events: none;
   }
   .aca-launcher-grid.is-dragging .aca-launcher-cell__content {
     opacity: 0;
+    transition-duration: var(--aca-dur-swap-out, 120ms);
   }
 
   /* Where the dragged widget will land: a recessed slot; red LED and text when refused. */
@@ -284,29 +1061,112 @@
     overscroll-behavior: contain;
   }
 
-  /* Copy of the dragged widget under the pointer. */
+  /*
+   * Copy of the dragged widget under the pointer, lifted: a static copy of the widget itself
+   * (.has-copy) or, adding from the tray, the tile of the type (REP-20261007-027).
+   */
   .aca-drag-ghost {
     position: fixed;
     z-index: var(--aca-z-sticky);
     top: 0;
     left: 0;
     pointer-events: none;
+    /*
+     * The radius of the grid the widget left, from the same cell: it used to be handed over by
+     * reading the computed style at the lift (ISSUE-109, R3).
+     */
+    --aca-radius-cell: min(var(--aca-radius-card), calc(var(--aca-cell) * 0.24));
+  }
+  /*
+   * The copy is born at the size of the widget it comes from (scale 1, not 0.9 as before: no jump
+   * under the finger) and grows to --aca-scale-drag in --aca-dur-lift (REP-20261023-006, D-M9). It
+   * keeps still under the finger: no shake (the user's answer of 2026-10-23, «evitiamo shake e
+   * movimenti»). Its shadow is a layer of its own that fades in with it, not a box-shadow that
+   * grows (D-M17).
+   */
+  .aca-drag-ghost__copy,
+  .aca-drag-ghost__frame.aca-m--card {
+    scale: var(--aca-scale-drag, 1.04);
+    transition:
+      scale var(--aca-dur-lift, 150ms) var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      opacity var(--aca-dur-lift, 150ms) var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  @starting-style {
+    .aca-drag-ghost__copy,
+    .aca-drag-ghost__frame.aca-m--card {
+      scale: 1;
+    }
+  }
+  /* The page on that side is about to come while dragging: a glowing arrow on the edge. */
+  .aca-edge-hint {
+    position: fixed;
+    z-index: var(--aca-z-sticky);
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 7rem;
+    translate: 0 -50%;
+    color: var(--aca-blue);
+    background: radial-gradient(
+      closest-side,
+      color-mix(in oklch, var(--aca-blue) 22%, transparent),
+      transparent
+    );
+    pointer-events: none;
+    animation: aca-edge-pulse 450ms ease-out;
+  }
+  .aca-edge-hint--left {
+    left: 0;
+  }
+  .aca-edge-hint--right {
+    right: 0;
+  }
+  @keyframes aca-edge-pulse {
+    from {
+      opacity: 0;
+      scale: 0.8;
+    }
+  }
+  .aca-drag-ghost__copy {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--aca-radius-cell);
+  }
+  .aca-drag-ghost__copy::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0.6rem 1rem 1.6rem rgb(5 5 5 / 18%);
+    opacity: 1;
+    pointer-events: none;
+    transition: opacity var(--aca-dur-lift, 150ms) var(--aca-motion-ease-out, ease-out);
+  }
+  @starting-style {
+    .aca-drag-ghost__copy::before {
+      opacity: 0;
+    }
+  }
+  .aca-drag-ghost__copy:empty,
+  .aca-drag-ghost.has-copy .aca-drag-ghost__frame {
+    display: none;
+  }
+  .aca-drag-ghost__copy > * {
+    width: 100%;
+    height: 100%;
+  }
+  .aca-drag-ghost.is-invalid .aca-drag-ghost__copy {
+    opacity: 0.7;
+    outline: 2px solid var(--aca-danger-ink-icon);
+    outline-offset: 2px;
   }
   .aca-drag-ghost__frame.aca-m--card {
     --aca-pad: 0.9rem;
-    rotate: 1.5deg;
     box-shadow:
       var(--aca-socket-shadow-card),
       0.6rem 1rem 1.6rem rgb(5 5 5 / 18%);
-    transition:
-      rotate 150ms var(--aca-ease-out),
-      scale 150ms var(--aca-ease-out),
-      opacity 150ms var(--aca-ease-out);
-    @starting-style {
-      rotate: 0deg;
-      scale: 0.98;
-      opacity: 0;
-    }
   }
   .aca-drag-ghost__layer {
     height: 100%;
@@ -314,29 +1174,489 @@
   .aca-drag-ghost__content {
     display: grid;
     align-content: center;
+    justify-items: start;
     gap: var(--aca-space-1);
     height: 100%;
+  }
+  .aca-drag-ghost--add .aca-drag-ghost__content {
+    justify-items: center;
+    text-align: center;
+  }
+  .aca-drag-ghost__hint {
+    position: absolute;
+    top: calc(100% + var(--aca-space-2));
+    left: 50%;
+    translate: -50% 0;
+    padding: var(--aca-space-1) var(--aca-space-2);
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    white-space: nowrap;
   }
   .aca-drag-ghost__name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /*
+   * Released (REP-20261023-006, D-M8, D-M10): the copy flies on, without leaving the screen, and
+   * the layout is committed only when it has landed. It lands in its cell (200 ms, ease-out) with
+   * its scale going back to 1 and its shadow fading out, or, refused, goes back to the cell it left
+   * (240 ms, ease-in-out); removed, it shrinks around the finger and fades (160 ms, ease-in). The
+   * position is the `transform` the pointer was writing, now written once more with a transition.
+   */
+  .aca-drag-ghost.is-flying {
+    --aca-fly-dur: var(--aca-dur-fly, 200ms);
+    --aca-fly-ease: var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+    transition:
+      transform var(--aca-fly-dur) var(--aca-fly-ease),
+      scale var(--aca-fly-dur) var(--aca-fly-ease);
+  }
+  .aca-drag-ghost.is-flying--return {
+    --aca-fly-dur: var(--aca-dur-fly-back, 240ms);
+    --aca-fly-ease: var(--aca-motion-ease-in-out, cubic-bezier(0.77, 0, 0.175, 1));
+  }
+  .aca-drag-ghost.is-flying:not(.is-flying--remove)
+    :is(.aca-drag-ghost__copy, .aca-drag-ghost__frame.aca-m--card) {
+    scale: 1;
+    transition:
+      scale var(--aca-fly-dur) var(--aca-fly-ease),
+      opacity var(--aca-fly-dur) var(--aca-fly-ease);
+  }
+  .aca-drag-ghost.is-flying:not(.is-flying--remove) .aca-drag-ghost__copy::before {
+    opacity: 0;
+    transition-duration: var(--aca-fly-dur);
+    transition-timing-function: var(--aca-fly-ease);
+  }
+  /* Landed: the widget shows in its cell and the copy goes in the same frame (W2). */
+  .aca-drag-ghost.is-landed {
+    visibility: hidden;
+  }
+  .aca-drag-ghost.is-flying--remove {
+    transition: none;
+  }
+  .aca-drag-ghost.is-flying--remove :is(.aca-drag-ghost__copy, .aca-drag-ghost__frame.aca-m--card) {
+    scale: 0.54;
+    opacity: 0;
+    transition:
+      scale var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in),
+      opacity var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in);
+  }
+  .aca-drag-ghost.is-flying--remove .aca-drag-ghost__hint {
+    opacity: 0;
+    transition: opacity var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /*
+   * Over the trash of the widget bar: the copy shrinks around the finger and fades, so the
+   * red trash under it shows; released there, the widget is removed.
+   */
+  .aca-drag-ghost.is-removing :is(.aca-drag-ghost__copy, .aca-drag-ghost__frame.aca-m--card) {
+    transform-origin: var(--aca-grab-x, 50%) var(--aca-grab-y, 50%);
+    scale: 0.6;
+    opacity: 0.6;
+  }
+  /* Over the trash at the bottom of the screen: the hint goes above the finger. */
+  .aca-drag-ghost.is-removing .aca-drag-ghost__hint {
+    top: calc(var(--aca-grab-y, 50%) - var(--aca-space-6));
+    translate: -50% -100%;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .aca-launcher-widget,
-    .aca-launcher-cell__content {
+    .aca-launcher-cell__content,
+    .aca-launcher-cells {
       transition: none !important;
+    }
+    .aca-launcher-widget.is-pressing
+      > :is(.aca-launcher-widget__frame, .aca-launcher-widget__bare) {
+      scale: 1;
+    }
+    .aca-drag-ghost__copy,
+    .aca-drag-ghost__frame.aca-m--card,
+    .aca-drag-ghost.is-removing :is(.aca-drag-ghost__copy, .aca-drag-ghost__frame.aca-m--card) {
+      scale: 1;
+      transition: none;
+    }
+    .aca-drag-ghost__copy::before {
+      transition: none;
+    }
+    .aca-edge-hint {
+      animation: none;
     }
     .aca-launcher-cell__content {
       transform: none !important;
     }
-    .aca-launcher-widget.is-editing .aca-launcher-widget__frame {
-      animation: none !important;
+    /* No scale: the pressed cell only dims, in a fade of the reduced time. */
+    .aca-launcher-cell.aca-m,
+    .aca-launcher-cell.aca-m.is-pressed {
+      scale: 1;
+      transition: opacity var(--aca-dur-reduced, 120ms) linear;
     }
-    .aca-drag-ghost__frame.aca-m--card {
-      rotate: none;
-      transition: none;
+    .aca-launcher-cell.aca-m.is-pressed {
+      opacity: 0.7;
+    }
+    /* A «+» cell that comes or goes only fades, in the reduced time. */
+    .aca-launcher-cell.aca-m.is-entering {
+      animation: aca-cell-fade var(--aca-dur-reduced, 120ms) linear backwards;
+    }
+    @keyframes aca-cell-fade {
+      from {
+        opacity: 0;
+      }
+    }
+    .aca-launcher-cell.aca-m.is-leaving {
+      scale: 1;
+      transition: opacity var(--aca-dur-reduced, 120ms) linear;
+    }
+    /* The shape of a resize only fades; the box follows the cell without a transition. */
+    .aca-launcher-widget::before,
+    .aca-launcher-widget > :is(.aca-launcher-widget__frame, .aca-launcher-widget__bare),
+    .aca-launcher-widget.is-shaped > :is(.aca-launcher-widget__frame, .aca-launcher-widget__bare) {
+      transition: opacity var(--aca-dur-reduced, 120ms) linear;
     }
   }
+}
+
+/*
+ * Widget stacks (REP-20261007-037): one widget at a time, swiped sideways inside the stack
+ * (it does not hand the swipe to the pager), dots below; the widget held over another one to
+ * make a stack lifts and shows «Crea pila».
+ */
+@layer components {
+  .aca-stack {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+  .aca-stack__track {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .aca-stack__track::-webkit-scrollbar {
+    display: none;
+  }
+  .aca-stack__item {
+    display: flex;
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  .aca-stack__item > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .aca-stack__dots {
+    position: absolute;
+    bottom: var(--aca-space-1);
+    left: 50%;
+    display: flex;
+    gap: 0.25rem;
+    translate: -50% 0;
+    pointer-events: none;
+  }
+  /* Selected, the dots rise above the bottom dot of the grip frame (REP-20261008-001). */
+  .aca-launcher-widget.is-selected .aca-stack__dots {
+    bottom: calc(var(--aca-space-1) + 0.5rem);
+  }
+  .aca-stack__dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 50%;
+    background: var(--aca-ink-muted);
+    opacity: 0.4;
+  }
+  .aca-stack__dot.is-current {
+    background: var(--aca-blue);
+    opacity: 1;
+  }
+  .aca-launcher-widget.is-stack-target {
+    z-index: var(--aca-layer-handle);
+    scale: 1.05;
+    transition: scale 160ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  .aca-launcher-widget.is-stack-target::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--aca-space-1));
+    border: 2px dashed var(--aca-blue);
+    border-radius: calc(var(--aca-radius-cell) + var(--aca-space-1));
+    pointer-events: none;
+  }
+  .aca-launcher-widget__stack-badge {
+    position: absolute;
+    z-index: var(--aca-layer-edit);
+    top: 50%;
+    left: 50%;
+    padding: var(--aca-space-1) var(--aca-space-3);
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow);
+    translate: -50% -50%;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .aca-stack-sheet__list {
+    display: grid;
+    gap: var(--aca-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .aca-stack-sheet__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--aca-space-3);
+  }
+  /* «Dimensione» and «Pagina» in the settings of a widget (REP-20261008-001). */
+  .aca-placement__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--aca-space-3);
+  }
+  .aca-placement__stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aca-space-2);
+  }
+  .aca-placement__value {
+    min-width: 5.5rem;
+    text-align: center;
+  }
+  /* What a step did, or why it cannot be taken: empty it takes no room, still a live region. */
+  .aca-placement__status:empty {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .aca-placement__page {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-launcher-widget.is-stack-target {
+      scale: 1;
+    }
+  }
+}
+
+.aca-category-widget,
+.aca-category-widget__content {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.aca-category-widget {
+  position: relative;
+}
+.aca-category-widget__content[inert] {
+  pointer-events: none;
+}
+/*
+ * A tile not yet associated to a device (ISSUE-076): the whole widget is drawn as it is, in the
+ * state of a device that is off (or with neutral values where nothing can be said), with no visible
+ * «Da collegare» label (ISSUE-105: the installer knows at a glance; readers get the state from a
+ * hidden text). The widget under it is inert; the tile-wide button (__tap) opens the configuration.
+ */
+.aca-category-widget[data-unbound] {
+  display: flex;
+  flex-direction: column;
+  container-type: size;
+}
+.aca-category-widget[data-unbound] > .aca-category-widget__content {
+  flex: 1 1 0;
+  height: auto;
+  /* The controls of the widget have z-index 1 or 2 of their own: kept below the tap target. */
+  isolation: isolate;
+  /* Inherited from the frame as a computed colour: the grey ink is set here for the text below. */
+  color: var(--aca-g-ink);
+}
+/*
+ * The off state is grey (REP-20261020-001b: «al posto del colore principale presentano tutto con
+ * grigio»): inside the tile every accent, state colour, fill, glow and ink is a grey of the Kit 2,
+ * its ink, muted ink and knob without their blue tint. The greys are set on the tile and the
+ * tokens on its children, so a token never refers to itself. The tokens derived from the accent
+ * are resolved where they are declared (:root), so each one is redeclared here, not only the base;
+ * what the widgets paint without a token is handled by the rules below. No filter, no opacity:
+ * on the Tab M11 they weigh on the raster (ISSUE-062).
+ */
+.aca-category-widget[data-unbound] {
+  --aca-g-ink: oklch(from var(--k2-ink) l 0 h);
+  --aca-g-mid: oklch(from var(--k2-ink-muted) l 0 h);
+  --aca-g-soft: oklch(from var(--k2-knob) l 0 h);
+  --aca-g-shade: oklch(from var(--k2-shade) l 0 h);
+  /* White in the light theme, the dark surface in the dark one: the text on a grey fill. */
+  --aca-g-on: oklch(from var(--k2-light) l 0 h);
+}
+.aca-category-widget[data-unbound] > * {
+  /* Accent, its scale and the colours of state. */
+  --k2-accent: var(--aca-g-mid);
+  --k2-accent-light: var(--aca-g-soft);
+  --k2-accent-dark: var(--aca-g-ink);
+  --k2-on-accent: var(--aca-g-on);
+  --aca-orange: var(--aca-g-mid);
+  --aca-blue: var(--aca-g-mid);
+  --aca-danger: var(--aca-g-mid);
+  --aca-accent: var(--aca-g-mid);
+  --aca-badge: var(--aca-g-mid);
+  --aca-orange-bright: var(--aca-g-mid);
+  --aca-blue-bright: var(--aca-g-mid);
+  --aca-orange-light: var(--aca-g-soft);
+  --aca-on-orange: var(--aca-g-on);
+  --aca-on-blue: var(--aca-g-on);
+  --aca-orange-ink-icon: var(--aca-g-mid);
+  --aca-blue-ink-icon: var(--aca-g-mid);
+  --aca-danger-ink-icon: var(--aca-g-mid);
+  --aca-orange-ink-large: var(--aca-g-mid);
+  --aca-focus: var(--aca-g-mid);
+  --aca-orange-ink: var(--aca-g-ink);
+  --aca-blue-ink: var(--aca-g-ink);
+  --aca-danger-ink: var(--aca-g-ink);
+  --aca-orange-glow: color-mix(in oklch, var(--aca-g-soft) 40%, transparent);
+  --aca-blue-glow: color-mix(in oklch, var(--aca-g-soft) 40%, transparent);
+  --aca-ink-selected: linear-gradient(var(--aca-g-ink), var(--aca-g-ink));
+  --aca-ink-danger: linear-gradient(var(--aca-g-ink), var(--aca-g-ink));
+  --aca-ink-on-orange: linear-gradient(var(--aca-g-on), var(--aca-g-on));
+  --aca-face-orange: linear-gradient(var(--aca-g-mid), var(--aca-g-mid));
+  --k2-fill: linear-gradient(
+    330deg,
+    var(--aca-g-ink) 0%,
+    var(--aca-g-mid) 50%,
+    var(--aca-g-soft) 100%
+  );
+  --aca-face-orange-well: var(--k2-fill);
+  --aca-fill: linear-gradient(90deg, var(--aca-g-ink), var(--aca-g-mid), var(--aca-g-soft));
+  --aca-fill-vertical: linear-gradient(0deg, var(--aca-g-ink), var(--aca-g-mid), var(--aca-g-soft));
+  --aca-fill-pending: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--aca-g-mid) 45%, transparent),
+    color-mix(in oklch, var(--aca-g-soft) 45%, transparent)
+  );
+  --aca-arc-from: var(--aca-g-soft);
+  --aca-arc-to: var(--aca-g-mid);
+  --k2-accent-face: inset 3px 3px 12px var(--aca-g-soft), inset -3px -3px 12px var(--aca-g-ink);
+  --k2-accent-face-pressed:
+    inset 3px 3px 12px var(--aca-g-ink), inset -3px -3px 12px var(--aca-g-soft);
+  --aca-led-error: 0 0 0.15em 0.0625em inset var(--aca-g-mid);
+  --aca-led-error-well: 0 0 0.2em 0.125em inset var(--aca-g-mid);
+  /* Ink, muted ink and knob. */
+  --k2-ink: var(--aca-g-ink);
+  --k2-ink-muted: var(--aca-g-mid);
+  --k2-knob: var(--aca-g-soft);
+  --aca-ink: linear-gradient(var(--aca-g-ink), var(--aca-g-ink));
+  --aca-ink-strong: linear-gradient(var(--aca-g-ink), var(--aca-g-ink));
+  --aca-ink-solid: var(--aca-g-ink);
+  --aca-ink-muted: var(--aca-g-mid);
+  /* The shade of the soft shadows (the same pairs as the Kit 2 skin, with a grey shade). */
+  --k2-shade: var(--aca-g-shade);
+  /* The light side of the pairs: the dark theme's light keeps a hint of the surface tint (chroma 0.01). */
+  --k2-light: var(--aca-g-on);
+  --k2-raised: 4px 4px 8px var(--aca-g-shade), -3px -3px 7px var(--k2-light);
+  --k2-raised-lg: 9px 9px 16px var(--aca-g-shade), -3px -3px 20px var(--k2-light);
+  --k2-inset: inset 3px 3px 6px var(--aca-g-shade), inset -3px -3px 6px var(--k2-light);
+  --k2-inset-soft: inset 1px 1px 2px var(--aca-g-shade), inset -1px -1px 2px var(--k2-light);
+  --k2-socket-raised: var(--k2-none), var(--k2-none), var(--k2-raised);
+  --k2-socket-raised-lg: var(--k2-none), var(--k2-none), var(--k2-raised-lg);
+  --k2-face-in:
+    var(--k2-inset), var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none);
+  --aca-socket-shadow: var(--k2-socket-raised);
+  --aca-socket-shadow-card: var(--k2-socket-raised-lg);
+  --aca-face-soft-layers: var(--k2-face-in);
+  --aca-face-pressed-layers: var(--k2-face-in);
+  --aca-face-pressed-soft: var(--k2-face-in), var(--aca-led-off);
+  --aca-face-pressed: var(--k2-face-in), var(--aca-led-off);
+  --aca-face-selected: var(--k2-face-in), var(--k2-none);
+  --aca-face-error: var(--aca-face-rest-layers), var(--aca-led-error);
+  --aca-face-well-error: var(--aca-face-pressed-layers), var(--aca-led-error-well);
+}
+/*
+ * Without a connection the widget's own keys are disabled, and a disabled key is drawn faded. Here
+ * the widget is shown as it is (the tile's target sits over it and the widget is inert): full ink,
+ * except in edit mode, where every widget fades its keys.
+ */
+.aca-category-widget[data-unbound]:not([data-editing]) :is(:disabled, [aria-disabled='true']) {
+  opacity: 1;
+}
+/* Calendar and to-do: their own notice stays, a transparent target over it opens the settings. */
+.aca-category-widget__tap {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: inherit;
+  cursor: pointer;
+}
+/* The unbound tile: over the padding of the frame too, so the whole tile opens the settings (the face clips what is beyond). */
+.aca-category-widget[data-unbound] > .aca-category-widget__tap {
+  inset: calc(-1 * var(--aca-pad, 0px));
+  z-index: 1;
+  border-radius: var(--aca-radius, 0);
+}
+.aca-category-widget__tap:focus-visible {
+  outline: 2px solid var(--aca-blue);
+  outline-offset: -4px;
+}
+/*
+ * The alarm's own arm and disarm keys follow its state, and a state that is not known would
+ * make them say something (a disarm key reads as «it is armed»): no key until it is associated.
+ * Its state glyph follows the state too, and any state but a few known ones is drawn as an armed
+ * alarm (a shield with a tick, in the accent ink): no glyph either, the name and the dash say it.
+ */
+.aca-category-widget[data-category-type='alarm'] .home-quick,
+.aca-category-widget[data-category-type='alarm'] .home-row > :first-child {
+  display: none;
+}
+.aca-category-widget[data-category-type='alarm'] .home-row--between > :last-child {
+  margin-inline-start: auto;
+}
+/*
+ * The lock's tall and one-cell tiles draw one key, the one that changes the state: for a state that
+ * is not known that is «Sblocca», the same tile as a closed lock. The two-key sets (wide, square)
+ * are neutral and stay.
+ */
+.aca-category-widget[data-category-type='lock'] .ctl-stepper:not([role='group']) {
+  display: none;
+}
+/* The room's summary line («Tutto spento») is about devices that are not there. */
+.aca-category-widget[data-category-type='room'] .utility-stack > .aca-type--caption {
+  display: none;
+}
+/*
+ * A one-cell lock hides its name for its key and its state (safety first); with the key gone
+ * (above) the name is what tells the tile apart, so it stays.
+ */
+.aca-category-widget[data-category-type='lock'] .ctl-widget--compact.ctl-lock .ctl-name {
+  display: -webkit-box;
+}
+/* A camera with no picture would say «Anteprima» under its name, as if there were a preview: it says nothing. */
+.aca-category-widget[data-category-type='camera'] .aca-media-open > .aca-type--caption {
+  display: none;
+}
+/*
+ * The TV widgets say «Spento» twice when off (the status cue, with the info circle that reads as an
+ * error, and the app line): the cue goes, the app line stays. The power key keeps the right edge.
+ */
+.aca-category-widget[data-category-type='androidtv'] .aca-icon-text,
+.aca-category-widget[data-category-type='appletv'] .aca-icon-text {
+  display: none;
+}
+.aca-category-widget[data-category-type='appletv'] .aca-media-row--between > :last-child {
+  margin-inline-start: auto;
 }

@@ -1,42 +1,15 @@
-/* Edit chrome of the launcher: corner knobs, menus, the edit bar and the move controls. */
+/* Edit chrome of the launcher: grip frame, menus, the edit bar and the widget bar. */
 @layer components {
   /*
-   * Pills of the frame (edit bar, move controls, removal confirmation): the height of the frame
+   * Pills of the frame (edit bar, widget bar, removal confirmation): the height of the frame
    * controls (--aca-control-height, 44 px) at every size, like the round buttons. The status bar
-   * repeats the rule for «Fine» (statusBar.css).
+   * repeats the rule for «Modifica» (statusBar.css).
    */
   .aca-frame-pill.aca-m--pill {
     --aca-pad: calc((var(--aca-control-height) - 1.25em) / 2) 1.25em;
   }
   .aca-frame-pill > .aca-m__outer > .aca-m__face > .aca-m__content {
     min-height: 1.25em;
-  }
-
-  /*
-   * «×» to remove (L-06, K06, B-11): a small knob centred on the top-left corner, half outside
-   * the widget, so it covers only the empty rounded corner; its 44 px target comes from ::before.
-   * The knob sticks out by half of --aca-dim (0.75rem): the launcher page keeps
-   * --aca-launcher-edge-room (1.5rem) above the grid and the gutter at the sides (launcher.css).
-   * Like the resize knob it sits on the edit layer of the grid, above the widget's own edit
-   * handle (--aca-layer-handle).
-   */
-  .aca-widget-edit__remove.aca-m {
-    --aca-dim: var(--aca-space-5);
-    --aca-m-socket: var(--aca-socket-shadow-flat);
-    position: absolute;
-    z-index: var(--aca-layer-edit);
-    top: calc(var(--aca-dim) / -2);
-    left: calc(var(--aca-dim) / -2);
-  }
-  .aca-widget-edit__remove::before {
-    content: '';
-    position: absolute;
-    inset: calc((var(--aca-dim) - var(--aca-control-height)) / 2);
-    border-radius: 50%;
-  }
-  .aca-widget-edit__remove .aca-icon {
-    width: 0.875em;
-    height: 0.875em;
   }
 
   .aca-widget-confirm {
@@ -53,60 +26,134 @@
     gap: var(--aca-space-3);
   }
 
-  .aca-widget-menu {
-    display: grid;
-    gap: var(--aca-space-2);
-    min-width: 12rem;
-  }
-  .aca-widget-menu__item {
-    display: block;
-  }
-  .aca-widget-menu__item-content {
-    justify-content: flex-start;
-    gap: 0.6em;
-  }
-
   /*
-   * Resize handle: the same small knob as «×», inside the bottom-right corner (centred on the
-   * corner it would meet the «×» of the next widget across the gap), 44 px target.
+   * Grip frame of the selected widget (REP-20261008-001). Eight dots on the selection ring, in
+   * its colour (--aca-selection), mark where the widget can be resized; the grip itself is a
+   * continuous frame, --aca-resize-out outside the widget and --aca-resize-in inside it, so
+   * the middle (at least 44 px on a cell of 65 px) still moves the widget. The dots sit on the
+   * line of the ring (3 px out), on the curve at the corners, inside the padding of the frame;
+   * outside they stay within the --aca-launcher-edge-room (1.5rem) the page keeps above and
+   * below the grid; the outer part of the grip reaches under the bars, where the pager no
+   * longer clips it (REP-20261009-006).
    */
-  .aca-resize-handle {
+  .aca-resize-frame {
+    --aca-resize-out: 2rem;
+    --aca-resize-in: min(1rem, 16%);
     position: absolute;
     z-index: var(--aca-layer-edit);
-    right: calc(-1 * var(--aca-space-2));
-    bottom: calc(-1 * var(--aca-space-2));
-    display: grid;
-    place-items: center;
-    width: var(--aca-control-height);
-    height: var(--aca-control-height);
-    cursor: nwse-resize;
+    inset: 0;
+    pointer-events: none;
+  }
+  .aca-resize-frame__side {
+    position: absolute;
+    pointer-events: auto;
     touch-action: none;
   }
-  .aca-resize-handle__grip {
-    --aca-dim: var(--aca-space-5);
-    --aca-m-socket: var(--aca-socket-shadow-flat);
+  .aca-resize-frame__side--n,
+  .aca-resize-frame__side--s {
+    right: calc(-1 * var(--aca-resize-out));
+    left: calc(-1 * var(--aca-resize-out));
+    height: calc(var(--aca-resize-out) + var(--aca-resize-in));
+    cursor: ns-resize;
   }
-  .aca-resize-handle__lines {
-    position: relative;
+  .aca-resize-frame__side--n {
+    top: calc(-1 * var(--aca-resize-out));
   }
-  .aca-resize-handle__lines::before {
-    content: '';
-    width: 0.75em;
-    height: 0.75em;
-    background: linear-gradient(
-      135deg,
-      transparent 0 42%,
-      var(--aca-ink-muted) 42% 50%,
-      transparent 50% 62%,
-      var(--aca-ink-muted) 62% 70%,
-      transparent 70%
-    );
+  .aca-resize-frame__side--s {
+    bottom: calc(-1 * var(--aca-resize-out));
+  }
+  .aca-resize-frame__side--e,
+  .aca-resize-frame__side--w {
+    top: calc(-1 * var(--aca-resize-out));
+    bottom: calc(-1 * var(--aca-resize-out));
+    width: calc(var(--aca-resize-out) + var(--aca-resize-in));
+    cursor: ew-resize;
+  }
+  .aca-resize-frame__side--e {
+    right: calc(-1 * var(--aca-resize-out));
+  }
+  .aca-resize-frame__side--w {
+    left: calc(-1 * var(--aca-resize-out));
+  }
+
+  .aca-resize-dot {
+    /* Centre of the ring line (inset −space-1, 2 px wide) and the shift onto its corner curve. */
+    --aca-dot-ring: calc(var(--aca-space-1) - 1px);
+    --aca-dot-curve: calc((var(--aca-radius-cell) + var(--aca-space-1)) * 0.2929);
+    position: absolute;
+    width: clamp(1rem, calc(var(--aca-cell) * 0.14), 1.5rem);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--aca-selection);
+    box-shadow: 0 0 0 2px var(--aca-page);
+    translate: -50% -50%;
+    pointer-events: none;
+    transition:
+      opacity 160ms ease-out,
+      scale 160ms ease-out;
+    @starting-style {
+      opacity: 0;
+      scale: 0.5;
+    }
+  }
+  .aca-resize-dot--n,
+  .aca-resize-dot--s {
+    left: 50%;
+  }
+  .aca-resize-dot--e,
+  .aca-resize-dot--w {
+    top: 50%;
+  }
+  .aca-resize-dot--n {
+    top: calc(-1 * var(--aca-dot-ring));
+  }
+  .aca-resize-dot--s {
+    top: calc(100% + var(--aca-dot-ring));
+  }
+  .aca-resize-dot--w {
+    left: calc(-1 * var(--aca-dot-ring));
+  }
+  .aca-resize-dot--e {
+    left: calc(100% + var(--aca-dot-ring));
+  }
+  .aca-resize-dot--nw,
+  .aca-resize-dot--ne {
+    top: calc(var(--aca-dot-curve) - var(--aca-dot-ring));
+  }
+  .aca-resize-dot--sw,
+  .aca-resize-dot--se {
+    top: calc(100% + var(--aca-dot-ring) - var(--aca-dot-curve));
+  }
+  .aca-resize-dot--nw,
+  .aca-resize-dot--sw {
+    left: calc(var(--aca-dot-curve) - var(--aca-dot-ring));
+  }
+  .aca-resize-dot--ne,
+  .aca-resize-dot--se {
+    left: calc(100% + var(--aca-dot-ring) - var(--aca-dot-curve));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-resize-dot {
+      transition: opacity 120ms linear;
+      @starting-style {
+        opacity: 0;
+        scale: 1;
+      }
+    }
+  }
+  @media (forced-colors: active) {
+    .aca-resize-dot {
+      forced-color-adjust: none;
+      background: Highlight;
+      box-shadow: 0 0 0 2px Canvas;
+    }
   }
 
   /*
-   * Edit bar (L-07, B-09, K08, L-20, L-21): two groups at the two ends of the footer band, the
-   * page indicator between them where the band is one row. Every control is 44 px high; the
-   * text of the buttons and of the cover setting is on the same step (md).
+   * Edit bar (L-07, B-09, K08, L-20, L-21): two groups at the two ends of the band of the bottom
+   * bars, over the pages: «+ Widget», «Pagine» and «Fine» (REP-20261008-001, REP-20261009-004). The
+   * page indicator is the top bar (ADR-0016). Every control is 44 px high; their text is on the
+   * same step (md).
    */
   .aca-edit-toolbar {
     display: flex;
@@ -114,19 +161,74 @@
     justify-content: space-between;
     gap: var(--aca-space-4);
     min-width: 0;
-    /* The bar spans the band across the indicator: only its groups take the pointer. */
+    /* The bar spans the band: only its groups take the pointer. */
     pointer-events: none;
   }
+  /*
+   * Two floating bars (REP-20261007-017), like the pills of the status bar: raised pills, the same
+   * inner padding (--aca-space-1) and one gap (--aca-space-2) between their items; they rise
+   * from below when edit mode opens, as the pills of the status bar sink (REP-20261013-002,
+   * ADR-0013).
+   */
   .aca-edit-toolbar__group {
     display: flex;
     align-items: center;
     gap: var(--aca-space-2);
     min-width: 0;
+    height: var(--aca-float-height);
+    padding: var(--aca-space-1);
+    box-sizing: border-box;
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow);
     pointer-events: auto;
+    /* A stable layer: the groups slide in and out (REP-20261012-003). */
+    will-change: transform, opacity;
+    transition:
+      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
+      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
   }
-  .aca-edit-toolbar__cover {
+  .aca-edit-toolbar__pages {
     flex: none;
-    gap: var(--aca-space-3);
+    transition-delay: 40ms;
+  }
+  /* Out of edit mode the bars wait below the screen and sink there, a little faster. */
+  .aca-edit-toolbar--hidden > .aca-edit-toolbar__group {
+    transform: translateY(calc(100% + var(--aca-space-3) + 0.75rem));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
+      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /*
+   * Swapping with the bar of the pages (REP-20261009-004): the bar that comes waits for the one
+   * that goes (200 ms, hidden above) to be gone, so the two «Fine» are never on screen together.
+   * The host says which way the swap goes with a class of the bar (`--closing`; the bar of the
+   * pages has the same wait, below): not a `:has()` on the main area, that restyled the whole shell
+   * at every node mounted or removed in it (G2 tracing of 2026-10-24, REP-20261023-006).
+   */
+  .aca-edit-toolbar--closing:not(.aca-edit-toolbar--hidden) > .aca-edit-toolbar__group {
+    transition-delay: 180ms;
+  }
+  .aca-edit-toolbar--closing:not(.aca-edit-toolbar--hidden) > .aca-edit-toolbar__pages {
+    transition-delay: 220ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-edit-toolbar__group,
+    .aca-edit-toolbar--hidden > .aca-edit-toolbar__group {
+      transform: none;
+      transition: opacity 120ms linear;
+    }
+  }
+  /* Buttons inside a floating bar: no raised edge, like the icons of the status bar. */
+  .aca-edit-toolbar__group .aca-frame-pill.aca-m:not(:active, .is-active),
+  .aca-edit-toolbar__group .aca-frame-pill.aca-m:not(:active, .is-active) > .aca-m__outer,
+  .aca-edit-toolbar__group
+    .aca-frame-pill.aca-m:not(:active, .is-active)
+    > .aca-m__outer
+    > .aca-m__face {
+    box-shadow: none;
   }
   .aca-edit-toolbar__button {
     flex: none;
@@ -137,20 +239,7 @@
   .aca-edit-toolbar__text {
     white-space: nowrap;
   }
-  /* Short visible name of the cover setting, shown by the «short» density only. */
-  .aca-edit-toolbar__short {
-    display: none;
-    white-space: nowrap;
-  }
-  .aca-edit-toolbar__cover-icon {
-    color: var(--aca-ink-muted);
-  }
-  /* The compact switch scaled to the 44 px of the other controls (2.25em high). */
-  .aca-edit-toolbar__toggle.aca-m {
-    flex: none;
-    font-size: calc(var(--aca-control-height) / 2.25);
-  }
-  /* Why the page offers fewer actions (cover, special pages): up to two lines in the band. */
+  /* Why a special page offers no «+ Widget»: up to two lines in the band. */
   .aca-edit-toolbar__note {
     --aca-note-min: 5rem;
     display: -webkit-box;
@@ -164,12 +253,12 @@
 
   /*
    * Densities (V-01, V-06), chosen by the footer band on the room the page indicator leaves
-   * (data-band-density, footerBand.ts):
-   * - text: buttons with their name, the cover setting with icon and «Mostra copertina»;
-   * - short: round icon buttons, the cover setting with its short visible name «Copertina»,
-   *   so a note next to it never reads as its label;
-   * - icons: round icon buttons, the cover setting with its icon.
-   * Icon buttons are round, 44 px, with the name in aria-label and title.
+   * (data-band-density, footerBand.ts). The band writes it on the bar it measured, which keeps
+   * it while it sinks, and on the band itself for this bar (REP-20261013-002, ADR-0013):
+   * - text: buttons with their name («Widget», «Pagine»); «Fine» keeps its text;
+   * - short and icons: round icon buttons, 44 px, with the name in aria-label and title.
+   * The selectors are descendants of the band: another bar that reused these classes would follow
+   * the density of the edit bar, so anchor them to the bar before it does.
    */
   :is([data-band-density='short'], [data-band-density='icons']) .aca-edit-toolbar__text {
     display: none;
@@ -192,15 +281,6 @@
     > .aca-m__content {
     height: 100%;
   }
-  [data-band-density='short'] .aca-edit-toolbar__cover {
-    gap: var(--aca-space-2);
-  }
-  [data-band-density='short'] .aca-edit-toolbar__cover-icon {
-    display: none;
-  }
-  [data-band-density='short'] .aca-edit-toolbar__short {
-    display: inline;
-  }
 
   /*
    * While the band measures the bar (data-band-measure, before paint): every group at its
@@ -213,65 +293,717 @@
   [data-band-measure] .aca-edit-toolbar__note {
     max-width: var(--aca-note-min);
   }
+}
 
-  /*
-   * Move and resize controls (single taps, the alternative to dragging): one row where the band
-   * is one row (from 40rem); on narrower screens the name and «Fatto» on the first row, the
-   * arrows and the page pair on the second.
-   */
-  .aca-widget-position {
+/*
+ * Tray of widget types (REP-20261007-027): a floating panel over the footer band, like the
+ * edit bars; it rises from below when opened and sinks while a tile is dragged onto the grid.
+ */
+@layer components {
+  .aca-widget-tray {
+    position: fixed;
+    z-index: var(--aca-z-sticky);
+    right: var(--aca-gutter, var(--aca-space-4));
+    bottom: max(var(--aca-space-3), env(safe-area-inset-bottom, 0px));
+    left: var(--aca-gutter, var(--aca-space-4));
+    display: grid;
+    gap: var(--aca-space-3);
+    padding: var(--aca-space-3) var(--aca-space-4) var(--aca-space-4);
+    border-radius: var(--aca-radius-card);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow-card);
+    transition:
+      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
+      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-widget-tray--hidden,
+  .aca-widget-tray--dragging {
+    transform: translateY(calc(100% + var(--aca-space-3) + 0.75rem));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
+      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /* While dragging the tile is still under the finger: the tray keeps the pointer capture. */
+  .aca-widget-tray--dragging {
+    pointer-events: none;
+  }
+  .aca-widget-tray__head {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: var(--aca-space-4);
+    gap: var(--aca-space-3);
     min-width: 0;
   }
-  .aca-widget-position__actions {
-    display: contents;
-  }
-  .aca-widget-position__name {
+  .aca-widget-tray__title {
+    flex: 1 1 auto;
     min-width: 0;
-    max-width: 16rem;
+    margin: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .aca-widget-position__set {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    gap: var(--aca-space-1);
+  .aca-widget-tray__search {
+    flex: 0 1 14rem;
+    min-width: 8rem;
   }
-  .aca-widget-position__done {
+  .aca-widget-tray__row {
+    position: relative;
+    box-sizing: border-box;
+    height: 9rem;
+    display: flex;
+    gap: var(--aca-space-3);
+    /* Room for the raised shadows of the tiles inside the scroller. */
+    padding: var(--aca-space-2);
+    margin: calc(-1 * var(--aca-space-2));
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .aca-widget-tray__tile {
+    --aca-pad: 1em var(--aca-space-2);
     flex: none;
+    width: 6.5rem;
+    height: 8rem;
+    scroll-snap-align: start;
+    /* Sideways the row scrolls; a drag up picks the tile. */
+    touch-action: pan-x;
+    cursor: grab;
+  }
+  .aca-widget-tray__tile--exiting {
+    position: absolute;
+    pointer-events: none;
+  }
+  .aca-widget-tray__tile-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    justify-items: center;
+    grid-template-rows: 1.5rem auto auto;
+    gap: var(--aca-space-1);
+    height: 100%;
+    align-content: center;
+    text-align: center;
+  }
+  .aca-widget-tray__tile-content > .aca-type--body-sm {
+    max-width: 100%;
+    width: 100%;
+    height: calc(var(--aca-step--1) * 0.9 * 2.4);
+    font-size: calc(var(--aca-step--1) * 0.9);
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .aca-widget-tray__empty {
+    padding: var(--aca-space-3);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-widget-tray,
+    .aca-widget-tray--hidden,
+    .aca-widget-tray--dragging {
+      transform: none;
+      transition: opacity 120ms linear;
+    }
+  }
+}
+
+/*
+ * Bar of the page overview (REP-20261007-028, REP-20261009-002): a floating pill in the place of
+ * the page indicator, with plain icons (their words are in the tip), the name of the page beside
+ * the house and «Fine»; it rises when the overview opens, like the edit bars.
+ */
+@layer components {
+  .aca-page-overview {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+    pointer-events: none;
+  }
+  .aca-page-overview__group {
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-2);
+    height: var(--aca-float-height);
+    padding: var(--aca-space-1) var(--aca-space-1) var(--aca-space-1) var(--aca-space-2);
+    box-sizing: border-box;
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow);
+    pointer-events: auto;
+    /* A stable layer, as for the groups of the edit bar (REP-20261012-003). */
+    will-change: transform, opacity;
+    transition:
+      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
+      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
+  }
+  /*
+   * The bar of the pages never goes past the band, on a phone too: the name gives way, with its
+   * ellipsis, so the trash and «Fine» stay on screen. Not the bar of the widget (same classes).
+   */
+  .aca-page-overview:not(.aca-widget-actions) {
+    max-width: 100%;
+  }
+  .aca-page-overview:not(.aca-widget-actions) > .aca-page-overview__group {
+    min-width: 0;
+    max-width: 100%;
+    /* One time and one curve for the rename: the tools fade, the bar glides (PageOverviewBar). */
+    --aca-rename-ms: 240ms;
+    --aca-rename-ease: var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  /* The tools of the bar (trash … «Fine») in one row: they fade together while the name is edited. */
+  .aca-page-overview__tools {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: inherit;
+    min-width: 0;
+    transition:
+      opacity calc(var(--aca-rename-ms) / 2) var(--aca-rename-ease),
+      scale calc(var(--aca-rename-ms) / 2) var(--aca-rename-ease);
+  }
+  /* On a phone the icons sit closer (each keeps its 44 px), leaving more of the name. */
+  @media (max-width: 639px) {
+    .aca-page-overview:not(.aca-widget-actions) > .aca-page-overview__group {
+      gap: var(--aca-space-1);
+    }
+    .aca-page-overview:not(.aca-widget-actions) .aca-page-overview__name {
+      padding-inline: var(--aca-space-1);
+    }
+  }
+  .aca-page-overview--hidden > .aca-page-overview__group {
+    transform: translateY(calc(100% + var(--aca-space-3) + 0.75rem));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
+      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /*
+   * It comes after the edit bar has gone (see the edit bar above), and in its place in the order
+   * of the scene (REP-20261023-006, D-M3): the cards after two gaps, the indicator after three,
+   * this bar after four, the controls under the cards after five.
+   */
+  .aca-page-overview--overview:not(.aca-widget-actions, .aca-page-overview--hidden)
+    > .aca-page-overview__group {
+    transition-delay: calc(var(--aca-stagger, 40ms) * 4);
+  }
+  /*
+   * The main page: its house in the accent (REP-20261007-033). Without words it is the only sign
+   * of the state (REP-20261009-002): the ink of the accent on the light page (≥ 3:1 with every
+   * accent), the accent itself on the dark one.
+   */
+  .aca-page-overview__home[aria-pressed='true'] {
+    color: var(--aca-blue-ink-icon);
+  }
+  :root[data-theme='dark'] .aca-page-overview__home[aria-pressed='true'] {
+    color: var(--aca-blue);
+  }
+  /* The house and the name of the page in the centre, together. */
+  .aca-page-overview__page {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  /*
+   * The name, cut with an ellipsis rather than pushing the icons away; a tap edits it. Plain text
+   * between two thin vertical lines (the muted ink, as the divider of the widget bar): no pencil.
+   */
+  .aca-page-overview__name {
+    flex: 0 1 auto;
+    gap: var(--aca-space-2);
+    min-width: 0;
+    max-width: 14rem;
+    padding-inline: var(--aca-space-2);
+    user-select: none;
+  }
+  .aca-page-overview__name::before,
+  .aca-page-overview__name::after {
+    content: '';
+    flex: none;
+    width: 1px;
+    height: 1.25rem;
+    background: var(--aca-ink-muted);
+    opacity: 0.35;
+  }
+  .aca-page-overview__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* The name of the cover is not a button, but it has the same lines and room (REP-20261012-002). */
+  .aca-page-overview__name.is-static {
+    display: inline-flex;
+    align-items: center;
+    height: var(--aca-control-height);
+  }
+  /*
+   * While the name is edited (REP-20261009-005) the tools fade and cannot be reached, and the bar
+   * takes the width of the band (a size container), on a phone too; the field covers it, so the
+   * tools keep their room and nothing moves under the finger. Closing, the bar is back to the
+   * width of its tools, whose fade waits for it. The error of an empty name floats above the bar.
+   */
+  .aca-page-overview__group.is-renaming {
+    position: relative;
+    width: min(100cqw, 28rem);
+  }
+  .aca-page-overview__group.is-closing {
+    width: auto;
+  }
+  .aca-page-overview__group.is-renaming > .aca-page-overview__tools {
+    opacity: 0;
+    scale: 0.92;
+    pointer-events: none;
+  }
+  /* Closing, the tools return in the second half of the glide, as the field came: still out of reach. */
+  .aca-page-overview__group.is-closing > .aca-page-overview__tools {
+    opacity: 1;
+    scale: 1;
+    transition-delay: calc(var(--aca-rename-ms) / 2);
+  }
+  .aca-page-overview__field {
+    position: absolute;
+    inset: 0 var(--aca-space-1);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    min-width: 0;
+    margin: 0;
+    transition: opacity calc(var(--aca-rename-ms) / 2) var(--aca-rename-ease)
+      calc(var(--aca-rename-ms) / 2);
+    @starting-style {
+      opacity: 0;
+    }
+  }
+  .aca-page-overview__group.is-closing > .aca-page-overview__field {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s;
+  }
+  /*
+   * The input takes the whole height of its well (G34): the padding of the well moves into the
+   * input, so a tap anywhere on the outline lands in it. The well keeps its 46 px.
+   */
+  .aca-page-overview__field > .aca-field {
+    --aca-pad: 0 1.25em;
+  }
+  .aca-page-overview__field .aca-field__input {
+    padding-block: 0.85em;
+  }
+  .aca-page-overview__field > .aca-field-error {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + var(--aca-space-3));
+    left: 0;
+    margin: 0;
+    padding: var(--aca-space-2) var(--aca-space-3);
+    border-radius: var(--aca-radius-card);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow);
+  }
+  /* Its text ≥ 4.5:1 on the dark page too: a lighter red, as the «Rimuovi» pill. */
+  :root[data-theme='dark'] .aca-page-overview__field > .aca-field-error {
+    color: oklch(from var(--aca-danger) 0.7 calc(c * 0.6) h);
+  }
+  /*
+   * An action that cannot be taken now stays focusable (aria-disabled, REP-20261008-001): its
+   * icon fades, and a press says why in the notice pill. Only the bar of the pages and the
+   * controls under the card: the bar of the widget shares these classes.
+   */
+  :is(.aca-page-overview:not(.aca-widget-actions), .aca-page-card)
+    .aca-bar-button[aria-disabled='true']
+    > .aca-icon {
+    opacity: 0.45;
+  }
+  :is(.aca-page-overview:not(.aca-widget-actions), .aca-page-card)
+    .aca-bar-button[aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-page-overview__group,
+    .aca-page-overview--hidden > .aca-page-overview__group {
+      transform: none;
+      transition: opacity 120ms linear;
+    }
+    /* The rename is immediate: no fade, no scale (the width does not glide either). */
+    .aca-page-overview__tools,
+    .aca-page-overview__field {
+      transition: none;
+    }
+    .aca-page-overview__group.is-renaming > .aca-page-overview__tools {
+      scale: 1;
+    }
   }
 
-  @media (max-width: 39.99rem) {
-    .aca-widget-position {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      grid-template-rows: var(--aca-control-height) var(--aca-control-height);
-      row-gap: var(--aca-space-3);
-      column-gap: var(--aca-space-3);
+  /*
+   * Controls under the card in the centre (REP-20261008-001, REP-20261009-002): the arrows at
+   * the sides of the card, the columns between them, on one row (launcher.css keeps the row of
+   * every card that tall). Plain icons on the page, 44 px each (.aca-bar-button), no words.
+   */
+  .aca-page-card {
+    display: grid;
+    grid-template-columns: minmax(var(--aca-control-height), 1fr) auto minmax(
+        var(--aca-control-height),
+        1fr
+      );
+    align-items: center;
+    gap: var(--aca-space-2);
+    width: 100%;
+    min-width: 0;
+  }
+  .aca-page-card__move--before {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .aca-page-card__move--after {
+    grid-column: 3;
+    justify-self: end;
+  }
+  .aca-page-card__columns {
+    display: flex;
+    grid-column: 2;
+    align-items: center;
+    gap: var(--aca-space-1);
+    min-width: 0;
+  }
+  .aca-page-card__value {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aca-space-1);
+    min-width: 2.5em;
+    justify-content: center;
+    color: var(--aca-ink-solid);
+  }
+  .aca-page-card__grid {
+    flex: none;
+    color: var(--aca-ink-muted);
+  }
+}
+
+/*
+ * Tip of the icons without text of the page editor (REP-20261009-002, D5; look REP-20261009-003,
+ * after the tooltip reference UI-010): a small bubble over the icon, shown by a held finger, the
+ * mouse or the keyboard (IconAction.tsx). The face is the accent darkened to L 45 % at most, the
+ * chroma scaled with it (the same hue, inside sRGB: no clipped channels), so the white text is
+ * ≥ 4.5:1 on every accent, custom hues included (EditTipContrast.test.ts); the
+ * pointer is a square turned 45°, aimed at the icon by IconAction (data-side, --aca-tip-arrow-x).
+ * It rises from the icon with the elastic curve of the reference; with reduced motion it only
+ * fades. Animations name their properties: no `transition: all`.
+ */
+@layer components {
+  .aca-edit-tip {
+    --aca-tip-surface: oklch(
+      from var(--k2-accent, var(--aca-orange)) min(l, 0.45) calc(c * min(1, 0.45 / l)) h
+    );
+    --aca-tip-ink: oklch(100% 0 0);
+    --aca-tip-shadow: 0 10px 10px oklch(0% 0 0 / 10%);
+    --aca-tip-radius: 5px;
+    --aca-tip-padding: var(--aca-space-1) var(--aca-space-2);
+    --aca-tip-gap: var(--aca-space-1);
+    --aca-tip-width: 16rem;
+    --aca-tip-arrow: 8px;
+    --aca-tip-rise: 0.5rem;
+    --aca-tip-enter: 300ms;
+    --aca-tip-curve: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: fixed;
+    z-index: var(--aca-z-tooltip);
+    top: 0;
+    left: 0;
+    display: grid;
+    gap: var(--aca-tip-gap);
+    max-width: min(var(--aca-tip-width), calc(100vw - 1rem));
+    padding: var(--aca-tip-padding);
+    box-sizing: border-box;
+    border-radius: var(--aca-tip-radius);
+    background: var(--aca-tip-surface);
+    box-shadow: var(--aca-tip-shadow);
+    color: var(--aca-tip-ink);
+    text-align: center;
+    pointer-events: none;
+    /* Above the icon the bubble rises into place; IconAction sets data-side="below" when it hangs under it. */
+    animation:
+      aca-tip-rise-above var(--aca-tip-enter) var(--aca-tip-curve) backwards,
+      aca-tip-fade var(--aca-tip-enter) ease-out backwards;
+  }
+  .aca-edit-tip[data-side='below'] {
+    animation-name: aca-tip-rise-below, aca-tip-fade;
+  }
+  /* The text of the tip: 16 px, weight 500 (the Body primitive sets size and family). */
+  .aca-edit-tip > .aca-type--body-md {
+    font-weight: var(--aca-weight-medium);
+  }
+  /* The reason of a blocked action is under it, in the regular weight. */
+  .aca-edit-tip .aca-edit-tip__reason {
+    font-weight: var(--aca-weight-regular);
+  }
+  /* The pointer toward the icon, behind the text, even against the edge of the screen. */
+  .aca-edit-tip::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    bottom: calc(var(--aca-tip-arrow) / -2);
+    left: var(--aca-tip-arrow-x, 50%);
+    width: var(--aca-tip-arrow);
+    height: var(--aca-tip-arrow);
+    background: var(--aca-tip-surface);
+    translate: -50% 0;
+    rotate: 45deg;
+  }
+  .aca-edit-tip[data-side='below']::after {
+    top: calc(var(--aca-tip-arrow) / -2);
+    bottom: auto;
+  }
+  @keyframes aca-tip-rise-above {
+    from {
+      translate: 0 var(--aca-tip-rise);
     }
-    .aca-widget-position__name {
-      grid-column: 1;
-      grid-row: 1;
-      max-width: none;
+  }
+  @keyframes aca-tip-rise-below {
+    from {
+      translate: 0 calc(var(--aca-tip-rise) * -1);
     }
-    .aca-widget-position__done {
-      grid-column: 2;
-      grid-row: 1;
-      justify-self: end;
+  }
+  @keyframes aca-tip-fade {
+    from {
+      opacity: 0;
     }
-    .aca-widget-position__set:first-child {
-      grid-column: 1;
-      grid-row: 2;
+  }
+  /* With a mouse the pointer can rest on the tip to read it (WCAG 1.4.13); a finger goes through. */
+  @media (hover: hover) and (pointer: fine) {
+    .aca-edit-tip {
+      pointer-events: auto;
     }
-    .aca-widget-position__set + .aca-widget-position__set {
-      grid-column: 2;
-      grid-row: 2;
-      justify-self: end;
+  }
+  /* The icons of the editor keep the long press for their tip: no callout, no selection. */
+  .aca-icon-action {
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    user-select: none;
+  }
+  /* Without a face the ring is the only sign of the focus: on the dark page, in the accent. */
+  :root[data-theme='dark']
+    :is(.aca-icon-action, .aca-page-overview__name):is(:focus-visible, .is-focus) {
+    outline-color: var(--aca-blue);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-edit-tip,
+    .aca-edit-tip[data-side='below'] {
+      --aca-tip-enter: 120ms;
+      animation-name: aca-tip-fade;
+      animation-timing-function: ease-out;
     }
+  }
+}
+/*
+ * Bar of the selected widget: the overview pill, with a divider before Annulla / Conferma.
+ * While the widget is moved (REP-20261008-001) only the trash stays, as a «Rimuovi» pill that
+ * is the drop target: red with the finger over it, as the drop target of Launcher3.
+ */
+@layer components {
+  .aca-widget-actions__divider {
+    width: 1px;
+    height: 1.5rem;
+    margin-inline: var(--aca-space-1);
+    background: var(--aca-ink-muted);
+    opacity: 0.35;
+  }
+  .aca-widget-actions__done {
+    gap: var(--aca-space-2);
+  }
+  /*
+   * The bar of the widget has the width of the «Rimuovi» pill at rest too (REP-20261023-006,
+   * D-M14): what changes when a widget is moved is what shows inside, not the size of the group.
+   * «Annulla» and «Fine» stay where they are and fade out (quick, ease-in) while the pill's text
+   * fades in; back, they fade in a little slower. The pill lies over the group, so the trash and
+   * its text come in without the group changing width.
+   */
+  .aca-widget-actions > .aca-page-overview__group {
+    position: relative;
+    justify-content: center;
+    min-width: min(100cqw, 20rem);
+  }
+  .aca-widget-actions__rest {
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-2);
+    transition: opacity var(--aca-dur-fade-in, 180ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-widget-actions--drop > .aca-widget-actions__rest {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--aca-dur-swap-out, 120ms) var(--aca-motion-ease-in, ease-in),
+      visibility 0s linear var(--aca-dur-swap-out, 120ms);
+  }
+  .aca-widget-actions__remove {
+    gap: var(--aca-space-2);
+    transition:
+      color 160ms ease-out,
+      background-color 160ms ease-out,
+      scale 160ms ease-out;
+  }
+  .aca-widget-actions__remove-text {
+    color: inherit;
+    transition: opacity var(--aca-dur-swap-out, 120ms) var(--aca-motion-ease-out, ease-out);
+  }
+  @starting-style {
+    .aca-widget-actions__remove-text {
+      opacity: 0;
+    }
+  }
+  .aca-page-overview__group.aca-widget-actions--drop {
+    justify-content: center;
+    /* The band (a size container): a percentage here would follow the content of the pill. */
+    width: min(100cqw, 20rem);
+    padding: var(--aca-space-1);
+  }
+  /* Text ≥ 4.5:1 in both themes: the red ink on the light page, a lighter red on the dark one. */
+  .aca-widget-actions--drop > .aca-widget-actions__remove {
+    position: absolute;
+    inset: var(--aca-space-1);
+    flex: 1 1 auto;
+    height: auto;
+    min-width: 0;
+    padding-inline: var(--aca-space-4);
+    color: var(--aca-danger-ink);
+  }
+  :root[data-theme='dark'] .aca-widget-actions--drop > .aca-widget-actions__remove {
+    color: oklch(from var(--aca-danger) 0.7 calc(c * 0.6) h);
+  }
+  /* Armed: white on the red (6.5:1), whatever the theme of the page. */
+  .aca-widget-actions--drop.is-armed > .aca-widget-actions__remove {
+    background: var(--aca-danger);
+    color: var(--aca-on-blue);
+    scale: 1.03;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-widget-actions__rest,
+    .aca-widget-actions--drop > .aca-widget-actions__rest,
+    .aca-widget-actions__remove-text {
+      transition-duration: var(--aca-dur-reduced, 120ms);
+      transition-timing-function: linear;
+    }
+    .aca-widget-actions__remove {
+      transition: none;
+    }
+    .aca-widget-actions--drop.is-armed > .aca-widget-actions__remove {
+      scale: 1;
+    }
+  }
+}
+
+/* «Annulla» after a removal (REP-20261007-031): a pill above the footer band. */
+@layer components {
+  .aca-undo {
+    position: fixed;
+    z-index: var(--aca-z-toast);
+    right: 0;
+    /*
+     * Over the band of the bottom bars, whatever its height (REP-20261013-002, ADR-0016):
+     * --aca-bars-foot includes the bottom safe area. The bars lie over the pages, so the pill
+     * rises above them in edit mode too.
+     */
+    bottom: calc(var(--aca-bars-foot) + var(--aca-space-1));
+    left: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    /*
+     * In and out by a scale of 8 % and a fade, no slide (the user's answer of 2026-10-23), and the
+     * exit shorter than the entrance (REP-20261023-006, D-M14, D-M16: 300/200 ms before).
+     */
+    transition:
+      scale var(--aca-dur-enter-sm, 240ms) var(--aca-motion-ease-out, ease-out),
+      opacity var(--aca-dur-enter-sm, 240ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-undo--hidden {
+    scale: var(--aca-scale-enter, 0.92);
+    opacity: 0;
+    transition:
+      scale var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in),
+      opacity var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /*
+   * In the page overview the bar and the controls under the cards fill the bottom, and a second
+   * press of «−» would land on «Annulla»: the pill comes down from the top (the status bar left it
+   * for the footer band, REP-20261013-002, ADR-0013). The pager keeps the room of the pill over
+   * the cards (--aca-undo-room, launcher.css): its height plus space-3. The pill hangs from the
+   * area of the pages (LauncherScreen.tsx mounts it in .aca-shell__main, which starts under the
+   * safe area and under a connection notice), so a notice is never covered by it.
+   */
+  .aca-undo--top {
+    position: absolute;
+    top: var(--aca-space-3);
+    bottom: auto;
+  }
+  /*
+   * The pill takes the place of the indicator in sequence (D-M24): the indicator goes first
+   * (--aca-dur-swap-out), the pill comes after 60 ms; back, the pill goes (--aca-dur-exit-sm) and
+   * the indicator comes after its own gap (pageIndicator.css). The two are never on screen at
+   * full opacity in the same place.
+   */
+  .aca-undo--top:not(.aca-undo--hidden) {
+    transition-delay: calc(var(--aca-stagger, 40ms) * 1.5);
+  }
+  .aca-undo__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aca-space-4);
+    padding: var(--aca-space-1) var(--aca-space-1) var(--aca-space-1) var(--aca-space-5);
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow-card);
+    pointer-events: auto;
+  }
+  .aca-undo--hidden .aca-undo__pill {
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-undo,
+    .aca-undo--hidden,
+    .aca-undo--top:not(.aca-undo--hidden) {
+      scale: none;
+      transition: opacity var(--aca-dur-reduced, 120ms) linear;
+    }
+  }
+}
+
+/* Categories of the tray and the shape of each widget (REP-20261007-035). */
+@layer components {
+  .aca-widget-tray__chips {
+    display: flex;
+    gap: var(--aca-space-2);
+    padding: var(--aca-space-1);
+    margin: calc(-1 * var(--aca-space-1));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .aca-widget-tray__chip {
+    flex: none;
+  }
+  .aca-widget-tray__size {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aca-space-1);
+    color: var(--aca-ink-muted);
+    white-space: nowrap;
+  }
+  .aca-widget-tray__cells {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(var(--aca-tray-w), 0.375rem);
+    grid-auto-rows: 0.375rem;
+    gap: 0.125rem;
+  }
+  .aca-widget-tray__cell {
+    border-radius: 0.125rem;
+    background: var(--aca-blue);
+    opacity: 0.55;
   }
 }

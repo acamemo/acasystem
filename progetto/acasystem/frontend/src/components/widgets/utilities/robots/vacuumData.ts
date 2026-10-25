@@ -7,7 +7,15 @@ import type { HassEntity } from 'home-assistant-js-websocket';
 import type { CardSettings } from '@/@types/dashboard';
 import type { EntityMap } from '@/@types/ha';
 import { parseNumber } from '../shared/format';
-import { attr, isUnavailableState, listAttr, numberAttr, settingString, stringAttr, type MaybeEntity } from '../shared/entity';
+import {
+  attr,
+  isUnavailableState,
+  listAttr,
+  numberAttr,
+  settingString,
+  stringAttr,
+  type MaybeEntity,
+} from '../shared/entity';
 
 export const ERROR_STATES = ['error', 'fault', 'problem', 'stuck'];
 
@@ -18,7 +26,8 @@ export function vacuumStateLabel(state: string | undefined, battery: number | nu
   if (normalized === 'unavailable') return 'Non disponibile';
   if (normalized === 'unknown') return 'Stato sconosciuto';
   if (normalized === 'cleaning' || normalized === 'vacuuming') return 'Pulizia in corso';
-  if (['returning', 'going_home', 'return_to_base'].includes(normalized)) return 'Ritorno alla base';
+  if (['returning', 'going_home', 'return_to_base'].includes(normalized))
+    return 'Ritorno alla base';
   if ((normalized === 'charging' || normalized === 'docked') && battery === 100) return 'Alla base';
   if (normalized === 'charging' || normalized === 'docked') return 'In carica';
   if (normalized === 'idle' || normalized === 'ready') return 'Inattivo';
@@ -47,17 +56,19 @@ export interface VacuumFeatures {
 /** Supported features (legacy bit checks; without the attribute everything is allowed). */
 export function vacuumFeatures(entity: MaybeEntity): VacuumFeatures {
   const features = numberAttr(entity, 'supported_features');
-  const known = features !== null && features > 0;
+  const known = features !== null;
   const has = (bits: number[]) => known && bits.some((bit) => (Number(features) & bit) === bit);
   const fanList = listAttr(entity, 'fan_speed_list');
   const fanSpeed = attr(entity, 'fan_speed');
-  const hasFan = fanList.length > 0 || (typeof fanSpeed === 'string' && !isUnavailableState(fanSpeed) && fanSpeed !== '');
+  const hasFan =
+    fanList.length > 0 ||
+    (typeof fanSpeed === 'string' && !isUnavailableState(fanSpeed) && fanSpeed !== '');
   return {
-    canPause: has([2, 4]) || !known,
-    canStop: has([4, 8]) || !known,
-    canReturnToBase: has([8, 16]) || !known,
-    canLocate: has([64, 256, 1024]) || !known,
-    canSetFanSpeed: hasFan || has([16, 32]),
+    canPause: has([4]),
+    canStop: has([8]),
+    canReturnToBase: has([16]),
+    canLocate: has([512]),
+    canSetFanSpeed: has([32]) && hasFan,
   };
 }
 
@@ -109,7 +120,8 @@ export function vacuumIdentity(vacuumId: string, entity: MaybeEntity): VacuumIde
   };
 }
 
-const friendlyLower = (entity: MaybeEntity) => (stringAttr(entity, 'friendly_name') ?? '').toLowerCase();
+const friendlyLower = (entity: MaybeEntity) =>
+  (stringAttr(entity, 'friendly_name') ?? '').toLowerCase();
 
 const normalizeSearch = (value: string) =>
   value
@@ -160,7 +172,11 @@ export function roomSelectId(
 }
 
 /** Sensors of the vacuum: from the registry when known, else by name. */
-export function relatedSensors(entities: EntityMap, identity: VacuumIdentity, relations: Relations): Map<string, HassEntity> {
+export function relatedSensors(
+  entities: EntityMap,
+  identity: VacuumIdentity,
+  relations: Relations
+): Map<string, HassEntity> {
   const found = new Map<string, HassEntity>();
   if (!identity.name) return found;
   if (relations.sensors.length > 0) {
@@ -193,7 +209,10 @@ export interface Reading {
 function findReading(sensors: Map<string, HassEntity>, keywords: string[]): Reading | null {
   for (const [id, entity] of sensors) {
     const haystack = `${id.toLowerCase()} ${friendlyLower(entity)}`;
-    if (keywords.every((keyword) => haystack.includes(keyword.toLowerCase())) && isValid(entity.state)) {
+    if (
+      keywords.every((keyword) => haystack.includes(keyword.toLowerCase())) &&
+      isValid(entity.state)
+    ) {
       return { value: entity.state, unit: stringAttr(entity, 'unit_of_measurement') };
     }
   }
@@ -236,7 +255,12 @@ export function vacuumStatistics(
   sensors: Map<string, HassEntity>
 ): VacuumStatistics {
   const entity = entities[vacuumId];
-  const pick = (mappedKey: string, attrKeys: string[], unitKeys: string[], searches: string[][]): Reading | null => {
+  const pick = (
+    mappedKey: string,
+    attrKeys: string[],
+    unitKeys: string[],
+    searches: string[][]
+  ): Reading | null => {
     const mapped = mappedReading(entities, settings, mappedKey);
     if (mapped) return mapped;
     const fromAttr = attrReading(entity, attrKeys);
@@ -264,7 +288,9 @@ export function vacuumStatistics(
       if (
         id.startsWith('sensor.') &&
         id.includes('current_room') &&
-        (id.includes(vacuumId.split('.')[1] ?? '') || id.includes('roborock') || id.includes('vacuum'))
+        (id.includes(vacuumId.split('.')[1] ?? '') ||
+          id.includes('roborock') ||
+          id.includes('vacuum'))
       ) {
         room = isValid(item.state) ? item.state : null;
         break;
@@ -272,7 +298,12 @@ export function vacuumStatistics(
     }
   }
 
-  const cleaningTime = pick('cleaningTimeSensorId', ['cleaning_time', 'current_clean_time', 'clean_time'], [], [['cleaning_time'], ['clean_time']]);
+  const cleaningTime = pick(
+    'cleaningTimeSensorId',
+    ['cleaning_time', 'current_clean_time', 'clean_time'],
+    [],
+    [['cleaning_time'], ['clean_time']]
+  );
   const cleanedArea = pick(
     'cleanedAreaSensorId',
     ['cleaned_area', 'current_clean_area', 'clean_area'],
@@ -283,13 +314,20 @@ export function vacuumStatistics(
     'totalCleanTimeSensorId',
     ['total_cleaning_time', 'total_clean_time', 'total_duration'],
     [],
-    [['total', 'cleaning_time'], ['total', 'clean_time'], ['total', 'duration']]
+    [
+      ['total', 'cleaning_time'],
+      ['total', 'clean_time'],
+      ['total', 'duration'],
+    ]
   );
   const totalArea = pick(
     'totalCleanAreaSensorId',
     ['total_clean_area', 'total_cleaned_area'],
     ['total_clean_area_unit', 'total_cleaned_area_unit'],
-    [['total', 'clean_area'], ['total', 'cleaned_area']]
+    [
+      ['total', 'clean_area'],
+      ['total', 'cleaned_area'],
+    ]
   );
   const totalCount =
     mappedReading(entities, settings, 'totalCleanCountSensorId')?.value ??
@@ -314,7 +352,8 @@ export function vacuumStatistics(
   const count = parseNumber(totalCount);
   const time = parseNumber(totalTime?.value);
   const area = parseNumber(totalArea?.value);
-  const hasAverages = count !== null && count > 0 && ((time !== null && time > 0) || (area !== null && area > 0));
+  const hasAverages =
+    count !== null && count > 0 && ((time !== null && time > 0) || (area !== null && area > 0));
   return {
     battery: batteryRaw,
     room,
@@ -332,7 +371,12 @@ export function vacuumStatistics(
 // ── Consumables and diagnostics ──────────────────────────────────────────────────────
 
 /** Nominal lifetimes in hours (Roborock and compatible). */
-const LIFE_HOURS: Record<string, number> = { mainBrush: 300, sideBrush: 200, filter: 150, sensors: 30 };
+const LIFE_HOURS: Record<string, number> = {
+  mainBrush: 300,
+  sideBrush: 200,
+  filter: 150,
+  sensors: 30,
+};
 
 const UNIT_HOURS: Record<string, number> = {
   s: 1 / 3600,
@@ -354,7 +398,10 @@ const UNIT_HOURS: Record<string, number> = {
 const clampPercent = (value: number) => Math.min(100, Math.max(0, Math.round(value)));
 
 /** Remaining life in percent: a percentage as is, a remaining duration against the nominal life. */
-export function consumablePercent(entity: MaybeEntity, lifeHours: number | undefined): number | null {
+export function consumablePercent(
+  entity: MaybeEntity,
+  lifeHours: number | undefined
+): number | null {
   if (!entity || !isValid(entity.state)) return null;
   const value = parseNumber(entity.state);
   if (value === null) return null;
@@ -371,7 +418,10 @@ function finder(entities: EntityMap, identity: VacuumIdentity, registry: string[
     const fromRegistry = registry.find((id) => matchesKeywords(id, entities[id], keywords));
     if (fromRegistry) return fromRegistry;
     return Object.keys(entities).find(
-      (id) => id.startsWith(prefix) && relatedByName(identity, id) && matchesKeywords(id, entities[id], keywords)
+      (id) =>
+        id.startsWith(prefix) &&
+        relatedByName(identity, id) &&
+        matchesKeywords(id, entities[id], keywords)
     );
   };
 }
@@ -384,13 +434,32 @@ export interface Consumable {
   buttonId: string | undefined;
 }
 
-export function vacuumConsumables(entities: EntityMap, identity: VacuumIdentity, relations: Relations): Consumable[] {
+export function vacuumConsumables(
+  entities: EntityMap,
+  identity: VacuumIdentity,
+  relations: Relations
+): Consumable[] {
   const sensor = finder(entities, identity, relations.sensors, 'sensor.');
   const button = finder(entities, identity, relations.buttons, 'button.');
   const items = [
-    { key: 'mainBrush', label: 'Spazzola principale', sensorId: sensor(['main', 'brush']), buttonId: button(['main', 'brush', 'reset']) },
-    { key: 'sideBrush', label: 'Spazzola laterale', sensorId: sensor(['side', 'brush']), buttonId: button(['side', 'brush', 'reset']) },
-    { key: 'filter', label: 'Filtro', sensorId: sensor(['filter']), buttonId: button(['filter', 'reset']) },
+    {
+      key: 'mainBrush',
+      label: 'Spazzola principale',
+      sensorId: sensor(['main', 'brush']),
+      buttonId: button(['main', 'brush', 'reset']),
+    },
+    {
+      key: 'sideBrush',
+      label: 'Spazzola laterale',
+      sensorId: sensor(['side', 'brush']),
+      buttonId: button(['side', 'brush', 'reset']),
+    },
+    {
+      key: 'filter',
+      label: 'Filtro',
+      sensorId: sensor(['filter']),
+      buttonId: button(['filter', 'reset']),
+    },
     {
       key: 'sensors',
       label: 'Sensori',
@@ -410,12 +479,16 @@ export function vacuumConsumables(entities: EntityMap, identity: VacuumIdentity,
   return items
     .map((item) => ({
       ...item,
-      percent: consumablePercent(item.sensorId ? entities[item.sensorId] : undefined, LIFE_HOURS[item.key]),
+      percent: consumablePercent(
+        item.sensorId ? entities[item.sensorId] : undefined,
+        LIFE_HOURS[item.key]
+      ),
     }))
     .filter((item) => item.percent !== null || Boolean(item.buttonId));
 }
 
-export type DiagnosticType = 'water_clean' | 'water_dirty' | 'binary_ok' | 'binary_inverse' | 'status';
+export type DiagnosticType =
+  'water_clean' | 'water_dirty' | 'binary_ok' | 'binary_inverse' | 'status';
 
 export interface Diagnostic {
   key: string;
@@ -426,13 +499,22 @@ export interface Diagnostic {
   warn: boolean;
 }
 
-function diagnosticText(state: string, type: DiagnosticType, unit: string | null): { text: string; warn: boolean } {
+function diagnosticText(
+  state: string,
+  type: DiagnosticType,
+  unit: string | null
+): { text: string; warn: boolean } {
   const normalized = state.toLowerCase();
   if (!isValid(state)) return { text: '--', warn: false };
-  if (Number.isFinite(Number(state))) return { text: `${state}${unit && unit !== '%' ? ` ${unit}` : '%'}`, warn: false };
+  if (Number.isFinite(Number(state)))
+    return { text: `${state}${unit && unit !== '%' ? ` ${unit}` : '%'}`, warn: false };
   const yes = ['on', 'true', 'yes'].includes(normalized);
-  if (type === 'binary_ok') return yes || normalized === 'home' ? { text: 'Installato', warn: false } : { text: 'Rimosso', warn: true };
-  if (type === 'binary_inverse') return yes ? { text: 'Attiva', warn: false } : { text: 'Non attiva', warn: false };
+  if (type === 'binary_ok')
+    return yes || normalized === 'home'
+      ? { text: 'Installato', warn: false }
+      : { text: 'Rimosso', warn: true };
+  if (type === 'binary_inverse')
+    return yes ? { text: 'Attiva', warn: false } : { text: 'Non attiva', warn: false };
   if (type === 'water_clean') {
     if (normalized === 'on' || normalized === 'true') return { text: 'Vuoto', warn: true };
     if (normalized === 'off' || normalized === 'false') return { text: 'Pieno', warn: false };
@@ -446,15 +528,24 @@ function diagnosticText(state: string, type: DiagnosticType, unit: string | null
   return { text: state.replace(/_/g, ' '), warn: false };
 }
 
-export function vacuumDiagnostics(entities: EntityMap, identity: VacuumIdentity, relations: Relations): Diagnostic[] {
+export function vacuumDiagnostics(
+  entities: EntityMap,
+  identity: VacuumIdentity,
+  relations: Relations
+): Diagnostic[] {
   const pool = [...relations.sensors, ...relations.selects, ...relations.buttons];
-  const find = (keywords: string[], domains = ['sensor', 'binary_sensor', 'switch']): string | undefined => {
+  const find = (
+    keywords: string[],
+    domains = ['sensor', 'binary_sensor', 'switch']
+  ): string | undefined => {
     const lowered = keywords.map((keyword) => keyword.toLowerCase());
     const hit = (id: string) => {
       const haystack = `${id.toLowerCase()} ${friendlyLower(entities[id])}`;
       return lowered.every((keyword) => haystack.includes(keyword));
     };
-    const fromPool = pool.find((id) => domains.includes(id.split('.')[0] ?? '') && entities[id] && hit(id));
+    const fromPool = pool.find(
+      (id) => domains.includes(id.split('.')[0] ?? '') && entities[id] && hit(id)
+    );
     if (fromPool) return fromPool;
     return Object.keys(entities).find((id) => {
       if (!domains.includes(id.split('.')[0] ?? '')) return false;
@@ -467,19 +558,54 @@ export function vacuumDiagnostics(entities: EntityMap, identity: VacuumIdentity,
       return related && hit(id);
     });
   };
-  const specs: Array<{ key: string; label: string; type: DiagnosticType; id: string | undefined }> = [
-    { key: 'cleanWater', label: 'Serbatoio acqua pulita', type: 'water_clean', id: find(['clean', 'water']) ?? find(['water', 'tank']) ?? find(['water', 'box']) },
-    { key: 'dirtyWater', label: 'Serbatoio acqua sporca', type: 'water_dirty', id: find(['dirty', 'water']) ?? find(['waste', 'water']) },
-    { key: 'mopAttached', label: 'Supporto del panno', type: 'binary_ok', id: find(['mop', 'attached']) ?? find(['mop', 'mount']) ?? find(['mop', 'installed']) },
-    { key: 'dustbin', label: 'Contenitore della polvere', type: 'binary_ok', id: find(['dustbin', 'installed']) ?? find(['dustbin', 'attached']) ?? find(['dustbin']) },
-    { key: 'dnd', label: 'Non disturbare', type: 'binary_inverse', id: find(['dnd']) ?? find(['do_not_disturb']) },
-    { key: 'drying', label: 'Asciugatura del panno', type: 'status', id: find(['drying']) ?? find(['mop_drying']) },
-  ];
+  const specs: Array<{ key: string; label: string; type: DiagnosticType; id: string | undefined }> =
+    [
+      {
+        key: 'cleanWater',
+        label: 'Serbatoio acqua pulita',
+        type: 'water_clean',
+        id: find(['clean', 'water']) ?? find(['water', 'tank']) ?? find(['water', 'box']),
+      },
+      {
+        key: 'dirtyWater',
+        label: 'Serbatoio acqua sporca',
+        type: 'water_dirty',
+        id: find(['dirty', 'water']) ?? find(['waste', 'water']),
+      },
+      {
+        key: 'mopAttached',
+        label: 'Supporto del panno',
+        type: 'binary_ok',
+        id: find(['mop', 'attached']) ?? find(['mop', 'mount']) ?? find(['mop', 'installed']),
+      },
+      {
+        key: 'dustbin',
+        label: 'Contenitore della polvere',
+        type: 'binary_ok',
+        id: find(['dustbin', 'installed']) ?? find(['dustbin', 'attached']) ?? find(['dustbin']),
+      },
+      {
+        key: 'dnd',
+        label: 'Non disturbare',
+        type: 'binary_inverse',
+        id: find(['dnd']) ?? find(['do_not_disturb']),
+      },
+      {
+        key: 'drying',
+        label: 'Asciugatura del panno',
+        type: 'status',
+        id: find(['drying']) ?? find(['mop_drying']),
+      },
+    ];
   const result: Diagnostic[] = [];
   for (const spec of specs) {
     const entity = spec.id ? entities[spec.id] : undefined;
     if (!spec.id || !entity) continue;
-    const { text, warn } = diagnosticText(entity.state, spec.type, stringAttr(entity, 'unit_of_measurement'));
+    const { text, warn } = diagnosticText(
+      entity.state,
+      spec.type,
+      stringAttr(entity, 'unit_of_measurement')
+    );
     result.push({ key: spec.key, label: spec.label, id: spec.id, text, warn });
   }
   return result;
@@ -488,7 +614,11 @@ export function vacuumDiagnostics(entities: EntityMap, identity: VacuumIdentity,
 // ── Maps ─────────────────────────────────────────────────────────────────────────────
 
 /** Image and camera entities of the vacuum maps (legacy discovery and fallback). */
-export function vacuumMapIds(entities: EntityMap, identity: VacuumIdentity, settings: CardSettings): string[] {
+export function vacuumMapIds(
+  entities: EntityMap,
+  identity: VacuumIdentity,
+  settings: CardSettings
+): string[] {
   const isMapDomain = (id: string) => id.startsWith('image.') || id.startsWith('camera.');
   const related = Object.keys(entities).filter((id) => {
     if (!isMapDomain(id) || !identity.name) return false;
@@ -505,23 +635,31 @@ export function vacuumMapIds(entities: EntityMap, identity: VacuumIdentity, sett
     );
   });
   const configured = settingString(settings, 'mapImageEntityId');
-  const list = related.length > 0
-    ? related
-    : Object.keys(entities).filter((id) => {
-        if (!isMapDomain(id)) return false;
-        const lower = id.toLowerCase();
-        const friendly = friendlyLower(entities[id]);
-        return lower.includes('map') || friendly.includes('map') || lower.includes('kart') || friendly.includes('kart');
-      });
-  if (configured && entities[configured] && !list.includes(configured)) return [configured, ...list];
-  if (configured && list.includes(configured)) return [configured, ...list.filter((id) => id !== configured)];
+  const list =
+    related.length > 0
+      ? related
+      : Object.keys(entities).filter((id) => {
+          if (!isMapDomain(id)) return false;
+          const lower = id.toLowerCase();
+          const friendly = friendlyLower(entities[id]);
+          return (
+            lower.includes('map') ||
+            friendly.includes('map') ||
+            lower.includes('kart') ||
+            friendly.includes('kart')
+          );
+        });
+  if (configured && entities[configured] && !list.includes(configured))
+    return [configured, ...list];
+  if (configured && list.includes(configured))
+    return [configured, ...list.filter((id) => id !== configured)];
   return list;
 }
 
 /** Fan speeds of the vacuum, with the legacy defaults. */
 export function fanSpeeds(entity: MaybeEntity): string[] {
   const list = listAttr(entity, 'fan_speed_list');
-  return list.length > 0 ? list : ['Silent', 'Standard', 'Strong', 'Turbo'];
+  return list;
 }
 
 export interface MopControl {
@@ -533,30 +671,37 @@ export interface MopControl {
 }
 
 /** Mop intensity control: a related select when present, else the vacuum attributes. */
-export function mopControl(entities: EntityMap, entity: MaybeEntity, relations: Relations, settings: CardSettings): MopControl {
+export function mopControl(
+  entities: EntityMap,
+  entity: MaybeEntity,
+  relations: Relations,
+  settings: CardSettings
+): MopControl {
   const mapped = settingString(settings, 'mopIntensityControlEntityId');
   let controlId: string | null = mapped && entities[mapped] ? mapped : null;
   if (!controlId) {
     const keyword = /(mop|water|intensity|wet|scrub)/i;
     controlId =
-      relations.selects.find((id) => keyword.test(id.toLowerCase()) || keyword.test(friendlyLower(entities[id]))) ?? null;
+      relations.selects.find(
+        (id) => keyword.test(id.toLowerCase()) || keyword.test(friendlyLower(entities[id]))
+      ) ?? null;
   }
   const control = controlId ? entities[controlId] : undefined;
   const controlOptions = listAttr(control, 'options');
   const attrList = listAttr(entity, 'mop_intensity_list');
   const intensity = stringAttr(entity, 'mop_intensity');
-  const attributes: Record<string, unknown> = entity?.attributes ?? {};
-  const available =
-    attrList.length > 0 ||
-    (intensity !== null && isValid(intensity)) ||
-    controlOptions.length > 0 ||
-    Object.keys(attributes).some((key) => key.startsWith('mop_') || key.startsWith('water_'));
+  const available = attrList.length > 0 || controlOptions.length > 0;
   if (controlId && controlOptions.length > 0) {
-    return { entityId: controlId, options: controlOptions, current: control?.state ?? null, available };
+    return {
+      entityId: controlId,
+      options: controlOptions,
+      current: control?.state ?? null,
+      available,
+    };
   }
   return {
     entityId: null,
-    options: attrList.length > 0 ? attrList : ['Low', 'Medium', 'High'],
+    options: attrList,
     current: intensity,
     available,
   };

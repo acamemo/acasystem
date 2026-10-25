@@ -11,6 +11,7 @@
  * Cards are packed in their legacy order, first fit; what does not fit goes to a continuation
  * page. Special pages keep their kind and get no placements.
  */
+import { gridFor } from './deviceClass';
 import type { CardSettingsMap, PagesConfig, PageSettingsMap } from '@/@types/dashboard';
 import type {
   CellSize,
@@ -71,7 +72,7 @@ export function migrateLegacyLayout({
   grids,
   sizesOf,
 }: MigrationInput): LauncherLayout {
-  const grid = grids[deviceClass];
+  const grid = gridFor(grids, deviceClass);
   const legacyPages = (pagesConfig.pages ?? []).filter(
     (id) => typeof id === 'string' && id && id !== 'settings' && id !== 'header'
   );
@@ -93,6 +94,8 @@ export function migrateLegacyLayout({
       ...(settings.hidden === true ? { hidden: true } : {}),
       placements: {},
     };
+    // The cover comes back as its default page (it is not a legacy page to rebuild).
+    if (kind === 'cover') continue;
     if (kind !== 'widgets') {
       pages.push(base);
       continue;

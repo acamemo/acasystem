@@ -1,0 +1,223 @@
+@import './widgetDesigns.css';
+
+.aca-adaptive-widget {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: var(--aca-space-3);
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+
+.aca-adaptive-widget[data-tier='compact'] {
+  align-items: center;
+  justify-content: center;
+  padding: var(--aca-space-2);
+}
+
+.aca-adaptive-widget__chart-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.aca-adaptive-widget__chart-wrap .uikwa-chart {
+  width: 100%;
+  height: 100%;
+  max-height: 140px;
+}
+
+.aca-adaptive-widget__controls-wrap {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aca-space-2);
+  margin-top: auto;
+}
+
+.aca-adaptive-widget[data-tier='compact'] .aca-adaptive-widget__controls-wrap {
+  margin-top: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.aca-adaptive-widget[data-tier='compact'] .uikwa-toggle,
+.aca-adaptive-widget[data-tier='compact'] .uikwa-action,
+.aca-adaptive-widget[data-tier='compact'] .uikw-gesture {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--aca-space-1) var(--aca-space-2);
+}
+.aca-adaptive-widget[data-tier='compact'] .uikwa-action > button {
+  grid-row: span 2;
+}
+.aca-adaptive-widget[data-tier='compact'] .uikwa-controls > [data-control-id] {
+  width: 100%;
+}
+.aca-adaptive-widget[data-tier='compact'] .uikw-reading {
+  padding-block: 0;
+  gap: var(--aca-space-1);
+}
+
+.aca-adaptive-widget .uikwa-controls {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aca-space-3);
+}
+
+.aca-adaptive-widget[data-tier='compact'] .uikwa-controls {
+  gap: var(--aca-space-2);
+}
+
+.aca-adaptive-widget[data-tier='page'] .aca-adaptive-widget__controls-wrap {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: auto;
+  justify-content: start;
+  overscroll-behavior: contain;
+}
+/*
+ * The body opens the details (ADR-0016, G3): a transparent button over the whole widget, under its
+ * commands. Everything else the widget draws sits above it and lets the touch through, so a tap on
+ * a word, a chart or an empty corner reaches the opener; only the commands take it back. A command
+ * is a semantic element or one marked data-widget-command (the catalog guard, WidgetCommands).
+ */
+.aca-adaptive-widget__open {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.aca-adaptive-widget__open:focus-visible {
+  outline: 2px solid var(--aca-focus, var(--k2-accent));
+  outline-offset: -2px;
+}
+.aca-adaptive-widget__open:disabled {
+  cursor: default;
+}
+.aca-adaptive-widget:has(> .aca-adaptive-widget__open) > :not(.aca-adaptive-widget__open) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.aca-adaptive-widget:has(> .aca-adaptive-widget__open)
+  :is(
+    button:not([data-widget-open]),
+    a[href],
+    input,
+    select,
+    textarea,
+    [role='button'],
+    [role='switch'],
+    [role='slider'],
+    [role='checkbox'],
+    [role='spinbutton'],
+    [data-widget-command]
+  ) {
+  pointer-events: auto;
+}
+/* A list that scrolls keeps its touch: the page-size widget scrolls its controls. */
+.aca-adaptive-widget:has(> .aca-adaptive-widget__open)[data-tier='page']
+  .aca-adaptive-widget__controls-wrap {
+  pointer-events: auto;
+}
+.aca-adaptive-widget__notice {
+  width: 100%;
+  text-align: center;
+}
+
+.aca-adaptive-widget .uikwa-range,
+.aca-adaptive-widget .uikwa-toggle,
+.aca-adaptive-widget .uikw-reading,
+.aca-adaptive-widget .uikwa-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.aca-adaptive-widget[data-details] {
+  height: auto;
+  overflow: visible;
+  min-height: 0;
+}
+.aca-adaptive-widget[data-details] .aca-adaptive-widget__controls-wrap {
+  overflow: visible;
+  flex: none;
+}
+.aca-adaptive-widget .uikwa-controls > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.aca-adaptive-widget__select {
+  max-width: 100%;
+  min-height: 44px;
+  color: var(--k2-ink);
+  background: var(--k2-bg);
+  border: 1px solid var(--k2-shade);
+  border-radius: var(--aca-radius-sm);
+  font: inherit;
+  padding: var(--aca-space-2);
+}
+.aca-adaptive-widget__select:focus-visible {
+  outline: 2px solid var(--k2-accent);
+  outline-offset: 2px;
+}
+.aca-adaptive-preference {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--aca-space-2);
+}
+.aca-adaptive-binding {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--aca-space-2);
+}
+.aca-adaptive-todo {
+  width: 100%;
+}
+.aca-adaptive-todo__editor {
+  display: grid;
+  gap: var(--aca-space-2);
+}
+.aca-adaptive-spacer {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--aca-space-2);
+}
+.aca-adaptive-camera {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.aca-adaptive-camera .aca-media-feed {
+  height: 100%;
+  aspect-ratio: auto;
+}

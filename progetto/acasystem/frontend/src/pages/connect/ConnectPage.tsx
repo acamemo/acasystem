@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { Body, Button, Caption, Heading, IconText, Surface, Title } from '@/components/primitives';
+import { Body, Button, Heading, IconText, Surface, Title } from '@/components/primitives';
 import { useConfig } from '@/hooks/context';
 import { useConnectionSetup } from '@/hooks/useConnectionSetup';
 import { LoginForm } from './LoginForm';
@@ -40,8 +40,6 @@ export function ConnectPage({ onConnected }: ConnectPageProps) {
             onConnected?.();
           }}
         />
-
-        <Caption as="p">{CREDENTIALS_NOTE}</Caption>
 
         <div className="aca-connect__options">
           <Button

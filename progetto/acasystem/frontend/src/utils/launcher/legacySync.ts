@@ -4,8 +4,8 @@
  * sees the same pages and cards. The launcher layout is the source of truth.
  */
 import type { PagesConfig, PageSettings, PageSettingsMap } from '@/@types/dashboard';
-import type { DeviceClass, LauncherLayout } from '@/@types/launcher';
-import { pageWidgetIds } from './layout';
+import type { DeviceClass, LauncherGrids, LauncherLayout } from '@/@types/launcher';
+import { expandStacks, pageClass, pageWidgetIds } from './layout';
 import { LEGACY_PAGE_TYPE } from './pageIdentity';
 
 const sameList = (a: readonly string[] | undefined, b: readonly string[]) =>
@@ -15,14 +15,23 @@ const sameList = (a: readonly string[] | undefined, b: readonly string[]) =>
 export function layoutToPagesConfig(
   layout: LauncherLayout,
   previous: PagesConfig,
-  deviceClass: DeviceClass
+  deviceClass: DeviceClass,
+  grids?: LauncherGrids,
+  viewportWidth?: number
 ): PagesConfig {
   const pages = layout.pages.map((page) => page.id);
   const next: PagesConfig = {
     header: Array.isArray(previous.header) ? previous.header : [],
     pages,
   };
-  for (const page of layout.pages) next[page.id] = pageWidgetIds(page, deviceClass);
+  // Stacked widgets are cards of the page too (REP-20261007-037).
+  // With the grids, the reading order of the key each page shows (REP-20261008-001).
+  for (const page of layout.pages) {
+    const key = grids
+      ? pageClass(layout, page, { deviceClass, grids, viewportWidth })
+      : deviceClass;
+    next[page.id] = expandStacks(layout, pageWidgetIds(page, key));
+  }
 
   const previousKeys = Object.keys(previous).filter((key) => key !== 'header');
   const nextKeys = Object.keys(next).filter((key) => key !== 'header');

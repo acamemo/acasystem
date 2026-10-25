@@ -1,0 +1,70 @@
+/* Casa 3D page of the launcher (R1): a still picture of the plan that a tap opens at full screen. */
+@layer components {
+  /*
+   * The page never scrolls: it is a picture and one button. The shared rule of the special pages
+   * (overflow-y auto, overscroll contain) would stop a horizontal swipe that starts on the page
+   * from reaching the pager, so the page takes the default chaining.
+   */
+  .aca-page-shell[data-page-kind='casa3d'] > .aca-launcher-special {
+    overflow: hidden;
+    overscroll-behavior: auto;
+  }
+  .c3d-shell {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* The whole picture is the button: a short tap opens the house; a swipe or a long press stays the launcher's. */
+  .c3d-open {
+    position: relative;
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 3.5rem;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--aca-radius-card, 1rem);
+    background: var(--aca-page);
+    color: var(--aca-ink-solid);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .c3d-open:disabled {
+    cursor: default;
+  }
+  .c3d-open:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 2px;
+  }
+  .c3d-open__label {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: var(--aca-space-3, 0.75rem);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .c3d-open__pill {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 3.5rem;
+    padding: 0 var(--aca-space-4, 1rem);
+    border: 1px solid color-mix(in srgb, var(--aca-ink-muted) 50%, transparent);
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+  }
+  .c3d-open__message {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: var(--aca-space-2, 0.5rem);
+    padding: var(--aca-space-4, 1rem);
+    text-align: center;
+  }
+}

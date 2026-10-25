@@ -24,22 +24,18 @@ function rule(selector: string): string {
 }
 
 describe('indicatore di pagina, DES-8', () => {
-  it('centra solo la scanalatura: l’etichetta è fuori dal flusso', () => {
+  it('mette l’etichetta sotto la scanalatura, centrata (REP-20261007-012)', () => {
     const group = rule('.aca-indicator');
     const label = rule('.aca-indicator__label');
     expect(group).toMatch(/position:\s*relative/);
-    expect(group).not.toMatch(/(^|\s)gap:/);
-    expect(label).toMatch(/position:\s*absolute/);
-    // Offset on the spacing scale (REP-20261007-001), still out of the flow.
-    expect(label).toMatch(/left:\s*calc\(100% \+ var\(--aca-space-4\)\)/);
+    expect(group).toMatch(/flex-direction:\s*column/);
+    expect(group).toMatch(/align-items:\s*center/);
+    expect(label).not.toMatch(/position:\s*absolute/);
   });
 
-  it('l’etichetta resta nello spazio a destra della scanalatura, con i puntini', () => {
+  it('l’etichetta resta nella banda, su una riga con i puntini', () => {
     const label = rule('.aca-indicator__label');
-    // Bounded by half of the band beside the groove (container width, never the viewport).
-    expect(label).toMatch(
-      /max-width:\s*min\(\s*14rem,\s*calc\(\(100cqw - 100%\) \/ 2 - var\(--aca-space-4\)/
-    );
+    expect(label).toMatch(/max-width:\s*min\(14rem, 100cqw\)/);
     expect(label).not.toMatch(/100vw/);
     expect(label).toMatch(/text-overflow:\s*ellipsis/);
     expect(label).toMatch(/white-space:\s*nowrap/);

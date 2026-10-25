@@ -1,4 +1,4 @@
-import { useId, type ComponentPropsWithRef } from 'react';
+import { useId, type ComponentPropsWithRef, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { MaterialLayers, materialClass, type MaterialSize } from './Material';
 
@@ -11,6 +11,8 @@ export type FieldProps = Omit<ComponentPropsWithRef<'input'>, 'size'> & {
   containerClassName?: string;
   /** Error message shown under the field, with aria-invalid and aria-describedby. */
   error?: string;
+  /** Optional trailing action/button inside the field (e.g. reveal password). */
+  action?: ReactNode;
 };
 
 /** Text input inside a recessed pill, with an optional leading icon and error message. */
@@ -22,6 +24,7 @@ export function Field({
   className,
   id,
   error,
+  action,
   'aria-describedby': describedBy,
   ...props
 }: FieldProps) {
@@ -31,12 +34,26 @@ export function Field({
   const field = (
     <div
       onMouseDown={(event) => {
+        if (
+          event.target instanceof HTMLElement &&
+          event.target.closest('button, [role="button"]')
+        ) {
+          return;
+        }
         // A press on the well of a focused field keeps the focus: no blur (or save) mid-edit.
         const input = event.currentTarget.querySelector('input');
         if (input && event.target !== input && document.activeElement === input)
           event.preventDefault();
       }}
-      onClick={(event) => event.currentTarget.querySelector('input')?.focus()}
+      onClick={(event) => {
+        if (
+          event.target instanceof HTMLElement &&
+          event.target.closest('button, [role="button"]')
+        ) {
+          return;
+        }
+        event.currentTarget.querySelector('input')?.focus();
+      }}
       className={materialClass(
         { behavior: 'well', shape: 'pill', size },
         'aca-field',
@@ -56,6 +73,7 @@ export function Field({
           aria-describedby={[describedBy, error && errorId].filter(Boolean).join(' ') || undefined}
           {...props}
         />
+        {action}
       </MaterialLayers>
     </div>
   );

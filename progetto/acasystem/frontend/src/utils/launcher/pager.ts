@@ -4,42 +4,66 @@
  * empty home screens. «Principale», the base page, always stays: the launcher opens on it and
  * its free cells are where widgets are added.
  */
-import type { DeviceClass, LauncherLayout, LauncherPage } from '@/@types/launcher';
-import { pagePlacements } from './layout';
+import type { DeviceClass, LauncherGrids, LauncherLayout, LauncherPage } from '@/@types/launcher';
+import { basePageId, coverPageOf, pageClass, pagePlacements } from './layout';
 import { displayLabel } from './pageIdentity';
 
+/** The definition lives with canRemovePage, which protects the same page (layout.ts). */
+export { basePageId };
+
 export type PagerEntry =
-  | { type: 'cover'; key: 'cover'; label: string }
+  /**
+   * `page`: the widgets of the cover (REP-20261007-030), when the grids are known. `hidden`:
+   * the cover is off and shown only in the page overview, to be shown again from there.
+   */
+  | { type: 'cover'; key: 'cover'; label: string; page?: LauncherPage; hidden?: boolean }
   | { type: 'page'; key: string; label: string; page: LauncherPage };
 
 export const COVER_LABEL = 'Copertina';
 
-const hasWidgets = (page: LauncherPage, deviceClass: DeviceClass) =>
-  Object.keys(pagePlacements(page, deviceClass)).length > 0;
+const hasWidgets = (page: LauncherPage, key: DeviceClass) =>
+  Object.keys(pagePlacements(page, key)).length > 0;
 
 /**
- * Id of the base page («Principale»): the first widget page that is not hidden, else the first
- * widget page; null when the layout has none.
+ * `overview`: the page overview is open, where the cover that is off still has its card,
+ * marked hidden (REP-20261008-001); nowhere else, so neither the edges of a drag nor a drop
+ * find a page the user switched off.
  */
-export function basePageId(layout: LauncherLayout): string | null {
-  const widgetPages = layout.pages.filter((page) => page.kind === 'widgets');
-  return (widgetPages.find((page) => !page.hidden) ?? widgetPages[0])?.id ?? null;
-}
-
 export function pagerEntries(
   layout: LauncherLayout,
   deviceClass: DeviceClass,
-  editMode: boolean
+  editMode: boolean,
+  grids?: LauncherGrids,
+  viewportWidth?: number,
+  overview = false
 ): PagerEntry[] {
   const entries: PagerEntry[] = [];
-  if (layout.cover.enabled) entries.push({ type: 'cover', key: 'cover', label: COVER_LABEL });
+  if (layout.cover.enabled || overview) {
+    entries.push({
+      type: 'cover',
+      key: 'cover',
+      label: COVER_LABEL,
+      ...(grids ? { page: coverPageOf(layout, grids) } : {}),
+      ...(layout.cover.enabled ? {} : { hidden: true }),
+    });
+  }
 
   const baseId = basePageId(layout);
-  const shown = layout.pages.filter((page) => editMode || !page.hidden);
+  const shown = layout.pages.filter((page) => page.kind !== 'cover' && (editMode || !page.hidden));
   const useful = editMode
     ? shown
     : shown.filter(
-        (page) => page.kind !== 'widgets' || page.id === baseId || hasWidgets(page, deviceClass)
+        // An empty page made by the user stays (it was created on purpose, REP-20261007-028);
+        // an empty continuation (made for another device class) does not.
+        (page) =>
+          page.kind !== 'widgets' ||
+          page.id === baseId ||
+          !page.continuationOf ||
+          // With the grids each page has the key of its own grid (REP-20261008-001).
+          hasWidgets(
+            page,
+            grids ? pageClass(layout, page, { deviceClass, grids, viewportWidth }) : deviceClass
+          )
       );
   const pages = useful.length > 0 ? useful : shown.slice(0, 1);
   const fallback = pages.length > 0 ? pages : layout.pages.slice(0, 1);

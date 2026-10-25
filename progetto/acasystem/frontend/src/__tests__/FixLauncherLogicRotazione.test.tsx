@@ -1,6 +1,7 @@
 /**
  * Verifica avversaria con il controller reale e le taglie del registro: configurazione legacy con
- * la stessa luce su due pagine; la pagina Casa trabocca nel telefono orizzontale (6×2).
+ * la stessa luce su due pagine; la pagina Casa trabocca nel telefono orizzontale stretto (6×2: le
+ * 8 colonne delle pagine automatiche valgono solo dove la larghezza le permette, REP-20261008-001).
  */
 import { useMemo, useState } from 'react';
 import { renderHook } from '@testing-library/react';
@@ -28,8 +29,11 @@ describe('avversario: rotazione con la stessa luce su due pagine', () => {
       'home::climate_card_3': { climateId: 'climate.c' },
       'cucina::climate_card_4': { climateId: 'climate.d' },
     };
-    const { result, rerender } = renderHook(
-      ({ deviceClass }: { deviceClass: DeviceClass }) => {
+    const { result, rerender } = renderHook<
+      ReturnType<typeof useLauncherController>,
+      { deviceClass: DeviceClass; viewportWidth?: number }
+    >(
+      ({ deviceClass, viewportWidth }) => {
         const [layout, setLayout] = useState<LauncherLayout | null>(null);
         const store = useMemo<LauncherStore>(
           () => ({
@@ -42,15 +46,17 @@ describe('avversario: rotazione con la stessa luce su due pagine', () => {
           }),
           [layout]
         );
-        return useLauncherController({ store, deviceClass, resolveSizes });
+        return useLauncherController({ store, deviceClass, viewportWidth, resolveSizes });
       },
-      { initialProps: { deviceClass: 'tablet' as DeviceClass } }
+      { initialProps: { deviceClass: 'tablet' } }
     );
     const onTablet = result.current.layout.pages.find((page) => page.id === 'cucina');
     expect(onTablet?.placements.tablet?.['light.cucina']).toBeDefined();
 
-    rerender({ deviceClass: 'phoneLandscape' });
+    // A phone of 640×360 in landscape: too narrow for 8 columns, Casa overflows its 6×2.
+    rerender({ deviceClass: 'phoneLandscape', viewportWidth: 640 });
     const pages = result.current.layout.pages;
+    expect(pages.some((page) => page.continuationOf === 'home')).toBe(true);
     const cucinaFamily = pages.filter((page) => (page.continuationOf ?? page.id) === 'cucina');
     expect(cucinaFamily.some((page) => page.placements.phoneLandscape?.['light.cucina'])).toBe(
       true

@@ -93,7 +93,10 @@ describe('RESP-3: area di tocco di 44 px senza cambiare l’aspetto', () => {
       screen.getByRole('switch', { name: 'Interruttore' }),
     ];
     expect(targets).toHaveLength(5);
-    for (const target of targets) expect(target.matches('button.aca-m')).toBe(true);
+    // The switch has its own component since REP-20261007-021, with its own 44 px area.
+    for (const target of targets) {
+      expect(target.matches('button.aca-m, button.aca-toggle')).toBe(true);
+    }
   });
 });
 

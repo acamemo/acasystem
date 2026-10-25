@@ -9,7 +9,13 @@ import { resolveTv, widgetPlayTarget, type TvKind, type TvView } from '../model/
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
 import { PowerButton } from '../parts/Controls';
-import { OpenButton, WidgetLoading, WidgetMessage, WidgetShell, missingDevice } from '../parts/WidgetShell';
+import {
+  OpenButton,
+  WidgetLoading,
+  WidgetMessage,
+  WidgetShell,
+  missingDevice,
+} from '../parts/WidgetShell';
 
 export interface TvConfig {
   mediaPlayerId: string;
@@ -50,9 +56,12 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
   const power = useConfirmedCommand(view.isOn, { ignoreWhilePending: true });
   const playing = useConfirmedCommand(view.isPlaying);
 
-  if (!runtime.entitiesLoaded) return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
+  if (!runtime.entitiesLoaded)
+    return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
   if (!config.mediaPlayerId || !view.entity) {
-    return <WidgetMessage size={size} editMode={editMode} {...missingDevice(config.mediaPlayerId)} />;
+    return (
+      <WidgetMessage size={size} editMode={editMode} {...missingDevice(config.mediaPlayerId)} />
+    );
   }
 
   const openDetails = () => runtime.openDetails(id);

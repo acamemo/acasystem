@@ -80,11 +80,16 @@ export function CoverWidget({ id, settings, size, editMode }: WidgetProps) {
   if (!runtime.entitiesLoaded) return <WidgetLoading size={size} />;
   if (!cover.entity) return <WidgetMissing size={size} name={name} editMode={editMode} />;
 
-  const icon = aliasIcon(runtime.customIcons[id]) ?? aliasIcon(cover.entity.attributes.icon) ?? 'blinds';
+  const icon =
+    aliasIcon(runtime.customIcons[id]) ?? aliasIcon(cover.entity.attributes.icon) ?? 'blinds';
   const valueClass = cover.positionCommand.pending ? 'ctl-value ctl-value--pending' : 'ctl-value';
   const large = density === 'large' || density === 'tall';
   const status = (
-    <Caption className={cover.moving || cover.motion.pending ? 'ctl-status ctl-value--pending' : 'ctl-status'}>
+    <Caption
+      className={
+        cover.moving || cover.motion.pending ? 'ctl-status ctl-value--pending' : 'ctl-status'
+      }
+    >
       {cover.available ? (
         cover.stateLabel
       ) : (

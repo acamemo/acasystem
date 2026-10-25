@@ -26,7 +26,11 @@ function mount(
   Widget: ComponentType<WidgetProps>,
   id: string,
   entities: HassEntity[],
-  options: { settings?: CardSettings; size?: CellSize; editMode?: boolean } & Partial<WidgetRuntime> = {}
+  options: {
+    settings?: CardSettings;
+    size?: CellSize;
+    editMode?: boolean;
+  } & Partial<WidgetRuntime> = {}
 ) {
   const { settings = {}, size = { w: 2, h: 1 }, editMode = false, ...runtime } = options;
   const callService = runtime.callService ?? serviceMock();
@@ -132,7 +136,9 @@ describe('FanWidget e FanDetails', () => {
       preset_mode: 'notte',
     });
     fireEvent.click(screen.getByRole('button', { name: 'Spegni' }));
-    expect(view.callService).toHaveBeenLastCalledWith('fan', 'turn_off', { entity_id: 'fan.soffitto' });
+    expect(view.callService).toHaveBeenLastCalledWith('fan', 'turn_off', {
+      entity_id: 'fan.soffitto',
+    });
   });
 });
 
@@ -149,13 +155,21 @@ const cover = (state = 'open', attributes: Record<string, unknown> = {}) =>
 
 describe('CoverWidget e CoverDetails', () => {
   it('apri, ferma e chiudi con i servizi del legacy', () => {
-    const view = mount(CoverWidget, 'cover_card_1', [cover()], { settings: { coverId: 'cover.salotto' } });
+    const view = mount(CoverWidget, 'cover_card_1', [cover()], {
+      settings: { coverId: 'cover.salotto' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Apri Tapparella salotto' }));
-    expect(view.callService).toHaveBeenLastCalledWith('cover', 'open_cover', { entity_id: 'cover.salotto' });
+    expect(view.callService).toHaveBeenLastCalledWith('cover', 'open_cover', {
+      entity_id: 'cover.salotto',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Ferma Tapparella salotto' }));
-    expect(view.callService).toHaveBeenLastCalledWith('cover', 'stop_cover', { entity_id: 'cover.salotto' });
+    expect(view.callService).toHaveBeenLastCalledWith('cover', 'stop_cover', {
+      entity_id: 'cover.salotto',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi Tapparella salotto' }));
-    expect(view.callService).toHaveBeenLastCalledWith('cover', 'close_cover', { entity_id: 'cover.salotto' });
+    expect(view.callService).toHaveBeenLastCalledWith('cover', 'close_cover', {
+      entity_id: 'cover.salotto',
+    });
   });
 
   it('2×2: posizione inviata quando il cursore si ferma (200 ms), poi confermata', () => {
@@ -188,7 +202,9 @@ describe('CoverWidget e CoverDetails', () => {
 
   it('dettagli: preimpostazioni di posizione e inclinazione', () => {
     vi.useFakeTimers();
-    const view = mountDetails(CoverDetails, 'cover_card_1', [cover()], { coverId: 'cover.salotto' });
+    const view = mountDetails(CoverDetails, 'cover_card_1', [cover()], {
+      coverId: 'cover.salotto',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Chiusa' }));
     act(() => {
       vi.advanceTimersByTime(200);
@@ -246,9 +262,13 @@ describe('LockWidget e LockDetails', () => {
       size: { w: 2, h: 2 },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Blocca: Porta di casa' }));
-    expect(view.callService).toHaveBeenLastCalledWith('lock', 'lock', { entity_id: 'lock.ingresso' });
+    expect(view.callService).toHaveBeenLastCalledWith('lock', 'lock', {
+      entity_id: 'lock.ingresso',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Apri: Porta di casa' }));
-    expect(view.callService).toHaveBeenLastCalledWith('lock', 'open', { entity_id: 'lock.ingresso' });
+    expect(view.callService).toHaveBeenLastCalledWith('lock', 'open', {
+      entity_id: 'lock.ingresso',
+    });
   });
 
   it('senza connessione o non disponibile non invia comandi', () => {
@@ -271,7 +291,9 @@ describe('LockWidget e LockDetails', () => {
     const details = mountDetails(LockDetails, 'lock.ingresso', [lock('unlocked', withCode)]);
     fireEvent.click(screen.getByRole('button', { name: 'Blocca' }));
     expect(screen.getByText('Inserisci il codice della serratura.')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Codice di Porta di casa'), { target: { value: ' 1234 ' } });
+    fireEvent.change(screen.getByLabelText('Codice di Porta di casa'), {
+      target: { value: ' 1234 ' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Blocca' }));
     expect(details.callService).toHaveBeenCalledWith('lock', 'lock', {
       entity_id: 'lock.ingresso',
@@ -299,7 +321,9 @@ describe('AutomationWidget e AutomationDetails', () => {
     const view = mount(AutomationWidget, 'automation.notte', [automation('on')]);
     const toggle = screen.getByRole('switch', { name: 'Luci della notte' });
     fireEvent.click(toggle);
-    expect(view.callService).toHaveBeenCalledWith('automation', 'toggle', { entity_id: 'automation.notte' });
+    expect(view.callService).toHaveBeenCalledWith('automation', 'toggle', {
+      entity_id: 'automation.notte',
+    });
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     expect(toggle).toHaveAttribute('aria-busy', 'true');
     await flush();
@@ -309,16 +333,22 @@ describe('AutomationWidget e AutomationDetails', () => {
   });
 
   it('1×1 e 1×2: l’icona è l’interruttore', () => {
-    const view = mount(AutomationWidget, 'automation.notte', [automation('off')], { size: { w: 1, h: 2 } });
+    const view = mount(AutomationWidget, 'automation.notte', [automation('off')], {
+      size: { w: 1, h: 2 },
+    });
     fireEvent.click(screen.getByRole('switch', { name: 'Luci della notte' }));
-    expect(view.callService).toHaveBeenCalledWith('automation', 'toggle', { entity_id: 'automation.notte' });
+    expect(view.callService).toHaveBeenCalledWith('automation', 'toggle', {
+      entity_id: 'automation.notte',
+    });
     expect(screen.getByText(/Ultima esecuzione/)).toBeInTheDocument();
   });
 
   it('dettagli: interruttore e registro', () => {
     const view = mountDetails(AutomationDetails, 'automation.notte', [automation('on')]);
     fireEvent.click(screen.getByRole('switch', { name: 'Luci della notte' }));
-    expect(view.callService).toHaveBeenCalledWith('automation', 'toggle', { entity_id: 'automation.notte' });
+    expect(view.callService).toHaveBeenCalledWith('automation', 'toggle', {
+      entity_id: 'automation.notte',
+    });
     expect(screen.getByRole('heading', { name: 'Cronologia' })).toBeInTheDocument();
   });
 });

@@ -8,7 +8,7 @@ import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { createFixtureRuntime } from '@/utils/fixtures/runtime';
 import { connectionSummary } from '@/utils/launcher/connection';
-import { AddWidgetSheet, PageSettingsSheet, WidgetSettingsSheet } from '@/templates/sheets';
+import { AddWidgetSheet, WidgetSettingsSheet } from '@/templates/sheets';
 import { ConnectPage } from '../../connect';
 import { SystemPage } from '../SystemPage';
 import { SystemLayout } from '../SystemLayout';
@@ -24,8 +24,6 @@ const VIEWS = [
   { value: 'collega', label: 'Collegamento' },
   { value: 'aggiungi', label: 'Aggiungi widget' },
   { value: 'impostazioni', label: 'Impostazioni widget' },
-  { value: 'pagina', label: 'Impostazioni pagina' },
-  { value: 'nuova-pagina', label: 'Nuova pagina' },
 ] as const;
 
 type View = (typeof VIEWS)[number]['value'];
@@ -97,6 +95,11 @@ function useLauncherMock(): LauncherApi {
       reorderPages: () => undefined,
       setCoverEnabled: (enabled: boolean) =>
         setLayout((current) => ({ ...current, cover: { enabled } })),
+      restoreLayout: (previous: LauncherLayout) => setLayout(previous),
+      setLayoutOptions: (options) => setLayout((current) => ({ ...current, ...options })),
+      stackWidgets: () => null,
+      unstackWidget: () => undefined,
+      setStackRotate: () => undefined,
     }),
     [layout, updatePage]
   );
@@ -305,15 +308,6 @@ export function PreviewSystem() {
                 widgetId="climate_card_1"
                 settingsKey="home::climate_card_1"
                 pageId="home"
-              />
-            </SheetStage>
-          )}
-          {(view === 'pagina' || view === 'nuova-pagina') && (
-            <SheetStage title="Pagine" onOpen={() => setOpen(true)}>
-              <PageSettingsSheet
-                open={open}
-                onClose={() => setOpen(false)}
-                pageId={view === 'pagina' ? 'studio' : null}
               />
             </SheetStage>
           )}

@@ -13,7 +13,9 @@ export function SpacerWidget({ settings, editMode }: WidgetProps) {
   const variant = settings.variant === 'divider' ? 'divider' : 'spacer';
   const heading = settingString(settings, 'heading')?.trim() ?? '';
   const align: Align =
-    settings.headingAlign === 'left' || settings.headingAlign === 'right' ? settings.headingAlign : 'center';
+    settings.headingAlign === 'left' || settings.headingAlign === 'right'
+      ? settings.headingAlign
+      : 'center';
 
   return (
     <div

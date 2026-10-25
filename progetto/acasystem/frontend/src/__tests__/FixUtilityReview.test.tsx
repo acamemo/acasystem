@@ -37,7 +37,8 @@ async function readCss(path: string): Promise<string> {
   return fs.readFileSync(path, 'utf8');
 }
 
-const sizesOf = (widgetId: string, settings: CardSettings = {}) => findWidgetDefinition(widgetId, settings)?.sizes;
+const sizesOf = (widgetId: string, settings: CardSettings = {}) =>
+  findWidgetDefinition(widgetId, settings)?.sizes;
 const capped = ['cost_card_1', 'car_card_1', 'room_card_1'];
 
 describe('DES-9: costi, auto e stanza al massimo 2×2, anche nelle disposizioni migrate', () => {
@@ -105,23 +106,37 @@ describe('DES-1: Batterie e Stanze dentro il guscio comune delle pagine speciali
     ['stanze', RoomsPage],
   ] as const)('%s: nessun titolo h1 proprio (lo dà il guscio del launcher)', (pageId, Page) => {
     const runtime = createFixtureRuntime({
-      entities: fixtureEntities([fixtureEntity('sensor.porta_battery', '80', { device_class: 'battery' })]),
+      entities: fixtureEntities([
+        fixtureEntity('sensor.porta_battery', '80', { device_class: 'battery' }),
+      ]),
     });
-    render(tree(true, runtime, <Page pageId={pageId} settings={{}} onSaveSetting={() => undefined} />));
+    render(
+      tree(true, runtime, <Page pageId={pageId} settings={{}} onSaveSetting={() => undefined} />)
+    );
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
   });
 
   it('stanza aperta: nome della stanza h2 e gruppi h3 sotto il titolo h1 del guscio', async () => {
     const sendMessagePromise = vi.fn(async (message: { type: string }) => {
-      if (message.type === 'config/area_registry/list') return [{ area_id: 'cucina', name: 'Cucina' }];
-      if (message.type === 'config/entity_registry/list') return [{ entity_id: 'light.cucina', area_id: 'cucina' }];
+      if (message.type === 'config/area_registry/list')
+        return [{ area_id: 'cucina', name: 'Cucina' }];
+      if (message.type === 'config/entity_registry/list')
+        return [{ entity_id: 'light.cucina', area_id: 'cucina' }];
       return [];
     });
     const runtime = createFixtureRuntime({
       conn: { sendMessagePromise } as unknown as WidgetRuntime['conn'],
-      entities: fixtureEntities([fixtureEntity('light.cucina', 'on', { friendly_name: 'Luce cucina' })]),
+      entities: fixtureEntities([
+        fixtureEntity('light.cucina', 'on', { friendly_name: 'Luce cucina' }),
+      ]),
     });
-    render(tree(true, runtime, <RoomsPage pageId="stanze" settings={{}} onSaveSetting={() => undefined} />));
+    render(
+      tree(
+        true,
+        runtime,
+        <RoomsPage pageId="stanze" settings={{}} onSaveSetting={() => undefined} />
+      )
+    );
     fireEvent.click(await screen.findByRole('button', { name: /^Cucina:/ }));
     expect(screen.getByRole('heading', { level: 2, name: 'Cucina' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Luci' })).toBeInTheDocument();
@@ -142,7 +157,9 @@ describe('PERF-2: Nordpool senza timer fuori pagina', () => {
     vi.setSystemTime(new Date(2026, 9, 6, 14, 20));
     const today = Array.from({ length: 24 }, (_, hour) => (hour === 14 ? 0.5 : 0.2));
     const runtime = createFixtureRuntime({
-      entities: fixtureEntities([fixtureEntity('sensor.nordpool', '0.5', { today, tomorrow_valid: false })]),
+      entities: fixtureEntities([
+        fixtureEntity('sensor.nordpool', '0.5', { today, tomorrow_valid: false }),
+      ]),
     });
     const node = (
       <NordpoolWidget

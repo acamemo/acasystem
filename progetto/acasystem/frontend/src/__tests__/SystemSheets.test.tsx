@@ -1,13 +1,12 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { CardSettingsMap, PagesConfig } from '@/@types/dashboard';
-import type { LauncherApi, LauncherLayout, WidgetRuntime } from '@/@types/launcher';
-import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
+import type { WidgetRuntime } from '@/@types/launcher';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { iconNames, isIconName } from '@/components/primitives';
-import { AddWidgetSheet, PageSettingsSheet, WidgetSettingsSheet } from '@/templates/sheets';
+import { AddWidgetSheet, WidgetSettingsSheet } from '@/templates/sheets';
 import { ADD_WIDGET_TYPES, typeVisuals } from '@/templates/sheets/catalog';
 import {
   FALLBACK_ICON,
@@ -75,15 +74,16 @@ function makePages(overrides: Record<string, unknown> = {}) {
     persistConfig: vi.fn(),
     cardSettings,
     persistCardSettings: vi.fn(),
-    hiddenCards: [] as string[],
-    persistHiddenCards: vi.fn(),
     saveCardSetting: vi.fn(),
     savePageSetting: vi.fn(),
     saveCustomName: vi.fn(),
     customIcons: {} as Record<string, string>,
     saveCustomIcon: vi.fn(),
     persistCustomIcons: vi.fn(),
-    toggleCardVisibility: vi.fn(),
+    requestWidgetAdoption: vi.fn(),
+    rememberRemovedWidget: vi.fn(),
+    rememberRemovedPage: vi.fn(),
+    widgetMemoryNotice: null,
     pageSettings: {},
     ...overrides,
   };
@@ -95,42 +95,6 @@ function withRuntime(node: ReactNode, overrides: Partial<WidgetRuntime> = {}) {
       {node}
     </WidgetRuntimeProvider>
   );
-}
-
-const layout: LauncherLayout = {
-  version: 1,
-  cover: { enabled: true },
-  pages: [
-    { id: 'home', label: 'Principale', kind: 'widgets', placements: {} },
-    { id: 'studio', label: 'Studio', icon: 'Lamp', kind: 'widgets', placements: {} },
-  ],
-};
-
-function createLauncherMock(overrides: Partial<LauncherApi> = {}): LauncherApi {
-  return {
-    layout,
-    grids: {
-      phone: { w: 4, h: 6 },
-      phoneLandscape: { w: 6, h: 2 },
-      tabletPortrait: { w: 6, h: 8 },
-      tablet: { w: 8, h: 5 },
-    },
-    deviceClass: 'tablet',
-    currentPage: 1,
-    goToPage: vi.fn(),
-    editMode: true,
-    setEditMode: vi.fn(),
-    placeWidget: vi.fn(),
-    moveWidget: vi.fn(() => true),
-    resizeWidget: vi.fn(() => true),
-    removeWidget: vi.fn(),
-    addPage: vi.fn(() => 'nuova'),
-    updatePage: vi.fn(),
-    removePage: vi.fn(),
-    reorderPages: vi.fn(),
-    setCoverEnabled: vi.fn(),
-    ...overrides,
-  };
 }
 
 beforeEach(() => {
@@ -161,15 +125,17 @@ describe('AddWidgetSheet', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('crea un widget clima come il legacy e lo passa al launcher con la dimensione scelta', () => {
+  it('crea un widget clima come il legacy e lo passa al launcher alla misura predefinita', () => {
     const { onAdded, onClose } = renderAdd();
     fireEvent.click(screen.getByRole('button', { name: 'Clima' }));
     expect(screen.getByRole('heading', { name: 'Clima' })).toHaveFocus();
     const add = screen.getByRole('button', { name: 'Aggiungi il widget' });
     expect(add).toBeDisabled();
 
+    // The size is no longer chosen here: it changes on the grid by dragging (REP-20261007-027).
+    expect(screen.queryByRole('radiogroup', { name: 'Dimensione' })).not.toBeInTheDocument();
+    expect(screen.getByText(/trascina i lati o gli angoli/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Termostato soggiorno/ }));
-    fireEvent.click(screen.getByRole('button', { name: '4 × 2' }));
     fireEvent.click(add);
 
     const pages = state.pages as ReturnType<typeof makePages>;
@@ -182,7 +148,7 @@ describe('AddWidgetSheet', () => {
     const [config] = pages.persistConfig.mock.calls[0] as [PagesConfig];
     const widgetId = key.replace('home::', '');
     expect(config.home).toEqual(['light.cucina', widgetId]);
-    expect(onAdded).toHaveBeenCalledWith(widgetId, { w: 4, h: 2 });
+    expect(onAdded).toHaveBeenCalledWith(widgetId);
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -200,10 +166,7 @@ describe('AddWidgetSheet', () => {
     expect(pages.persistConfig).toHaveBeenCalledWith(
       expect.objectContaining({ home: ['light.cucina', 'light.sala'] })
     );
-    expect(onAdded.mock.calls).toEqual([
-      ['light.cucina', undefined],
-      ['light.sala', undefined],
-    ]);
+    expect(onAdded.mock.calls).toEqual([['light.cucina'], ['light.sala']]);
   });
 
   it('nasconde le luci già nella pagina e filtra con la ricerca', () => {
@@ -212,6 +175,41 @@ describe('AddWidgetSheet', () => {
     expect(screen.queryByRole('button', { name: /Luce cucina/ })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Cerca'), { target: { value: 'nessuna' } });
     expect(screen.getByText('Nessun risultato per «nessuna».')).toBeInTheDocument();
+  });
+
+  it('dal vassoio apre direttamente i dettagli del tipo trascinato', () => {
+    render(
+      withRuntime(
+        <AddWidgetSheet
+          open
+          onClose={vi.fn()}
+          pageId="home"
+          onAdded={vi.fn()}
+          initialType="climate"
+          autoAdd
+        />
+      )
+    );
+    expect(screen.getByRole('heading', { name: 'Clima' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Tipi di widget' })).not.toBeInTheDocument();
+  });
+
+  it('dal vassoio aggiunge subito un tipo senza scelte, senza mostrare il pannello', async () => {
+    const onAdded = vi.fn();
+    render(
+      withRuntime(
+        <AddWidgetSheet
+          open
+          onClose={vi.fn()}
+          pageId="home"
+          onAdded={onAdded}
+          initialType="spacer"
+          autoAdd
+        />
+      )
+    );
+    await waitFor(() => expect(onAdded).toHaveBeenCalledOnce());
+    expect(onAdded.mock.calls[0][0]).toMatch(/^spacer_card_\d+$/);
   });
 
   it('crea un separatore con le impostazioni iniziali del legacy', () => {
@@ -230,7 +228,7 @@ describe('AddWidgetSheet', () => {
       heightPx: 40,
       headingAlign: 'center',
     });
-    expect(onAdded).toHaveBeenCalledWith(key.replace('home::', ''), undefined);
+    expect(onAdded).toHaveBeenCalledWith(key.replace('home::', ''));
   });
 
   it('torna ai tipi con Indietro', () => {
@@ -281,11 +279,58 @@ describe('WidgetSettingsSheet', () => {
     fireEvent.blur(heading);
     expect(save).toHaveBeenCalledWith('home::media_group_1', 'heading', 'Sopra');
 
-    fireEvent.click(screen.getByRole('switch', { name: 'Nascondi il widget' }));
-    expect(pages.toggleCardVisibility).toHaveBeenCalledWith('media_group_1');
+    // A widget cannot be hidden any more (ADR-0019): it is removed, and its device keeps it.
+    expect(screen.queryByRole('switch', { name: 'Nascondi il widget' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'A tutto widget' }));
     expect(save).toHaveBeenCalledWith('home::media_group_1', 'artworkMode', 'cover');
+  });
+
+  it('a configuration taken from the memory after the link starts the fields again (ADR-0019)', () => {
+    const linked = { categoryWidgetType: 'light', bindingEntityId: 'light.cucina' };
+    const sheet = (settings: Record<string, unknown>, widgetMemoryNotice: unknown) => {
+      state.pages = makePages({ widgetMemoryNotice });
+      return withRuntime(
+        <WidgetSettingsSheet
+          open
+          onClose={vi.fn()}
+          widgetId="light.preset_a"
+          settingsKey="home::light.preset_a"
+          pageId="home"
+        />,
+        { cardSettings: { 'home::light.preset_a': settings }, customNames: {} }
+      );
+    };
+    const view = render(sheet(linked, null));
+    expect(screen.getByRole('textbox', { name: 'Intestazione' })).toHaveValue('');
+    view.rerender(
+      sheet(
+        { ...linked, heading: 'Sopra il piano' },
+        { seq: 1, kind: 'memory', label: null, deviceKey: 'light.cucina' }
+      )
+    );
+    expect(screen.getByRole('textbox', { name: 'Intestazione' })).toHaveValue('Sopra il piano');
+  });
+
+  it.each([
+    ['car_card_1', { type: 'car' }, true],
+    ['camera_card_1', { cameraId: 'camera.ingresso' }, true],
+    ['light.cucina', {}, false],
+  ])(
+    'the settings of the device say they hold for all its widgets (%s, ADR-0019)',
+    (widgetId, settings, scoped) => {
+      renderSettings(widgetId, { [`home::${widgetId}`]: settings });
+      const note = screen.queryAllByText('Vale per tutti i widget di questo dispositivo.');
+      expect(note.length > 0).toBe(scoped);
+    }
+  );
+
+  it('Aspetto: cornice e trasparenza dello sfondo (REP-20261007-036)', () => {
+    const save = renderSettings('light.cucina', {});
+    fireEvent.click(screen.getByRole('button', { name: 'Media' }));
+    expect(save).toHaveBeenCalledWith('home::light.cucina', 'appearanceOpacity', 50);
+    fireEvent.click(screen.getByRole('switch', { name: 'Cornice' }));
+    expect(save).toHaveBeenCalledWith('home::light.cucina', 'appearanceFrame', false);
   });
 
   it('attiva la visibilità condizionale con la regola predefinita del legacy', () => {
@@ -451,131 +496,12 @@ describe('WidgetSettingsSheet', () => {
   });
 });
 
-describe('PageSettingsSheet', () => {
-  function renderPage(pageId: string | null, launcher = createLauncherMock(), onClose = vi.fn()) {
-    render(
-      <LauncherProvider value={launcher}>
-        <PageSettingsSheet open onClose={onClose} pageId={pageId} />
-      </LauncherProvider>
-    );
-    return { launcher, onClose };
-  }
-
-  it('crea una pagina di widget con nome e tipo', () => {
-    const { launcher, onClose } = renderPage(null);
-    expect(screen.getByRole('dialog', { name: 'Nuova pagina' })).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('textbox', { name: 'Nome' }), {
-      target: { value: '  Ufficio ' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Crea la pagina' }));
-    expect(launcher.addPage).toHaveBeenCalledWith({
-      label: 'Ufficio',
-      icon: undefined,
-      kind: 'widgets',
-    });
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('crea una pagina speciale con nome e icona predefiniti', () => {
-    const { launcher } = renderPage(null);
-    fireEvent.click(screen.getByRole('button', { name: 'Luci' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Crea la pagina' }));
-    expect(launcher.addPage).toHaveBeenCalledWith({
-      label: 'Luci',
-      icon: 'light',
-      kind: 'lights',
-    });
-  });
-
-  it('un’icona legacy della pagina resta salvata, si vede generica e si sostituisce con una del kit', () => {
-    const { launcher } = renderPage('studio');
-    const row = screen.getByRole('button', { name: 'Icona: «Lamp», mostrata come generica' });
-    expect(row.querySelector('svg')).not.toBeNull();
-    expect(launcher.updatePage).not.toHaveBeenCalled();
-
-    fireEvent.click(row);
-    expect(screen.getByText(/L’icona salvata «Lamp» non fa parte del kit/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Lampada' }));
-    expect(launcher.updatePage).toHaveBeenCalledWith('studio', { icon: 'lamp' });
-  });
-
-  it('rinomina, nasconde ed elimina con conferma', () => {
-    const { launcher, onClose } = renderPage('studio');
-    expect(screen.getByRole('dialog', { name: 'Impostazioni della pagina' })).toBeInTheDocument();
-    const name = screen.getByRole('textbox', { name: 'Nome' });
-    fireEvent.change(name, { target: { value: 'Studio grande' } });
-    fireEvent.blur(name);
-    expect(launcher.updatePage).toHaveBeenCalledWith('studio', { label: 'Studio grande' });
-
-    fireEvent.change(name, { target: { value: '   ' } });
-    fireEvent.blur(name);
-    expect(screen.getByText('Il nome non può essere vuoto: resta quello di prima.')).toBeVisible();
-
-    fireEvent.click(screen.getByRole('switch', { name: 'Nascondi la pagina' }));
-    expect(launcher.updatePage).toHaveBeenCalledWith('studio', { hidden: true });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Elimina la pagina' }));
-    expect(launcher.removePage).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Annulla' })).toHaveFocus();
-    fireEvent.click(screen.getByRole('button', { name: 'Elimina la pagina' }));
-    expect(launcher.removePage).toHaveBeenCalledWith('studio');
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('non permette di eliminare la pagina principale', () => {
-    renderPage('home');
-    expect(screen.queryByRole('button', { name: 'Elimina la pagina' })).not.toBeInTheDocument();
-    expect(screen.getByText('La pagina principale non si può eliminare.')).toBeInTheDocument();
-  });
-
-  it('riordina una pagina senza coinvolgere la copertina e annuncia la nuova posizione', () => {
-    const { launcher } = renderPage('studio');
-    expect(screen.getByRole('button', { name: 'Sposta dopo' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Sposta prima' }));
-    expect(launcher.reorderPages).toHaveBeenCalledWith(['studio', 'home']);
-    expect(screen.getByRole('status')).toHaveTextContent('Pagina spostata alla posizione 1 di 2.');
-    expect(launcher.setCoverEnabled).not.toHaveBeenCalled();
-  });
-
-  it.each(['media', 'sonos'] as const)(
-    '%s: i lettori si configurano nel foglio raggiungibile, separato dalla pagina inert',
-    (kind) => {
-      const launcher = createLauncherMock({
-        layout: {
-          ...layout,
-          pages: [...layout.pages, { id: 'musica', label: 'Musica', kind, placements: {} }],
-        },
-      });
-      render(
-        withRuntime(
-          <LauncherProvider value={launcher}>
-            <PageSettingsSheet open onClose={vi.fn()} pageId="musica" />
-          </LauncherProvider>
-        )
-      );
-      const pages = state.pages as ReturnType<typeof makePages>;
-      const label = kind === 'sonos' ? 'Sonos studio' : 'Salotto';
-      const toggle = screen.getByRole('switch', { name: label });
-      expect(toggle.closest('[inert]')).toBeNull();
-      expect(toggle).toHaveAttribute('aria-checked', 'true');
-      fireEvent.click(toggle);
-      expect(pages.savePageSetting).toHaveBeenCalledWith('musica', 'mediaIds', []);
-      fireEvent.click(screen.getByRole('button', { name: 'Nascondi tutti' }));
-      expect(pages.savePageSetting).toHaveBeenLastCalledWith('musica', 'mediaIds', []);
-      fireEvent.click(screen.getByRole('button', { name: 'Mostra tutti' }));
-      expect(pages.savePageSetting).toHaveBeenLastCalledWith('musica', 'mediaIds', null);
-      expect(toggle).toHaveAccessibleName(label);
-    }
-  );
-
-  it('chiude con Escape come ogni foglio', () => {
-    const { onClose } = renderPage('studio');
-    act(() => {
-      fireEvent.keyDown(document, { key: 'Escape' });
-    });
-    expect(onClose).toHaveBeenCalled();
-  });
-});
+/*
+ * The page settings sheet was split into the page editor (REP-20261008-001): new pages from
+ * its «Nuova» menu, name, order and hiding under the card and in its bar (LauncherScreen.test),
+ * the players of the media pages in «Gestisci» of the page (AvMediaPage.test). The page icon is
+ * no longer chosen (E6): it stays in the data of the ready pages.
+ */
 
 describe('Icone del catalogo e del selettore', () => {
   it('ogni tipo del foglio di aggiunta usa un’icona del kit, diversa da quella degli altri', () => {
@@ -614,7 +540,7 @@ describe('Icone del catalogo e del selettore', () => {
     const choices = pickerIcons();
     for (const choice of choices) expect(isIconName(choice.name), choice.name).toBe(true);
     expect(choices.map((choice) => choice.name)).not.toContain('chevronDown');
-    expect(choices.length).toBe(iconNames.length - 7);
+    expect(choices.length).toBe(iconNames.length - 12);
     expect(matchIcons(choices, 'VENTI').map((choice) => choice.name)).toEqual(['fan']);
     expect(matchIcons(choices, 'thermo').map((choice) => choice.name)).toEqual(['thermostat']);
     expect(iconLabel('mower')).toBe('Tosaerba');

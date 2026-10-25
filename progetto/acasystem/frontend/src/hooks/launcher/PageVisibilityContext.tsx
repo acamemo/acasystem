@@ -7,6 +7,30 @@ import { createContext, useContext, useSyncExternalStore } from 'react';
  */
 export const PageVisibilityContext = createContext(true);
 
+/**
+ * Whether the page is the one on screen or the next to it. The Pager provides it, so a heavy page
+ * can fetch its code before the swipe that brings it (modulepreload); false outside the Pager.
+ */
+export const PageNearContext = createContext(false);
+
+let pagerSizeCount = 0;
+
+/**
+ * How many times a pager has changed size (ISSUE-109, review of R10). A page the browser skips is
+ * not told when the pager changes size, and a jump can show it before its observers have
+ * reported: a grid compares this with the count it measured at, and measures again when the page
+ * comes near, before it is drawn, only if the two differ. The Pager is the one that bumps it.
+ */
+export const pagerSizeEpoch = () => pagerSizeCount;
+export const markPagerResized = () => {
+  pagerSizeCount += 1;
+};
+
+/** True when the page holding this subtree is on screen or next to it in the pager. */
+export function usePageNear(): boolean {
+  return useContext(PageNearContext);
+}
+
 const subscribe = (onChange: () => void) => {
   if (typeof document === 'undefined') return () => undefined;
   document.addEventListener('visibilitychange', onChange);

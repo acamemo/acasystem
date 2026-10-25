@@ -79,16 +79,22 @@ describe('valueFit: stima della lettura che cresce con il widget', () => {
     expect(plain.lines).toBe(1);
     expect(withUnit.fit).toBeGreaterThan(plain.fit);
     expect(withUnit.fit).toBeLessThan(figureFit('21,4 °C').fit);
-    expect(stateFit('Non disponibile', 1, 1.3).fit).toBeGreaterThan(stateFit('Non disponibile', 1).fit);
+    expect(stateFit('Non disponibile', 1, 1.3).fit).toBeGreaterThan(
+      stateFit('Non disponibile', 1).fit
+    );
     expect(stateFit('Non disponibile', 1, 1.3).lines).toBe(1);
   });
 });
 
 describe('SensorWidget 2×2: due poli', () => {
-  const backup = fixtureEntity('sensor.backup', 'idle', { friendly_name: 'Backup Backup Manager state' });
+  const backup = fixtureEntity('sensor.backup', 'idle', {
+    friendly_name: 'Backup Backup Manager state',
+  });
 
   it('stato testuale senza comando: nome in alto, lettura in basso che cresce, niente riga vuota', () => {
-    const { container } = mount(SensorWidget, 'entity_card_1', [backup], { entityId: 'sensor.backup' });
+    const { container } = mount(SensorWidget, 'entity_card_1', [backup], {
+      entityId: 'sensor.backup',
+    });
     expect(top(container)).toHaveTextContent('Backup Backup Manager state');
     const reading = screen.getByText('Inattivo');
     expect(pole(container)).toContainElement(reading);
@@ -115,7 +121,12 @@ describe('SensorWidget 2×2: due poli', () => {
     const { container } = mount(
       SensorWidget,
       'entity_card_3',
-      [fixtureEntity('sensor.consumo', '1840', { friendly_name: 'Consumo', unit_of_measurement: 'W' })],
+      [
+        fixtureEntity('sensor.consumo', '1840', {
+          friendly_name: 'Consumo',
+          unit_of_measurement: 'W',
+        }),
+      ],
       { entityId: 'sensor.consumo', showGraph: false }
     );
     const figure = container.querySelector('.ctl-figure');
@@ -128,7 +139,13 @@ describe('SensorWidget 2×2: due poli', () => {
     const { container } = mount(
       SensorWidget,
       'entity_card_4',
-      [fixtureEntity('sensor.temperatura', '21.5', { friendly_name: 'Temperatura', unit_of_measurement: '°C', device_class: 'temperature' })],
+      [
+        fixtureEntity('sensor.temperatura', '21.5', {
+          friendly_name: 'Temperatura',
+          unit_of_measurement: '°C',
+          device_class: 'temperature',
+        }),
+      ],
       { entityId: 'sensor.temperatura' }
     );
     expect(pole(container)).toBeNull();
@@ -152,8 +169,18 @@ describe('SensorWidget 2×2: due poli', () => {
   });
 
   it('le altre dimensioni non cambiano', () => {
-    for (const size of [{ w: 1, h: 1 }, { w: 2, h: 1 }, { w: 1, h: 2 }]) {
-      const { container, unmount } = mount(SensorWidget, 'entity_card_1', [backup], { entityId: 'sensor.backup' }, size);
+    for (const size of [
+      { w: 1, h: 1 },
+      { w: 2, h: 1 },
+      { w: 1, h: 2 },
+    ]) {
+      const { container, unmount } = mount(
+        SensorWidget,
+        'entity_card_1',
+        [backup],
+        { entityId: 'sensor.backup' },
+        size
+      );
       expect(pole(container)).toBeNull();
       expect(container.querySelector('.ctl-fit')).toBeNull();
       unmount();
@@ -164,7 +191,10 @@ describe('SensorWidget 2×2: due poli', () => {
 describe('Coerenza degli altri widget 2×2: lettura e comando in basso', () => {
   it('luce senza luminosità: lo stato è la lettura in basso, una sola volta', () => {
     const { container } = mount(LightWidget, 'light.ingresso', [
-      fixtureEntity('light.ingresso', 'on', { friendly_name: 'Ingresso', supported_color_modes: ['onoff'] }),
+      fixtureEntity('light.ingresso', 'on', {
+        friendly_name: 'Ingresso',
+        supported_color_modes: ['onoff'],
+      }),
     ]);
     const reading = screen.getByText('Acceso');
     expect(pole(container)).toContainElement(reading);
@@ -186,7 +216,11 @@ describe('Coerenza degli altri widget 2×2: lettura e comando in basso', () => {
 
   it('luce dimmerabile: percentuale e cursore insieme in basso', () => {
     const { container } = mount(LightWidget, 'light.cucina', [
-      fixtureEntity('light.cucina', 'on', { friendly_name: 'Cucina', supported_color_modes: ['brightness'], brightness: 128 }),
+      fixtureEntity('light.cucina', 'on', {
+        friendly_name: 'Cucina',
+        supported_color_modes: ['brightness'],
+        brightness: 128,
+      }),
     ]);
     const area = pole(container);
     expect(area).toContainElement(screen.getByRole('slider', { name: 'Luminosità di Cucina' }));
@@ -202,7 +236,11 @@ describe('Coerenza degli altri widget 2×2: lettura e comando in basso', () => {
     expect(pole(bagno.container)?.querySelector('.ctl-figure')).toHaveClass('ctl-fit');
     bagno.unmount();
     const soffitto = mount(FanWidget, 'fan.soffitto', [
-      fixtureEntity('fan.soffitto', 'on', { friendly_name: 'Soffitto', supported_features: 63, percentage: 40 }),
+      fixtureEntity('fan.soffitto', 'on', {
+        friendly_name: 'Soffitto',
+        supported_features: 63,
+        percentage: 40,
+      }),
     ]);
     const area = pole(soffitto.container);
     expect(area).toContainElement(screen.getByRole('slider'));
@@ -229,7 +267,13 @@ describe('Coerenza degli altri widget 2×2: lettura e comando in basso', () => {
     expect(area).toContainElement(screen.getByRole('slider'));
     expect(area).toContainElement(screen.getByRole('button', { name: 'Chiudi Salotto' }));
     large.unmount();
-    const wide = mount(CoverWidget, 'cover_card_1', [entity], { coverId: 'cover.salotto' }, { w: 2, h: 1 });
+    const wide = mount(
+      CoverWidget,
+      'cover_card_1',
+      [entity],
+      { coverId: 'cover.salotto' },
+      { w: 2, h: 1 }
+    );
     expect(pole(wide.container)).toBeNull();
   });
 });
@@ -243,6 +287,8 @@ describe('controls.css: regole dei due poli', () => {
     expect(fit).toMatch(/100cqi\s*\/\s*var\(--aca-ctl-fit/);
     expect(fit).toMatch(/cqh/);
     expect(fit).toMatch(/clamp\(\s*var\(--aca-step-0\)/);
-    expect(css).toMatch(/\.ctl-pole > \.ctl-fit--figure\s*\{\s*--aca-ctl-fit-max:\s*var\(--aca-step-6\)/);
+    expect(css).toMatch(
+      /\.ctl-pole > \.ctl-fit--figure\s*\{\s*--aca-ctl-fit-max:\s*var\(--aca-step-6\)/
+    );
   });
 });

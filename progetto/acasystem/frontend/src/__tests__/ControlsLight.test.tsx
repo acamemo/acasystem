@@ -7,7 +7,11 @@ import { GESTURE_SEND_INTERVAL_MS } from '@/components/widgets/controls/shared/u
 import { fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { flush, renderWithRuntime, serviceMock } from './ControlsHarness';
 
-const kitchen = (state = 'on', brightness: number | null = 128, extra: Record<string, unknown> = {}) =>
+const kitchen = (
+  state = 'on',
+  brightness: number | null = 128,
+  extra: Record<string, unknown> = {}
+) =>
   fixtureEntity('light.cucina', state, {
     friendly_name: 'Luce cucina',
     supported_color_modes: ['brightness'],
@@ -63,11 +67,15 @@ describe('LightWidget: densità per dimensione', () => {
 
   it('2×1 e 1×2: alternativa +/− al gesto', () => {
     renderLight({ w: 2, h: 1 });
-    expect(screen.getByRole('button', { name: 'Aumenta la luminosità di Luce cucina' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Aumenta la luminosità di Luce cucina' })
+    ).toBeEnabled();
     expect(screen.getByText('Acceso')).toBeInTheDocument();
     cleanup();
     renderLight({ w: 1, h: 2 });
-    expect(screen.getByRole('button', { name: 'Diminuisci la luminosità di Luce cucina' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Diminuisci la luminosità di Luce cucina' })
+    ).toBeEnabled();
   });
 
   it('2×2: cursore della luminosità', () => {
@@ -78,14 +86,23 @@ describe('LightWidget: densità per dimensione', () => {
   });
 
   it('luce non dimmerabile: niente percentuale né gesto', () => {
-    renderLight({ w: 2, h: 1 }, { entity: kitchen('on', null, { supported_color_modes: ['onoff'] }) });
+    renderLight(
+      { w: 2, h: 1 },
+      { entity: kitchen('on', null, { supported_color_modes: ['onoff'] }) }
+    );
     expect(knob()).not.toHaveAttribute('aria-describedby');
     expect(screen.queryByRole('button', { name: /luminosità/ })).toBeNull();
   });
 
   it('gruppo: conta le luci accese', () => {
     const view = renderWithRuntime(
-      <LightWidget id="light.gruppo" settingsKey="light.gruppo" settings={{}} size={{ w: 2, h: 1 }} editMode={false} />,
+      <LightWidget
+        id="light.gruppo"
+        settingsKey="light.gruppo"
+        settings={{}}
+        size={{ w: 2, h: 1 }}
+        editMode={false}
+      />,
       {
         entities: fixtureEntities([
           fixtureEntity('light.gruppo', 'on', {
@@ -111,7 +128,13 @@ describe('LightWidget: stati', () => {
 
   it('entità mancante: messaggio chiaro, nessun comando', () => {
     renderWithRuntime(
-      <LightWidget id="light.sparita" settingsKey="light.sparita" settings={{}} size={{ w: 2, h: 2 }} editMode={false} />
+      <LightWidget
+        id="light.sparita"
+        settingsKey="light.sparita"
+        settings={{}}
+        size={{ w: 2, h: 2 }}
+        editMode={false}
+      />
     );
     expect(screen.getByText('Dispositivo non trovato')).toBeInTheDocument();
     expect(screen.queryByRole('switch')).toBeNull();
@@ -362,7 +385,10 @@ describe('LightDetails', () => {
           supported_color_modes: ['brightness'],
           brightness: 255,
         }),
-        fixtureEntity('light.b', 'off', { friendly_name: 'Lampada B', supported_color_modes: ['onoff'] }),
+        fixtureEntity('light.b', 'off', {
+          friendly_name: 'Lampada B',
+          supported_color_modes: ['onoff'],
+        }),
       ],
       'light.gruppo'
     );

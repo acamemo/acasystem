@@ -8,7 +8,13 @@ export type MaybeEntity = HassEntity | null | undefined;
 
 /** Unknown or unavailable states, or no state at all. */
 export function isUnavailableState(state: unknown): boolean {
-  return state === undefined || state === null || state === '' || state === 'unavailable' || state === 'unknown';
+  return (
+    state === undefined ||
+    state === null ||
+    state === '' ||
+    state === 'unavailable' ||
+    state === 'unknown'
+  );
 }
 
 export function attr(entity: MaybeEntity, key: string): unknown {
@@ -72,7 +78,10 @@ export function settingFlag(settings: CardSettings, key: string): boolean {
   return settings[key] !== false;
 }
 
-export function entityOf(entities: EntityMap, id: string | null | undefined): HassEntity | undefined {
+export function entityOf(
+  entities: EntityMap,
+  id: string | null | undefined
+): HassEntity | undefined {
   return id ? entities[id] : undefined;
 }
 

@@ -1,3 +1,4 @@
+import { useServiceCatalog } from '../../adaptive/useServiceCatalog';
 import { useEffect, useId, useMemo, useState } from 'react';
 import {
   Body,
@@ -10,14 +11,20 @@ import {
 } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
-import { friendlyName, isUnavailableState, listAttr, settingString, stringAttr } from '../shared/entity';
+import {
+  friendlyName,
+  isUnavailableState,
+  listAttr,
+  settingString,
+  stringAttr,
+} from '../shared/entity';
 import { formatCompact, formatDuration, formatRelative, parseNumber } from '../shared/format';
 import { DetailsBody, OptionPicker, Section, StatList, type StatItem } from '../shared/details';
 import { Chip, Meter, Notice, commandNotice } from '../shared/UtilityCard';
 import { UtilityIcon } from '../shared/UtilityIcon';
 import { stateIn, useCommand, type CommandRequest } from '../shared/useCommand';
 import { CommandButton } from '../shared/controls';
-import { isErrorState, vacuumSpec } from './robotSpecs';
+import { isErrorState, robotActionSupported, vacuumSpec } from './robotSpecs';
 import { useVacuumRegistry } from './useVacuumRegistry';
 import { readKey } from '@/validators/guards';
 import {
@@ -26,7 +33,6 @@ import {
   mopControl,
   primaryAction,
   relatedSensors,
-  roomSelectId,
   telemetry,
   vacuumConsumables,
   vacuumDiagnostics,
@@ -61,21 +67,39 @@ function writeStorage(key: string, value: string) {
 }
 
 const readingText = (reading: Reading | null) =>
-  reading ? `${formatCompact(parseNumber(reading.value), 1, reading.value)}${reading.unit ? ` ${reading.unit}` : ''}` : '--';
+  reading
+    ? `${formatCompact(parseNumber(reading.value), 1, reading.value)}${reading.unit ? ` ${reading.unit}` : ''}`
+    : '--';
 
 const PRIMARY_LABEL = { start: 'Avvia', pause: 'Pausa', stop: 'Arresta' } as const;
-const PRIMARY_REQUESTED = { start: 'Avvio richiesto…', pause: 'Pausa richiesta…', stop: 'Arresto richiesto…' } as const;
+const PRIMARY_REQUESTED = {
+  start: 'Avvio richiesto…',
+  pause: 'Pausa richiesta…',
+  stop: 'Arresto richiesto…',
+} as const;
 
 /** Vacuum details (legacy VacuumModal): commands, cleaning options, rooms, map, statistics, maintenance. */
 export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
+  const services = useServiceCatalog();
   const { entities } = runtime;
   const entity = entities[id];
+  const [configurationError, setConfigurationError] = useState<string | null>(null);
+  const bindings = settings.adaptiveBindings ?? {};
+  const configuredIds = new Set([id]);
+  const collectIds = (value: unknown) => {
+    if (typeof value === 'string' && entities[value]) configuredIds.add(value);
+    else if (Array.isArray(value)) value.forEach(collectIds);
+    else if (value && typeof value === 'object') Object.values(value).forEach(collectIds);
+  };
+  collectIds(settings);
   const command = useCommand(entity);
   const registry = useVacuumRegistry(runtime.conn, id);
   const keys = storageKeys(id);
   const [showMap, setShowMap] = useState(() => readStorage(keys.showMap) !== 'false');
-  const [selectedMap, setSelectedMap] = useState<string | null>(() => readStorage(keys.selectedMap));
+  const [selectedMap, setSelectedMap] = useState<string | null>(() =>
+    readStorage(keys.selectedMap)
+  );
   const [mapScale, setMapScale] = useState(() => {
     const saved = parseNumber(readStorage(keys.scale));
     return saved !== null ? Math.min(4, Math.max(1, saved)) : 1;
@@ -98,15 +122,28 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
   }, [keys.scale, mapScale]);
 
   const identity = useMemo(() => vacuumIdentity(id, entity), [id, entity]);
-  const sensors = useMemo(() => relatedSensors(entities, identity, registry.relations), [entities, identity, registry.relations]);
-  const roomSelect = roomSelectId(entities, identity, registry.relations, settings);
+  const sensors = useMemo(
+    () => relatedSensors(entities, identity, registry.relations),
+    [entities, identity, registry.relations]
+  );
+  const roomSelect =
+    settingString(settings, 'roomSelectEntityId') ??
+    (typeof bindings.area === 'string' ? bindings.area : null);
   const roomOptions = listAttr(roomSelect ? entities[roomSelect] : undefined, 'options');
   const scriptList: unknown[] = Array.isArray(settings.roomScripts) ? settings.roomScripts : [];
   const roomScripts = scriptList.flatMap((item: unknown) => {
     const entityId = readKey(item, 'entityId');
     const label = readKey(item, 'label');
     return typeof entityId === 'string' && entityId
-      ? [{ entityId, label: typeof label === 'string' && label ? label : friendlyName(entities[entityId], entityId) }]
+      ? [
+          {
+            entityId,
+            label:
+              typeof label === 'string' && label
+                ? label
+                : friendlyName(entities[entityId], entityId),
+          },
+        ]
       : [];
   });
   const mapIds = vacuumMapIds(entities, identity, settings);
@@ -136,10 +173,34 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
           ? 'Ricerca richiesta…'
           : vacuumSpec.stateLabel(entity.state, stats.battery);
   const notice = commandNotice(command.errorKey, command.unconfirmedKey);
-  const send = (request: CommandRequest) => command.run({ ...request, data: request.data ?? { entity_id: id } });
+  const send = (request: CommandRequest) => {
+    const target = request.data?.entity_id ?? readKey(request.data?.target, 'entity_id') ?? id;
+    const ids = Array.isArray(target) ? target : [target];
+    if (
+      !runtime.conn ||
+      !services?.[request.domain]?.[request.service] ||
+      ids.some((target) => typeof target !== 'string' || !configuredIds.has(target))
+    ) {
+      setConfigurationError(
+        'Associa il dispositivo e verifica il servizio nelle impostazioni del widget.'
+      );
+      return;
+    }
+    setConfigurationError(null);
+    command.run({ ...request, data: request.data ?? { entity_id: id } });
+  };
 
   const fanSpeed = stringAttr(entity, 'fan_speed');
-  const mop = mopControl(entities, entity, registry.relations, settings);
+  const mop = mopControl(entities, entity, registry.relations, {
+    ...settings,
+    mopIntensityControlEntityId: settings.mopIntensityControlEntityId ?? bindings.mop,
+  });
+  const mopAvailable =
+    mop.available &&
+    (mop.entityId
+      ? configuredIds.has(mop.entityId) &&
+        Boolean(services?.[mop.entityId.split('.')[0]!]?.select_option)
+      : Boolean(services?.vacuum?.set_mop_intensity));
   const consumables = vacuumConsumables(entities, identity, registry.relations);
   const diagnostics = vacuumDiagnostics(entities, identity, registry.relations);
   const shown = new Set<string>([id, ...diagnostics.map((item) => item.id)]);
@@ -158,18 +219,42 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
     if (mapped) shown.add(mapped);
   }
   const advanced = telemetry(entities, registry.relations, shown);
-  const lastClean = stats.lastClean ? formatRelative(stats.lastClean) ?? stats.lastClean : '--';
+  const lastClean = stats.lastClean ? (formatRelative(stats.lastClean) ?? stats.lastClean) : '--';
   const areaUnit = stats.totalArea?.unit ?? 'm²';
 
   const history: StatItem[] = [
-    { key: 'cleaningTime', label: 'Durata della pulizia', value: stats.cleaningTime ? formatDuration(parseNumber(stats.cleaningTime.value), stats.cleaningTime.unit) : '--' },
+    {
+      key: 'cleaningTime',
+      label: 'Durata della pulizia',
+      value: stats.cleaningTime
+        ? formatDuration(parseNumber(stats.cleaningTime.value), stats.cleaningTime.unit)
+        : '--',
+    },
     { key: 'cleanedArea', label: 'Area pulita', value: readingText(stats.cleanedArea) },
     { key: 'totalCount', label: 'Pulizie totali', value: stats.totalCount ?? '--' },
     { key: 'totalTime', label: 'Tempo totale', value: readingText(stats.totalTime) },
     { key: 'totalArea', label: 'Area totale', value: readingText(stats.totalArea) },
     { key: 'last', label: 'Ultima pulizia', value: lastClean },
-    ...(stats.avgTime !== null ? [{ key: 'avgTime', label: 'Durata media', value: formatCompact(stats.avgTime, 0), unit: 'min' }] : []),
-    ...(stats.avgArea !== null ? [{ key: 'avgArea', label: 'Area media', value: formatCompact(stats.avgArea, 1), unit: areaUnit }] : []),
+    ...(stats.avgTime !== null
+      ? [
+          {
+            key: 'avgTime',
+            label: 'Durata media',
+            value: formatCompact(stats.avgTime, 0),
+            unit: 'min',
+          },
+        ]
+      : []),
+    ...(stats.avgArea !== null
+      ? [
+          {
+            key: 'avgArea',
+            label: 'Area media',
+            value: formatCompact(stats.avgArea, 1),
+            unit: areaUnit,
+          },
+        ]
+      : []),
   ];
 
   const hasRooms = registry.areas.length > 0 || roomOptions.length > 0 || roomScripts.length > 0;
@@ -199,7 +284,11 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
           {stats.battery !== null && (
             <div className="utility-stack">
               <Caption>Batteria {formatCompact(stats.battery, 0)}%</Caption>
-              <Meter value={stats.battery} label="Batteria dell’aspirapolvere" low={stats.battery < 20} />
+              <Meter
+                value={stats.battery}
+                label="Batteria dell’aspirapolvere"
+                low={stats.battery < 20}
+              />
             </div>
           )}
         </div>
@@ -208,7 +297,11 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
             variant={primary === 'start' ? 'primary' : 'control'}
             size="md"
             loading={pending === primary}
-            disabled={unavailable}
+            disabled={
+              unavailable ||
+              !runtime.conn ||
+              !robotActionSupported(entity, 'vacuum', primary, services)
+            }
             onClick={() =>
               send({
                 key: primary,
@@ -218,24 +311,32 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
               })
             }
           >
-            <UtilityIcon name={primary === 'start' ? 'play' : primary === 'pause' ? 'pause' : 'stop'} size="md" />
+            <UtilityIcon
+              name={primary === 'start' ? 'play' : primary === 'pause' ? 'pause' : 'stop'}
+              size="md"
+            />
             {PRIMARY_LABEL[primary]}
           </Button>
-          {features.canReturnToBase && (
+          {features.canReturnToBase && Boolean(services?.vacuum?.return_to_base) && (
             <Button
               variant="control"
               size="md"
               loading={pending === 'dock'}
               disabled={unavailable}
               onClick={() =>
-                send({ key: 'dock', domain: 'vacuum', service: 'return_to_base', confirm: stateIn(...VACUUM_CONFIRM.dock) })
+                send({
+                  key: 'dock',
+                  domain: 'vacuum',
+                  service: 'return_to_base',
+                  confirm: stateIn(...VACUUM_CONFIRM.dock),
+                })
               }
             >
               <UtilityIcon name="home" size="md" />
               Torna alla base
             </Button>
           )}
-          {features.canLocate && (
+          {features.canLocate && Boolean(services?.vacuum?.locate) && (
             <Button
               variant="control"
               size="md"
@@ -248,7 +349,14 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
             </Button>
           )}
         </div>
-        {unavailable && <Notice icon="wifi">Il dispositivo non è raggiungibile: i comandi sono sospesi.</Notice>}
+        {unavailable && (
+          <Notice icon="wifi">Il dispositivo non è raggiungibile: i comandi sono sospesi.</Notice>
+        )}
+        {configurationError && (
+          <Notice tone="danger" live>
+            {configurationError}
+          </Notice>
+        )}
         {notice && (
           <Notice tone={notice.tone} icon="warning" live>
             {notice.text}
@@ -256,10 +364,10 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
         )}
       </Section>
 
-      {(features.canSetFanSpeed || mop.available) && (
+      {((features.canSetFanSpeed && Boolean(services?.vacuum?.set_fan_speed)) || mopAvailable) && (
         <Section title="Pulizia" icon="fan">
           <div className="utility-toolbar">
-            {features.canSetFanSpeed && (
+            {features.canSetFanSpeed && Boolean(services?.vacuum?.set_fan_speed) && (
               <OptionPicker
                 label="Aspirazione"
                 value={fanSpeed}
@@ -277,7 +385,7 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
                 }
               />
             )}
-            {mop.available && (
+            {mopAvailable && (
               <OptionPicker
                 label="Lavaggio"
                 value={mop.current}
@@ -314,57 +422,65 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
           {registry.loading && registry.areas.length === 0 ? (
             <Skeleton variant="list" rows={1} label="Caricamento delle stanze…" />
           ) : null}
-          {registry.areas.length > 0 && (
-            <div className="utility-stack">
-              <Caption>Scegli le aree da pulire</Caption>
-              <div className="utility-toolbar" role="group" aria-label="Aree da pulire">
-                {registry.areas.map((area) => {
-                  const chosen = selectedAreas.includes(area.area_id);
-                  return (
-                    <Button
-                      key={area.area_id}
-                      variant="control"
-                      size="sm"
-                      aria-pressed={chosen}
-                      onClick={() =>
-                        setSelectedAreas((current) =>
-                          chosen ? current.filter((item) => item !== area.area_id) : [...current, area.area_id]
-                        )
-                      }
-                    >
-                      {area.name ?? area.area_id}
-                    </Button>
-                  );
-                })}
+          {registry.areas.length > 0 &&
+            robotActionSupported(entity, 'vacuum', 'clean_area', services) && (
+              <div className="utility-stack">
+                <Caption>Scegli le aree da pulire</Caption>
+                <div className="utility-toolbar" role="group" aria-label="Aree da pulire">
+                  {registry.areas.map((area) => {
+                    const chosen = selectedAreas.includes(area.area_id);
+                    return (
+                      <Button
+                        key={area.area_id}
+                        variant="control"
+                        size="sm"
+                        aria-pressed={chosen}
+                        onClick={() =>
+                          setSelectedAreas((current) =>
+                            chosen
+                              ? current.filter((item) => item !== area.area_id)
+                              : [...current, area.area_id]
+                          )
+                        }
+                      >
+                        {area.name ?? area.area_id}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <div className="utility-toolbar">
+                  <Button
+                    variant="primary"
+                    size="md"
+                    disabled={selectedAreas.length === 0 || unavailable}
+                    loading={pending === 'areas'}
+                    onClick={() => {
+                      send({
+                        key: 'areas',
+                        domain: 'vacuum',
+                        service: 'clean_area',
+                        data: { target: { entity_id: id }, cleaning_area_id: selectedAreas },
+                      });
+                      setSelectedAreas([]);
+                    }}
+                  >
+                    {selectedAreas.length > 0
+                      ? `Pulisci ${selectedAreas.length} ${selectedAreas.length === 1 ? 'area' : 'aree'}`
+                      : 'Pulisci le aree scelte'}
+                  </Button>
+                </div>
               </div>
-              <div className="utility-toolbar">
-                <Button
-                  variant="primary"
-                  size="md"
-                  disabled={selectedAreas.length === 0 || unavailable}
-                  loading={pending === 'areas'}
-                  onClick={() => {
-                    send({
-                      key: 'areas',
-                      domain: 'vacuum',
-                      service: 'clean_area',
-                      data: { target: { entity_id: id }, cleaning_area_id: selectedAreas },
-                    });
-                    setSelectedAreas([]);
-                  }}
-                >
-                  {selectedAreas.length > 0
-                    ? `Pulisci ${selectedAreas.length} ${selectedAreas.length === 1 ? 'area' : 'aree'}`
-                    : 'Pulisci le aree scelte'}
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
           {roomSelect && roomOptions.length > 0 && (
             <div className="utility-toolbar">
               <OptionPicker
                 label="Stanza"
-                value={selectedRoom ?? (roomOptions.includes(entities[roomSelect]?.state ?? '') ? entities[roomSelect]?.state ?? null : roomOptions[0] ?? null)}
+                value={
+                  selectedRoom ??
+                  (roomOptions.includes(entities[roomSelect]?.state ?? '')
+                    ? (entities[roomSelect]?.state ?? null)
+                    : (roomOptions[0] ?? null))
+                }
                 options={roomOptions.map((option) => ({ value: option, label: option }))}
                 onSelect={setSelectedRoom}
               />
@@ -374,7 +490,9 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
                 loading={pending === 'room'}
                 disabled={unavailable}
                 onClick={() => {
-                  const fallback = roomOptions.includes(entities[roomSelect]?.state ?? '') ? entities[roomSelect]?.state : roomOptions[0];
+                  const fallback = roomOptions.includes(entities[roomSelect]?.state ?? '')
+                    ? entities[roomSelect]?.state
+                    : roomOptions[0];
                   const option = selectedRoom ?? fallback;
                   if (!option) return;
                   send({
@@ -405,7 +523,9 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
               ))}
             </div>
           )}
-          {!registry.loading && !hasRooms && <Caption>Nessuna stanza configurata per questo dispositivo.</Caption>}
+          {!registry.loading && !hasRooms && (
+            <Caption>Nessuna stanza configurata per questo dispositivo.</Caption>
+          )}
         </Section>
       )}
 
@@ -438,25 +558,53 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
                   <OptionPicker
                     label="Mappa"
                     value={activeMap}
-                    options={mapIds.map((mapId) => ({ value: mapId, label: friendlyName(entities[mapId], mapId) }))}
+                    options={mapIds.map((mapId) => ({
+                      value: mapId,
+                      label: friendlyName(entities[mapId], mapId),
+                    }))}
                     onSelect={(value) => {
                       setSelectedMap(value);
                       writeStorage(keys.selectedMap, value);
                     }}
                   />
                 )}
-                <Button variant="control" shape="circle" size="md" aria-label="Riduci la mappa" disabled={mapScale <= 1} onClick={() => setMapScale((value) => Math.max(1, value - 0.25))}>
+                <Button
+                  variant="control"
+                  shape="circle"
+                  size="md"
+                  aria-label="Riduci la mappa"
+                  disabled={mapScale <= 1}
+                  onClick={() => setMapScale((value) => Math.max(1, value - 0.25))}
+                >
                   <UtilityIcon name="minus" size="md" />
                 </Button>
-                <Button variant="control" shape="circle" size="md" aria-label="Ingrandisci la mappa" disabled={mapScale >= 4} onClick={() => setMapScale((value) => Math.min(4, value + 0.25))}>
+                <Button
+                  variant="control"
+                  shape="circle"
+                  size="md"
+                  aria-label="Ingrandisci la mappa"
+                  disabled={mapScale >= 4}
+                  onClick={() => setMapScale((value) => Math.min(4, value + 0.25))}
+                >
                   <UtilityIcon name="add" size="md" />
                 </Button>
-                <Button variant="control" shape="circle" size="md" aria-label="Aggiorna la mappa" onClick={() => setRefreshKey((value) => value + 1)}>
+                <Button
+                  variant="control"
+                  shape="circle"
+                  size="md"
+                  aria-label="Aggiorna la mappa"
+                  onClick={() => setRefreshKey((value) => value + 1)}
+                >
                   <UtilityIcon name="refresh" size="md" />
                 </Button>
               </div>
               {mapUrl ? (
-                <div className={materialClass({ behavior: 'well', shape: 'card', size: 'inherit' }, 'utility-map')}>
+                <div
+                  className={materialClass(
+                    { behavior: 'well', shape: 'card', size: 'inherit' },
+                    'utility-map'
+                  )}
+                >
                   <MaterialLayers element="div">
                     <div
                       className="utility-map__viewport"
@@ -498,7 +646,12 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
                     {item.label}
                   </Body>
                   {item.percent !== null && (
-                    <Meter value={item.percent} label={`Durata residua: ${item.label}`} low={item.percent < 20} valueText={`${item.percent}%`} />
+                    <Meter
+                      value={item.percent}
+                      label={`Durata residua: ${item.label}`}
+                      low={item.percent < 20}
+                      valueText={`${item.percent}%`}
+                    />
                   )}
                 </span>
                 <span className="utility-list__end">
@@ -508,13 +661,24 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
                       variant="control"
                       size="sm"
                       loading={pending === `reset-${item.key}`}
+                      disabled={
+                        unavailable ||
+                        !runtime.conn ||
+                        !configuredIds.has(item.buttonId) ||
+                        !services?.button?.press
+                      }
                       onClick={() => {
                         if (resetConfirm !== item.key) {
                           setResetConfirm(item.key);
                           return;
                         }
                         setResetConfirm(null);
-                        send({ key: `reset-${item.key}`, domain: 'button', service: 'press', data: { entity_id: item.buttonId } });
+                        send({
+                          key: `reset-${item.key}`,
+                          domain: 'button',
+                          service: 'press',
+                          data: { entity_id: item.buttonId },
+                        });
                       }}
                     >
                       {resetConfirm === item.key ? 'Conferma azzeramento' : 'Azzera'}
@@ -554,7 +718,13 @@ export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
 
       {advanced.length > 0 && (
         <Section title="Altri sensori" icon="sensor">
-          <Button variant="control" size="sm" aria-expanded={telemetryOpen} aria-controls={telemetryId} onClick={() => setTelemetryOpen((value) => !value)}>
+          <Button
+            variant="control"
+            size="sm"
+            aria-expanded={telemetryOpen}
+            aria-controls={telemetryId}
+            onClick={() => setTelemetryOpen((value) => !value)}
+          >
             {telemetryOpen ? 'Nascondi' : `Mostra ${advanced.length} sensori`}
           </Button>
           {telemetryOpen && (

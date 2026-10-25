@@ -8,17 +8,23 @@
  * page, the current one engraved on the ball: a scale with stops, not a switch.
  * Second round (V-01, V-05, R-06): the indicator is sized on the footer band, its container
  * (100cqw). The page name keeps a readable minimum (--aca-label-min): the stops shrink first,
- * down to the size of the ball. In edit mode the band gives the room left by the edit bar
- * (--aca-band-room) and what follows the name (--aca-band-end, footerBand.ts).
+ * down to the size of the ball. With a bar in the band (the status bar in normal view, the edit
+ * bar in edit mode) the band gives the room left by the bar (--aca-band-room) and, for the edit
+ * bar, what follows the name (--aca-band-end, footerBand.ts).
  */
 @layer components {
+  /* The page name sits under the groove (2026-10-07, REP-20261007-012). */
   .aca-indicator {
     --aca-label-min: 5rem;
     display: inline-flex;
     position: relative;
+    flex-direction: column;
+    gap: var(--aca-indicator-label-gap);
     align-items: center;
     max-width: 100%;
     font-family: var(--aca-font);
+    /* The footer band lets the pointer through to the pager; the indicator takes it. */
+    pointer-events: auto;
   }
 
   .aca-indicator__track {
@@ -27,10 +33,7 @@
     --aca-ball: 1.75rem;
     /* Room of the track: given by the band in edit mode, otherwise the band minus the page name
        (with its gap) on both sides, so the groove stays centred. */
-    --aca-room: var(
-      --aca-band-room,
-      calc(100cqw - 2 * (var(--aca-label-min) + var(--aca-space-4)))
-    );
+    --aca-room: var(--aca-band-room, 100cqw);
     --aca-step: max(
       var(--aca-ball),
       min(
@@ -78,15 +81,8 @@
     width: var(--aca-ball);
     height: var(--aca-ball);
     border-radius: 50%;
-    background:
-      radial-gradient(circle at 34% 28%, rgb(255 255 255 / 90%) 0 7%, rgb(255 255 255 / 0%) 27%),
-      radial-gradient(circle at 68% 78%, rgb(255 255 255 / 35%) 0 6%, rgb(255 255 255 / 0%) 22%),
-      radial-gradient(
-        circle at 45% 40%,
-        var(--aca-orange-light) 0%,
-        var(--aca-orange) 50%,
-        var(--aca-orange-ink-icon) 100%
-      );
+    /* The same orb as «Fine» and the switch (tokens.css, REP-20261007-026). */
+    background: var(--aca-orb);
     box-shadow:
       0.08rem 0.18rem 0.3rem rgb(5 5 5 / 35%),
       0.02rem 0.05rem 0.08rem rgb(5 5 5 / 40%),
@@ -136,15 +132,38 @@
    * 100% being the groove), less what the edit bar keeps at the end of the band.
    */
   .aca-indicator__label {
-    position: absolute;
-    left: calc(100% + var(--aca-space-4));
-    max-width: min(
-      14rem,
-      calc((100cqw - 100%) / 2 - var(--aca-space-4) - var(--aca-band-end, 0px))
-    );
+    max-width: min(14rem, 100cqw);
+    line-height: var(--aca-indicator-label-line);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /*
+   * The name changes by a cross-fade (REP-20261023-006, D-M14, F-12): the new one fades in where
+   * it is, the old one fades out over it, out of the flow, at the same place under the groove. The
+   * indicator takes its size from the new name at once, centred, so nothing slides or jumps.
+   */
+  .aca-indicator__label--entering {
+    animation: aca-indicator-label-in var(--aca-dur-swap-out, 120ms) linear;
+  }
+  .aca-indicator .aca-indicator__label.aca-indicator__label--leaving {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    translate: -50% 0;
+    pointer-events: none;
+    animation: aca-indicator-label-out var(--aca-dur-swap-out, 120ms) linear forwards;
+  }
+  @keyframes aca-indicator-label-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes aca-indicator-label-out {
+    to {
+      opacity: 0;
+    }
   }
 
   /* One page: no groove (nothing to choose), only its name, centred. */
@@ -156,6 +175,62 @@
   @media (prefers-reduced-motion: reduce) {
     .aca-indicator__ball {
       transition: none !important;
+    }
+  }
+}
+
+/*
+ * The indicator is the top bar (ADR-0016, C2): it comes down from the top of the screen with a
+ * fade in edit mode, page overview included (a press and hold on an empty place, or «Pagine»),
+ * and for a moment after a page change; it goes back up with the reverse motion, the mirror of
+ * the bars that rise at the bottom. Only transform and opacity change. Passive (a cue only) it
+ * takes no pointer, so a touch on it reaches the widget below.
+ */
+@layer components {
+  .aca-indicator {
+    /* A stable layer, as for the bars that slide (REP-20261012-003). */
+    will-change: transform, opacity;
+    transition:
+      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
+      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-indicator.aca-indicator--hidden {
+    transform: translateY(calc(-100% - var(--aca-space-3) - 0.75rem));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
+      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+  }
+  /*
+   * In the order of the scene (REP-20261023-006, D-M3, D-M24): with the pages view up the
+   * indicator comes three gaps after T0, after the cards, and after the pill of «Annulla» has
+   * gone, so the two never share the place at full opacity. When it gives the place to the pill
+   * it goes quickly (--aca-dur-swap-out), before the pill comes.
+   *
+   * The class is set by React from the same value the pager takes `is-overview` from (a stage held
+   * for the scene, D-M25), so it comes in the same commit; it replaces a `:has()` on the shell
+   * that made every node mounted or removed in the shell restyle all of it (0.9.28, tracing of
+   * 2026-10-24: 1230-1750 elements, 40-160 ms).
+   */
+  .aca-indicator.aca-indicator--overview:not(.aca-indicator--hidden) {
+    transition-delay: calc(var(--aca-stagger, 40ms) * 3);
+  }
+  .aca-indicator.aca-indicator--hidden.aca-indicator--yield {
+    transition:
+      transform var(--aca-dur-swap-out, 120ms) var(--aca-motion-ease-in, ease-in),
+      opacity var(--aca-dur-swap-out, 120ms) var(--aca-motion-ease-in, ease-in);
+  }
+  .aca-indicator.aca-indicator--passive {
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-indicator,
+    .aca-indicator.aca-indicator--hidden,
+    .aca-indicator.aca-indicator--hidden.aca-indicator--yield,
+    .aca-indicator.aca-indicator--overview:not(.aca-indicator--hidden) {
+      transform: none;
+      transition: opacity var(--aca-dur-reduced, 120ms) linear;
     }
   }
 }

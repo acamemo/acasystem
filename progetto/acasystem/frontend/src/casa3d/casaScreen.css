@@ -1,0 +1,252 @@
+/*
+ * The house screen (ADR-0014, R1): 100dvh by 100dvw over the launcher. Everything over the 3D
+ * picture is flat (no shadows, ISSUE-062): hairline edges on the page colour.
+ */
+@layer components {
+  .casa {
+    position: fixed;
+    inset: 0;
+    z-index: var(--aca-z-sticky);
+    inline-size: 100dvw;
+    block-size: 100dvh;
+    overflow: hidden;
+    background: var(--aca-page);
+    color: var(--aca-ink-solid);
+    /* the picture is for fingers: nothing here scrolls the page or selects text */
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .casa__stage {
+    position: absolute;
+    inset: 0;
+    /* the z-indexes of the view stay inside the stage */
+    isolation: isolate;
+    overflow: hidden;
+  }
+  /* The live view covers the still picture once its canvas exists; until then it is invisible. */
+  .casa__layer {
+    position: absolute;
+    inset: 0;
+    background: var(--aca-page);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .casa__layer[data-ready='true'] {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 200ms ease-out;
+  }
+  .casa__layer:has(.c3d-message) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa__layer[data-ready='true'] {
+      transition: none;
+    }
+  }
+  .c3d-vista {
+    position: absolute;
+    inset: 0;
+  }
+  .c3d-vista[hidden] {
+    display: none;
+  }
+  /* One finger turns, two move and zoom: the page must not take the touch for a scroll. */
+  .c3d-view {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    touch-action: none;
+  }
+  .c3d-message {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    gap: var(--aca-space-3, 0.75rem);
+    place-content: center;
+    justify-items: center;
+    padding: var(--aca-space-4, 1rem);
+    text-align: center;
+    pointer-events: auto;
+  }
+  /* The question of a command (T7) sits in the top layer but inherits the layer's pointer-events. */
+  .c3d-vista .aca-confirm {
+    pointer-events: auto;
+  }
+  /* The status line of the last command, over the picture and out of the way of the touch. */
+  .c3d-command-notice {
+    position: absolute;
+    inset-inline: var(--aca-space-3, 0.75rem);
+    inset-block-start: var(--aca-space-3, 0.75rem);
+    margin-inline: auto;
+    inline-size: fit-content;
+    max-inline-size: 32rem;
+    /* above the quick menu (z-index up to 6 in the view), which stays open after a command */
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Messages in the middle of the screen: loading, the plan could not be read, no house, the plan. */
+  .casa__center {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: var(--aca-space-4, 1rem);
+    pointer-events: none;
+  }
+  .casa__center > * {
+    pointer-events: auto;
+    max-inline-size: 32rem;
+  }
+  .casa__panel {
+    inline-size: min(100%, 32rem);
+  }
+
+  /* Controls: flat, on the page colour, 56 px at least, out of the notch and the system bars. */
+  .casa__control {
+    position: absolute;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--aca-space-2, 0.5rem);
+    min-block-size: 3.5rem;
+    min-inline-size: 3.5rem;
+    margin: 0;
+    padding: 0 var(--aca-space-3, 0.75rem);
+    border: 1px solid color-mix(in srgb, var(--aca-ink-muted) 50%, transparent);
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    color: var(--aca-ink-solid);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: none;
+  }
+  .casa__control:disabled {
+    cursor: default;
+    color: var(--aca-ink-muted);
+  }
+  .casa__control:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 2px;
+  }
+  .casa__control--menu {
+    inset-block-start: max(var(--aca-space-3, 0.75rem), env(safe-area-inset-top, 0px));
+    inset-inline-start: max(var(--aca-space-3, 0.75rem), env(safe-area-inset-left, 0px));
+  }
+  .casa__control--exit {
+    inset-block-start: max(var(--aca-space-3, 0.75rem), env(safe-area-inset-top, 0px));
+    inset-inline-end: max(var(--aca-space-3, 0.75rem), env(safe-area-inset-right, 0px));
+  }
+  /* Bottom row: the notices take the width, «Rimetti la vista» stays at the end. */
+  .casa__bottom {
+    position: absolute;
+    inset-inline: max(var(--aca-space-3, 0.75rem), env(safe-area-inset-left, 0px))
+      max(var(--aca-space-3, 0.75rem), env(safe-area-inset-right, 0px));
+    inset-block-end: max(var(--aca-space-3, 0.75rem), env(safe-area-inset-bottom, 0px));
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--aca-space-3, 0.75rem);
+    pointer-events: none;
+  }
+  .casa__bottom > * {
+    pointer-events: auto;
+  }
+  .casa__bottom .casa__control {
+    position: static;
+    margin-inline-start: auto;
+  }
+  .casa__notices {
+    display: grid;
+    flex: 1 1 18rem;
+    gap: var(--aca-space-2, 0.5rem);
+    max-inline-size: 32rem;
+    min-inline-size: 0;
+    pointer-events: none;
+  }
+  .casa__notices > * {
+    pointer-events: auto;
+  }
+  /* The connection notice brings its own margins (it was made for the top of the launcher). */
+  .casa__notices .aca-connection-notice {
+    padding: 0;
+  }
+  /* Flat like the controls: a soft shadow over the live picture would be rasterised again and again. */
+  .casa .casa__notice {
+    box-shadow: none;
+    border: 1px solid color-mix(in srgb, var(--aca-ink-muted) 50%, transparent);
+  }
+  .casa__notice {
+    display: grid;
+    gap: var(--aca-space-2, 0.5rem);
+    justify-items: start;
+  }
+  .casa__notice-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--aca-space-2, 0.5rem);
+  }
+
+  /* Side bar content. */
+  .casa-menu {
+    display: grid;
+    gap: var(--aca-space-1, 0.25rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .casa-menu__item {
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-3, 0.75rem);
+    inline-size: 100%;
+    min-block-size: 3.5rem;
+    margin: 0;
+    padding: 0 var(--aca-space-3, 0.75rem);
+    border: 0;
+    border-inline-start: 3px solid transparent;
+    border-radius: var(--aca-radius-rounded);
+    background: transparent;
+    color: var(--aca-ink-solid);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .casa-menu__item[aria-current='true'] {
+    border-inline-start-color: var(--aca-blue);
+    background: color-mix(in srgb, var(--aca-blue) 12%, transparent);
+  }
+  .casa-menu__item:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: -2px;
+  }
+  .casa-menu__text {
+    display: grid;
+    gap: 0.1rem;
+  }
+  .casa-menu__detail {
+    color: var(--aca-ink-muted);
+    font-size: var(--aca-step--1);
+  }
+  .casa-list {
+    display: grid;
+    gap: var(--aca-space-2, 0.5rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .casa-rooms + .casa-rooms {
+    margin-block-start: var(--aca-space-3, 0.75rem);
+  }
+  .casa-rooms > h3 {
+    margin-block-end: var(--aca-space-2, 0.5rem);
+  }
+}

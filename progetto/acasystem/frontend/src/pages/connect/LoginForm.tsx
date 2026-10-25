@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { AuthData } from 'home-assistant-js-websocket';
-import { Body, Button, Field } from '@/components/primitives';
+import { Body, Button, Field, Icon } from '@/components/primitives';
 import { FormRow, Notice } from '@/templates/sheets/parts/Form';
 import { useHaLogin } from './useHaLogin';
 import './connect.css';
@@ -25,6 +25,7 @@ export function LoginForm({ onSession }: LoginFormProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -181,10 +182,25 @@ export function LoginForm({ onSession }: LoginFormProps) {
             label="Password"
             aria-labelledby={labelId}
             name="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             value={password}
             error={errors.password}
+            action={
+              <button
+                type="button"
+                className="aca-field__action"
+                aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
+                title={showPassword ? 'Nascondi password' : 'Mostra password'}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => setShowPassword((shown) => !shown)}
+              >
+                <Icon
+                  name={showPassword ? 'eyeSlash' : 'eye'}
+                  className="aca-field__action-icon"
+                />
+              </button>
+            }
             onChange={(event) => {
               setPassword(event.target.value);
               setErrors((current) => ({ ...current, password: undefined }));

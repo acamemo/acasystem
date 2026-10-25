@@ -19,3 +19,8 @@ export function useWidgetRuntime(): WidgetRuntime {
   if (!runtime) throw new Error('useWidgetRuntime must be used inside WidgetRuntimeProvider');
   return runtime;
 }
+
+/** The runtime when one is provided, null otherwise (e.g. the cover shown in a preview). */
+export function useOptionalWidgetRuntime(): WidgetRuntime | null {
+  return useContext(WidgetRuntimeContext);
+}

@@ -350,12 +350,7 @@
     > .aca-m__outer {
     transform: scale(var(--aca-press-scale));
   }
-  :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press):is(
-      :focus-visible,
-      .is-focus,
-      :active,
-      .is-active
-    )
+  :is(button.aca-m--well-soft, .aca-well-soft.aca-fx-press):is(:active, .is-active, :focus-visible, .is-focus)
     > .aca-m__outer
     > .aca-m__face
     > .aca-m__content {

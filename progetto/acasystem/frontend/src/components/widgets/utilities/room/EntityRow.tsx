@@ -3,7 +3,13 @@ import type { HassEntity } from 'home-assistant-js-websocket';
 import type { HaConfig } from '@/@types/ha';
 import { Body, Button, Caption, Slider } from '@/components/primitives';
 import { formatCompact, humanizeState } from '../shared/format';
-import { domainOf, friendlyName, isUnavailableState, numberAttr, stringAttr } from '../shared/entity';
+import {
+  domainOf,
+  friendlyName,
+  isUnavailableState,
+  numberAttr,
+  stringAttr,
+} from '../shared/entity';
 import { CommandButton, CommandToggle } from '../shared/controls';
 import { Notice, commandNotice } from '../shared/UtilityCard';
 import { UtilityIcon, type UtilityIconName } from '../shared/UtilityIcon';
@@ -60,13 +66,18 @@ const STATE_TEXT: Record<string, string> = {
  * Second line of a row: value with unit, climate temperatures (in the unit of Home Assistant),
  * media title or the state.
  */
-export function entityStateText(entityId: string, entity: HassEntity, haConfig: HaConfig | null): string {
+export function entityStateText(
+  entityId: string,
+  entity: HassEntity,
+  haConfig: HaConfig | null
+): string {
   const domain = domainOf(entityId);
   const state = entity.state;
   const unit = stringAttr(entity, 'unit_of_measurement');
   if ((domain === 'sensor' || domain === 'binary_sensor') && !isUnavailableState(state)) {
     const value = Number.parseFloat(state);
-    if (Number.isFinite(value) && /^\s*-?\d+([.,]\d+)?\s*$/.test(state)) return `${formatCompact(value, 1)}${unit ? ` ${unit}` : ''}`;
+    if (Number.isFinite(value) && /^\s*-?\d+([.,]\d+)?\s*$/.test(state))
+      return `${formatCompact(value, 1)}${unit ? ` ${unit}` : ''}`;
   }
   if (domain === 'climate') {
     const tempUnit = haUnit('temperature', haConfig, stringAttr(entity, 'temperature_unit') ?? '°');
@@ -86,13 +97,22 @@ export function entityStateText(entityId: string, entity: HassEntity, haConfig: 
     const artist = stringAttr(entity, 'media_artist');
     if (title || artist) return [artist, title].filter(Boolean).join(' – ');
   }
-  if (domain === 'light' && state === 'on' && isDimmable(entity)) return `${brightnessPercent(entity)}%`;
+  if (domain === 'light' && state === 'on' && isDimmable(entity))
+    return `${brightnessPercent(entity)}%`;
   const text = STATE_TEXT[state] ?? humanizeState(state);
   const battery = domain === 'vacuum' ? numberAttr(entity, 'battery_level') : null;
   return battery !== null ? `${text} · ${formatCompact(battery, 0)}%` : text;
 }
 
-function LightBrightness({ entityId, entity, name }: { entityId: string; entity: HassEntity; name: string }) {
+function LightBrightness({
+  entityId,
+  entity,
+  name,
+}: {
+  entityId: string;
+  entity: HassEntity;
+  name: string;
+}) {
   const brightness = useRequestedValue({
     confirmed: brightnessPercent(entity),
     tolerance: 1,
@@ -100,7 +120,11 @@ function LightBrightness({ entityId, entity, name }: { entityId: string; entity:
     toCall: (value) =>
       value <= 0
         ? { domain: 'light', service: 'turn_off', data: { entity_id: entityId } }
-        : { domain: 'light', service: 'turn_on', data: { entity_id: entityId, brightness_pct: value } },
+        : {
+            domain: 'light',
+            service: 'turn_on',
+            data: { entity_id: entityId, brightness_pct: value },
+          },
   });
   return (
     <span className="utility-list__wide utility-stack" data-no-long-press>
@@ -201,9 +225,32 @@ export function EntityRow({
     } else if (domain === 'cover') {
       controls = (
         <>
-          <IconCommand {...shared} domain="cover" service="open_cover" icon="trendUp" label={`Apri ${name}`} commandKey="open" confirm={['open', 'opening']} />
-          <IconCommand {...shared} domain="cover" service="stop_cover" icon="stop" label={`Ferma ${name}`} commandKey="stop" />
-          <IconCommand {...shared} domain="cover" service="close_cover" icon="trendDown" label={`Chiudi ${name}`} commandKey="close" confirm={['closed', 'closing']} />
+          <IconCommand
+            {...shared}
+            domain="cover"
+            service="open_cover"
+            icon="trendUp"
+            label={`Apri ${name}`}
+            commandKey="open"
+            confirm={['open', 'opening']}
+          />
+          <IconCommand
+            {...shared}
+            domain="cover"
+            service="stop_cover"
+            icon="stop"
+            label={`Ferma ${name}`}
+            commandKey="stop"
+          />
+          <IconCommand
+            {...shared}
+            domain="cover"
+            service="close_cover"
+            icon="trendDown"
+            label={`Chiudi ${name}`}
+            commandKey="close"
+            confirm={['closed', 'closing']}
+          />
         </>
       );
     } else if (domain === 'lock') {
@@ -225,7 +272,14 @@ export function EntityRow({
       const playing = state === 'playing';
       controls = (
         <>
-          <IconCommand {...shared} domain="media_player" service="media_previous_track" icon="previous" label={`Brano precedente su ${name}`} commandKey="previous" />
+          <IconCommand
+            {...shared}
+            domain="media_player"
+            service="media_previous_track"
+            icon="previous"
+            label={`Brano precedente su ${name}`}
+            commandKey="previous"
+          />
           <IconCommand
             {...shared}
             domain="media_player"
@@ -235,7 +289,14 @@ export function EntityRow({
             commandKey="play"
             confirm={playing ? ['paused', 'idle'] : ['playing']}
           />
-          <IconCommand {...shared} domain="media_player" service="media_next_track" icon="next" label={`Brano successivo su ${name}`} commandKey="next" />
+          <IconCommand
+            {...shared}
+            domain="media_player"
+            service="media_next_track"
+            icon="next"
+            label={`Brano successivo su ${name}`}
+            commandKey="next"
+          />
         </>
       );
     } else if (domain === 'vacuum') {
@@ -264,13 +325,25 @@ export function EntityRow({
       );
     } else if (domain === 'scene' || domain === 'script') {
       controls = (
-        <CommandButton entity={entity} domain={domain} service="turn_on" data={{ entity_id: entityId }} label={`Esegui ${name}`}>
+        <CommandButton
+          entity={entity}
+          domain={domain}
+          service="turn_on"
+          data={{ entity_id: entityId }}
+          label={`Esegui ${name}`}
+        >
           Esegui
         </CommandButton>
       );
     } else if (domain === 'button' || domain === 'input_button') {
       controls = (
-        <CommandButton entity={entity} domain={domain} service="press" data={{ entity_id: entityId }} label={`Premi ${name}`}>
+        <CommandButton
+          entity={entity}
+          domain={domain}
+          service="press"
+          data={{ entity_id: entityId }}
+          label={`Premi ${name}`}
+        >
           Premi
         </CommandButton>
       );
@@ -279,24 +352,36 @@ export function EntityRow({
 
   const picture =
     domain === 'media_player' && !pictureFailed
-      ? runtime.getEntityImageUrl(stringAttr(entity, 'entity_picture') ?? stringAttr(entity, 'media_image_url'))
+      ? runtime.getEntityImageUrl(
+          stringAttr(entity, 'entity_picture') ?? stringAttr(entity, 'media_image_url')
+        )
       : null;
 
   return (
     <li className="utility-list__row">
       {picture && (
-        <img className="utility-thumb" src={picture} alt="" onError={() => setPictureFailed(true)} />
+        <img
+          className="utility-thumb"
+          src={picture}
+          alt=""
+          onError={() => setPictureFailed(true)}
+        />
       )}
       <span className="utility-list__main">
         <Body as="span" size="sm" tone="ink" className="utility-truncate" title={entityId}>
           {name}
         </Body>
-        <Caption className="utility-truncate">{entityStateText(entityId, entity, runtime.haConfig)}</Caption>
+        <Caption className="utility-truncate">
+          {entityStateText(entityId, entity, runtime.haConfig)}
+        </Caption>
       </span>
       {controls && <span className="utility-list__end">{controls}</span>}
-      {domain === 'light' && !unavailable && isDimmable(entity) && (brightness === 'always' || state === 'on') && (
-        <LightBrightness entityId={entityId} entity={entity} name={name} />
-      )}
+      {domain === 'light' &&
+        !unavailable &&
+        isDimmable(entity) &&
+        (brightness === 'always' || state === 'on') && (
+          <LightBrightness entityId={entityId} entity={entity} name={name} />
+        )}
       {notice && (
         <span className="utility-list__wide">
           <Notice tone={notice.tone} icon="warning" live>

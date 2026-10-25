@@ -12,7 +12,11 @@ import { roomFlags, roomSummary } from './roomData';
 
 export const ROOM_DEFAULT_NAME = 'Stanza';
 
-export function roomName(id: string, settings: CardSettings, customNames: Record<string, string>): string {
+export function roomName(
+  id: string,
+  settings: CardSettings,
+  customNames: Record<string, string>
+): string {
   return customNames[id] || settingString(settings, 'areaName') || ROOM_DEFAULT_NAME;
 }
 
@@ -24,7 +28,14 @@ export function pagerIndex(launcher: Pick<LauncherApi, 'layout'>, pageId: string
   return index + (launcher.layout.cover.enabled ? 1 : 0);
 }
 
-function RoomView({ id, settings, size, editMode, onOpen, openLabel }: WidgetProps & { onOpen: () => void; openLabel: string }) {
+function RoomView({
+  id,
+  settings,
+  size,
+  editMode,
+  onOpen,
+  openLabel,
+}: WidgetProps & { onOpen: () => void; openLabel: string }) {
   const runtime = useWidgetRuntime();
   const labelId = `luce-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const name = roomName(id, settings, runtime.customNames);
@@ -40,11 +51,15 @@ function RoomView({ id, settings, size, editMode, onOpen, openLabel }: WidgetPro
   const flags = roomFlags(settings);
   const room = roomSummary(runtime.entities, settings, runtime.haConfig);
   if (room.ids.length === 0) {
-    return card(<CardMessage icon="room" title={name} detail="Nessun dispositivo associato alla stanza" />);
+    return card(
+      <CardMessage icon="room" title={name} detail="Nessun dispositivo associato alla stanza" />
+    );
   }
 
   const temperature =
-    flags.showTemp && room.temperature !== null ? `${formatCompact(room.temperature, 1)} ${room.temperatureUnit}` : null;
+    flags.showTemp && room.temperature !== null
+      ? `${formatCompact(room.temperature, 1)} ${room.temperatureUnit}`
+      : null;
   const occupied = flags.showMotion && flags.showOccupiedIndicator && room.occupied;
   const mainLight = room.mainLightId ? runtime.entities[room.mainLightId] : undefined;
 
@@ -102,13 +117,21 @@ function RoomView({ id, settings, size, editMode, onOpen, openLabel }: WidgetPro
   if (row) {
     return card(
       <>
-        <IconWell icon="room" tone={room.lightsOn > 0 ? 'active' : null} className="utility-hide-narrow" />
+        <IconWell
+          icon="room"
+          tone={room.lightsOn > 0 ? 'active' : null}
+          className="utility-hide-narrow"
+        />
         <div className="utility-stack utility-grow">
           <Body as="span" size="sm" tone="ink" className="utility-truncate">
             {name}
           </Body>
           <Caption className="utility-truncate">
-            {[temperature, room.lightsOn > 0 ? lightsOnText(room.lightsOn) : null, occupied ? room.occupancyLabel : null]
+            {[
+              temperature,
+              room.lightsOn > 0 ? lightsOnText(room.lightsOn) : null,
+              occupied ? room.occupancyLabel : null,
+            ]
               .filter(Boolean)
               .join(' · ') || 'Tutto spento'}
           </Caption>
@@ -165,8 +188,17 @@ function NavigatingRoom(props: WidgetProps & { pageId: string }) {
 /** Summary of an area: temperature, lights, presence, devices and the main light (`room_card_*`). */
 export function RoomWidget(props: WidgetProps) {
   const runtime = useWidgetRuntime();
-  const pageId = props.settings.navigateOnTap === true ? settingString(props.settings, 'navigateToPageId') : null;
+  const pageId =
+    props.settings.navigateOnTap === true
+      ? settingString(props.settings, 'navigateToPageId')
+      : null;
   if (pageId) return <NavigatingRoom {...props} pageId={pageId} />;
   const name = roomName(props.id, props.settings, runtime.customNames);
-  return <RoomView {...props} openLabel={`${name}, apri i dettagli`} onOpen={() => runtime.openDetails(props.id)} />;
+  return (
+    <RoomView
+      {...props}
+      openLabel={`${name}, apri i dettagli`}
+      onOpen={() => runtime.openDetails(props.id)}
+    />
+  );
 }

@@ -30,6 +30,7 @@ import {
   publishCurrentSettings,
 } from '@/api/settingsApi';
 import { collectSnapshot, applySnapshot, isValidSnapshot } from '@/api/snapshot';
+import { readStoredCasa3dQuality, setCasa3dQuality } from '@/casa3d/quality';
 
 describe('useSettingsSync', () => {
   beforeEach(() => {
@@ -80,6 +81,45 @@ describe('useSettingsSync', () => {
       expect(result.current.currentRevision).toBe(4);
     });
   });
+
+  it('copies a new Casa 3D quality into the current settings without an edit-done', async () => {
+    vi.mocked(fetchCurrentSettings).mockResolvedValue({
+      revision: 3,
+      updated_at: '2026-02-22T12:00:00.000Z',
+      data: { version: 1, layout: {}, appearance: {} },
+    });
+    vi.mocked(collectSnapshot).mockImplementation(
+      () =>
+        ({
+          version: 1,
+          layout: {},
+          appearance: {},
+          ...(readStoredCasa3dQuality()
+            ? { device: { id: 'device_a', casa3dQuality: readStoredCasa3dQuality() } }
+            : {}),
+        }) as ReturnType<typeof collectSnapshot>
+    );
+
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    await waitFor(() => expect(result.current.currentRevision).toBe(3));
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+
+    act(() => setCasa3dQuality('medium'));
+
+    await waitFor(
+      () =>
+        expect(saveCurrentSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            base_revision: 3,
+            data: expect.objectContaining({ device: { id: 'device_a', casa3dQuality: 'medium' } }),
+          }),
+          expect.anything()
+        ),
+      { timeout: 6000 }
+    );
+  }, 10000);
 
   it('skips bootstrap and polling when autoBootstrap is disabled', async () => {
     vi.useFakeTimers();
@@ -164,7 +204,8 @@ describe('useSettingsSync', () => {
         layout: { pagesConfig: { header: ['x'], pages: ['home'], home: [] } },
         appearance: {},
       },
-      {}
+      {},
+      { device: true }
     );
   });
 
@@ -194,7 +235,8 @@ describe('useSettingsSync', () => {
         layout: { pagesConfig: { header: ['published'], pages: ['home'], home: [] } },
         appearance: {},
       },
-      {}
+      {},
+      { device: true }
     );
   });
 
@@ -360,7 +402,8 @@ describe('useSettingsSync', () => {
         layout: { pagesConfig: { header: ['server'], pages: ['home'], home: [] } },
         appearance: {},
       },
-      {}
+      {},
+      { device: true }
     );
   });
 

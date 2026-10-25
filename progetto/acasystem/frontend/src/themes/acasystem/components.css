@@ -2,58 +2,200 @@
 
 /* Component layer: Tailwind utilities on the same element still win, as for any component style. */
 @layer components {
-  /* Toggle: recessed track, hosted metal knob, label on the free side; ON fills the track orange. */
+  /*
+   * Switch (REP-20261007-021), after the grip-knob switch shared by the user, in Kit 2 colours
+   * (Metallo fallbacks): raised rim, recessed track, accent fill when on, round knob with a 3×4
+   * grip. Track 3 × 1.5em, knob 1.375em centred: 0.0625em around the knob on every side.
+   * The font size sets the scale: md 24 px (42 px high), compact and sm 20 px, lg 28 px.
+   */
   .aca-toggle {
-    --aca-pad: 0.25em;
-    cursor: pointer;
-  }
-  .aca-toggle__content {
+    --aca-toggle-light: var(--k2-light, rgb(255 255 255 / 80%));
+    --aca-toggle-shade: var(--k2-shade, rgb(5 5 5 / 20%));
     position: relative;
-    display: block;
-    width: 6.75em;
-    height: 2.5em;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    margin: 0;
+    padding: 0.125em;
+    border: 0;
+    border-radius: 99px;
+    background: var(--k2-bg, var(--aca-page));
+    box-shadow:
+      0.0625em 0.0625em 0.125em var(--aca-toggle-shade),
+      -0.0625em -0.0625em 0.125em var(--aca-toggle-light);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .aca-toggle--sm,
+  .aca-toggle--compact {
+    font-size: 1.25rem;
+  }
+  .aca-toggle--lg {
+    font-size: 1.75rem;
+  }
+  /* Touch target of at least 44 px around the 42/35 px switch. */
+  .aca-toggle::before {
+    content: '';
+    position: absolute;
+    inset: min(0px, calc(50% - 22px));
+    border-radius: inherit;
+  }
+  .aca-toggle__track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 3em;
+    height: 1.5em;
+    border-radius: 99px;
+    background-color: var(--k2-bg, var(--aca-page));
+    background-image: linear-gradient(transparent, transparent);
+    box-shadow:
+      inset 0.0625em 0.0625em 0.125em var(--aca-toggle-shade),
+      inset -0.0625em -0.0625em 0.125em var(--aca-toggle-light);
+    transition:
+      background-color 300ms ease,
+      box-shadow 300ms ease;
+  }
+  /* On: the orb of the indicator ball fades in over the track (REP-20261007-026). */
+  .aca-toggle__track::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--aca-orb);
+    box-shadow: var(--aca-orb-shade);
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+  .aca-toggle[aria-checked='true'] .aca-toggle__track::before {
+    opacity: 1;
+  }
+  /* Requested, not yet confirmed: the accent at half strength with a short pulse. */
+  .aca-toggle[aria-checked='true'][aria-busy='true'] .aca-toggle__track::before {
+    opacity: 0.6;
+    animation: aca-pulse 900ms ease-in-out infinite alternate;
+  }
+  .aca-toggle[aria-busy='true'] {
+    cursor: progress;
   }
   .aca-toggle__knob {
-    --aca-dim: 2.5em;
     position: absolute;
-    top: 0;
-    left: 0;
+    left: 0.0625em;
+    display: grid;
+    place-items: center;
+    width: 1.375em;
+    height: 1.375em;
+    border-radius: 50%;
+    background: var(--k2-bg, var(--aca-page));
+    box-shadow:
+      inset 0 -0.0625em 0.0625em var(--aca-toggle-shade),
+      inset 0 0.125em 0.0625em var(--aca-toggle-light),
+      0 0.0625em 0.125em var(--aca-toggle-shade);
     transition:
-      transform 220ms var(--aca-ease-out),
-      box-shadow 220ms var(--aca-ease-out);
+      transform 320ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      width 200ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      background-color 300ms ease;
   }
   .aca-toggle[aria-checked='true'] .aca-toggle__knob {
-    transform: translateX(4.25em);
+    background: var(--k2-knob-on, rgb(255 255 255));
+    transform: translateX(1.5em);
   }
-  .aca-toggle[aria-checked='true'] > .aca-m__outer > .aca-m__face {
-    background-image: var(--aca-face-orange-well);
+  .aca-toggle:is(:active, .is-active):not(:disabled) .aca-toggle__knob {
+    width: 1.5em;
   }
-  /* Requested, not yet confirmed: the orange at 45% over the metal, plus the pulse and aria-busy. */
-  .aca-toggle[aria-checked='true'][aria-busy='true'] > .aca-m__outer > .aca-m__face {
-    background-image: var(--aca-fill-pending), var(--aca-face-well);
+  .aca-toggle[aria-checked='true']:is(:active, .is-active):not(:disabled) .aca-toggle__knob {
+    transform: translateX(1.375em);
+  }
+  /*
+   * Grip: 3 × 4 small dimples, one gap both ways (REP-20261007-022): 0.75 × 1.0625em, its
+   * farthest corner 0.65em from the centre, inside the 0.6875em radius of the knob.
+   */
+  .aca-toggle__grip {
+    display: grid;
+    grid-template-columns: repeat(3, 0.125em);
+    grid-auto-rows: 0.125em;
+    gap: 0.1875em;
+  }
+  .aca-toggle__dot {
+    width: 0.125em;
+    height: 0.125em;
+    border-radius: 50%;
+    background-image: radial-gradient(
+      circle at 50% 0,
+      var(--aca-toggle-shade),
+      var(--k2-ink-muted, var(--aca-ink-muted))
+    );
+    opacity: 0.55;
   }
   .aca-toggle__label {
     position: absolute;
-    top: 50%;
-    right: 0.75em;
-    transform: translateY(-50%);
-    font-size: 0.85em;
-    font-weight: 500;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
-  .aca-toggle[aria-checked='true'] .aca-toggle__label {
-    right: auto;
-    left: 0.85em;
-    background-image: var(--aca-ink-on-orange);
+  .aca-toggle:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
   }
-  .aca-toggle--compact .aca-toggle__content {
-    width: 3.75em;
-    height: 1.75em;
+  .aca-toggle[aria-invalid='true'] .aca-toggle__track {
+    box-shadow:
+      inset 0 0 0 0.0625em var(--aca-danger),
+      inset 0.0625em 0.0625em 0.125em var(--aca-toggle-shade);
   }
-  .aca-toggle--compact .aca-toggle__knob {
-    --aca-dim: 1.75em;
+  .aca-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
-  .aca-toggle--compact[aria-checked='true'] .aca-toggle__knob {
-    transform: translateX(2em);
+  @media (prefers-reduced-motion: reduce) {
+    .aca-toggle__track,
+    .aca-toggle__knob {
+      transition: none;
+    }
+    .aca-toggle[aria-checked='true'][aria-busy='true'] .aca-toggle__track::before {
+      animation: none;
+    }
+  }
+
+  /*
+   * Icon-only button (REP-20261007-024): 44 px, borderless icon; hover takes the accent, the
+   * press scales softly. Used by the top bar, the close button of sheets and modals and the
+   * back button of Sistema, so they all look and react the same.
+   */
+  .aca-bar-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--aca-control-height);
+    min-width: var(--aca-control-height);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--aca-radius-pill);
+    background: transparent;
+    color: var(--aca-ink-solid);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      color 200ms ease,
+      transform 160ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .aca-bar-button:is(:hover, .is-hover) {
+      color: var(--k2-accent, var(--aca-blue));
+    }
+  }
+  .aca-bar-button:is(:active, .is-active) {
+    transform: scale(0.94);
+  }
+  .aca-bar-button:is(:focus-visible, .is-focus) {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 2px;
   }
 
   /* Error mark inside a hosted knob: the non-colour signal next to the danger LED. */
@@ -134,6 +276,7 @@
   .aca-field__content {
     justify-content: flex-start;
     gap: 0.75em;
+    border-radius: inherit;
   }
   .aca-field__icon {
     flex: none;
@@ -147,14 +290,58 @@
     padding: 0;
     border: 0;
     outline: 0;
-    background: transparent;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-radius: inherit;
     color: var(--aca-ink-solid);
     font: inherit;
     font-family: var(--aca-font);
   }
+  .aca-field__input::-ms-reveal,
+  .aca-field__input::-ms-clear {
+    display: none;
+  }
+  /* Neutralizza lo sfondo rettangolare forzato dall'autocompletamento del browser */
+  .aca-field__input:-webkit-autofill,
+  .aca-field__input:-webkit-autofill:hover,
+  .aca-field__input:-webkit-autofill:focus {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: var(--aca-ink-solid);
+    transition: background-color 5000000s ease-in-out 0s;
+    box-shadow: inset 0 0 0 1000px transparent !important;
+    background-color: transparent !important;
+  }
   .aca-field__input::placeholder {
     color: var(--aca-ink-muted);
     opacity: 1;
+  }
+  .aca-field__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    margin: 0;
+    padding: 0.25em;
+    border: 0;
+    background: transparent;
+    color: var(--aca-ink-muted);
+    cursor: pointer;
+    border-radius: 50%;
+    outline: none;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 150ms var(--aca-ease-out);
+  }
+  .aca-field__action:is(:hover, .is-hover) {
+    color: var(--aca-ink-solid);
+  }
+  .aca-field__action:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 2px;
+  }
+  .aca-field__action-icon {
+    width: 1.25em;
+    height: 1.25em;
   }
   .aca-field:is(:focus-within, .is-focus) {
     outline: 2px solid var(--aca-focus);
@@ -326,14 +513,21 @@
     width: 100%;
   }
 
-  /* Tile (ADR-0010): icon at the top left, engraved name at the bottom; «add» centres both. */
+  /* Compact tiles: icon and name form one centred group, including long names. */
   .aca-tile > .aca-m__outer > .aca-m__face > .aca-m__content {
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
     height: 100%;
     gap: 0.5em;
-    text-align: start;
+    text-align: center;
+  }
+  .aca-tile .aca-m__label {
+    min-width: 0;
+    max-width: 100%;
+    font-size: var(--aca-step--1);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
   }
   .aca-tile.aca-tile--add > .aca-m__outer > .aca-m__face > .aca-m__content {
     align-items: center;
@@ -470,13 +664,22 @@
     color: var(--aca-ink-solid);
     overflow: visible;
     transform: translateY(0);
+    /*
+     * Choreography of the sheets (REP-20261023-006, D-M5): up in 280 ms, ease-out; down in 200 ms,
+     * ease-in. The duration and the curve of a transition are those of the state it goes to, so
+     * the open rule gives the way up and the closed rule the way down.
+     */
     transition-property: transform, display, overlay;
-    transition-duration: 240ms;
-    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+    transition-duration: var(--aca-dur-sheet-in, 280ms);
+    transition-timing-function: var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
     transition-behavior: allow-discrete;
   }
   .aca-sheet:not([open]) {
     transform: translateY(100%);
+    transition-duration: var(--aca-dur-sheet-out, 200ms);
+    transition-timing-function: var(--aca-motion-ease-in, cubic-bezier(0.42, 0, 1, 1));
+    /* The panel on its way down is not a target: a tap there reaches the page, not the sheet. */
+    pointer-events: none;
   }
   @starting-style {
     .aca-sheet[open] {
@@ -486,27 +689,57 @@
   .aca-sheet::backdrop {
     background-color: rgb(5 5 5 / 35%);
     transition-property: background-color, display, overlay;
-    transition-duration: 240ms;
-    transition-timing-function: ease-out;
+    transition-duration: var(--aca-dur-veil-in, 200ms);
+    transition-timing-function: var(--aca-motion-ease-out, ease-out);
     transition-behavior: allow-discrete;
   }
   .aca-sheet:not([open])::backdrop {
     background-color: rgb(5 5 5 / 0%);
+    transition-duration: var(--aca-dur-veil-out, 160ms);
+    transition-timing-function: var(--aca-motion-ease-in, ease-in);
   }
   @starting-style {
     .aca-sheet[open]::backdrop {
       background-color: rgb(5 5 5 / 0%);
     }
   }
+  /*
+   * While the panel comes up it shows its structure only; the content fades in when it has
+   * arrived (Sheet.tsx sets data-arrived at the end of the rise). On the way down nothing is
+   * touched: the content stays as it was until the panel is gone, so it never empties first.
+   */
+  .aca-sheet__body,
+  .aca-sheet__footer {
+    transition: opacity var(--aca-dur-content-in, 160ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-sheet:not([data-arrived]) :is(.aca-sheet__body, .aca-sheet__footer) {
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+  }
   .aca-sheet__panel {
     --aca-radius: var(--aca-radius-card) var(--aca-radius-card) 0 0;
-    --aca-pad: 1.25em 1.5em calc(1.5em + env(safe-area-inset-bottom, 0px));
+    /*
+     * Bottom padding: the larger of the gap and the system inset, not their sum. Android
+     * tablets report the navigation bar as an inset even when the page ends above it, which
+     * left an empty band under the footer (REP-20261007-023).
+     */
+    --aca-pad: 1.25em 1.5em max(1.25em, env(safe-area-inset-bottom, 0px));
     box-shadow: none;
   }
   .aca-sheet__panel > .aca-m__outer > .aca-m__face {
     display: flex;
     flex-direction: column;
     max-height: min(85dvh, 48rem);
+  }
+  /* Short screens (a tablet in landscape with the browser bars): the sheet takes nearly all. */
+  @media (max-height: 40rem) {
+    .aca-sheet__panel {
+      --aca-pad: 1em 1.5em max(1em, env(safe-area-inset-bottom, 0px));
+    }
+    .aca-sheet__panel > .aca-m__outer > .aca-m__face {
+      max-height: calc(100dvh - var(--aca-space-3));
+    }
   }
   .aca-sheet__panel > .aca-m__outer > .aca-m__face > .aca-sheet__content {
     display: flex;
@@ -534,12 +767,107 @@
     padding: 1em 1.25em;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /*
+     * Rows scrolling under the header or the footer fade out instead of being cut in half
+     * (REP-20261007-013). The fade is as tall as the padding, so at rest nothing is faded.
+     */
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 1em,
+      #000 calc(100% - 1em),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 1em,
+      #000 calc(100% - 1em),
+      transparent
+    );
   }
   .aca-sheet__footer {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 0.75em;
+  }
+
+  /*
+   * SideSheet: side panel on a native modal <dialog>, from the left. Flat by design (no shadow, a
+   * hairline edge): it stands over the Casa 3D picture, which keeps redrawing (ISSUE-062: shadows
+   * over a live canvas cost raster time on the tablet).
+   */
+  .aca-side-sheet {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: var(--aca-z-sheet);
+    box-sizing: border-box;
+    width: min(20rem, 85vw);
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--aca-ink-solid);
+    overflow: hidden;
+    transform: translateX(0);
+    transition-property: transform, display, overlay;
+    transition-duration: 240ms;
+    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+    transition-behavior: allow-discrete;
+  }
+  .aca-side-sheet:not([open]) {
+    transform: translateX(-100%);
+  }
+  @starting-style {
+    .aca-side-sheet[open] {
+      transform: translateX(-100%);
+    }
+  }
+  .aca-side-sheet::backdrop {
+    background-color: rgb(5 5 5 / 35%);
+    transition-property: background-color, display, overlay;
+    transition-duration: 240ms;
+    transition-timing-function: ease-out;
+    transition-behavior: allow-discrete;
+  }
+  .aca-side-sheet:not([open])::backdrop {
+    background-color: rgb(5 5 5 / 0%);
+  }
+  @starting-style {
+    .aca-side-sheet[open]::backdrop {
+      background-color: rgb(5 5 5 / 0%);
+    }
+  }
+  .aca-side-sheet__panel {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--aca-space-3);
+    height: 100%;
+    /* The inset of the screen keeps the panel out of the notch and the system bars. */
+    padding: max(var(--aca-space-3), env(safe-area-inset-top, 0px)) var(--aca-space-3)
+      max(var(--aca-space-3), env(safe-area-inset-bottom, 0px))
+      max(var(--aca-space-3), env(safe-area-inset-left, 0px));
+    border-inline-end: 1px solid color-mix(in srgb, var(--aca-ink-muted) 45%, transparent);
+    background: var(--aca-page);
+    box-shadow: none;
+  }
+  .aca-side-sheet__header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--aca-space-3);
+  }
+  .aca-side-sheet__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   /* Popover: native popover API (top layer, light dismiss, Escape), placed under its trigger. */
@@ -593,12 +921,39 @@
     /* Sheet and popover appear in place: a short fade, no travel. */
     .aca-sheet,
     .aca-sheet:not([open]),
+    .aca-side-sheet,
+    .aca-side-sheet:not([open]),
     .aca-popover,
     .aca-popover:not(:popover-open) {
       transform: none !important;
     }
-    .aca-sheet {
+    .aca-sheet,
+    .aca-sheet:not([open]),
+    .aca-sheet::backdrop,
+    .aca-sheet:not([open])::backdrop {
+      transition-duration: var(--aca-dur-reduced, 120ms);
+      transition-timing-function: linear;
+    }
+    .aca-side-sheet {
       transition-duration: 120ms;
+    }
+    /* The panel fades instead of travelling (D-M5): 120 ms, as the veil. */
+    .aca-sheet,
+    .aca-sheet:not([open]) {
+      transition-property: opacity, display, overlay;
+    }
+    .aca-sheet:not([open]) {
+      opacity: 0;
+    }
+    @starting-style {
+      .aca-sheet[open] {
+        opacity: 0;
+      }
+    }
+    /* Content at once: the structure and the content do not come one after the other. */
+    .aca-sheet__body,
+    .aca-sheet__footer {
+      transition: none;
     }
   }
 }

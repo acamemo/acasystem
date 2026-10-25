@@ -95,7 +95,10 @@ export function FanModeButtons({
           disabled={blocked}
           onClick={fan.reverseDirection}
         >
-          <ControlIcon name={fan.direction === 'reverse' ? 'rotateLeft' : 'rotateRight'} size="md" />
+          <ControlIcon
+            name={fan.direction === 'reverse' ? 'rotateLeft' : 'rotateRight'}
+            size="md"
+          />
         </Button>
       )}
       {fan.hasOscillation && (

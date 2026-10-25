@@ -5,6 +5,7 @@
 
 import type { CardSettingsMap, PageSettingsMap } from '@/@types/dashboard';
 import type { EntityLikeMap } from '@/@types/ha';
+import { ADAPTIVE_WIDGET_TYPES } from '@/components/widgets/adaptive/widgetTypes';
 import {
   evaluateVisibilityConditionConfig,
   isConditionConfigured,
@@ -52,6 +53,10 @@ const REMOVABLE_PREFIXES = [
 
 /** Prefixes for "special" composite cards that don't map 1:1 to an entity. */
 const SPECIAL_CARD_PREFIXES = [
+  // Cards of the cover as widgets (REP-20261007-030): no entity of their own.
+  'cover_clock',
+  'cover_calendar',
+  'cover_weather',
   'entity_card_',
   'media_group_',
   'sonos_group_',
@@ -102,6 +107,7 @@ export function isCardHiddenByLogic(
 ): boolean {
   const settingsKey = getCardSettingsKey(cardId);
   const cardConfig = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const adaptive = ADAPTIVE_WIDGET_TYPES.has(String(cardConfig.categoryWidgetType));
   // Property keys are coerced to strings, as in the original lookups.
   const entityId = String(
     cardId.startsWith('entity_card_') || cardConfig.type === 'sensor'
@@ -110,7 +116,7 @@ export function isCardHiddenByLogic(
   );
   let hiddenByBaseLogic = false;
 
-  if (cardId === 'media_player') {
+  if (!adaptive && cardId === 'media_player') {
     return true;
   }
 
@@ -138,14 +144,16 @@ export function isCardHiddenByLogic(
     hiddenByBaseLogic = hiddenByBaseLogic || !entities[entityId];
   }
 
-  if (!isSpecialCard && !entities[entityId]) {
+  if (!adaptive && !isSpecialCard && !entities[entityId]) {
     if (cardId.startsWith('light_') || cardId.startsWith('light.') || cardId.startsWith('lock.')) {
       return false;
     }
     hiddenByBaseLogic = true;
   }
 
-  if (hiddenByBaseLogic) {
+  // Adaptive categories render missing/disconnected associations explicitly, including
+  // logical area ids that are never HA entities. Explicit visibility conditions still apply.
+  if (hiddenByBaseLogic && !adaptive) {
     return true;
   }
 

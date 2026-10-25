@@ -66,7 +66,9 @@ export function readCarSettings(settings: CardSettings): CarSettings {
     ids.chargingId = asId(settings.chargingId) ?? chargingState;
   }
   const controls = Array.isArray(settings.chargeControlIds)
-    ? settings.chargeControlIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+    ? settings.chargeControlIds.filter(
+        (id): id is string => typeof id === 'string' && id.length > 0
+      )
     : [];
   const single = ids.chargeControlId;
   return {
@@ -91,10 +93,18 @@ export interface CarReadings {
  * Units follow Home Assistant (ADR-0007): the range is converted from its sensor unit (km
  * when it has none) to the length unit of `haConfig`; until that is loaded it is shown as read.
  */
-export function readCar(entities: EntityMap, car: CarSettings, haConfig: HaConfig | null): CarReadings {
+export function readCar(
+  entities: EntityMap,
+  car: CarSettings,
+  haConfig: HaConfig | null
+): CarReadings {
   const { ids } = car;
   const rangeEntity = entityOf(entities, ids.rangeId);
-  const range = lengthReading(numericState(rangeEntity), stringAttr(rangeEntity, 'unit_of_measurement'), haConfig);
+  const range = lengthReading(
+    numericState(rangeEntity),
+    stringAttr(rangeEntity, 'unit_of_measurement'),
+    haConfig
+  );
   const charging = safeState(entityOf(entities, ids.chargingStateId));
   const plugged = safeState(entityOf(entities, ids.pluggedId));
   const climate = entityOf(entities, ids.climateId);
@@ -105,15 +115,21 @@ export function readCar(entities: EntityMap, car: CarSettings, haConfig: HaConfi
     location: entityOf(entities, ids.locationId),
     isCharging: charging === 'on' || charging === 'charging',
     isPlugged: plugged === 'on' || plugged === 'plugged' || plugged === 'true',
-    isClimateOn: Boolean(climate) && !isUnavailableState(climate?.state) && climate?.state !== 'off',
+    isClimateOn:
+      Boolean(climate) && !isUnavailableState(climate?.state) && climate?.state !== 'off',
   };
 }
 
 /** Position for the map: the tracker's coordinates, else the latitude/longitude sensors. */
-export function carPosition(entities: EntityMap, car: CarSettings): { lat: number; lon: number } | null {
+export function carPosition(
+  entities: EntityMap,
+  car: CarSettings
+): { lat: number; lon: number } | null {
   const tracker = entityOf(entities, car.ids.locationId);
-  const lat = numberAttr(tracker, 'latitude') ?? numericState(entityOf(entities, car.ids.latitudeId));
-  const lon = numberAttr(tracker, 'longitude') ?? numericState(entityOf(entities, car.ids.longitudeId));
+  const lat =
+    numberAttr(tracker, 'latitude') ?? numericState(entityOf(entities, car.ids.latitudeId));
+  const lon =
+    numberAttr(tracker, 'longitude') ?? numericState(entityOf(entities, car.ids.longitudeId));
   if (lat === null || lon === null) return null;
   return { lat, lon };
 }

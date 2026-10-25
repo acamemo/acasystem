@@ -17,7 +17,11 @@ export function appendCameraCacheBust(url: string, value: string | number): stri
   return `${url}${separator}_ts=${value}`;
 }
 
-export function buildCameraProxyUrl(basePath: string, entityId: string, accessToken: string): string {
+export function buildCameraProxyUrl(
+  basePath: string,
+  entityId: string,
+  accessToken: string
+): string {
   if (!entityId) return '';
   const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
   return `${basePath}/${entityId}${tokenQuery}`;
@@ -65,7 +69,11 @@ export function getCameraSourcePlan({
   if (supportsWebRtc) plan.push('webrtc');
   if (
     hasConnection &&
-    (engine === 'go2rtc' || engine === 'ha' || engine === 'webrtc' || supportsHls || !capabilitiesKnown)
+    (engine === 'go2rtc' ||
+      engine === 'ha' ||
+      engine === 'webrtc' ||
+      supportsHls ||
+      !capabilitiesKnown)
   ) {
     plan.push('hls');
   }

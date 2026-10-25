@@ -108,7 +108,13 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
   const logo = resolveImage(view.logo, runtime.getEntityImageUrl);
   const remote = REMOTE[kind];
   const failed = actions.failed !== null || playing.error || power.error || muted.error;
-  const keyButton = (key: string, command: string, label: string, icon: MediaIconName, area?: string) => (
+  const keyButton = (
+    key: string,
+    command: string,
+    label: string,
+    icon: MediaIconName,
+    area?: string
+  ) => (
     <Button
       key={key}
       variant="control"
@@ -125,11 +131,21 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
 
   const volumeButtons = (
     <>
-      <Button variant="control" size="md" aria-label={testi.volumeGiu} onClick={() => run('volume_down', 'volume_down')}>
+      <Button
+        variant="control"
+        size="md"
+        aria-label={testi.volumeGiu}
+        onClick={() => run('volume_down', 'volume_down')}
+      >
         <MediaIcon name="minus" size="sm" />
         {testi.volume}
       </Button>
-      <Button variant="control" size="md" aria-label={testi.volumeSu} onClick={() => run('volume_up', 'volume_up')}>
+      <Button
+        variant="control"
+        size="md"
+        aria-label={testi.volumeSu}
+        onClick={() => run('volume_up', 'volume_up')}
+      >
         <MediaIcon name="add" size="sm" />
         {testi.volume}
       </Button>
@@ -192,7 +208,9 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
             variant="primary"
             shape="circle"
             size="lg"
-            aria-label={kind === 'apple' ? testi.playPausa : playing.value ? testi.pausa : testi.riproduci}
+            aria-label={
+              kind === 'apple' ? testi.playPausa : playing.value ? testi.pausa : testi.riproduci
+            }
             loading={playing.pending}
             onClick={() => playing.request(!playing.value, () => controlMedia('media_play_pause'))}
           >
@@ -280,10 +298,18 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
               </div>
             </>
           )}
-          {(config.remoteId || kind === 'apple') && <div className="aca-media-keys">{volumeButtons}</div>}
+          {(config.remoteId || kind === 'apple') && (
+            <div className="aca-media-keys">{volumeButtons}</div>
+          )}
           {kind === 'apple' && (
             <div className="aca-media-wrap">
-              <Button variant="control" size="md" aria-pressed={muted.value} loading={muted.pending} onClick={toggleMute}>
+              <Button
+                variant="control"
+                size="md"
+                aria-pressed={muted.value}
+                loading={muted.pending}
+                onClick={toggleMute}
+              >
                 <MediaIcon name="mute" size="sm" />
                 {muted.value ? testi.riattivaAudio : testi.muto}
               </Button>
@@ -297,5 +323,7 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
   );
 }
 
-export const AndroidTvDetails = (props: WidgetDetailsProps) => <TvDetails kind="android" {...props} />;
+export const AndroidTvDetails = (props: WidgetDetailsProps) => (
+  <TvDetails kind="android" {...props} />
+);
 export const AppleTvDetails = (props: WidgetDetailsProps) => <TvDetails kind="apple" {...props} />;

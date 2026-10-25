@@ -211,7 +211,8 @@ export function LightsPageView({ settings, onSaveSetting }: LightsPageViewProps)
     let cancelled = false;
     getAreas(conn)
       .then((list) => {
-        if (!cancelled) setAreas(new Map(list.map((area) => [area.area_id, area.name || area.area_id])));
+        if (!cancelled)
+          setAreas(new Map(list.map((area) => [area.area_id, area.name || area.area_id])));
       })
       .catch(() => undefined);
     return () => {
@@ -331,8 +332,16 @@ export function LightsPageView({ settings, onSaveSetting }: LightsPageViewProps)
         </div>
         {filtered.length > 0 && (
           <div className="ctl-lights__actions">
-            <ConfirmAction label="Accendi tutte" question="Accendere tutte le luci?" onConfirm={allOn} />
-            <ConfirmAction label="Spegni tutte" question="Spegnere tutte le luci?" onConfirm={allOff} />
+            <ConfirmAction
+              label="Accendi tutte"
+              question="Accendere tutte le luci?"
+              onConfirm={allOn}
+            />
+            <ConfirmAction
+              label="Spegni tutte"
+              question="Spegnere tutte le luci?"
+              onConfirm={allOff}
+            />
           </div>
         )}
       </header>

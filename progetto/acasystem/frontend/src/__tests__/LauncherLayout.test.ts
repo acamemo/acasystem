@@ -10,12 +10,14 @@ import {
   moveWidgetInLayout,
   moveWidgetToPageInLayout,
   pageWidgetIds,
+  placeWidgetAheadInLayout,
   placeWidgetInLayout,
   removePageFromLayout,
   removeWidgetFromLayout,
   reorderPagesInLayout,
   resizeWidgetInLayout,
   setCoverInLayout,
+  withCoverPage,
   updatePageInLayout,
   type LayoutContext,
 } from '@/utils/launcher/layout';
@@ -308,5 +310,102 @@ describe('launcher pager and legacy mirror', () => {
     expect(displayLabel('TV sala')).toBe('TV sala');
     expect(displayLabel('cucina')).toBe('Cucina');
     expect(displayLabel('', 'Pagina')).toBe('Pagina');
+  });
+});
+
+describe('a widget added from the pages view (2026-10-23)', () => {
+  const big = { w: 8, h: 2 };
+  /** `sampleLayout` with «Altro» as full as «Casa»: no page of widgets has room for `big`. */
+  const allFull = (): LauncherLayout => {
+    const layout = sampleLayout();
+    return {
+      ...layout,
+      pages: layout.pages.map((page) =>
+        page.id === 'altro'
+          ? { ...page, placements: { tablet: { z: { x: 0, y: 0, w: 8, h: 5 } } } }
+          : page
+      ),
+    };
+  };
+
+  it('goes to the first free place of the page in the centre', () => {
+    const result = placeWidgetAheadInLayout(sampleLayout(), tablet, 'home', 'e', { w: 2, h: 1 });
+    expect(result).toMatchObject({ pageId: 'home', placed: true });
+    expect(result.layout.pages[0].placements.tablet?.e).toEqual({ x: 0, y: 4, w: 2, h: 1 });
+  });
+
+  it('goes to the first page after it with room when the page is full, skipping the special ones', () => {
+    const result = placeWidgetAheadInLayout(sampleLayout(), tablet, 'home', 'big', big);
+    // «Luci» (a special page) is between the two: it takes no widgets.
+    expect(result).toMatchObject({ pageId: 'altro', placed: true });
+    expect(result.layout.pages).toHaveLength(3);
+    expect(result.layout.pages[2].placements.tablet?.big).toEqual({ x: 0, y: 0, w: 8, h: 2 });
+    expect(result.layout.pages[0].placements.tablet?.big).toBeUndefined();
+  });
+
+  it('skips a hidden page, and takes a new page at the end when no page after has room', () => {
+    const layout = sampleLayout();
+    const hidden: LauncherLayout = {
+      ...layout,
+      pages: layout.pages.map((page) => (page.id === 'altro' ? { ...page, hidden: true } : page)),
+    };
+    for (const source of [hidden, allFull()]) {
+      const result = placeWidgetAheadInLayout(source, tablet, 'home', 'big', big);
+      expect(result.placed).toBe(true);
+      expect(['home', 'luci', 'altro']).not.toContain(result.pageId);
+      expect(result.layout.pages).toHaveLength(4);
+      expect(result.layout.pages[3]).toMatchObject({
+        id: result.pageId,
+        label: 'Nuova pagina',
+        kind: 'widgets',
+      });
+      expect(result.layout.pages[3].continuationOf).toBeUndefined();
+      expect(result.layout.pages[3].placements.tablet?.big).toEqual({ x: 0, y: 0, w: 8, h: 2 });
+    }
+  });
+
+  it('looks only at the pages after the one in the centre: a full last page leads to a new page', () => {
+    // «Casa» has room for a 2 × 1 widget, but it comes before «Altro».
+    const layout = allFull();
+    const result = placeWidgetAheadInLayout(layout, tablet, 'altro', 'e', { w: 2, h: 1 });
+    expect(result.pageId).not.toBe('home');
+    expect(result.layout.pages).toHaveLength(4);
+    expect(result.layout.pages[0].placements.tablet?.e).toBeUndefined();
+  });
+
+  it('starts from the cover: a full cover leads to the first page of widgets with room', () => {
+    const stored = withCoverPage(sampleLayout(), DEFAULT_GRIDS);
+    // The default cover (clock, date, weather) is already full: an empty one is made for the test.
+    const covered: LauncherLayout = {
+      ...stored,
+      pages: stored.pages.map((page) =>
+        page.kind === 'cover' ? { ...page, placements: { tablet: {} } } : page
+      ),
+    };
+    const full = placeWidgetInLayout(covered, tablet, 'cover', 'banner', { w: 8, h: 8 }).layout;
+    // The free cover takes it …
+    const room = placeWidgetAheadInLayout(covered, tablet, 'cover', 'e', { w: 1, h: 1 });
+    expect(room.pageId).toBe('cover');
+    // … a full one sends it on to «Casa», the first page of the pager after it.
+    const result = placeWidgetAheadInLayout(full, tablet, 'cover', 'e', { w: 2, h: 1 });
+    expect(result).toMatchObject({ pageId: 'home', placed: true });
+    expect(result.layout.pages.find((page) => page.id === 'home')?.placements.tablet?.e).toEqual({
+      x: 0,
+      y: 4,
+      w: 2,
+      h: 1,
+    });
+  });
+
+  it('leaves a widget that is already on the page where it is, and refuses a special page', () => {
+    const layout = sampleLayout();
+    const same = placeWidgetAheadInLayout(layout, tablet, 'home', 'a', { w: 2, h: 1 });
+    expect(same).toEqual({ layout, pageId: 'home', placed: true });
+    expect(placeWidgetAheadInLayout(layout, tablet, 'luci', 'e')).toEqual({
+      layout,
+      pageId: 'luci',
+      placed: false,
+    });
+    expect(placeWidgetAheadInLayout(layout, tablet, 'assente', 'e').placed).toBe(false);
   });
 });

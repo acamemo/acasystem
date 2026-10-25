@@ -86,7 +86,9 @@ describe('componenti del kit', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-checked', 'true');
-    expect(toggle.querySelector('.aca-toggle__knob')).toHaveClass('aca-m--hosted');
+    // Grip knob inside a recessed track (REP-20261007-021).
+    expect(toggle.querySelector('.aca-toggle__track > .aca-toggle__knob')).not.toBeNull();
+    expect(toggle.querySelectorAll('.aca-toggle__dot')).toHaveLength(12);
   });
 
   it('Segmented comunica la selezione con aria-pressed', () => {

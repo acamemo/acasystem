@@ -96,6 +96,29 @@
   --aca-blue-glow: oklch(from var(--aca-blue) calc(l + 0.08) c h / 40%);
   /* Vertical fills (thermometer): orange at the bottom, light at the top. */
   --aca-fill-vertical: linear-gradient(0deg, var(--aca-orange), var(--aca-orange-light));
+  /*
+   * Orb (REP-20261007-026): the glossy accent of the page indicator ball, for any shape: a
+   * soft highlight at the top left, the accent in the middle, the dark ink at the edge. Used by
+   * the ball, the «Fine» button and the switch when on.
+   */
+  --aca-orb:
+    radial-gradient(
+      ellipse 34% 48% at 26% 24%,
+      rgb(255 255 255 / 75%) 0 12%,
+      rgb(255 255 255 / 0%) 70%
+    ),
+    radial-gradient(
+      ellipse 20% 30% at 74% 80%,
+      rgb(255 255 255 / 28%) 0 10%,
+      rgb(255 255 255 / 0%) 70%
+    ),
+    radial-gradient(
+      ellipse 110% 130% at 42% 36%,
+      var(--aca-orange-light) 0%,
+      var(--aca-orange) 50%,
+      var(--aca-orange-ink-icon) 100%
+    );
+  --aca-orb-shade: inset -0.12rem -0.16rem 0.3rem rgb(5 5 5 / 22%);
   --aca-arc-from: var(--aca-orange-light);
   --aca-arc-to: var(--aca-orange);
 
@@ -112,13 +135,86 @@
   --aca-weight-regular: 400;
   --aca-weight-medium: 500;
 
-  /* Stacking: dropdown → sticky → sheet backdrop → sheet → toast → tooltip. */
+  /* Stacking: dropdown → sticky → overlay (Sistema) → sheet backdrop → sheet → toast → tooltip. */
   --aca-z-dropdown: 100;
   --aca-z-sticky: 200;
+  /* Sistema over the launcher while both are on screen (it fades in and out over it). */
+  --aca-z-overlay: 250;
   --aca-z-sheet-backdrop: 300;
   --aca-z-sheet: 310;
   --aca-z-toast: 400;
   --aca-z-tooltip: 500;
+
+  /*
+   * Motion of the launcher (REP-20261023-006, D-M16), the one place for times, curves and the few
+   * scales. Exits are shorter than entrances (about two thirds, ease-in); entrances and scenes
+   * ease out. A scale never goes beyond ±10 % (the user's answer of 2026-10-23): press 0.93, lift
+   * 1.05, a page or an element coming in or going out 0.92 with a fade. On :root, unlike the
+   * kit's --aca-ease-out / --aca-release (on .aca-m only), so a widget, a card or a bar reads
+   * them without a literal fallback.
+   */
+  --aca-motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --aca-motion-ease-in: cubic-bezier(0.42, 0, 1, 1);
+  --aca-motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Feedback of a press: in at once, back a little slower. */
+  --aca-dur-press: 120ms;
+  --aca-dur-press-out: 180ms;
+  /* Small elements that go away: the empty cells before a scene, a pill, a toast, a control. */
+  --aca-dur-clear: 100ms;
+  --aca-dur-swap-out: 120ms;
+  --aca-dur-exit-sm: 160ms;
+  /* Small elements that come: a pill, a card, a control. */
+  --aca-dur-enter-sm: 240ms;
+  --aca-dur-fade-in: 180ms;
+  /* The card held in the pages view grows to --aca-scale-lift. */
+  --aca-dur-lift: 150ms;
+  /* A thing that changes place: a widget in its cell, a card by one step. */
+  --aca-dur-move: 240ms;
+  /* The bars: about one bar of distance. */
+  --aca-dur-bar-in: 360ms;
+  --aca-dur-bar-out: 240ms;
+  --aca-dur-bar-fade-in: 240ms;
+  --aca-dur-bar-fade-out: 200ms;
+  /* The scene of a page (the pages view) and the sheets, which cover the screen. */
+  --aca-dur-scene: 360ms;
+  --aca-dur-sheet-in: 280ms;
+  --aca-dur-sheet-out: 200ms;
+  /* With reduced motion: a fade and nothing else. */
+  --aca-dur-reduced: 120ms;
+  /* The gap between two groups of one scene (the cards, the indicator, the bar, the controls). */
+  --aca-stagger: 40ms;
+  --aca-scale-press: 0.93;
+  --aca-scale-lift: 1.05;
+  --aca-scale-enter: 0.92;
+  /*
+   * Block 2 (sheets, Sistema, notices, REP-20261023-006). The veil of a sheet comes a little before
+   * its panel arrives and goes a little before it leaves; the content fades in when the panel is
+   * there. Sistema fades with a scale of 4 % (a page is large: 8 % would be too much), and it is
+   * longer on the way in than on the way out.
+   */
+  --aca-dur-veil-in: 200ms;
+  --aca-dur-veil-out: 160ms;
+  --aca-dur-content-in: 160ms;
+  /* A toast comes in a little quicker than a pill: it is a short message. */
+  --aca-dur-toast-in: 200ms;
+  /* 140/96 ms since the tracing of 2026-10-24 (was 240/160): the same fade, shorter (choice of the user). */
+  --aca-dur-system-in: 140ms;
+  --aca-dur-system-out: 96ms;
+  --aca-scale-page: 0.96;
+  /*
+   * Block 3 (widgets, REP-20261023-006). The copy of a lifted widget is born at its own size and
+   * grows to --aca-scale-drag (4 %); it flies into its cell in --aca-dur-fly and, refused, back to
+   * the one it left in --aca-dur-fly-back. The shape of a resize clears the content in
+   * --aca-dur-clear and gives it back in --aca-dur-reveal; a «+» cell comes and goes in
+   * --aca-dur-cell, with the scale of an element coming in (--aca-scale-enter); the ring of the
+   * selection in --aca-dur-ring.
+   */
+  --aca-scale-drag: 1.04;
+  --aca-dur-fly: 200ms;
+  --aca-dur-fly-back: 240ms;
+  --aca-dur-reveal: 200ms;
+  --aca-dur-cell: 160ms;
+  --aca-dur-ring: 120ms;
 
   /*
    * Spacing scale on a 4 px base, in rem (REP-20261007-001): the frame of the OS (status bar,

@@ -17,6 +17,11 @@ const INTERFACE_ONLY: ReadonlySet<IconName> = new Set<IconName>([
   'close',
   'resize',
   'move',
+  'pageBefore',
+  'pageAfter',
+  'eye',
+  'eyeSlash',
+  'widgetAdd',
 ]);
 
 /** Italian names of the kit icons; a name without one falls back to the kit key. */

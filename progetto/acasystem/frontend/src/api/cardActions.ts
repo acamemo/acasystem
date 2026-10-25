@@ -27,8 +27,6 @@ export interface AddSelectedContext {
   selectedSpacerVariant?: string;
   cardSettings: CardSettingsMap;
   persistCardSettings: (settings: CardSettingsMap) => void;
-  hiddenCards?: string[];
-  persistHiddenCards?: ((hidden: string[]) => void) | null;
   getCardSettingsKey: GetCardSettingsKey;
   saveCardSetting?: (id: string, setting: string, value: unknown) => void;
   setSelectedEntities: Select<string[]>;
@@ -74,8 +72,6 @@ export const handleAddSelected = (ctx: AddSelectedContext): void => {
     selectedSpacerVariant,
     cardSettings,
     persistCardSettings,
-    hiddenCards = [],
-    persistHiddenCards,
     getCardSettingsKey,
     setSelectedEntities,
     setShowAddCardModal,
@@ -129,13 +125,6 @@ export const handleAddSelected = (ctx: AddSelectedContext): void => {
   const commitCards = (cardIds: string[]) => {
     newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...cardIds];
     persistConfig(newConfig);
-    if (typeof persistHiddenCards === 'function' && Array.isArray(hiddenCards)) {
-      const addedCardIds = new Set(cardIds);
-      const nextHiddenCards = hiddenCards.filter((id) => !addedCardIds.has(id));
-      if (nextHiddenCards.length !== hiddenCards.length) {
-        persistHiddenCards(nextHiddenCards);
-      }
-    }
     setShowAddCardModal(false);
   };
 
@@ -186,6 +175,14 @@ export const handleAddSelected = (ctx: AddSelectedContext): void => {
       const cardId = `calendar_card_${Date.now()}`;
       commitSingleCard(cardId, { calendars });
       setSelectedEntities([]);
+      return;
+    }
+
+    // Cards of the cover as widgets (REP-20261007-030): nothing to choose.
+    case 'cover_clock':
+    case 'cover_calendar':
+    case 'cover_weather': {
+      commitSingleCard(`${addCardType}_${Date.now()}`, {});
       return;
     }
 

@@ -12,6 +12,7 @@ import type {
 } from 'react';
 import type { Auth, Connection } from 'home-assistant-js-websocket';
 import type { EntityMap, HaConfig, HaUser } from './ha';
+import type { AdoptionSource, WidgetMemory } from '@/utils/launcher/deviceMemory';
 
 export type { EntityMap } from './ha';
 
@@ -87,7 +88,20 @@ export interface PagesConfig {
 }
 
 /** Impostazioni di una card: oggetto libero letto con guardie. */
-export type CardSettings = Record<string, unknown>;
+export interface AdaptiveControlPreference {
+  visible: string[];
+  order: string[];
+}
+export type CardSettings = Record<string, unknown> & {
+  adaptiveControls?: AdaptiveControlPreference;
+  adaptiveBindings?: Record<string, string | null>;
+  adaptiveHistoryHours?: number;
+  adaptivePeriod?: string;
+  adaptiveSpacing?: number;
+  cameraCaptureDirectory?: string;
+  cameraRecordDuration?: number | string;
+  cameraPaused?: boolean;
+};
 export type CardSettingsMap = Record<string, CardSettings>;
 
 export interface PageSettings {
@@ -235,6 +249,11 @@ export interface PageProviderProps {
   children?: ReactNode;
 }
 
+/** A widget took the configuration saved for its device (ADR-0019). */
+export interface WidgetMemoryNotice extends AdoptionSource {
+  seq: number;
+}
+
 export interface PageContextValue {
   pagesConfig: PagesConfig;
   setPagesConfig: Setter<PagesConfig>;
@@ -246,14 +265,21 @@ export interface PageContextValue {
   saveCustomName: (id: string, name: string) => void;
   customIcons: Record<string, string>;
   saveCustomIcon: (id: string, iconName: string) => void;
-  hiddenCards: string[];
-  toggleCardVisibility: (cardId: string) => void;
   pageSettings: PageSettingsMap;
   setPageSettings: Setter<PageSettingsMap>;
   persistPageSettings: (newSettings: PageSettingsMap) => void;
   persistCustomNames: (newNames: Record<string, string>) => void;
   persistCustomIcons: (newIcons: Record<string, string>) => void;
-  persistHiddenCards: (newHidden: string[]) => void;
+  /**
+   * Memory of the configuration of widgets per device (ADR-0019). Removing a widget keeps its
+   * configuration for its device; linking a widget to a device takes it back.
+   */
+  persistWidgetMemory: (memory: WidgetMemory) => void;
+  rememberRemovedWidget: (pageId: string, widgetId: string, label?: string | null) => void;
+  rememberRemovedPage: (pageId: string) => void;
+  requestWidgetAdoption: (pageId: string | null, widgetId: string) => void;
+  /** Set when a widget took the configuration of a device; `seq` changes on every copy. */
+  widgetMemoryNotice: WidgetMemoryNotice | null;
   savePageSetting: (id: string, setting: string, value: unknown) => void;
   gridColumns: number;
   setGridColumns: (val: number) => void;
@@ -403,8 +429,6 @@ export interface UseAddCardDeps {
   persistConfig: (newConfig: PagesConfig) => void;
   cardSettings: CardSettingsMap;
   persistCardSettings: (newSettings: CardSettingsMap) => void;
-  hiddenCards?: string[];
-  persistHiddenCards?: ((newHidden: string[]) => void) | null;
   getCardSettingsKey: GetCardSettingsKey;
   saveCardSetting?: (id: string, setting: string, value: unknown) => void;
   setShowAddCardModal: (show: boolean) => void;

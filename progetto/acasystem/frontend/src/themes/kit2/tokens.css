@@ -6,8 +6,10 @@
  * Everything derives from two bases, as in the Metallo kit (REP-20261007-005):
  *   --k2-bg      surface of the page and of every raised element
  *   --k2-accent  the single accent (switch, primary button, fills, current icons)
- * The theme (light / dark) and the accent are chosen on the .k2 root with data attributes.
+ * The theme (light / dark) and the accent are chosen with data attributes on the .k2 root of
+ * the Kit 2 page, or on <html> for the app skin (ADR-0011, REP-20261007-008).
  */
+:root,
 .k2 {
   /* Light theme: blue-grey surface, white light from the top left. */
   --k2-bg: oklch(93.8% 0.016 260); /* #e4ebf5 */
@@ -48,6 +50,7 @@
 }
 
 /* Dark theme: charcoal surface, the light layer becomes a faint lighter grey. */
+:root[data-theme='dark'],
 .k2[data-theme='dark'] {
   --k2-bg: oklch(22% 0.01 265); /* #1b1d23 */
   --k2-shade: oklch(from var(--k2-bg) calc(l - 0.08) c h);
@@ -58,12 +61,15 @@
 }
 
 /* Accents of the references' colour picker, plus the Acasystem orange. */
+:root[data-accent='red'],
 .k2[data-accent='red'] {
   --k2-accent: oklch(62.7% 0.249 15.5); /* #ff0047 */
 }
+:root[data-accent='cyan'],
 .k2[data-accent='cyan'] {
   --k2-accent: oklch(66% 0.13 190); /* #00a7a8, the reference cyan darkened for contrast */
 }
+:root[data-accent='orange'],
 .k2[data-accent='orange'] {
   --k2-accent: oklch(69.24% 0.2024 38.37); /* #ff622a */
 }

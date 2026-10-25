@@ -9,7 +9,10 @@ import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fi
 import { mediaWidgets } from '@/components/widgets/media';
 import { MediaIcon, type MediaIconName } from '@/components/widgets/media/icons';
 import { CameraWidget } from '@/components/widgets/media/widgets/Camera';
-import { MediaGroupWidget, MediaPlayerWidget } from '@/components/widgets/media/widgets/MediaWidgets';
+import {
+  MediaGroupWidget,
+  MediaPlayerWidget,
+} from '@/components/widgets/media/widgets/MediaWidgets';
 import { MediaPlayerDetails } from '@/components/widgets/media/widgets/MediaDetails';
 import { AndroidTvWidget, AppleTvWidget } from '@/components/widgets/media/widgets/TvWidget';
 
@@ -35,8 +38,18 @@ const entities = () =>
     }),
     live('media_player.sala', 'playing', { friendly_name: 'Sala', media_title: 'Uno' }),
     live('media_player.bagno', 'playing', { friendly_name: 'Bagno', media_title: 'Due' }),
-    { ...fixtureEntity('media_player.spento', 'off', { friendly_name: 'Spento', supported_features: 0xfffff }), last_updated: '2020-01-01T00:00:00Z' },
-    live('media_player.tv_sala', 'on', { friendly_name: 'TV sala', app_name: 'YouTube', media_title: 'Concerto' }),
+    {
+      ...fixtureEntity('media_player.spento', 'off', {
+        friendly_name: 'Spento',
+        supported_features: 0xfffff,
+      }),
+      last_updated: '2020-01-01T00:00:00Z',
+    },
+    live('media_player.tv_sala', 'on', {
+      friendly_name: 'TV sala',
+      app_name: 'YouTube',
+      media_title: 'Concerto',
+    }),
     live('camera.ingresso', 'idle', { friendly_name: 'Ingresso', access_token: 'tok' }),
   ]);
 
@@ -44,75 +57,165 @@ function setup(node: ReactElement) {
   const openDetails = vi.fn();
   const callService = vi.fn(async () => undefined);
   const saveCardSetting = vi.fn();
-  const runtime = createFixtureRuntime({ entities: entities(), openDetails, callService, saveCardSetting });
+  const runtime = createFixtureRuntime({
+    entities: entities(),
+    openDetails,
+    callService,
+    saveCardSetting,
+  });
   const result = render(<WidgetRuntimeProvider value={runtime}>{node}</WidgetRuntimeProvider>);
   return { ...result, openDetails, callService };
 }
 
 const s22: CellSize = { w: 2, h: 2 };
-const group = { mediaIds: ['media_player.sala', 'media_player.bagno'], activeId: 'media_player.sala' };
+const group = {
+  mediaIds: ['media_player.sala', 'media_player.bagno'],
+  activeId: 'media_player.sala',
+};
 
 const CASES: Array<{ name: string; node: ReactElement; id: string }> = [
   {
     name: 'lettore 2×1',
     id: 'media_player.cucina',
-    node: <MediaPlayerWidget id="media_player.cucina" settingsKey="k" settings={{}} size={{ w: 2, h: 1 }} editMode={false} />,
+    node: (
+      <MediaPlayerWidget
+        id="media_player.cucina"
+        settingsKey="k"
+        settings={{}}
+        size={{ w: 2, h: 1 }}
+        editMode={false}
+      />
+    ),
   },
   {
     name: 'lettore 4×1',
     id: 'media_player.cucina',
-    node: <MediaPlayerWidget id="media_player.cucina" settingsKey="k" settings={{}} size={{ w: 4, h: 1 }} editMode={false} />,
+    node: (
+      <MediaPlayerWidget
+        id="media_player.cucina"
+        settingsKey="k"
+        settings={{}}
+        size={{ w: 4, h: 1 }}
+        editMode={false}
+      />
+    ),
   },
   {
     name: 'lettore 2×2',
     id: 'media_player.cucina',
-    node: <MediaPlayerWidget id="media_player.cucina" settingsKey="k" settings={{}} size={s22} editMode={false} />,
+    node: (
+      <MediaPlayerWidget
+        id="media_player.cucina"
+        settingsKey="k"
+        settings={{}}
+        size={s22}
+        editMode={false}
+      />
+    ),
   },
   {
     name: 'lettore 4×2',
     id: 'media_player.cucina',
-    node: <MediaPlayerWidget id="media_player.cucina" settingsKey="k" settings={{}} size={{ w: 4, h: 2 }} editMode={false} />,
+    node: (
+      <MediaPlayerWidget
+        id="media_player.cucina"
+        settingsKey="k"
+        settings={{}}
+        size={{ w: 4, h: 2 }}
+        editMode={false}
+      />
+    ),
   },
   {
     name: 'lettore con copertina estesa',
     id: 'media_player.cucina',
     node: (
-      <MediaPlayerWidget id="media_player.cucina" settingsKey="k" settings={{ artworkMode: 'cover' }} size={s22} editMode={false} />
+      <MediaPlayerWidget
+        id="media_player.cucina"
+        settingsKey="k"
+        settings={{ artworkMode: 'cover' }}
+        size={s22}
+        editMode={false}
+      />
     ),
   },
   {
     name: 'lettore spento',
     id: 'media_player.spento',
-    node: <MediaPlayerWidget id="media_player.spento" settingsKey="k" settings={{}} size={s22} editMode={false} />,
+    node: (
+      <MediaPlayerWidget
+        id="media_player.spento"
+        settingsKey="k"
+        settings={{}}
+        size={s22}
+        editMode={false}
+      />
+    ),
   },
   {
     name: 'gruppo',
     id: 'media_group_1',
-    node: <MediaGroupWidget id="media_group_1" settingsKey="k" settings={group} size={s22} editMode={false} />,
+    node: (
+      <MediaGroupWidget
+        id="media_group_1"
+        settingsKey="k"
+        settings={group}
+        size={s22}
+        editMode={false}
+      />
+    ),
   },
   {
     name: 'gruppo vuoto',
     id: 'media_group_2',
-    node: <MediaGroupWidget id="media_group_2" settingsKey="k" settings={{}} size={s22} editMode={false} />,
+    node: (
+      <MediaGroupWidget
+        id="media_group_2"
+        settingsKey="k"
+        settings={{}}
+        size={s22}
+        editMode={false}
+      />
+    ),
   },
   {
     name: 'Android TV',
     id: 'androidtv_card_1',
     node: (
-      <AndroidTvWidget id="androidtv_card_1" settingsKey="k" settings={{ mediaPlayerId: 'media_player.tv_sala' }} size={s22} editMode={false} />
+      <AndroidTvWidget
+        id="androidtv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: 'media_player.tv_sala' }}
+        size={s22}
+        editMode={false}
+      />
     ),
   },
   {
     name: 'Apple TV',
     id: 'appletv_card_1',
     node: (
-      <AppleTvWidget id="appletv_card_1" settingsKey="k" settings={{ mediaPlayerId: 'media_player.tv_sala' }} size={s22} editMode={false} />
+      <AppleTvWidget
+        id="appletv_card_1"
+        settingsKey="k"
+        settings={{ mediaPlayerId: 'media_player.tv_sala' }}
+        size={s22}
+        editMode={false}
+      />
     ),
   },
   {
     name: 'videocamera',
     id: 'camera_card_1',
-    node: <CameraWidget id="camera_card_1" settingsKey="k" settings={{ cameraId: 'camera.ingresso' }} size={s22} editMode={false} />,
+    node: (
+      <CameraWidget
+        id="camera_card_1"
+        settingsKey="k"
+        settings={{ cameraId: 'camera.ingresso' }}
+        size={s22}
+        editMode={false}
+      />
+    ),
   },
 ];
 
@@ -142,7 +245,13 @@ describe('Apertura dei dettagli: un solo pulsante data-widget-open, i comandi fu
 
   it('entità mancante: solo il messaggio, nessuna apertura', () => {
     const { container } = setup(
-      <MediaPlayerWidget id="media_player.cantina" settingsKey="k" settings={{}} size={s22} editMode={false} />
+      <MediaPlayerWidget
+        id="media_player.cantina"
+        settingsKey="k"
+        settings={{}}
+        size={s22}
+        editMode={false}
+      />
     );
     expect(screen.getByText('Dispositivo non trovato')).toBeInTheDocument();
     expect(container.querySelector('[data-widget-open]')).toBeNull();
@@ -151,14 +260,31 @@ describe('Apertura dei dettagli: un solo pulsante data-widget-open, i comandi fu
 
 describe('Gesti che tengono il puntatore: data-no-long-press', () => {
   it('il cursore del volume del widget', () => {
-    setup(<MediaPlayerWidget id="media_player.cucina" settingsKey="k" settings={{}} size={s22} editMode={false} />);
+    setup(
+      <MediaPlayerWidget
+        id="media_player.cucina"
+        settingsKey="k"
+        settings={{}}
+        size={s22}
+        editMode={false}
+      />
+    );
     expect(screen.getByRole('slider', { name: 'Volume' })).toHaveAttribute('data-no-long-press');
   });
 
   it('volume e posizione nel brano nei dettagli', () => {
-    setup(<MediaPlayerDetails id="media_player.cucina" settingsKey="k" settings={{}} onClose={() => undefined} />);
+    setup(
+      <MediaPlayerDetails
+        id="media_player.cucina"
+        settingsKey="k"
+        settings={{}}
+        onClose={() => undefined}
+      />
+    );
     expect(screen.getByRole('slider', { name: 'Volume' })).toHaveAttribute('data-no-long-press');
-    expect(screen.getByRole('slider', { name: 'Posizione nel brano' })).toHaveAttribute('data-no-long-press');
+    expect(screen.getByRole('slider', { name: 'Posizione nel brano' })).toHaveAttribute(
+      'data-no-long-press'
+    );
   });
 });
 
@@ -168,7 +294,13 @@ describe('Icone', () => {
       expect(isIconName(definition.icon), definition.type).toBe(true);
       expect(definition.frameless, definition.type).toBeFalsy();
     }
-    expect(mediaWidgets.map((definition) => definition.icon)).toEqual(['music', 'speaker', 'tv', 'tv', 'camera']);
+    expect(mediaWidgets.map((definition) => definition.icon)).toEqual([
+      'music',
+      'speaker',
+      'tv',
+      'tv',
+      'camera',
+    ]);
   });
 
   it('ogni glifo esiste a runtime (primitiva o mx-icons locale)', () => {

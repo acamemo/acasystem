@@ -303,7 +303,8 @@
     box-shadow: var(--aca-shell-flat);
   }
   :is(.ctl-knob, .ctl-icon-button)[aria-checked='true']:not([aria-invalid='true'])
-    > .aca-m__outer > .aca-m__face {
+    > .aca-m__outer
+    > .aca-m__face {
     box-shadow: var(--aca-face-pressed-soft);
     clip-path: inset(var(--aca-ring) round var(--aca-radius));
   }

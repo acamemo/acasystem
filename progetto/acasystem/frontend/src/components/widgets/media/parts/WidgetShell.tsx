@@ -75,7 +75,13 @@ export interface OpenButtonProps {
  * `data-widget-open` lets the launcher frame press only while this area is hovered or pressed
  * (launcher.css); the widget's commands sit above it and never move the frame.
  */
-export function OpenButton({ editMode, onOpen, stretch = true, className, children }: OpenButtonProps) {
+export function OpenButton({
+  editMode,
+  onOpen,
+  stretch = true,
+  className,
+  children,
+}: OpenButtonProps) {
   return (
     <button
       type="button"
@@ -100,8 +106,17 @@ export const stop = (event: { stopPropagation: () => void }) => event.stopPropag
 
 export function WidgetLoading({ size, label }: { size: CellSize; label: string }) {
   return (
-    <div className={['aca-media-widget', size.h <= 1 && 'aca-media-widget--compact'].filter(Boolean).join(' ')}>
-      <Skeleton variant="compact" rows={size.h <= 1 ? 1 : 2} label={label} className="aca-media-grow" />
+    <div
+      className={['aca-media-widget', size.h <= 1 && 'aca-media-widget--compact']
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <Skeleton
+        variant="compact"
+        rows={size.h <= 1 ? 1 : 2}
+        label={label}
+        className="aca-media-grow"
+      />
     </div>
   );
 }

@@ -18,6 +18,9 @@ export function widgetDisplayName(
   if (custom) return custom;
   const entityId =
     [
+      'bindingEntityId',
+      'lockId',
+      'coverId',
       'entityId',
       'climateId',
       'weatherId',

@@ -8,6 +8,7 @@ import {
   Segmented,
   Toggle,
 } from '@/components/primitives';
+import { DEVICE_SCOPE_NOTE } from '@/utils/launcher/deviceMemory';
 import { useDomId } from './hooks';
 import '../sheets.css';
 
@@ -174,6 +175,14 @@ export function SheetSection({
       {children}
     </section>
   );
+}
+
+/**
+ * Under the settings that belong to the device and not to the widget (ADR-0019): changed on one
+ * widget, they change on all the widgets of the device.
+ */
+export function DeviceScopeNote() {
+  return <Caption as="p">{`${DEVICE_SCOPE_NOTE}.`}</Caption>;
 }
 
 /** Message about the state of an operation; errors are announced at once. */

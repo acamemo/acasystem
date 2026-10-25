@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
-import { Badge, Body, Button, Icon, Numeric } from '@/components/primitives';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { Badge, Button, Display, Icon, Numeric } from '@/components/primitives';
+import { IconAction } from '@/components/system/edit/IconAction';
 import type { StatusChip } from '@/utils/launcher/statusChips';
 import { ConnectionStatus, type ConnectionState } from './ConnectionStatus';
 import { StatusChipView } from './StatusChipView';
 import './statusBar.css';
 
 export interface StatusBarProps {
+  /** Sunk below the screen (the cover, edit mode): inert and hidden from assistive technology. */
+  hidden?: boolean;
   /**
-   * Small clock; null hides it (the cover shows its own) but keeps its place, so the
-   * connection and the chips do not move while swiping between the cover and the pages.
+   * Clock; null hides it (the cover shows its own) but keeps its place, so the connection and
+   * the gear do not move.
    */
   time: Date | null;
   connection: ConnectionState;
@@ -16,12 +19,18 @@ export interface StatusBarProps {
   /** True when pressing the chip opens a details sheet. */
   isChipInteractive?: (chip: StatusChip) => boolean;
   onChipPress?: (chip: StatusChip) => void;
-  editMode: boolean;
-  onToggleEdit: () => void;
+  /**
+   * «Modifica»: enters edit mode. «Fine» takes its corner in the edit bar (EditToolbar); the
+   * event lets the launcher tell a pointer from the keyboard (REP-20261013-002, ADR-0013).
+   */
+  onEdit: (event: MouseEvent<HTMLButtonElement>) => void;
   onOpenSystem: () => void;
   /** Updates waiting in Home Assistant: a blue (information) dot on Sistema and a longer name. */
   updateCount?: number;
 }
+
+/** Sistema takes its press at once: it has no action that can be blocked. */
+const noop = () => undefined;
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
@@ -62,19 +71,21 @@ function useOverflowEdges(chips: readonly StatusChip[]) {
 }
 
 /**
- * Top bar of the «OS»: small clock, connection, pinned chips, Modifica/Fine and Sistema.
- * It sits on the page background (not a card), so the widgets stay the only raised surfaces.
- * Its height is the same in normal view and in edit mode: «Fine» is as high as the round
- * buttons (44 px).
+ * Status bar of the «OS», in the footer band (REP-20261013-002, ADR-0013): two floating pills at
+ * the two ends of the band, the page indicator between them. On the left the clock, the
+ * connection and Sistema; on the right the chips and «Modifica». It sinks below the screen on the
+ * cover and in edit mode (the launcher says when, REP-20261009-004): «Fine» takes the corner of
+ * «Modifica» in the edit bar. The footer band chooses how much text it shows (data-band-density,
+ * footerBand.ts).
  */
 export function StatusBar({
+  hidden = false,
   time,
   connection,
   chips,
   isChipInteractive,
   onChipPress,
-  editMode,
-  onToggleEdit,
+  onEdit,
   onOpenSystem,
   updateCount = 0,
 }: StatusBarProps) {
@@ -84,35 +95,62 @@ export function StatusBar({
       : 'Sistema';
   const { ref: chipsRef, edges } = useOverflowEdges(chips);
   return (
-    <header className="aca-status-bar">
-      <div className="aca-status-bar__start">
+    <div
+      className={hidden ? 'aca-status-bar aca-status-bar--hidden' : 'aca-status-bar'}
+      role="group"
+      aria-label="Stato e comandi"
+      inert={hidden || undefined}
+      aria-hidden={hidden || undefined}
+      // What the footer band measures the bar by; the phase of the connection changes the
+      // widths without changing what the bar is made of.
+      data-band-bar="status"
+      data-band-key={connection.phase}
+    >
+      <div className="aca-status-bar__pill aca-status-bar__start" data-band-group="start">
         {time ? (
-          <Body as="span" size="md" tone="ink" className="aca-status-bar__time">
+          <Display as="span" size="sm" tone="ink" className="aca-status-bar__time" data-band-clock>
             <Numeric as="time" dateTime={`${pad(time.getHours())}:${pad(time.getMinutes())}`}>
               {`${pad(time.getHours())}:${pad(time.getMinutes())}`}
             </Numeric>
-          </Body>
+          </Display>
         ) : (
           // Same width as the clock, invisible and silent.
-          <Body
+          <Display
             as="span"
-            size="md"
+            size="sm"
             tone="ink"
             className="aca-status-bar__time aca-status-bar__time--reserved"
             aria-hidden="true"
+            data-band-clock
           >
             <Numeric>00:00</Numeric>
-          </Body>
+          </Display>
         )}
         <ConnectionStatus state={connection} />
+        <span className="aca-status-bar__system">
+          <IconAction
+            icon="settings"
+            iconSize="md"
+            label={systemLabel}
+            tip="Sistema"
+            onBlocked={noop}
+            onClick={onOpenSystem}
+          />
+          {updateCount > 0 && <Badge />}
+        </span>
       </div>
 
-      {chips.length > 0 ? (
+      <div className="aca-status-bar__pill aca-status-bar__end" data-band-group="end">
         <ul
           ref={chipsRef}
           className="aca-status-bar__chips"
           aria-label="Stato della casa"
           data-overflow={edges || undefined}
+          // Always mounted, hidden when empty: a chip that comes or goes is a change inside a
+          // part the band does not measure (REP-20261013-002, review of stage 3).
+          hidden={chips.length === 0}
+          // They scroll and take what the pill leaves: the band does not measure them.
+          data-band-flex
         >
           {chips.map((chip) => (
             <li key={`${chip.kind}-${chip.id}`} className="aca-status-bar__chip">
@@ -127,50 +165,20 @@ export function StatusBar({
             </li>
           ))}
         </ul>
-      ) : (
-        <div className="aca-status-bar__chips" />
-      )}
-
-      <div className="aca-status-bar__actions">
-        {editMode ? (
-          <Button
-            variant="primary"
-            size="md"
-            onClick={onToggleEdit}
-            className="aca-status-bar__done-button"
-            contentClassName="aca-status-bar__done"
-            data-launcher-edit
-          >
-            <Icon name="done" size="md" />
-            Fine
-          </Button>
-        ) : (
-          <Button
-            variant="control"
-            shape="circle"
-            size="md"
-            onClick={onToggleEdit}
-            aria-label="Modifica"
-            title="Modifica"
-            data-launcher-edit
-          >
-            <Icon name="edit" size="md" />
-          </Button>
-        )}
-        <span className="aca-status-bar__system">
-          <Button
-            variant="control"
-            shape="circle"
-            size="md"
-            onClick={onOpenSystem}
-            aria-label={systemLabel}
-            title={systemLabel}
-          >
-            <Icon name="settings" size="md" />
-          </Button>
-          {updateCount > 0 && <Badge />}
-        </span>
+        <Button
+          variant="control"
+          size="md"
+          className="aca-frame-pill aca-status-bar__edit"
+          contentClassName="aca-status-bar__edit-content"
+          onClick={onEdit}
+          aria-label="Modifica"
+          title="Modifica"
+          data-launcher-edit
+        >
+          <Icon name="edit" size="md" />
+          <span className="aca-m__label aca-status-bar__edit-text">Modifica</span>
+        </Button>
       </div>
-    </header>
+    </div>
   );
 }

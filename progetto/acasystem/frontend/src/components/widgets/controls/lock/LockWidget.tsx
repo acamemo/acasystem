@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  Button,
-  Caption,
-  MaterialLayers,
-  Text,
-  materialClass,
-} from '@/components/primitives';
+import { Button, Caption, MaterialLayers, Text, materialClass } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { CommandFeedback } from '../shared/CommandFeedback';
@@ -87,7 +81,9 @@ export function LockActions({
       : null;
   if (set === 'primary') {
     return (
-      <div className="ctl-stepper">{lock.isUnlocked || lock.isOpen ? lockButton : unlockButton}</div>
+      <div className="ctl-stepper">
+        {lock.isUnlocked || lock.isOpen ? lockButton : unlockButton}
+      </div>
     );
   }
   return (
@@ -123,7 +119,8 @@ export function LockWidget({ id, settings, size, editMode }: WidgetProps) {
   if (!runtime.entitiesLoaded) return <WidgetLoading size={size} />;
   if (!lock.entity) return <WidgetMissing size={size} name={name} editMode={editMode} />;
 
-  const custom = aliasIcon(runtime.customIcons[entityId ?? id]) ?? aliasIcon(lock.entity.attributes.icon);
+  const custom =
+    aliasIcon(runtime.customIcons[entityId ?? id]) ?? aliasIcon(lock.entity.attributes.icon);
   const icon = lock.unavailable || lock.isJammed ? 'warning' : (custom ?? lockIcon(lock));
   const openDetails = () => runtime.openDetails(id);
   const badge = (
@@ -155,7 +152,11 @@ export function LockWidget({ id, settings, size, editMode }: WidgetProps) {
     </Text>
   );
   const nameText = <Text className="ctl-name ctl-clamp-2">{name}</Text>;
-  const hint = lock.confirmUnlock ? CONFIRM_HINT : lock.command.pending ? COMMAND_LABELS.pending : null;
+  const hint = lock.confirmUnlock
+    ? CONFIRM_HINT
+    : lock.command.pending
+      ? COMMAND_LABELS.pending
+      : null;
   const feedback = <CommandFeedback message={lock.command.message} pendingText={hint} />;
   const actions = (labelled: boolean, set: 'primary' | 'pair' | 'all') => (
     <LockActions

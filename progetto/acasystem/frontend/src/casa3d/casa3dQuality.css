@@ -1,0 +1,17 @@
+/* Picker of the Casa 3D quality (page menu and Sistema): its own file, so Sistema needs no page chunk. */
+@layer components {
+  .c3d-quality {
+    display: grid;
+    gap: var(--aca-space-3, 0.75rem);
+    max-inline-size: 28rem;
+  }
+  .c3d-quality__confirm {
+    display: grid;
+    gap: var(--aca-space-2, 0.5rem);
+  }
+  .c3d-quality__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--aca-space-2, 0.5rem);
+  }
+}

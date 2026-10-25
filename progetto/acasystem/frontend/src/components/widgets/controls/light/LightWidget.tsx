@@ -151,7 +151,9 @@ export function LightWidget({ id, size, editMode }: WidgetProps) {
         </div>
         <div className="ctl-heading">
           {nameText}
-          {(!showPercent || !control.available) && <StatusCaption control={control} text={status} />}
+          {(!showPercent || !control.available) && (
+            <StatusCaption control={control} text={status} />
+          )}
         </div>
         <CommandFeedback message={control.message} />
       </>

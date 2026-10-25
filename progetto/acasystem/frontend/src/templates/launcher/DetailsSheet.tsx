@@ -3,6 +3,8 @@ import { findWidgetDefinition } from '@/components/widgets/registry';
 import type { CardSettings } from '@/@types/dashboard';
 import type { WidgetDefinition } from '@/@types/launcher';
 import { ErrorBoundary } from './ErrorBoundary';
+import { categoryDeviceId } from '../sheets/categoryPages';
+import { AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
 
 export type DefinitionResolver = (
   widgetId: string,
@@ -58,8 +60,21 @@ export function DetailsSheet({
             </Body>
           }
         >
+          {Boolean(target.settings.categoryWidgetType) &&
+            !['lock', 'alarm'].includes(String(target.settings.categoryWidgetType)) && (
+              <AdaptiveCategoryWidget
+                id={target.widgetId}
+                entityId={categoryDeviceId(target.widgetId, target.settings)}
+                type={String(target.settings.categoryWidgetType)}
+                settingsKey={target.settingsKey}
+                settings={target.settings}
+                size={{ w: 4, h: 4 }}
+                editMode={false}
+                detailsMode
+              />
+            )}
           <Details
-            id={target.widgetId}
+            id={categoryDeviceId(target.widgetId, target.settings)}
             settingsKey={target.settingsKey}
             settings={target.settings}
             onClose={onClose}

@@ -3,6 +3,7 @@
  * È il formato dei profili, dell'esportazione e della sincronizzazione con il backend.
  */
 import type { SupportedLanguage } from '@/utils/i18n/languageUtils';
+import type { WidgetMemory } from '@/utils/launcher/deviceMemory';
 import type {
   CardSettingsMap,
   HeaderSettings,
@@ -29,7 +30,8 @@ export type CollectedSnapshot = {
   layout: {
     pagesConfig: unknown;
     cardSettings: unknown;
-    hiddenCards: unknown;
+    /** Memory of the configuration of widgets per device (ADR-0019). */
+    widgetMemory: unknown;
     customNames: unknown;
     customIcons: unknown;
     pageSettings: unknown;
@@ -59,6 +61,15 @@ export type CollectedSnapshot = {
     cardBorderOpacity: number;
     inactivityTimeout: number;
   };
+  /**
+   * Preferences of this device only (not of the profiles): present when the user chose one.
+   * `casa3dQuality` is the quality of the Casa 3D view (ADR-0014, T5). `id` is the device that
+   * wrote the block: a copy published to other devices is not applied there.
+   */
+  device?: {
+    id: string;
+    casa3dQuality: 'light' | 'medium' | 'high';
+  };
 };
 
 /** Setter dei contesti aggiornati quando si applica un'istantanea. */
@@ -68,7 +79,7 @@ export interface SnapshotContextSetters {
   persistPageSettings?: (settings: PageSettingsMap) => void;
   persistCustomNames?: (names: Record<string, string>) => void;
   persistCustomIcons?: (icons: Record<string, string>) => void;
-  persistHiddenCards?: (hidden: string[]) => void;
+  persistWidgetMemory?: (memory: WidgetMemory) => void;
   setGridColumns?: (value: number) => void;
   setDynamicGridColumns?: (value: boolean) => void;
   setGridGapH?: (value: number) => void;

@@ -1,0 +1,2 @@
+# upstream/ is a verbatim copy of third-party files: Git must not touch line endings.
+upstream/** -text

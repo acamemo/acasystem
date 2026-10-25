@@ -39,7 +39,7 @@ export type {
 type MaybeConnection = HaMessageConnection | null | undefined;
 
 const isUsableConnection = (conn: MaybeConnection): conn is HaMessageConnection =>
-  Boolean(conn) && typeof conn?.sendMessagePromise === 'function';
+  Boolean(conn) && conn?.connected !== false && typeof conn?.sendMessagePromise === 'function';
 
 function requireConnection(conn: MaybeConnection): HaMessageConnection {
   if (!isUsableConnection(conn)) {
@@ -330,8 +330,8 @@ export async function getTodoItems(conn: MaybeConnection, entityId: string): Pro
   });
 
   // HA can wrap the response in several layers
-  const extract = (obj: unknown): unknown[] => {
-    if (!isObject(obj)) return [];
+  const extract = (obj: unknown): unknown[] | undefined => {
+    if (!isObject(obj)) return undefined;
     if (Array.isArray(obj.items)) return obj.items;
     const inner =
       obj[entityId] || readKey(obj.response, entityId) || readKey(obj.service_response, entityId);
@@ -342,14 +342,14 @@ export async function getTodoItems(conn: MaybeConnection, entityId: string): Pro
       const valueItems = readKey(val, 'items');
       if (val && Array.isArray(valueItems)) return valueItems;
     }
-    return [];
+    return undefined;
   };
 
   return parseTodoItems(
-    extract(readKey(res, 'service_response')) ||
-      extract(readKey(res, 'response')) ||
-      extract(readKey(res, 'result')) ||
-      extract(res) ||
+    extract(readKey(res, 'service_response')) ??
+      extract(readKey(res, 'response')) ??
+      extract(readKey(res, 'result')) ??
+      extract(res) ??
       []
   );
 }

@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { act, fireEvent, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { CardSettingsMap, PagesConfig } from '@/@types/dashboard';
-import type { DeviceClass, LauncherLayout } from '@/@types/launcher';
+import type { BaseDeviceClass, DeviceClass, LauncherLayout } from '@/@types/launcher';
 import { useLauncherController, type LauncherStore } from '@/hooks/launcher/useLauncherController';
 import { useWidgetDrag } from '@/hooks/launcher/useWidgetDrag';
 import { DEFAULT_GRIDS } from '@/utils/launcher/deviceClass';
@@ -29,7 +29,7 @@ const ctxFor = (deviceClass: DeviceClass): LayoutContext => ({
   grids: DEFAULT_GRIDS,
   sizesOf: () => sizes,
 });
-const full = (deviceClass: DeviceClass, prefix: string, count: number) =>
+const full = (deviceClass: BaseDeviceClass, prefix: string, count: number) =>
   packItems(
     Array.from({ length: count }, (_, index) => ({
       id: `${prefix}${index}`,
@@ -201,8 +201,9 @@ describe('launcher-logica: ripresa della revisione', () => {
     };
     expect(ensureDeviceClass(saved, ctxFor('tablet'))).toBe(saved);
     const landscape = ensureDeviceClass(saved, ctxFor('phoneLandscape'));
-    expect(pagesWith(landscape, 'phoneLandscape', 'a')).toEqual(['home']);
-    expect(pagesWith(landscape, 'phoneLandscape', 'b')).toEqual(['home']);
+    // A landscape phone shows the pages without columns on 8×2 (REP-20261008-001).
+    expect(pagesWith(landscape, 'phoneLandscape@8x2', 'a')).toEqual(['home']);
+    expect(pagesWith(landscape, 'phoneLandscape@8x2', 'b')).toEqual(['home']);
     expect(ensureDeviceClass(landscape, ctxFor('phoneLandscape'))).toBe(landscape);
   });
 
@@ -294,7 +295,7 @@ describe('launcher-logica: ripresa della revisione', () => {
     });
   });
 
-  it('CORR-7: targets the new page once it has settled, never the old one', () => {
+  it('CORR-7: targets the new page as soon as the page turns, never the old one', () => {
     class Pointer extends MouseEvent {
       pointerId: number;
       constructor(type: string, options: MouseEventInit & { pointerId?: number } = {}) {
@@ -311,7 +312,8 @@ describe('launcher-logica: ripresa della revisione', () => {
         left: 0,
         top: 0,
         cell: 100,
-        gap: 0,
+        gapX: 0,
+        gapY: 0,
         grid: { w: 8, h: 5 },
       }));
       const { result } = renderHook(() =>
@@ -342,15 +344,14 @@ describe('launcher-logica: ripresa della revisione', () => {
       fireEvent.pointerMove(window, { pointerId: 1, clientX: 781, clientY: 20 });
       act(() => vi.advanceTimersByTime(700));
       expect(onEdge).toHaveBeenCalledOnce();
-      expect(result.current.session?.target).toBeNull();
-      // A move while the page settles does not measure the old page.
+      // No wait for the scroll (REP-20261009-004): the grids report where the page rests.
+      expect(result.current.session?.target?.pageId).toBe('p2');
+      // A move while the page scrolls does not measure the old page.
       getGeometry.mockClear();
       fireEvent.pointerMove(window, { pointerId: 1, clientX: 300, clientY: 20 });
       act(() => vi.advanceTimersByTime(20));
-      expect(result.current.session?.target).toBeNull();
-      expect(getGeometry).not.toHaveBeenCalledWith('p1');
-      act(() => vi.advanceTimersByTime(320));
       expect(result.current.session?.target?.pageId).toBe('p2');
+      expect(getGeometry).not.toHaveBeenCalledWith('p1');
       fireEvent.pointerUp(window, { pointerId: 1, clientX: 300, clientY: 20 });
       expect(onDrop).toHaveBeenCalledOnce();
       expect(onDrop.mock.calls[0][0].target).toMatchObject({ pageId: 'p2', valid: true });

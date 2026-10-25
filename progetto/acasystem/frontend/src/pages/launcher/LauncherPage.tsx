@@ -8,15 +8,16 @@ import { useDashboardEffects } from '@/hooks/useDashboardEffects';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import { PageVisibilityContext } from '@/hooks/launcher/PageVisibilityContext';
 import { useHomeAssistantRuntime } from '@/hooks/launcher/useHomeAssistantRuntime';
+import { OverlayPhaseContext, useOverlayScene } from '@/hooks/launcher/useOverlayScene';
 import { translateItalian } from '@/hooks/launcher/useItalianTranslate';
 import { useLauncherController, type LauncherStore } from '@/hooks/launcher/useLauncherController';
 import { usePopupTriggerBridge } from '@/hooks/launcher/usePopupTriggerBridge';
-import { useDeviceClass } from '@/hooks/launcher/useViewport';
+import { useDeviceClass, useViewportSize } from '@/hooks/launcher/useViewport';
 import { isCardHiddenByLogic } from '@/utils/cardUtils';
 import { connectionSummary, pendingUpdateCount } from '@/utils/launcher/connection';
 import { buildStatusChips } from '@/utils/launcher/statusChips';
 import { LauncherScreen } from '@/templates/launcher/LauncherScreen';
-import { CoverPage } from '../cover/CoverPage';
+import { categoryDeviceId, isCategoryWidgetReady } from '@/templates/sheets/categoryPages';
 
 const resolveSizes = (widgetId: string, settings: CardSettings) =>
   findWidgetDefinition(widgetId, settings)?.sizes;
@@ -31,6 +32,13 @@ export interface LauncherPageProps {
    * it reads and changes the same layout. The launcher stays mounted underneath, hidden.
    */
   overlay?: ReactNode;
+  /**
+   * The overlay comes and goes in a scene (REP-20261023-006, D-M12): it fades in over the launcher,
+   * which is covered and stopped only once it is there, and on the way out the launcher is shown
+   * again under it before it fades away. Without it (the house) the overlay replaces the launcher
+   * at once, as before.
+   */
+  overlayStaged?: boolean;
 }
 
 /**
@@ -38,10 +46,16 @@ export interface LauncherPageProps {
  * from Home Assistant, status chips from the legacy header and pills, popup triggers. It always
  * opens on «Principale»; the cover stays on its left (REP-20261007-001).
  */
-export function LauncherPage({ onOpenSystem, overlay = null }: LauncherPageProps) {
+export function LauncherPage({
+  onOpenSystem,
+  overlay = null,
+  overlayStaged = false,
+}: LauncherPageProps) {
   const pages = usePages();
   const ha = useHomeAssistant();
+  const scene = useOverlayScene(overlay, overlayStaged);
   const deviceClass = useDeviceClass();
+  const { width: viewportWidth } = useViewportSize();
   // Clock, haptics and title of the legacy dashboard (no inactivity reset: removed, ADR-0007).
   const { now } = useDashboardEffects({
     resolvedHeaderTitle: 'Acasystem',
@@ -74,7 +88,13 @@ export function LauncherPage({ onOpenSystem, overlay = null }: LauncherPageProps
       pages.persistCardSettings,
     ]
   );
-  const controller = useLauncherController({ store, deviceClass, resolveSizes });
+  const controller = useLauncherController({
+    store,
+    deviceClass,
+    viewportWidth,
+    resolveSizes,
+    initializeCategoryPages: true,
+  });
 
   const [detailsWidgetId, setDetailsWidgetId] = useState<string | null>(null);
   const openDetails = useCallback((widgetId: string) => {
@@ -122,49 +142,100 @@ export function LauncherPage({ onOpenSystem, overlay = null }: LauncherPageProps
     ]
   );
 
-  const { hiddenCards, cardSettings } = pages;
+  const { cardSettings } = pages;
   const { entities, entitiesLoaded } = ha;
   const isWidgetHidden = useCallback(
-    (pageId: string, widgetId: string) =>
-      hiddenCards.includes(widgetId) ||
-      (entitiesLoaded &&
-        isCardHiddenByLogic(widgetId, {
+    (pageId: string, widgetId: string) => {
+      const settingsKey = `${pageId}::${widgetId}`;
+      const settings = cardSettings[settingsKey] ?? cardSettings[widgetId] ?? {};
+      // Empty presets stay visible to be configured; bound presets use the actual HA id.
+      if (settings.categoryWidgetType && !isCategoryWidgetReady(settings)) return false;
+      const visibilityId = settings.categoryWidgetType
+        ? categoryDeviceId(widgetId, settings)
+        : widgetId;
+      return (
+        entitiesLoaded &&
+        isCardHiddenByLogic(visibilityId, {
           activePage: pageId,
-          getCardSettingsKey: (cardId, page = pageId) => `${page}::${cardId}`,
+          getCardSettingsKey: () => (cardSettings[settingsKey] ? settingsKey : widgetId),
           cardSettings,
           entities,
-        })),
-    [hiddenCards, entitiesLoaded, cardSettings, entities]
+        })
+      );
+    },
+    [entitiesLoaded, cardSettings, entities]
+  );
+
+  // The screen is an element of its own, made again only when something it shows changes. The
+  // phases of the scene that Sistema goes through (wait, in, out-wait, out) change nothing of it,
+  // so React finds the same element and does not render the launcher for them: before, each phase
+  // rendered every page, widget and bar again in the frame that starts the fade (0.9.28,
+  // measurement of 2026-10-23, REP-20261023-006). Only `covered` reaches it, through the context.
+  const { connected, haUnavailableVisible, oauthExpired, disconnectedSince } = ha;
+  const connection = useMemo(
+    () => connectionSummary({ connected, entitiesLoaded, haUnavailableVisible, oauthExpired }),
+    [connected, entitiesLoaded, haUnavailableVisible, oauthExpired]
+  );
+  const updateCount = pendingUpdateCount(entities);
+  const screen = useMemo(
+    () => (
+      <LauncherScreen
+        controller={controller}
+        runtime={runtime}
+        connection={connection}
+        chips={chips}
+        notice={
+          <ConnectionNotice
+            visible={haUnavailableVisible}
+            oauthExpired={oauthExpired}
+            disconnectedSince={disconnectedSince}
+            onRetry={() => globalThis.window?.location.reload()}
+            onSignIn={onOpenSystem}
+          />
+        }
+        updateCount={updateCount}
+        onOpenSystem={onOpenSystem}
+        detailsWidgetId={detailsWidgetId}
+        onCloseDetails={closeDetails}
+        isWidgetHidden={isWidgetHidden}
+      />
+    ),
+    [
+      controller,
+      runtime,
+      connection,
+      chips,
+      haUnavailableVisible,
+      oauthExpired,
+      disconnectedSince,
+      onOpenSystem,
+      updateCount,
+      detailsWidgetId,
+      closeDetails,
+      isWidgetHidden,
+    ]
   );
 
   return (
     <>
-      <div hidden={Boolean(overlay)}>
-        <PageVisibilityContext.Provider value={!overlay}>
-          <LauncherScreen
-            controller={controller}
-            runtime={runtime}
-            cover={<CoverPage />}
-            connection={connectionSummary(ha)}
-            chips={chips}
-            notice={
-              <ConnectionNotice
-                visible={ha.haUnavailableVisible}
-                oauthExpired={ha.oauthExpired}
-                disconnectedSince={ha.disconnectedSince}
-                onRetry={() => globalThis.window?.location.reload()}
-                onSignIn={onOpenSystem}
-              />
-            }
-            updateCount={pendingUpdateCount(ha.entities)}
-            onOpenSystem={onOpenSystem}
-            detailsWidgetId={detailsWidgetId}
-            onCloseDetails={closeDetails}
-            isWidgetHidden={isWidgetHidden}
-          />
+      <div hidden={scene.covered}>
+        <PageVisibilityContext.Provider value={!scene.covered}>
+          {screen}
         </PageVisibilityContext.Provider>
       </div>
-      {overlay && <LauncherProvider value={controller}>{overlay}</LauncherProvider>}
+      {scene.node && (
+        <LauncherProvider value={controller}>
+          {scene.staged ? (
+            <div ref={scene.sceneRef} className="aca-overlay-scene" data-scene={scene.phase}>
+              <OverlayPhaseContext.Provider value={scene.phase}>
+                {scene.node}
+              </OverlayPhaseContext.Provider>
+            </div>
+          ) : (
+            scene.node
+          )}
+        </LauncherProvider>
+      )}
     </>
   );
 }

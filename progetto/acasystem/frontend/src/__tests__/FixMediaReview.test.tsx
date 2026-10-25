@@ -8,7 +8,10 @@ import { PageVisibilityContext } from '@/hooks/launcher/PageVisibilityContext';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { CameraDetails, CameraWidget } from '@/components/widgets/media/widgets/Camera';
-import { MediaGroupWidget, MediaPlayerWidget } from '@/components/widgets/media/widgets/MediaWidgets';
+import {
+  MediaGroupWidget,
+  MediaPlayerWidget,
+} from '@/components/widgets/media/widgets/MediaWidgets';
 import { MediaKindPage, SonosKindPage } from '@/components/widgets/media/views/MediaPage';
 
 /**
@@ -35,11 +38,18 @@ afterEach(() => {
 
 const recent = () => new Date().toISOString();
 const sonos = (id: string, name: string): HassEntity => ({
-  ...fixtureEntity(id, 'playing', { friendly_name: name, media_title: `${name} brano`, group_members: [id] }),
+  ...fixtureEntity(id, 'playing', {
+    friendly_name: name,
+    media_title: `${name} brano`,
+    group_members: [id],
+  }),
   last_updated: recent(),
 });
 const radio = (state = 'playing'): HassEntity => ({
-  ...fixtureEntity('media_player.radio', state, { friendly_name: 'Radio', media_title: 'Giornale radio' }),
+  ...fixtureEntity('media_player.radio', state, {
+    friendly_name: 'Radio',
+    media_title: 'Giornale radio',
+  }),
   last_updated: recent(),
 });
 /**
@@ -55,7 +65,10 @@ async function readCss(path: string): Promise<string> {
   return fs.readFileSync(path, 'utf8');
 }
 
-const tv = fixtureEntity('media_player.tv', 'playing', { friendly_name: 'Televisore', media_title: 'Notiziario' });
+const tv = fixtureEntity('media_player.tv', 'playing', {
+  friendly_name: 'Televisore',
+  media_title: 'Notiziario',
+});
 
 async function flush() {
   await act(async () => {
@@ -95,9 +108,20 @@ function HostedPage({
 
 describe('PAR-1: la pagina Multimedia non mostra un editor inattivo e legge mediaIds come prima', () => {
   it('in modifica nessun interruttore dei lettori; mediaIds limita comunque i lettori mostrati', () => {
-    const runtime = createFixtureRuntime({ entities: fixtureEntities([tv, radio()]), editMode: true });
+    const runtime = createFixtureRuntime({
+      entities: fixtureEntities([tv, radio()]),
+      editMode: true,
+    });
     render(
-      visibleTree(true, runtime, <HostedPage Page={MediaKindPage} initial={{ mediaIds: ['media_player.radio'] }} onSave={vi.fn()} />)
+      visibleTree(
+        true,
+        runtime,
+        <HostedPage
+          Page={MediaKindPage}
+          initial={{ mediaIds: ['media_player.radio'] }}
+          onSave={vi.fn()}
+        />
+      )
     );
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Mostra tutti' })).not.toBeInTheDocument();
@@ -108,9 +132,14 @@ describe('PAR-1: la pagina Multimedia non mostra un editor inattivo e legge medi
   it('Sonos: «Gestisci» fuori dalla modifica resta usabile e salva mediaIds con le chiavi legacy', () => {
     const onSave = vi.fn();
     const runtime = createFixtureRuntime({
-      entities: fixtureEntities([sonos('media_player.sonos_sala', 'Sonos sala'), sonos('media_player.sonos_studio', 'Sonos studio')]),
+      entities: fixtureEntities([
+        sonos('media_player.sonos_sala', 'Sonos sala'),
+        sonos('media_player.sonos_studio', 'Sonos studio'),
+      ]),
     });
-    render(visibleTree(true, runtime, <HostedPage Page={SonosKindPage} initial={{}} onSave={onSave} />));
+    render(
+      visibleTree(true, runtime, <HostedPage Page={SonosKindPage} initial={{}} onSave={onSave} />)
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Gestisci' }));
     fireEvent.click(screen.getByRole('switch', { name: 'Sonos studio' }));
     expect(onSave).toHaveBeenLastCalledWith('mediaIds', ['media_player.sonos_sala']);
@@ -121,44 +150,81 @@ describe('PAR-1: la pagina Multimedia non mostra un editor inattivo e legge medi
 describe('PERF-2: lettori e pagine multimediali senza orologi fuori pagina', () => {
   const size: CellSize = { w: 2, h: 2 };
   const cases: Array<[string, ReactNode, HassEntity[]]> = [
-    ['lettore', <MediaPlayerWidget key="p" id="media_player.radio" settingsKey="k" settings={{}} size={size} editMode={false} />, [radio()]],
     [
-      'gruppo',
-      <MediaGroupWidget key="g" id="media_group_1" settingsKey="k" settings={{ mediaIds: ['media_player.radio'] }} size={size} editMode={false} />,
+      'lettore',
+      <MediaPlayerWidget
+        key="p"
+        id="media_player.radio"
+        settingsKey="k"
+        settings={{}}
+        size={size}
+        editMode={false}
+      />,
       [radio()],
     ],
-    ['pagina media', <HostedPage key="m" Page={MediaKindPage} initial={{}} onSave={() => undefined} />, [radio()]],
+    [
+      'gruppo',
+      <MediaGroupWidget
+        key="g"
+        id="media_group_1"
+        settingsKey="k"
+        settings={{ mediaIds: ['media_player.radio'] }}
+        size={size}
+        editMode={false}
+      />,
+      [radio()],
+    ],
+    [
+      'pagina media',
+      <HostedPage key="m" Page={MediaKindPage} initial={{}} onSave={() => undefined} />,
+      [radio()],
+    ],
   ];
 
-  it.each(cases)('%s: nessun timer nascosto, orologio attivo e riallineato appena visibile', (_name, node, entities) => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-10-06T12:00:00Z'));
-    const runtime = createFixtureRuntime({ entities: fixtureEntities(entities) });
-    const view = render(visibleTree(false, runtime, node));
-    expect(vi.getTimerCount()).toBe(0);
-    view.rerender(visibleTree(true, runtime, node));
-    expect(vi.getTimerCount()).toBeGreaterThan(0);
-    view.rerender(visibleTree(false, runtime, node));
-    expect(vi.getTimerCount()).toBe(0);
-  });
+  it.each(cases)(
+    '%s: nessun timer nascosto, orologio attivo e riallineato appena visibile',
+    (_name, node, entities) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-10-06T12:00:00Z'));
+      const runtime = createFixtureRuntime({ entities: fixtureEntities(entities) });
+      const view = render(visibleTree(false, runtime, node));
+      expect(vi.getTimerCount()).toBe(0);
+      view.rerender(visibleTree(true, runtime, node));
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      view.rerender(visibleTree(false, runtime, node));
+      expect(vi.getTimerCount()).toBe(0);
+    }
+  );
 
   it('videocamera visibile: una sola firma dell’istantanea al montaggio, non due', async () => {
     let clock = Date.parse('2026-10-06T12:00:00Z');
     vi.spyOn(Date, 'now').mockImplementation(() => (clock += 7));
-    const sendMessagePromise = vi.fn(async (_message: { type: string }) => ({ path: '/api/camera_proxy/camera.ufficio?authSig=x' }));
+    const sendMessagePromise = vi.fn(async (_message: { type: string }) => ({
+      path: '/api/camera_proxy/camera.ufficio?authSig=x',
+    }));
     const runtime = createFixtureRuntime({
       conn: { sendMessagePromise } as unknown as WidgetRuntime['conn'],
-      entities: fixtureEntities([fixtureEntity('camera.ufficio', 'idle', { friendly_name: 'Ufficio', access_token: 't' })]),
+      entities: fixtureEntities([
+        fixtureEntity('camera.ufficio', 'idle', { friendly_name: 'Ufficio', access_token: 't' }),
+      ]),
     });
     render(
       visibleTree(
         true,
         runtime,
-        <CameraWidget id="camera_card_1" settingsKey="k" settings={{ cameraId: 'camera.ufficio' }} size={size} editMode={false} />
+        <CameraWidget
+          id="camera_card_1"
+          settingsKey="k"
+          settings={{ cameraId: 'camera.ufficio' }}
+          size={size}
+          editMode={false}
+        />
       )
     );
     await flush();
-    expect(sendMessagePromise.mock.calls.filter(([message]) => message.type === 'auth/sign_path')).toHaveLength(1);
+    expect(
+      sendMessagePromise.mock.calls.filter(([message]) => message.type === 'auth/sign_path')
+    ).toHaveLength(1);
   });
 });
 
@@ -166,20 +232,27 @@ const PLAYER = 'http://player.local/stream.html?src=camera.ingresso#media=video'
 
 async function customCamera() {
   const runtime = createFixtureRuntime({
-    entities: fixtureEntities([fixtureEntity('camera.ingresso', 'idle', { access_token: 'fixture' })]),
+    entities: fixtureEntities([
+      fixtureEntity('camera.ingresso', 'idle', { access_token: 'fixture' }),
+    ]),
   });
   const view = render(
     <WidgetRuntimeProvider value={runtime}>
       <CameraDetails
         id="camera_card_1"
         settingsKey="k"
-        settings={{ cameraId: 'camera.ingresso', cameraStreamEngine: 'go2rtc', cameraWebrtcUrl: PLAYER }}
+        settings={{
+          cameraId: 'camera.ingresso',
+          cameraStreamEngine: 'go2rtc',
+          cameraWebrtcUrl: PLAYER,
+        }}
         onClose={() => undefined}
       />
     </WidgetRuntimeProvider>
   );
   await flush();
-  const source = () => view.container.querySelector('[data-camera-source]')?.getAttribute('data-camera-source');
+  const source = () =>
+    view.container.querySelector('[data-camera-source]')?.getAttribute('data-camera-source');
   expect(source()).toBe('custom');
   return { view, source, iframe: () => view.container.querySelector('iframe') };
 }
@@ -240,11 +313,16 @@ describe('DES-1: le pagine multimediali non hanno margine, larghezza massima né
   it.each([
     ['media', MediaKindPage, [radio()]],
     ['sonos', SonosKindPage, [sonos('media_player.sonos_sala', 'Sonos sala')]],
-  ] as const)('%s: nessun h1 nella pagina (il titolo è del guscio del launcher)', (_kind, Page, entities) => {
-    const runtime = createFixtureRuntime({ entities: fixtureEntities([...entities]) });
-    render(visibleTree(true, runtime, <HostedPage Page={Page} initial={{}} onSave={() => undefined} />));
-    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
-  });
+  ] as const)(
+    '%s: nessun h1 nella pagina (il titolo è del guscio del launcher)',
+    (_kind, Page, entities) => {
+      const runtime = createFixtureRuntime({ entities: fixtureEntities([...entities]) });
+      render(
+        visibleTree(true, runtime, <HostedPage Page={Page} initial={{}} onSave={() => undefined} />)
+      );
+      expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    }
+  );
 
   it('il CSS della pagina non aggiunge margini, larghezza massima né un proprio scorrimento che tagli le ombre', async () => {
     const css = await readCss('src/components/widgets/media/media.css');
@@ -266,8 +344,16 @@ describe('DES-6: la lista scorrevole dei lettori non taglia le ombre delle righe
 
 describe('DES-10: testi della pagina Sonos e del lettore', () => {
   it('con un solo diffusore l’intestazione dice «1 lettore»', () => {
-    const runtime = createFixtureRuntime({ entities: fixtureEntities([sonos('media_player.sonos_sala', 'Sonos sala')]) });
-    render(visibleTree(true, runtime, <HostedPage Page={SonosKindPage} initial={{}} onSave={() => undefined} />));
+    const runtime = createFixtureRuntime({
+      entities: fixtureEntities([sonos('media_player.sonos_sala', 'Sonos sala')]),
+    });
+    render(
+      visibleTree(
+        true,
+        runtime,
+        <HostedPage Page={SonosKindPage} initial={{}} onSave={() => undefined} />
+      )
+    );
     expect(screen.getByText('Sonos · 1 lettore')).toBeInTheDocument();
   });
 
@@ -275,21 +361,39 @@ describe('DES-10: testi della pagina Sonos e del lettore', () => {
     [{ w: 2, h: 2 }, true],
     [{ w: 4, h: 2 }, true],
     [{ w: 2, h: 1 }, false],
-  ] as const)('errore del comando a %o: su due righe solo dove c’è spazio', async (size, twoLines) => {
-    const callService = vi.fn(async () => {
-      throw new Error('rifiutato');
-    });
-    const runtime = createFixtureRuntime({ entities: fixtureEntities([radio('paused')]), callService });
-    render(
-      visibleTree(true, runtime, <MediaPlayerWidget id="media_player.radio" settingsKey="k" settings={{}} size={size} editMode={false} />)
-    );
-    await act(async () => {
-      fireEvent.click(screen.getAllByRole('button', { name: 'Riproduci' })[0]);
-    });
-    const caption = screen.getAllByText('Comando non riuscito. Riprova.').find((node) => !node.closest('.sr-only'));
-    expect(caption).toBeDefined();
-    expect(caption?.classList.contains('aca-media-error-caption')).toBe(twoLines);
-  });
+  ] as const)(
+    'errore del comando a %o: su due righe solo dove c’è spazio',
+    async (size, twoLines) => {
+      const callService = vi.fn(async () => {
+        throw new Error('rifiutato');
+      });
+      const runtime = createFixtureRuntime({
+        entities: fixtureEntities([radio('paused')]),
+        callService,
+      });
+      render(
+        visibleTree(
+          true,
+          runtime,
+          <MediaPlayerWidget
+            id="media_player.radio"
+            settingsKey="k"
+            settings={{}}
+            size={size}
+            editMode={false}
+          />
+        )
+      );
+      await act(async () => {
+        fireEvent.click(screen.getAllByRole('button', { name: 'Riproduci' })[0]);
+      });
+      const caption = screen
+        .getAllByText('Comando non riuscito. Riprova.')
+        .find((node) => !node.closest('.sr-only'));
+      expect(caption).toBeDefined();
+      expect(caption?.classList.contains('aca-media-error-caption')).toBe(twoLines);
+    }
+  );
 
   it('la regola delle due righe vince sul troncamento a una riga del testo del lettore', async () => {
     const css = await readCss('src/components/widgets/media/media.css');

@@ -1,0 +1,1 @@
+Cartella generata da tools/rinomina.mjs a partire da upstream/ e overrides/. Non modificare a mano: una modifica si fa in overrides/ o come patch nello script, e si rigenera. Il registro è in ../PATCHES.md.

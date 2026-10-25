@@ -3,7 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Button } from '@/components/primitives';
 import { TearCalendar } from '@/components/system/tear-calendar/TearCalendar';
 import StateMatrix from '@/pages/kit/StateMatrix';
-import { kitSurfaces, tokenRgb } from './kitColors';
+import { contrast, kitSurfaces, tokenRgb } from './kitColors';
 
 /**
  * REP-20261007-001, corsia kit: K21 (variante danger del Button), K16/K19 (orologio della
@@ -66,16 +66,6 @@ function token(name: string): string {
 /** Colour of a token, resolving aliases and the derived scales (kitColors). */
 function color(name: string): number[] {
   return tokenRgb(tokens, name);
-}
-
-function contrast(a: number[], b: number[]): number {
-  const lum = (rgb: number[]) =>
-    rgb
-      .map((v) => v / 255)
-      .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
-      .reduce((sum, v, i) => sum + v * ([0.2126, 0.7152, 0.0722][i] ?? 0), 0);
-  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x) as [number, number];
-  return (hi + 0.05) / (lo + 0.05);
 }
 
 /** Faces, well and page of the kit: every metal surface text sits on. */

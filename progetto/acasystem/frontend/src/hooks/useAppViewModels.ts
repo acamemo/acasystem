@@ -29,7 +29,6 @@ export interface AppViewModelParams {
   isCompactCards: unknown;
   cardSettings: unknown;
   getCardSettingsKey: unknown;
-  hiddenCards: unknown;
   isCardHiddenByLogic: unknown;
   renderCard: unknown;
   setShowAddCardModal: unknown;
@@ -167,8 +166,6 @@ export interface AppViewModelParams {
   customIcons: unknown;
   saveCustomIcon: unknown;
   persistCustomIcons: unknown;
-  toggleCardVisibility: unknown;
-  persistHiddenCards: unknown;
   statusPillsConfig: unknown;
   saveStatusPillsConfig: unknown;
 }
@@ -206,7 +203,6 @@ export function useAppViewModels<P extends AppViewModelParams>(params: P) {
     isCompactCards,
     cardSettings,
     getCardSettingsKey,
-    hiddenCards,
     isCardHiddenByLogic,
     renderCard,
     setShowAddCardModal,
@@ -344,8 +340,6 @@ export function useAppViewModels<P extends AppViewModelParams>(params: P) {
     customIcons,
     saveCustomIcon,
     persistCustomIcons,
-    toggleCardVisibility,
-    persistHiddenCards,
     statusPillsConfig,
     saveStatusPillsConfig,
   } = params;
@@ -417,11 +411,10 @@ export function useAppViewModels<P extends AppViewModelParams>(params: P) {
     () => ({
       cardSettings,
       getCardSettingsKey,
-      hiddenCards,
       isCardHiddenByLogic,
       renderCard,
     }),
-    [cardSettings, getCardSettingsKey, hiddenCards, isCardHiddenByLogic, renderCard]
+    [cardSettings, getCardSettingsKey, isCardHiddenByLogic, renderCard]
   );
 
   const dashboardGridActions = useMemo(
@@ -756,9 +749,6 @@ export function useAppViewModels<P extends AppViewModelParams>(params: P) {
       customIcons,
       saveCustomIcon,
       persistCustomIcons,
-      hiddenCards,
-      toggleCardVisibility,
-      persistHiddenCards,
       getCardSettingsKey,
       statusPillsConfig,
       saveStatusPillsConfig,
@@ -773,9 +763,6 @@ export function useAppViewModels<P extends AppViewModelParams>(params: P) {
       customIcons,
       saveCustomIcon,
       persistCustomIcons,
-      hiddenCards,
-      toggleCardVisibility,
-      persistHiddenCards,
       getCardSettingsKey,
       statusPillsConfig,
       saveStatusPillsConfig,

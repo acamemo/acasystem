@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { cellMetrics, deviceClassFor, rectToBox } from '@/utils/launcher/deviceClass';
+import type { BaseDeviceClass, CellSize, DeviceClass } from '@/@types/launcher';
+import {
+  BASE_DEVICE_CLASSES,
+  COVER_COLUMNS,
+  DEFAULT_GRIDS,
+  cellMetrics,
+  columnsKey,
+  deviceClassFor,
+  rectToBox,
+  rowsOn,
+} from '@/utils/launcher/deviceClass';
 import {
   clampSize,
   findFreeRect,
@@ -13,6 +23,7 @@ import {
   tryResize,
   type Placements,
 } from '@/utils/launcher/grid';
+import { sizeAcrossKeys } from '@/utils/launcher/layout';
 
 const grid = { w: 8, h: 5 };
 
@@ -154,11 +165,209 @@ describe('launcher device classes', () => {
     expect(metrics.cell).toBe(107);
     expect(metrics.height).toBeLessThanOrEqual(600);
     expect(metrics.width).toBeLessThanOrEqual(1000);
+    // The spare width goes to the gaps between columns (REP-20261008-001): 20 px, not 16.
+    expect(metrics).toMatchObject({ gapX: 20, gapY: 16 });
     expect(rectToBox({ x: 1, y: 2, w: 2, h: 1 }, metrics)).toEqual({
-      left: 123,
+      left: 127,
       top: 246,
-      width: 230,
+      width: 234,
       height: 107,
     });
+  });
+});
+
+/*
+ * Guards of REP-20261013-002 (stage 1, ADR-0013): the frame around the grid changes when the top
+ * bar moves into the footer band, but REFERENCE_AREAS stays as it is. These tests pin what
+ * depends on it, so that nobody re-tunes the areas to the new frame: that would change the rows
+ * and the keys of the saved arrangements. They describe today's behaviour and must stay green.
+ */
+describe('reference area: rows and keys that must not change', () => {
+  const columns = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const rows: Record<BaseDeviceClass, number[]> = {
+    tablet: [1, 1, 2, 2, 3, 3, 4, 4, 5],
+    tabletPortrait: [2, 3, 4, 5, 6, 6, 6, 6, 6],
+    phone: [3, 5, 6, 7, 7, 7, 7, 7, 7],
+    phoneLandscape: [1, 1, 1, 1, 1, 2, 2, 2, 2],
+  };
+  const keys: Record<BaseDeviceClass, string[]> = {
+    tablet: [
+      'tablet@2x1',
+      'tablet@3x1',
+      'tablet@4x2',
+      'tablet@5x2',
+      'tablet@6x3',
+      'tablet@7x3',
+      'tablet@8x4',
+      'tablet@9x4',
+      'tablet@10x5',
+    ],
+    tabletPortrait: [
+      'tabletPortrait@2x2',
+      'tabletPortrait@2x2',
+      'tabletPortrait@3x3',
+      'tabletPortrait@4x4',
+      'tabletPortrait@5x5',
+      'tabletPortrait@5x5',
+      'tabletPortrait@6x6',
+      'tabletPortrait@6x6',
+      'tabletPortrait@6x6',
+    ],
+    phone: [
+      'phone@2x3',
+      'phone@2x3',
+      'phone@2x3',
+      'phone@compact',
+      'phone@compact',
+      'phone',
+      'phone',
+      'phone',
+      'phone',
+    ],
+    phoneLandscape: [
+      'phoneLandscape@2x1',
+      'phoneLandscape@3x1',
+      'phoneLandscape@4x1',
+      'phoneLandscape@5x1',
+      'phoneLandscape@6x1',
+      'phoneLandscape@7x2',
+      'phoneLandscape@8x2',
+      'phoneLandscape@9x2',
+      'phoneLandscape@9x2',
+    ],
+  };
+
+  it.each(BASE_DEVICE_CLASSES)('rowsOn of %s for 2 to 10 columns', (base) => {
+    expect(columns.map((count) => rowsOn(base, count))).toEqual(rows[base]);
+  });
+
+  it.each(BASE_DEVICE_CLASSES)('columnsKey of %s for 2 to 10 stored columns', (base) => {
+    expect(columns.map((count) => columnsKey(base, count, DEFAULT_GRIDS))).toEqual(keys[base]);
+  });
+
+  it('the cover on three columns keeps its key on every class', () => {
+    expect(
+      BASE_DEVICE_CLASSES.map((base) => columnsKey(base, COVER_COLUMNS, DEFAULT_GRIDS))
+    ).toEqual(['tablet@3x1', 'tabletPortrait@2x2', 'phone@2x3', 'phoneLandscape@3x1']);
+  });
+
+  it('the cell of the tablet grid on the Lenovo full screen, before and after the top bar', () => {
+    // 973×440: viewport 1024×640 minus the gutters, 64 px of top band, 88 px of footer band and
+    // 48 px of page margin. 504 px is the same area without the top band (what ADR-0013 gains).
+    const before = cellMetrics(973, 440, { w: 8, h: 5 }, 16);
+    const after = cellMetrics(973, 504, { w: 8, h: 5 }, 16);
+    expect(before.cell).toBe(75);
+    expect(after.cell).toBe(88);
+    expect(before.gapY).toBe(16);
+    expect(after.gapY).toBe(16);
+  });
+});
+
+describe('size across keys: what the cover and the pages convert to', () => {
+  const sizes = [
+    { w: 1, h: 1 },
+    { w: 2, h: 1 },
+    { w: 2, h: 2 },
+  ];
+  // Cover (three columns) to a page of 8 columns, and back, on each screen class.
+  const converted: Record<
+    BaseDeviceClass,
+    { to: DeviceClass; from: DeviceClass; toPage: CellSize[]; toCover: CellSize[] }
+  > = {
+    tablet: {
+      from: 'tablet@3x1',
+      to: 'tablet@8x4',
+      toPage: [
+        { w: 3, h: 3 },
+        { w: 5, h: 3 },
+        { w: 5, h: 6 },
+      ],
+      toCover: [
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+      ],
+    },
+    tabletPortrait: {
+      from: 'tabletPortrait@2x2',
+      to: 'tabletPortrait@6x6',
+      toPage: [
+        { w: 3, h: 3 },
+        { w: 6, h: 3 },
+        { w: 6, h: 6 },
+      ],
+      toCover: [
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+      ],
+    },
+    phone: {
+      from: 'phone@2x3',
+      to: 'phone',
+      toPage: [
+        { w: 2, h: 2 },
+        { w: 4, h: 2 },
+        { w: 4, h: 4 },
+      ],
+      toCover: [
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+      ],
+    },
+    phoneLandscape: {
+      from: 'phoneLandscape@3x1',
+      to: 'phoneLandscape@8x2',
+      toPage: [
+        { w: 2, h: 2 },
+        { w: 5, h: 2 },
+        { w: 5, h: 4 },
+      ],
+      toCover: [
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+        { w: 1, h: 1 },
+      ],
+    },
+  };
+
+  it.each(BASE_DEVICE_CLASSES)('%s: the cover keys are the ones the table names', (base) => {
+    expect(columnsKey(base, COVER_COLUMNS, DEFAULT_GRIDS)).toBe(converted[base].from);
+    expect(columnsKey(base, 8, DEFAULT_GRIDS)).toBe(converted[base].to);
+  });
+
+  it.each(BASE_DEVICE_CLASSES)('%s: cover to page and back', (base) => {
+    const { from, to, toPage, toCover } = converted[base];
+    const grids = DEFAULT_GRIDS;
+    expect(sizes.map((size) => sizeAcrossKeys(size, grids, from, to))).toEqual(toPage);
+    expect(sizes.map((size) => sizeAcrossKeys(size, grids, to, from))).toEqual(toCover);
+  });
+
+  it('the cover and the default page of the tablet (the wall tablet, ADR-0013)', () => {
+    const grids = DEFAULT_GRIDS;
+    // 1x1 of the cover (cell 313 px) is wider than a cell of the 8x5 grid (75 px).
+    expect(sizeAcrossKeys({ w: 1, h: 1 }, grids, 'tablet@3x1', 'tablet')).toEqual({ w: 3, h: 4 });
+    expect(sizeAcrossKeys({ w: 1, h: 1 }, grids, 'tabletPortrait@2x2', 'tabletPortrait')).toEqual({
+      w: 4,
+      h: 4,
+    });
+    // And back: only a widget as wide as the page gets more than a cell of the cover.
+    expect(sizeAcrossKeys({ w: 5, h: 3 }, grids, 'tablet@8x4', 'tablet@3x1')).toEqual({
+      w: 2,
+      h: 1,
+    });
+    expect(sizeAcrossKeys({ w: 8, h: 4 }, grids, 'tablet', 'tablet@3x1')).toEqual({ w: 3, h: 1 });
+    expect(sizeAcrossKeys({ w: 3, h: 4 }, grids, 'tablet', 'tablet@3x1')).toEqual({ w: 1, h: 1 });
+    expect(sizeAcrossKeys({ w: 4, h: 4 }, grids, 'tabletPortrait', 'tabletPortrait@2x2')).toEqual({
+      w: 1,
+      h: 1,
+    });
+  });
+
+  it('the same key keeps the size', () => {
+    for (const size of sizes) {
+      expect(sizeAcrossKeys(size, DEFAULT_GRIDS, 'tablet', 'tablet')).toEqual(size);
+    }
   });
 });

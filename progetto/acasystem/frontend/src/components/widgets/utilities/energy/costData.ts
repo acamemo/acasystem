@@ -77,7 +77,12 @@ export function historyPoints(entries: HaHistoryEntry[]): TimePoint[] {
 export function statisticPoints(stats: HaStatistic[]): TimePoint[] {
   const points: TimePoint[] = [];
   for (const stat of stats) {
-    const raw = typeof stat.mean === 'number' ? stat.mean : typeof stat.state === 'number' ? stat.state : stat.sum;
+    const raw =
+      typeof stat.mean === 'number'
+        ? stat.mean
+        : typeof stat.state === 'number'
+          ? stat.state
+          : stat.sum;
     const value = parseNumber(raw);
     const time = toDateSafe(stat.start);
     if (value !== null && time) points.push({ value, time });
@@ -134,7 +139,13 @@ export function ensureRangeCoverage(data: TimePoint[], start: Date, end: Date): 
 /** Series shown for a combination of view and metric (legacy CostModal rules). */
 export function buildCostSeries(
   points: TimePoint[],
-  { rangeHours, view, metric, start, end }: { rangeHours: number; view: CostView; metric: CostMetric; start: Date; end: Date }
+  {
+    rangeHours,
+    view,
+    metric,
+    start,
+    end,
+  }: { rangeHours: number; view: CostView; metric: CostMetric; start: Date; end: Date }
 ): TimePoint[] {
   const raw = [...points].sort((a, b) => a.time.getTime() - b.time.getTime());
   const bucketed = buildBuckets(raw, rangeHours, end.getTime());

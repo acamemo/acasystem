@@ -23,23 +23,34 @@ export interface CoverDate {
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
+/**
+ * The formatters are made once: `coverDate` runs at every render of the cover, which is every
+ * commit of the launcher, and three `Intl.DateTimeFormat` cost 2-4 ms each time (tracing of
+ * 2026-10-24, REP-20261023-006). The text changes once a day, so the last result is kept.
+ */
+const WEEKDAY_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'long' });
+const MONTH_FORMAT = new Intl.DateTimeFormat(LOCALE, { month: 'long' });
+const SPOKEN_FORMAT = new Intl.DateTimeFormat(LOCALE, {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+let lastCoverDate: CoverDate | null = null;
+
 export function coverDate(date: Date): CoverDate {
-  const weekday = new Intl.DateTimeFormat(LOCALE, { weekday: 'long' }).format(date);
-  const month = new Intl.DateTimeFormat(LOCALE, { month: 'long' }).format(date);
-  const spoken = new Intl.DateTimeFormat(LOCALE, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
-  return {
-    weekday: sentence(weekday),
-    month: sentence(month),
+  const iso = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  if (lastCoverDate?.iso === iso) return lastCoverDate;
+  lastCoverDate = {
+    weekday: sentence(WEEKDAY_FORMAT.format(date)),
+    month: sentence(MONTH_FORMAT.format(date)),
     day: date.getDate(),
     year: date.getFullYear(),
-    iso: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
-    spoken,
+    iso,
+    spoken: SPOKEN_FORMAT.format(date),
   };
+  return lastCoverDate;
 }
 
 export interface ClockText {

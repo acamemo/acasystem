@@ -12,7 +12,8 @@ import { PlayerView } from './PlayerView';
 /** `media_player.*` widget (legacy MediaPlayerCard). */
 export function MediaPlayerWidget({ id, settings, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
-  if (!runtime.entitiesLoaded) return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
+  if (!runtime.entitiesLoaded)
+    return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
   const entity = runtime.entities[id];
   if (!entity) {
     return <WidgetMessage size={size} editMode={editMode} {...missingDevice(id)} />;
@@ -45,7 +46,9 @@ export function selectGroupPlayer(
   activeId: unknown,
   nowMs: number
 ): GroupSelection {
-  const members = mediaIds.map((id) => entities[id]).filter((entity): entity is Entity => Boolean(entity));
+  const members = mediaIds
+    .map((id) => entities[id])
+    .filter((entity): entity is Entity => Boolean(entity));
   const active = members.filter((entity) => isMediaActive(entity, nowMs));
   const playing = members.filter((entity) => entity.state === 'playing');
   const pool = active.length > 0 ? active : members;
@@ -59,7 +62,8 @@ export function MediaGroupWidget({ id, settingsKey, settings, size, editMode }: 
   const runtime = useWidgetRuntime();
   const visible = usePageVisible();
   const now = useNow(10000, visible);
-  if (!runtime.entitiesLoaded) return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
+  if (!runtime.entitiesLoaded)
+    return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
   const mediaIds = stringList(settings.mediaIds);
   const group = selectGroupPlayer(runtime.entities, mediaIds, settings.activeId, now);
   if (!group.current) {

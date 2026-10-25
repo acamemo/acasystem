@@ -1,0 +1,23 @@
+/** The twenty category concepts use the shared adaptive sizing and availability UI. */
+export const ADAPTIVE_WIDGET_TYPES = new Set([
+  'sensor',
+  'light',
+  'fan',
+  'climate',
+  'cover',
+  'lock',
+  'alarm',
+  'camera',
+  'media',
+  'sonos',
+  'androidtv',
+  'appletv',
+  'vacuum',
+  'mower',
+  'car',
+  'room',
+  'todo',
+  'cost',
+  'nordpool',
+  'spacer',
+]);

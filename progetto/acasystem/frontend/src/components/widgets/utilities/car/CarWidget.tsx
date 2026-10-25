@@ -5,7 +5,14 @@ import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { readableState, safeState } from '../shared/entity';
 import { formatCompact } from '../shared/format';
 import { Amount } from '../shared/Amount';
-import { CardMessage, CardSkeleton, Chip, IconWell, Meter, UtilityCard } from '../shared/UtilityCard';
+import {
+  CardMessage,
+  CardSkeleton,
+  Chip,
+  IconWell,
+  Meter,
+  UtilityCard,
+} from '../shared/UtilityCard';
 import { oneDecimal, readCar, readCarSettings } from './carData';
 
 export const CAR_DEFAULT_NAME = 'Auto';
@@ -30,7 +37,13 @@ export function CarWidget({ id, settings, size, editMode }: WidgetProps) {
 
   if (!runtime.entitiesLoaded) return card(<CardSkeleton label={`Caricamento di ${name}…`} />);
   if (!car.ids.batteryId && !car.ids.rangeId && !car.ids.locationId) {
-    return card(<CardMessage icon="car" title="Collega le entità dell’auto" detail="Dalle impostazioni del widget" />);
+    return card(
+      <CardMessage
+        icon="car"
+        title="Collega le entità dell’auto"
+        detail="Dalle impostazioni del widget"
+      />
+    );
   }
 
   const data = readCar(runtime.entities, car, runtime.haConfig);
@@ -38,7 +51,8 @@ export function CarWidget({ id, settings, size, editMode }: WidgetProps) {
   const batteryText = battery === null ? '--' : formatCompact(battery, 1);
   const rangeText = data.range === null ? null : formatCompact(data.range, 1);
   const location = safeState(data.location) ? readableState(data.location) : null;
-  const imageUrl = car.imageUrl && !imageFailed ? runtime.getEntityImageUrl(car.imageUrl) ?? car.imageUrl : null;
+  const imageUrl =
+    car.imageUrl && !imageFailed ? (runtime.getEntityImageUrl(car.imageUrl) ?? car.imageUrl) : null;
   const tone = data.isCharging ? 'active' : null;
 
   const chips = (

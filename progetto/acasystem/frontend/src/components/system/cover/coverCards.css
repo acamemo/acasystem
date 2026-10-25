@@ -1,0 +1,163 @@
+/*
+ * Cover cards (REP-20261007-010): two square cards side by side, analog clock on the left and
+ * calendar on the right. They size themselves on the cover page (container «aca-cover», which
+ * already excludes status bar and footer) and stack when the page is taller than wide.
+ * Colours: the Kit 2 accent for the weekday and the second hand (Metallo fallback: the orange
+ * ink), the dark ink for the day number, the hands and the digital time.
+ */
+@layer components {
+  .aca-cover-row {
+    --aca-cover-side: min(40cqw, 76cqh);
+    display: flex;
+    flex-direction: row;
+    gap: clamp(var(--aca-space-5), 5cqw, var(--aca-space-7));
+    align-items: center;
+    justify-content: center;
+  }
+  @container aca-cover (max-aspect-ratio: 1 / 1) {
+    .aca-cover-row {
+      --aca-cover-side: min(76cqw, 42cqh);
+      flex-direction: column;
+    }
+  }
+  /* Three cards (clock, calendar, weather): smaller sides so the row still fits. */
+  .aca-cover-row:has(> :nth-child(3)) {
+    --aca-cover-side: min(28cqw, 70cqh);
+  }
+  @container aca-cover (max-aspect-ratio: 1 / 1) {
+    .aca-cover-row:has(> :nth-child(3)) {
+      --aca-cover-side: min(70cqw, 28cqh);
+    }
+  }
+
+  .aca-cover-card.aca-m {
+    --aca-pad: 0;
+    width: round(down, var(--aca-cover-side), 4px);
+    aspect-ratio: 1;
+  }
+  .aca-cover-card > .aca-m__outer,
+  .aca-cover-card > .aca-m__outer > .aca-m__face {
+    height: 100%;
+  }
+  /* Same weight as the kit's card rule (display: block on the content), declared later. */
+  .aca-cover-card.aca-m > .aca-m__outer > .aca-m__face > .aca-cover-card__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--aca-cover-side) * 0.05);
+    height: 100%;
+  }
+
+  /* Clock: recessed dial, 68% of the card; the digital time below it. */
+  .aca-cover-clock__dial.aca-m {
+    --aca-dim: calc(var(--aca-cover-side) * 0.68);
+  }
+  .aca-cover-clock__face {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .aca-cover-clock__tick {
+    stroke: var(--aca-ink-muted);
+    stroke-width: 1;
+    stroke-linecap: round;
+  }
+  .aca-cover-clock__tick--hour {
+    stroke: var(--aca-ink-solid);
+    stroke-width: 2.5;
+  }
+  .aca-cover-clock__hand {
+    stroke: var(--aca-ink-solid);
+    stroke-linecap: round;
+  }
+  .aca-cover-clock__hand--hour {
+    stroke-width: 6;
+  }
+  .aca-cover-clock__hand--minute {
+    stroke-width: 4;
+  }
+  .aca-cover-clock__hand--second {
+    stroke: var(--k2-accent, var(--aca-orange));
+    stroke-width: 2;
+  }
+  .aca-cover-clock__pin {
+    fill: var(--k2-accent, var(--aca-orange));
+  }
+  .aca-cover__time {
+    color: var(--aca-ink-solid);
+    font-family: var(--aca-font);
+    font-size: calc(var(--aca-cover-side) * 0.12);
+    font-weight: var(--aca-weight-light);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  /* Calendar: weekday in the accent, the day number large, light and dark. */
+  .aca-cover-calendar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-family: var(--aca-font);
+  }
+  .aca-cover-calendar__weekday {
+    color: var(--k2-accent, var(--aca-orange-ink-icon));
+    font-size: calc(var(--aca-cover-side) * 0.13);
+    font-weight: var(--aca-weight-light);
+    line-height: 1.1;
+  }
+  .aca-cover-calendar__day {
+    color: var(--aca-ink-solid);
+    font-size: calc(var(--aca-cover-side) * 0.52);
+    font-weight: var(--aca-weight-light);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  /* Weather: accent icon, temperature large and dark, condition and place below. */
+  .aca-cover-weather {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--aca-cover-side) * 0.03);
+    height: 100%;
+    font-family: var(--aca-font);
+    text-align: center;
+  }
+  .aca-cover-weather__icon {
+    display: inline-flex;
+    color: var(--k2-accent, var(--aca-orange-ink-icon));
+  }
+  .aca-cover-weather__icon > .aca-icon {
+    width: calc(var(--aca-cover-side) * 0.26);
+    height: calc(var(--aca-cover-side) * 0.26);
+  }
+  .aca-cover-weather__temp {
+    color: var(--aca-ink-solid);
+    font-size: calc(var(--aca-cover-side) * 0.26);
+    font-weight: var(--aca-weight-light);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .aca-cover-weather__condition {
+    color: var(--k2-accent, var(--aca-orange-ink-icon));
+    font-size: calc(var(--aca-cover-side) * 0.09);
+    font-weight: var(--aca-weight-light);
+  }
+  .aca-cover-weather__place {
+    max-width: 90%;
+    overflow: hidden;
+    color: var(--aca-ink-muted);
+    font-size: calc(var(--aca-cover-side) * 0.065);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Source not answering: muted icon and text, no temperature. */
+  .aca-cover-weather--offline .aca-cover-weather__icon,
+  .aca-cover-weather--offline .aca-cover-weather__condition {
+    color: var(--aca-ink-muted);
+  }
+}

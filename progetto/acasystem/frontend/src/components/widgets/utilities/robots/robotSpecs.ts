@@ -5,6 +5,34 @@
 import type { UtilityIconName } from '../shared/UtilityIcon';
 import { numberAttr, stringAttr, type MaybeEntity } from '../shared/entity';
 import { ERROR_STATES, VACUUM_CONFIRM, vacuumStateLabel } from './vacuumData';
+import type { ServiceCatalog } from '../../adaptive/operationalProfile';
+
+/** HA 2026.9.4 feature flags; readable attributes do not grant write capabilities. */
+export function robotActionSupported(
+  entity: MaybeEntity,
+  domain: string,
+  service: string,
+  services: ServiceCatalog | null
+) {
+  const bits: Record<string, Record<string, number>> = {
+    vacuum: {
+      start: 8192,
+      pause: 4,
+      stop: 8,
+      return_to_base: 16,
+      locate: 512,
+      clean_spot: 1024,
+      set_fan_speed: 32,
+      clean_area: 16384,
+    },
+    lawn_mower: { start_mowing: 1, pause: 2, dock: 4 },
+  };
+  const bit = bits[domain]?.[service];
+  return (
+    Boolean(services?.[domain]?.[service]) &&
+    (!bit || (Number(entity?.attributes.supported_features ?? 0) & bit) === bit)
+  );
+}
 
 export interface RobotAction {
   key: string;
@@ -82,7 +110,8 @@ export function mowerStateLabel(state: string | undefined, battery: number | nul
   if (normalized === 'unavailable') return 'Non disponibile';
   if (normalized === 'unknown') return 'Stato sconosciuto';
   if (MOWER_ACTIVE.includes(normalized)) return 'Taglio in corso';
-  if (['returning', 'going_home', 'return_to_base'].includes(normalized)) return 'Ritorno alla base';
+  if (['returning', 'going_home', 'return_to_base'].includes(normalized))
+    return 'Ritorno alla base';
   if ((normalized === 'charging' || normalized === 'docked') && battery === 100) return 'Alla base';
   if (normalized === 'docked' || normalized === 'charging') return 'In carica';
   if (normalized === 'idle' || normalized === 'ready') return 'Inattivo';
@@ -129,5 +158,7 @@ export const mowerSpec: RobotSpec = {
   },
   battery: (entity) => numberAttr(entity, 'battery_level'),
   place: (entity) =>
-    stringAttr(entity, 'current_zone') ?? stringAttr(entity, 'zone') ?? stringAttr(entity, 'current_room'),
+    stringAttr(entity, 'current_zone') ??
+    stringAttr(entity, 'zone') ??
+    stringAttr(entity, 'current_room'),
 };

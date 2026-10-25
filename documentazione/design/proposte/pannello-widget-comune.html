@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pannello widget comune</title>
+<meta name="description" content="PROPOSTA non approvata (REP-20261023-002, ADR-0020): cornice comune e blocchi di capacità per i pannelli dei widget. Mockup statico, nessuno script.">
+<!--
+  PROPOSTA — mockup statico, non approvato e non realizzato.
+  Fonte: documentazione/reports/REP-20261023-002-studio-pannelli-widget.md, bozza ADR-0020.
+  Solo HTML e CSS in linea, nessuno script né risorsa esterna. Colori dal Kit 2
+  (progetto/acasystem/frontend/src/themes/kit2/tokens.css, ADR-0011): fondo #e4ebf5,
+  accento viola #6d5dfc, tema scuro #1b1d23; valori esadecimali approssimati dagli OKLCH.
+  Gli elementi segnati «D-n» dipendono da una domanda all'utente: non sono decisi.
+  Righe piatte dentro il pannello (bordi, nessuna ombra): mitigazione delle prestazioni sul
+  Mali-G52 in tensione con il rilievo del Kit 2 (ADR-0011), da confermare con l'utente.
+  Rilievo con box-shadow solo sulla superficie del pannello e sul pulsante principale.
+-->
+<style>
+  :root {
+    --bg: #e4ebf5;           /* --k2-bg oklch(93.8% 0.016 260) */
+    --shade: #bcc8db;        /* --k2-shade, circa */
+    --light: #ffffff;        /* --k2-light */
+    --ink: #262f3f;          /* --k2-ink oklch(32%…), circa */
+    --ink-muted: #4a5b78;    /* --k2-ink-muted oklch(50%…), circa: ≥ 4,5:1 sul fondo */
+    --accent: #6d5dfc;       /* --k2-accent */
+    --accent-light: #a39ffb;
+    --accent-dark: #563fe0;
+    --on-accent: #ffffff;
+    --danger: #b91c1c;       /* rosso confermato in design.md */
+    --note: #7a4d00;         /* inchiostro delle annotazioni del mockup */
+    --note-bg: #fff4dc;
+    --line: #9aa8bf;         /* bordo delle righe piatte, circa 3:1 sul fondo */
+    --tint: color-mix(in srgb, var(--accent) 12%, var(--bg));
+    --raised: 4px 4px 8px var(--shade), -3px -3px 7px var(--light);
+    --raised-lg: 9px 9px 16px var(--shade), -3px -3px 20px var(--light);
+    --r: 12px;
+    --r-lg: 32px;
+    --font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1d23; --shade: #101216; --light: #292c33;
+      --ink: #e2e4ea; --ink-muted: #aeb2bd;
+      --accent-light: #8f86ff; --accent-dark: #4a35c9;
+      --note: #ffd58a; --note-bg: #3a2e14; --danger: #ff8a8a; --line: #5d6472;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1d23; --shade: #101216; --light: #292c33;
+    --ink: #e2e4ea; --ink-muted: #aeb2bd;
+    --accent-light: #8f86ff; --accent-dark: #4a35c9;
+    --note: #ffd58a; --note-bg: #3a2e14; --danger: #ff8a8a; --line: #5d6472;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font); font-size: 1rem; line-height: 1.45;
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+
+  .banner {
+    border: 2px dashed var(--note); background: var(--note-bg); color: var(--note);
+    border-radius: var(--r); padding: 12px 16px; margin-bottom: 20px;
+  }
+  .banner strong { font-weight: 600; }
+  h1 { font-size: 1.5rem; font-weight: 500; margin: 0 0 4px; }
+  .lead { color: var(--ink-muted); margin: 0 0 16px; max-width: 70ch; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0 0 24px; padding: 0; list-style: none; color: var(--ink-muted); font-size: .875rem; }
+  .legend li { display: flex; align-items: center; gap: 8px; }
+  .sw { width: 18px; height: 18px; border-radius: 4px; display: inline-block; }
+  .sw.l1 { border: 2px solid var(--accent); }
+  .sw.l2 { border: 2px dashed var(--ink-muted); }
+  .sw.l3 { border: 2px dotted var(--note); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 28px; align-items: start; }
+
+  /* Livello 1: cornice comune */
+  .panel {
+    background: var(--bg); border-radius: var(--r-lg); box-shadow: var(--raised-lg);
+    padding: 20px; outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent); outline-offset: 4px;
+    display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  }
+  .example { font-size: .8125rem; color: var(--note); background: var(--note-bg); border-radius: 8px; padding: 4px 10px; align-self: flex-start; }
+  .head { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; }
+  .icon { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; }
+  .icon svg { width: 26px; height: 26px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .name { font-size: 1.25rem; font-weight: 500; margin: 0; overflow-wrap: anywhere; }
+  .meta { margin: 2px 0 0; color: var(--ink-muted); font-size: .9375rem; }
+  .state { color: var(--ink); }
+
+  /* Livello 2: blocchi di capacità */
+  .block {
+    border: 2px dashed color-mix(in srgb, var(--ink-muted) 45%, transparent); border-radius: 18px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  }
+  .tag { font-size: .75rem; color: var(--note); margin: 0; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .row .label { flex: 1 1 auto; min-width: 8ch; }
+  .label { font-weight: 500; }
+  .value { color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+
+  button, .chip {
+    font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); cursor: pointer;
+    min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: var(--r);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  button:focus-visible, .chip:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:active { background: var(--tint); }
+  .round { border-radius: 50%; padding: 0; width: 44px; }
+  .on, .chip[aria-pressed="true"] { background: var(--tint); border: 2px solid var(--accent); color: var(--accent-dark); font-weight: 500; }
+  :root[data-theme="dark"] .on, :root[data-theme="dark"] .chip[aria-pressed="true"] { color: var(--accent-light); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .on, :root:not([data-theme="light"]) .chip[aria-pressed="true"] { color: var(--accent-light); } }
+  .primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: var(--raised); font-weight: 500; }
+  .danger { color: var(--danger); }
+  button[disabled] { cursor: not-allowed; color: var(--ink-muted); border-style: dashed; }
+
+  /* interruttore senza script: checkbox nativo con ruolo switch */
+  .switch { appearance: none; -webkit-appearance: none; margin: 0; width: 64px; height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--tint); position: relative; cursor: pointer; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 5px; left: 5px; width: 24px; height: 24px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); transition: transform .2s; }
+  .switch:checked { background: var(--accent); border-color: var(--accent); }
+  .switch:checked::after { transform: translateX(28px); background: var(--light); }
+  @media (prefers-reduced-motion: reduce) { .switch::after { transition: none; } }
+
+  /* cursore nativo con −/+ */
+  .level { display: grid; grid-template-columns: 44px 1fr 44px; gap: 10px; align-items: center; }
+  input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--accent); background: transparent; margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 0 14px; border-radius: 999px; }
+
+  .status { display: flex; align-items: center; gap: 8px; color: var(--ink-muted); font-size: .9375rem; margin: 0; }
+  .status svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; flex: none; }
+  .notice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r); border: 1px solid var(--line); font-size: .9375rem; }
+  .notice svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; flex: none; margin-top: 2px; }
+
+  /* tastierino direzionale */
+  .dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 8px; justify-content: center; }
+  .dpad button { width: 52px; height: 52px; padding: 0; border-radius: 50%; }
+  .dpad .up { grid-column: 2; grid-row: 1; } .dpad .left { grid-column: 1; grid-row: 2; }
+  .dpad .ok { grid-column: 2; grid-row: 2; } .dpad .right { grid-column: 3; grid-row: 2; }
+  .dpad .down { grid-column: 2; grid-row: 3; }
+  .dpad svg, .mm svg, .round svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mm { justify-content: center; }
+
+  details { border-radius: var(--r); border: 1px solid var(--line); padding: 0 12px; }
+  summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0 0 12px; font-size: .9375rem; }
+  dt { color: var(--ink-muted); } dd { margin: 0; }
+
+  /* azioni della cornice */
+  .frame-actions { display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid color-mix(in srgb, var(--ink-muted) 25%, transparent); padding-top: 14px; }
+  .frame-actions button { flex: 1 1 auto; }
+  .frame-actions .d { font-size: .75rem; color: var(--note); }
+  .variant-note { font-size: .8125rem; color: var(--note); margin: 0; }
+  .foot { display: flex; justify-content: flex-end; }
+
+  /* Livello 3 (citato): pannello specifico */
+  .specific { border: 2px dotted var(--note); border-radius: 18px; padding: 12px 14px; color: var(--ink-muted); font-size: .9375rem; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  footer { margin-top: 32px; color: var(--ink-muted); font-size: .875rem; max-width: 80ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="banner" role="note"><strong>PROPOSTA</strong>: non approvata e non realizzata. Mockup statico di REP-20261023-002 e della bozza ADR-0020. I testi segnati «D-n» dipendono da una domanda all'utente. Nessun comando funziona: è solo l'aspetto.</p>
+
+  <h1>Pannello del widget: cornice comune e blocchi di capacità</h1>
+  <p class="lead">Tre esempi con la stessa cornice. I blocchi compaiono solo se Home Assistant dichiara la capacità del dispositivo: la luce dimmerabile non ha il colore, la tapparella non ha l'accensione, la TV ha sorgenti e tastierino.</p>
+
+  <ul class="legend" aria-label="Legenda">
+    <li><span class="sw l1" aria-hidden="true"></span>Livello 1: cornice comune (testata, azioni, «Fatto»)</li>
+    <li><span class="sw l2" aria-hidden="true"></span>Livello 2: blocco di capacità condiviso</li>
+    <li><span class="sw l3" aria-hidden="true"></span>Livello 3: pannello specifico (solo dove nessun blocco basta)</li>
+  </ul>
+
+  <div class="grid">
+
+    <!-- ===================== 1. LUCE DIMMERABILE ===================== -->
+    <section class="panel" aria-labelledby="p1-name">
+      <span class="example">Esempio 1 · luce dimmerabile (supported_color_modes = brightness)</span>
+      <header class="head">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
+        <div>
+          <h2 class="name" id="p1-name">Lampada del divano</h2>
+          <p class="meta">Soggiorno · <span class="state">Accesa, 60 %</span> <span class="tag" style="display:inline">(D-3)</span></p>
+        </div>
+      </header>
+
+      <div class="block">
+        <p class="tag">ACC · Accensione: compare con turn_on/turn_off</p>
+        <div class="row">
+          <label class="label" for="p1-power">Accesa</label>
+          <input class="switch" id="p1-power" type="checkbox" role="switch" checked aria-label="Accendi o spegni Lampada del divano">
+        </div>
+      </div>
+
+      <div class="block">
+        <p class="tag">LIV · Livello: compare con brightness (non con «onoff»); −/+ sempre presenti (D-10)</p>
+        <div class="row"><span class="label" id="p1-bri-l">Luminosità</span><span class="value">60 %</span></div>
+        <div class="level">
+          <button class="round" type="button" aria-label="Diminuisci la luminosità di Lampada del divano"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+          <input type="range" min="1" max="100" value="60" aria-labelledby="p1-bri-l" aria-valuetext="60 %">
+          <button class="round" type="button" aria-label="Aumenta la luminosità di Lampada del divano"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button>
+        </div>
+        <p class="status" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Comando eseguito <span class="tag" style="display:inline">(ESI, testi D-8)</span></p>
+      </div>
+
+      <details>
+        <summary>Informazioni <span class="tag" style="display:inline;margin-left:8px">INF · chiusa (D-14)</span></summary>
+        <dl>
+          <dt>Ultimo cambiamento</dt><dd>oggi alle 18:42</dd>
+          <dt>Tipo</dt><dd>Luce dimmerabile</dd>
+        </dl>
+      </details>
+
+      <nav class="frame-actions" aria-label="Azioni del widget">
+        <button type="button">Cambia dispositivo <span class="d">D-6</span></button>
+        <button type="button">Impostazioni del widget <span class="d">D-4</span></button>
+        <button type="button">Impostazioni del dispositivo <span class="d">D-4</span></button>
+        <button type="button" class="danger">Elimina <span class="d">D-5</span></button>
+      </nav>
+      <p class="variant-note">Variante disegnata: D-4 (a), D-5 (a), D-6 (a). Non è la scelta consigliata: l'alternativa «come oggi» è nell'esempio 4.</p>
+      <div class="foot"><button type="button" class="primary">Fatto</button></div>
+    </section>
+
+    <!-- ===================== 2. TV LG webOS ===================== -->
+    <section class="panel" aria-labelledby="p2-name">
+      <span class="example">Esempio 2 · TV LG webOS (media_player, integrazione webostv)</span>
+      <header class="head">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+        <div>
+          <h2 class="name" id="p2-name">Televisore</h2>
+          <p class="meta">Ufficio · <span class="state">Acceso · Netflix</span></p>
+        </div>
+      </header>
+
+      <div class="block">
+        <p class="tag">ACC + DIS · l'accensione c'è solo se HA ha l'automazione «richiesta di accensione» (Wake-on-LAN)</p>
+        <div class="row">
+          <label class="label" for="p2-power">Acceso</label>
+          <input class="switch" id="p2-power" type="checkbox" role="switch" checked aria-label="Accendi o spegni Televisore">
+        </div>
+        <p class="notice"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>Quando è spento, il televisore si può accendere da qui solo se è attiva l'accensione dalla rete (Wake-on-LAN). <span class="tag" style="display:inline">(variante DIS, D-13)</span></span></p>
+      </div>
+
+      <div class="block">
+        <p class="tag">SCE · Scelta da elenco: compare con SELECT_SOURCE e source_list; Netflix è una voce dell'elenco</p>
+        <div class="row"><span class="label" id="p2-src">App e ingressi</span><span class="value">Netflix</span></div>
+        <div class="chips" role="group" aria-label="App e ingressi di Televisore">
+          <button type="button" class="chip" aria-pressed="true">Netflix</button>
+          <button type="button" class="chip" aria-pressed="false">YouTube</button>
+          <button type="button" class="chip" aria-pressed="false">Prime Video</button>
+          <button type="button" class="chip" aria-pressed="false">Live TV</button>
+          <button type="button" class="chip" aria-pressed="false">HDMI 1</button>
+          <button type="button" class="chip" aria-haspopup="listbox" aria-label="Altre 6 app e ingressi di Televisore">Altre 6…</button>
+        </div>
+        <p class="tag">forma automatica per numero di voci (D-7); preferiti in cima e elenco a TV spenta: D-13</p>
+      </div>
+
+      <div class="block">
+        <p class="tag">VOL · Volume: compare con VOLUME_SET/VOLUME_STEP; muto con VOLUME_MUTE</p>
+        <div class="row"><span class="label" id="p2-vol">Volume</span><span class="value">18 su 100</span>
+          <button type="button" aria-pressed="false" aria-label="Silenzia Televisore">Silenzia</button></div>
+        <div class="level">
+          <button class="round" type="button" aria-label="Abbassa il volume di Televisore"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+          <input type="range" min="0" max="100" value="18" aria-labelledby="p2-vol" aria-valuetext="Volume 18 su 100">
+          <button class="round" type="button" aria-label="Alza il volume di Televisore"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button>
+        </div>
+      </div>
+
+      <div class="block">
+        <p class="tag">MM · Comandi multimediali: ogni pulsante solo col suo bit (PREVIOUS_TRACK, PAUSE/PLAY, NEXT_TRACK)</p>
+        <div class="row mm">
+          <button type="button" class="round" aria-label="Brano precedente su Televisore"><svg viewBox="0 0 24 24"><path d="M6 5v14M18 6l-9 6 9 6z"/></svg></button>
+          <button type="button" class="round on" aria-label="Metti in pausa Televisore"><svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg></button>
+          <button type="button" class="round" aria-label="Brano successivo su Televisore"><svg viewBox="0 0 24 24"><path d="M18 5v14M6 6l9 6-9 6z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="block">
+        <p class="tag">TAS · Tastierino: compare con un telecomando collegato o con webostv.button</p>
+        <div class="dpad" role="group" aria-label="Tastierino di Televisore">
+          <button type="button" class="up" aria-label="Su (Televisore)"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+          <button type="button" class="left" aria-label="Sinistra (Televisore)"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button type="button" class="ok" aria-label="OK (Televisore)">OK</button>
+          <button type="button" class="right" aria-label="Destra (Televisore)"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+          <button type="button" class="down" aria-label="Giù (Televisore)"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+        <div class="row mm"><button type="button" aria-label="Indietro (Televisore)">Indietro</button><button type="button" aria-label="Home (Televisore)">Home</button></div>
+      </div>
+
+      <details>
+        <summary>Informazioni <span class="tag" style="display:inline;margin-left:8px">INF</span></summary>
+        <dl>
+          <dt>Modello</dt><dd>LG webOS TV</dd>
+          <dt>Uscita audio</dt><dd>Altoparlanti della TV</dd>
+        </dl>
+      </details>
+
+      <nav class="frame-actions" aria-label="Azioni del widget">
+        <button type="button">Cambia dispositivo <span class="d">D-6</span></button>
+        <button type="button">Impostazioni del widget <span class="d">D-4</span></button>
+        <button type="button">Impostazioni del dispositivo <span class="d">D-4</span></button>
+        <button type="button" class="danger">Elimina <span class="d">D-5</span></button>
+      </nav>
+      <p class="variant-note">Variante disegnata: D-4 (a), D-5 (a), D-6 (a). Non è la scelta consigliata: l'alternativa «come oggi» è nell'esempio 4.</p>
+      <div class="foot"><button type="button" class="primary">Fatto</button></div>
+    </section>
+
+    <!-- ===================== 3. TAPPARELLA ===================== -->
+    <section class="panel" aria-labelledby="p3-name">
+      <span class="example">Esempio 3 · tapparella (cover: OPEN, CLOSE, STOP, SET_POSITION)</span>
+      <header class="head">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 7h16M4 11h16M4 15h16"/></svg></span>
+        <div>
+          <h2 class="name" id="p3-name">Tapparella della camera</h2>
+          <p class="meta">Camera da letto · <span class="state">Aperta al 40 %</span></p>
+        </div>
+      </header>
+
+      <div class="block">
+        <p class="tag">AZI · Azioni in fila: «Ferma» solo con STOP; nessuna accensione (la tapparella non la dichiara)</p>
+        <div class="row" role="group" aria-label="Comandi di Tapparella della camera">
+          <button type="button" aria-label="Apri Tapparella della camera">Apri</button>
+          <button type="button" aria-label="Ferma Tapparella della camera">Ferma</button>
+          <button type="button" aria-label="Chiudi Tapparella della camera">Chiudi</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <p class="tag">LIV · Livello: compare solo con SET_POSITION; posizioni rapide facoltative</p>
+        <div class="row"><span class="label" id="p3-pos">Apertura</span><span class="value">40 %</span></div>
+        <div class="level">
+          <button class="round" type="button" aria-label="Chiudi di più Tapparella della camera"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+          <input type="range" min="0" max="100" value="40" aria-labelledby="p3-pos" aria-valuetext="Aperta al 40 %">
+          <button class="round" type="button" aria-label="Apri di più Tapparella della camera"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button>
+        </div>
+        <div class="chips" role="group" aria-label="Posizioni rapide di Tapparella della camera">
+          <button type="button" class="chip" aria-pressed="false">Chiusa</button>
+          <button type="button" class="chip" aria-pressed="false">25 %</button>
+          <button type="button" class="chip" aria-pressed="false">50 %</button>
+          <button type="button" class="chip" aria-pressed="false">75 %</button>
+          <button type="button" class="chip" aria-pressed="false">Aperta</button>
+        </div>
+        <p class="status" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>In attesa di conferma… <span class="tag" style="display:inline">(ESI, valore richiesto senza colore)</span></p>
+      </div>
+
+      <p class="specific">Nessun pannello specifico per la tapparella: bastano i blocchi. Il livello 3 resta per videocamera dal vivo, calendario, gruppi Sonos e Casa 3D (altri candidati in D-12).</p>
+
+      <details>
+        <summary>Informazioni <span class="tag" style="display:inline;margin-left:8px">INF</span></summary>
+        <dl>
+          <dt>Ultimo cambiamento</dt><dd>oggi alle 08:05</dd>
+          <dt>Inclinazione</dt><dd>non disponibile su questo dispositivo</dd>
+        </dl>
+      </details>
+
+      <nav class="frame-actions" aria-label="Azioni del widget">
+        <button type="button">Cambia dispositivo <span class="d">D-6</span></button>
+        <button type="button">Impostazioni del widget <span class="d">D-4</span></button>
+        <button type="button">Impostazioni del dispositivo <span class="d">D-4</span></button>
+        <button type="button" class="danger">Elimina <span class="d">D-5</span></button>
+      </nav>
+      <p class="variant-note">Variante disegnata: D-4 (a), D-5 (a), D-6 (a). Non è la scelta consigliata: l'alternativa «come oggi» è nell'esempio 4.</p>
+      <div class="foot"><button type="button" class="primary">Fatto</button></div>
+    </section>
+
+    <!-- ===================== 4. VARIANTE: AZIONI COME OGGI ===================== -->
+    <section class="panel" aria-labelledby="p4-name">
+      <span class="example">Esempio 4 · stessa luce, variante delle azioni: D-4 (c), D-5 (c), D-6 (b)</span>
+      <header class="head">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
+        <div>
+          <h2 class="name" id="p4-name">Lampada del divano</h2>
+          <p class="meta">Soggiorno · <span class="state">Accesa, 60 %</span></p>
+        </div>
+      </header>
+      <p class="specific">Corpo identico all'esempio 1 (ACC, LIV, INF), omesso.</p>
+      <p class="variant-note">Nel foglio di uso nessuna azione della cornice: «Impostazioni» (una sola voce, con le parti del widget e del dispositivo dentro) si apre solo in modifica, col secondo tocco (ADR-0016); «Elimina» resta nella barra della modifica; «Cambia dispositivo» resta dentro le impostazioni del widget.</p>
+      <div class="foot"><button type="button" class="primary">Fatto</button></div>
+    </section>
+
+  </div>
+
+  <footer>
+    <p><strong>PROPOSTA.</strong> Colori dal Kit 2 (fondo #e4ebf5, accento viola #6d5dfc, scuro #1b1d23), tema chiaro e scuro secondo il sistema. Righe piatte dentro il pannello (bordi al posto delle ombre del Kit 2): da confermare, vedi i rischi del report. Le due disposizioni delle azioni (esempi 1-3 ed esempio 4) sono varianti, nessuna consigliata. Non sono rappresentati: lo stato «Da collegare» (grigio, design.md 2026-10-20), il montaggio ritardato del corpo, la gestione del focus (titolo all'apertura, ritorno al widget alla chiusura), lo scorrimento del corpo con testata e piede fissi, il testo ingrandito. L'altezza a 1280×665 (Tab M11) non è stata misurata: con quattro azioni e il piede il pannello supera l'altezza visibile. Il nome della stanza e lo stato in parole nella testata dipendono da D-3; la presenza delle quattro azioni della cornice da D-4, D-5 e D-6.</p>
+  </footer>
+</div>
+</body>
+</html>

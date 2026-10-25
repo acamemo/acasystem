@@ -201,9 +201,9 @@ describe('«Principale», the base page', () => {
     ],
   };
 
-  it('stays in the pager when empty, unlike the other empty widget pages', () => {
+  it('stays in the pager when empty, like every empty page made by the user (REP-20261007-028)', () => {
     const keys = pagerEntries(layout, 'tablet', false).map((entry) => entry.key);
-    expect(keys).toEqual(['cover', 'home', 'luci']);
+    expect(keys).toEqual(['cover', 'home', 'luci', 'vuota']);
     expect(pagerEntries(layout, 'tablet', true).map((entry) => entry.key)).toEqual([
       'cover',
       'home',
@@ -222,7 +222,7 @@ describe('«Principale», the base page', () => {
     };
     expect(basePageId(hiddenHome)).toBe('luci');
     const entries = pagerEntries(hiddenHome, 'tablet', false);
-    expect(entries.map((entry) => entry.key)).toEqual(['cover', 'luci']);
+    expect(entries.map((entry) => entry.key)).toEqual(['cover', 'luci', 'vuota']);
     expect(homeEntryIndex(entries, hiddenHome)).toBe(1);
 
     const coverOnly: LauncherLayout = { version: 1, cover: { enabled: true }, pages: [] };

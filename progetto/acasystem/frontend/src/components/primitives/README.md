@@ -2,14 +2,14 @@
 
 Primo livello della gerarchia `primitives → system → widgets → templates → pages` ([ADR-0004](../../../../../../documentazione/decisions/ADR-0004-principi-frontend.md), [ADR-0008](../../../../../../documentazione/decisions/ADR-0008-struttura-frontend-backend.md)). Le primitive non conoscono Home Assistant e non importano da `system`, `widgets`, `templates`, `pages`, servizi, contesti o hook dell'app: lo verificano la regola ESLint `no-restricted-imports` e `MetalMaterial.test.jsx`. Stile in `src/themes/acasystem` (kit «Metallo», [ADR-0006](../../../../../../documentazione/decisions/ADR-0006-sistema-metallo.md) e [ADR-0007](../../../../../../documentazione/decisions/ADR-0007-acasystem-os.md)).
 
-| Gruppo     | Primitive                                                                                                                                                |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Materiale  | MaterialLayers, materialClass: socket → guscio → faccia → contenuto, comportamenti press/static/well, modificatore `aca-m--well-soft` (pozzetto tenue)   |
-| Componenti | Button, Surface, Toggle, Segmented, Field, Slider, ProgressRing, Badge, SelectTrigger, Icon, Sheet, Popover, DialogShell, Modal, Skeleton, PanelPresence |
-| Legacy     | Card, Container, Input, Choice, Switch: classi del CSS precedente, mantenute per il codice non ancora migrato                                            |
-| Tipografia | Display, Title, Heading, Body, Label, Caption, Numeric, IconText, Text                                                                                   |
-| Layout     | Flex, Grid                                                                                                                                               |
-| Utilità    | useScrollLock                                                                                                                                            |
+| Gruppo     | Primitive                                                                                                                                                              |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Materiale  | MaterialLayers, materialClass: socket → guscio → faccia → contenuto, comportamenti press/static/well, modificatore `aca-m--well-soft` (pozzetto tenue)                 |
+| Componenti | Button, Surface, Toggle, Segmented, Field, Slider, ProgressRing, Badge, SelectTrigger, Icon, Sheet, SideSheet, ConfirmSheet, Popover, DialogShell, Modal, Skeleton, PanelPresence |
+| Legacy     | Card, Container, Input, Choice, Switch: classi del CSS precedente, mantenute per il codice non ancora migrato                                                          |
+| Tipografia | Display, Title, Heading, Body, Label, Caption, Numeric, IconText, Text                                                                                                 |
+| Layout     | Flex, Grid                                                                                                                                                             |
+| Utilità    | useScrollLock                                                                                                                                                          |
 
 ## Stati
 
@@ -46,6 +46,13 @@ Primo livello della gerarchia `primitives → system → widgets → templates �
 - **Sheet:**
   - Proprietà: `open`, `onClose`, `title`, `description`, `closeLabel` (default «Chiudi»), `footer`.
   - Comportamento: `<dialog>` modale nativo; focus su autofocus, poi sul primo controllo del contenuto; Escape e clic sullo sfondo chiamano `onClose`; scroll bloccato; focus restituito; movimento ridotto senza scorrimento. Il corpo scorrevole lascia spazio alle ombre delle righe in rilievo.
+  - Coreografia (REP-20261023-006, blocco 2): sale in 280 ms e scende in 200 ms; mentre sale mostra la sola struttura e il contenuto compare all'arrivo (`data-arrived`); mentre scende titolo, descrizione, contenuto e piè di pagina restano quelli dell'ultimo render aperto, anche se il proprietario ha già azzerato il suo stato; due fogli di seguito si sovrappongono per circa 100 ms. Dove il browser non anima (jsdom) non c'è alcuna attesa.
+- **SideSheet** (proposta grafica per la Casa 3D, R1, da annotare in design.md):
+  - Proprietà: `open`, `onClose`, `title`, `closeLabel` (default «Chiudi»), `className`.
+  - Comportamento: pannello laterale su `<dialog>` modale nativo, da sinistra, largo min(20rem, 85vw) e alto 100dvh; focus sul primo controllo, Escape e clic sullo sfondo chiamano `onClose`; scroll bloccato; focus restituito; movimento ridotto senza scorrimento. Piatto di proposito: nessuna ombra e un filo sul bordo, perché sta sopra un disegno che continua a ridisegnarsi.
+- **ConfirmSheet:**
+  - Proprietà: `open`, `title` (la domanda), `description`, `confirmLabel` (il nome dell'azione, mai «Sì»), `cancelLabel` (default «Annulla»), `danger`, `code` (`label`, `mode` numeric/text, `maxLength`, `error`), `onConfirm(code?)`, `onCancel`.
+  - Comportamento: un Sheet. Prende il posto di `confirm()`: il tasto sicuro («Annulla») riceve il focus, con `code` lo riceve il campo; Invio nel campo conferma, Escape annulla; senza codice digitato il tasto di conferma resta spento. Il codice vive solo nel componente aperto: mai salvato né registrato.
 - **Popover:**
   - Proprietà: `trigger={(props) => <Button {...props} />}`, `label`, `placement`, `onOpenChange`, `children` o `children(close)`.
   - Comportamento: API popover nativa (top layer, chiusura leggera, Escape), posizionato sotto o sopra il pulsante e tenuto nel viewport. Il contenuto si monta solo da aperto e resta durante la dissolvenza di chiusura; `data-autofocus` riceve il focus quando compare; `close()` restituisce il focus al trigger.

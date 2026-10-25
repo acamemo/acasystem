@@ -1,6 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import type { Connection, HassEntity } from 'home-assistant-js-websocket';
-import { Body, Caption, Heading, Segmented, Sheet, Surface, Title, Toggle } from '@/components/primitives';
+import {
+  Body,
+  Caption,
+  Heading,
+  Segmented,
+  Sheet,
+  Surface,
+  Title,
+  Toggle,
+} from '@/components/primitives';
 import type { CardSettingsMap, PageSettingsMap } from '@/@types/dashboard';
 import type { EntityMap, HaConfig, ServiceData } from '@/@types/ha';
 import type { CellSize, WidgetDefinition, WidgetRuntime } from '@/@types/launcher';
@@ -17,16 +34,62 @@ interface Sample {
 }
 
 const samples: Array<{ type: string; items: Sample[] }> = [
-  { type: 'cost', items: [{ id: 'cost_card_1', size: { w: 2, h: 1 } }, { id: 'cost_card_1', size: { w: 2, h: 2 } }, { id: 'cost_card_2', size: { w: 2, h: 1 }, note: 'Non configurato' }] },
-  { type: 'nordpool', items: [{ id: 'nordpool_card_1', size: { w: 2, h: 1 } }, { id: 'nordpool_card_1', size: { w: 2, h: 2 } }, { id: 'nordpool_card_1', size: { w: 4, h: 2 } }] },
-  { type: 'car', items: [{ id: 'car_card_1', size: { w: 2, h: 1 } }, { id: 'car_card_1', size: { w: 2, h: 2 } }] },
-  { type: 'vacuum', items: [{ id: 'vacuum.roborock', size: { w: 2, h: 1 } }, { id: 'vacuum.roborock', size: { w: 2, h: 2 } }, { id: 'vacuum.assente', size: { w: 2, h: 1 }, note: 'Entità mancante' }] },
-  { type: 'mower', items: [{ id: 'lawn_mower.giardino', size: { w: 2, h: 1 } }, { id: 'lawn_mower.giardino', size: { w: 2, h: 2 } }] },
-  { type: 'room', items: [{ id: 'room_card_1', size: { w: 2, h: 1 } }, { id: 'room_card_1', size: { w: 2, h: 2 } }] },
-  { type: 'spacer', items: [{ id: 'spacer_card_1', size: { w: 8, h: 1 } }, { id: 'spacer_card_2', size: { w: 2, h: 1 }, note: 'Spazio (contorno in modifica)' }] },
+  {
+    type: 'cost',
+    items: [
+      { id: 'cost_card_1', size: { w: 2, h: 1 } },
+      { id: 'cost_card_1', size: { w: 2, h: 2 } },
+      { id: 'cost_card_2', size: { w: 2, h: 1 }, note: 'Non configurato' },
+    ],
+  },
+  {
+    type: 'nordpool',
+    items: [
+      { id: 'nordpool_card_1', size: { w: 2, h: 1 } },
+      { id: 'nordpool_card_1', size: { w: 2, h: 2 } },
+      { id: 'nordpool_card_1', size: { w: 4, h: 2 } },
+    ],
+  },
+  {
+    type: 'car',
+    items: [
+      { id: 'car_card_1', size: { w: 2, h: 1 } },
+      { id: 'car_card_1', size: { w: 2, h: 2 } },
+    ],
+  },
+  {
+    type: 'vacuum',
+    items: [
+      { id: 'vacuum.roborock', size: { w: 2, h: 1 } },
+      { id: 'vacuum.roborock', size: { w: 2, h: 2 } },
+      { id: 'vacuum.assente', size: { w: 2, h: 1 }, note: 'Entità mancante' },
+    ],
+  },
+  {
+    type: 'mower',
+    items: [
+      { id: 'lawn_mower.giardino', size: { w: 2, h: 1 } },
+      { id: 'lawn_mower.giardino', size: { w: 2, h: 2 } },
+    ],
+  },
+  {
+    type: 'room',
+    items: [
+      { id: 'room_card_1', size: { w: 2, h: 1 } },
+      { id: 'room_card_1', size: { w: 2, h: 2 } },
+    ],
+  },
+  {
+    type: 'spacer',
+    items: [
+      { id: 'spacer_card_1', size: { w: 8, h: 1 } },
+      { id: 'spacer_card_2', size: { w: 2, h: 1 }, note: 'Spazio (contorno in modifica)' },
+    ],
+  },
 ];
 
-const definitionOf = (type: string): WidgetDefinition | undefined => utilityWidgets.find((item) => item.type === type);
+const definitionOf = (type: string): WidgetDefinition | undefined =>
+  utilityWidgets.find((item) => item.type === type);
 
 type UnitsPreview = 'metric' | 'imperial' | 'none';
 
@@ -43,7 +106,15 @@ function previewHaConfig(units: UnitsPreview): HaConfig | null {
 }
 
 /** Same frame as the launcher's WidgetHost: static kit card, or a plain box when frameless. */
-function PreviewFrame({ frameless, editMode, children }: { frameless: boolean; editMode: boolean; children: ReactNode }) {
+function PreviewFrame({
+  frameless,
+  editMode,
+  children,
+}: {
+  frameless: boolean;
+  editMode: boolean;
+  children: ReactNode;
+}) {
   if (frameless) {
     return (
       <div className="preview-bare" inert={editMode || undefined}>
@@ -63,15 +134,27 @@ function PreviewFrame({ frameless, editMode, children }: { frameless: boolean; e
   );
 }
 
-function applyCall(entities: EntityMap, domain: string, service: string, data: ServiceData | undefined): EntityMap {
-  const id = typeof data?.entity_id === 'string' ? data.entity_id : typeof data?.target?.entity_id === 'string' ? data.target.entity_id : null;
+function applyCall(
+  entities: EntityMap,
+  domain: string,
+  service: string,
+  data: ServiceData | undefined
+): EntityMap {
+  const id =
+    typeof data?.entity_id === 'string'
+      ? data.entity_id
+      : typeof data?.target?.entity_id === 'string'
+        ? data.target.entity_id
+        : null;
   if (!id || !entities[id]) return entities;
   const entity: HassEntity = entities[id];
   const next: HassEntity = { ...entity, attributes: { ...entity.attributes } };
   const simulated = simulatedState(domain, service, entity);
   if (simulated?.state) next.state = simulated.state;
-  if (service === 'set_temperature' && typeof data?.temperature === 'number') next.attributes.temperature = data.temperature;
-  if (service === 'set_fan_speed' && typeof data?.fan_speed === 'string') next.attributes.fan_speed = data.fan_speed;
+  if (service === 'set_temperature' && typeof data?.temperature === 'number')
+    next.attributes.temperature = data.temperature;
+  if (service === 'set_fan_speed' && typeof data?.fan_speed === 'string')
+    next.attributes.fan_speed = data.fan_speed;
   if (service === 'set_value' && data?.value !== undefined) next.state = String(data.value);
   if (service === 'select_option' && typeof data?.option === 'string') next.state = data.option;
   if (domain === 'light' && service === 'turn_on' && typeof data?.brightness_pct === 'number') {
@@ -107,7 +190,10 @@ export default function PreviewPage() {
           }
           resolve(undefined);
           // Home Assistant reports the new state a little later.
-          setTimeout(() => setEntities((current) => applyCall(current, domain, service, data)), 1400);
+          setTimeout(
+            () => setEntities((current) => applyCall(current, domain, service, data)),
+            1400
+          );
         }, 350);
       }),
     [failCalls]
@@ -134,10 +220,16 @@ export default function PreviewPage() {
     editMode,
     haConfig: previewHaConfig(units),
     openDetails: (id) => setOpen({ id, settingsKey: `home::${id}` }),
-    saveCardSetting: (key, field, value) => setSettings((current) => ({ ...current, [key]: { ...(current[key] ?? {}), [field]: value } })),
+    saveCardSetting: (key, field, value) =>
+      setSettings((current) => ({
+        ...current,
+        [key]: { ...(current[key] ?? {}), [field]: value },
+      })),
   });
 
-  const openDefinition = open ? utilityWidgets.find((item) => item.matches(open.id, {})) : undefined;
+  const openDefinition = open
+    ? utilityWidgets.find((item) => item.matches(open.id, {}))
+    : undefined;
   const Details = openDefinition?.Details;
   const Battery = utilityPages.find((page) => page.kind === 'battery')?.Page;
   const Rooms = utilityPages.find((page) => page.kind === 'rooms')?.Page;
@@ -146,16 +238,23 @@ export default function PreviewPage() {
     pageId,
     settings: pageSettings[pageId] ?? {},
     onSaveSetting: (key: string, value: unknown) =>
-      setPageSettings((current) => ({ ...current, [pageId]: { ...(current[pageId] ?? {}), [key]: value } })),
+      setPageSettings((current) => ({
+        ...current,
+        [pageId]: { ...(current[pageId] ?? {}), [key]: value },
+      })),
   });
 
   return (
     <WidgetRuntimeProvider value={runtime}>
-      <main className="preview-page" style={{ '--preview-cell': cell === 'tablet' ? '8.5rem' : '5.5rem' } as CSSProperties}>
+      <main
+        className="preview-page"
+        style={{ '--preview-cell': cell === 'tablet' ? '8.5rem' : '5.5rem' } as CSSProperties}
+      >
         <header className="preview-header">
           <Title level={1}>Widget utilità</Title>
           <Body size="sm" tone="muted">
-            Anteprima di sviluppo con dati fittizi: costi, prezzi, auto, robot, stanze, separatore e le pagine batteria e stanze.
+            Anteprima di sviluppo con dati fittizi: costi, prezzi, auto, robot, stanze, separatore e
+            le pagine batteria e stanze.
           </Body>
           <div className="preview-tools">
             <Segmented<'widgets' | 'battery' | 'rooms'>
@@ -192,15 +291,30 @@ export default function PreviewPage() {
             />
             <label className="preview-switch">
               <Caption>Modifica</Caption>
-              <Toggle compact checked={editMode} aria-label="Modalità modifica" onClick={() => setEditMode((value) => !value)} />
+              <Toggle
+                compact
+                checked={editMode}
+                aria-label="Modalità modifica"
+                onClick={() => setEditMode((value) => !value)}
+              />
             </label>
             <label className="preview-switch">
               <Caption>Comandi in errore</Caption>
-              <Toggle compact checked={failCalls} aria-label="Simula comandi in errore" onClick={() => setFailCalls((value) => !value)} />
+              <Toggle
+                compact
+                checked={failCalls}
+                aria-label="Simula comandi in errore"
+                onClick={() => setFailCalls((value) => !value)}
+              />
             </label>
             <label className="preview-switch">
               <Caption>Caricamento</Caption>
-              <Toggle compact checked={loading} aria-label="Simula il caricamento" onClick={() => setLoading((value) => !value)} />
+              <Toggle
+                compact
+                checked={loading}
+                aria-label="Simula il caricamento"
+                onClick={() => setLoading((value) => !value)}
+              />
             </label>
           </div>
         </header>
@@ -216,7 +330,8 @@ export default function PreviewPage() {
                   {definition.label}
                 </Heading>
                 <Caption>
-                  Taglie da {definition.sizes.min.w}×{definition.sizes.min.h} a {definition.sizes.max.w}×{definition.sizes.max.h}
+                  Taglie da {definition.sizes.min.w}×{definition.sizes.min.h} a{' '}
+                  {definition.sizes.max.w}×{definition.sizes.max.h}
                 </Caption>
                 <div className="preview-grid">
                   {group.items.map((item, index) => {
@@ -225,7 +340,10 @@ export default function PreviewPage() {
                       <figure
                         key={`${item.id}-${index}`}
                         className="preview-cell"
-                        style={{ gridColumn: `span ${Math.min(item.size.w, cell === 'phone' ? 4 : 8)}`, gridRow: `span ${item.size.h}` }}
+                        style={{
+                          gridColumn: `span ${Math.min(item.size.w, cell === 'phone' ? 4 : 8)}`,
+                          gridRow: `span ${item.size.h}`,
+                        }}
                       >
                         {/* Same frame as the launcher's WidgetHost: the widget renders content only. */}
                         <PreviewFrame frameless={definition.frameless === true} editMode={editMode}>
@@ -260,9 +378,18 @@ export default function PreviewPage() {
           </div>
         )}
 
-        <Sheet open={Boolean(open && Details)} onClose={() => setOpen(null)} title={openDefinition?.label ?? 'Dettagli'}>
+        <Sheet
+          open={Boolean(open && Details)}
+          onClose={() => setOpen(null)}
+          title={openDefinition?.label ?? 'Dettagli'}
+        >
           {open && Details && (
-            <Details id={open.id} settingsKey={open.settingsKey} settings={settings[open.settingsKey] ?? {}} onClose={() => setOpen(null)} />
+            <Details
+              id={open.id}
+              settingsKey={open.settingsKey}
+              settings={settings[open.settingsKey] ?? {}}
+              onClose={() => setOpen(null)}
+            />
           )}
         </Sheet>
       </main>

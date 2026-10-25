@@ -1,19 +1,16 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardSettings, CardSettingsMap } from '@/@types/dashboard';
 import type { Connection } from '@/@types/ha';
-import type { LauncherApi, LauncherLayout, PageKind } from '@/@types/launcher';
 import { todoWidget } from '@/components/widgets/home/todo';
 import { readCameraSettings } from '@/components/widgets/media/model/camera';
 import { readTvConfig } from '@/components/widgets/media/widgets/TvWidget';
 import { readCostSettings } from '@/components/widgets/utilities/energy/costData';
 import { readNordpoolSettings } from '@/components/widgets/utilities/energy/nordpoolData';
-import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
-import { PageSettingsSheet, WidgetSettingsSheet } from '@/templates/sheets';
+import { WidgetSettingsSheet } from '@/templates/sheets';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
-import { reorderPagesInLayout } from '@/utils/launcher/layout';
 import { fakeConnection, flush } from './ControlsHarness';
 
 const state = vi.hoisted(() => ({ pages: {} as Record<string, unknown> }));
@@ -46,12 +43,14 @@ const entities = fixtureEntities([
 function makePages(overrides: Record<string, unknown> = {}) {
   return {
     pagesConfig: { pages: ['home'], header: [], home: [] },
-    hiddenCards: [] as string[],
     customIcons: {} as Record<string, string>,
     saveCustomName: vi.fn(),
     saveCustomIcon: vi.fn(),
     persistCustomIcons: vi.fn(),
-    toggleCardVisibility: vi.fn(),
+    requestWidgetAdoption: vi.fn(),
+    rememberRemovedWidget: vi.fn(),
+    rememberRemovedPage: vi.fn(),
+    widgetMemoryNotice: null,
     savePageSetting: vi.fn(),
     pageSettings: {} as Record<string, Record<string, unknown>>,
     ...overrides,
@@ -279,175 +278,9 @@ describe('PAR-3: impostazioni di tipo con le chiavi lette dai widget nuovi', () 
   });
 });
 
-const baseLayout: LauncherLayout = {
-  version: 1,
-  cover: { enabled: true },
-  pages: [
-    { id: 'home', label: 'Principale', kind: 'widgets', placements: {} },
-    { id: 'studio', label: 'Studio', kind: 'widgets', placements: {} },
-    { id: 'ufficio', label: 'Ufficio', kind: 'widgets', placements: {} },
-  ],
-};
-
-function launcherApi(layout: LauncherLayout, reorderPages: (ids: string[]) => void): LauncherApi {
-  return {
-    layout,
-    grids: {
-      phone: { w: 4, h: 6 },
-      phoneLandscape: { w: 6, h: 2 },
-      tabletPortrait: { w: 6, h: 8 },
-      tablet: { w: 8, h: 5 },
-    },
-    deviceClass: 'tablet',
-    currentPage: 1,
-    goToPage: vi.fn(),
-    editMode: true,
-    setEditMode: vi.fn(),
-    placeWidget: vi.fn(),
-    moveWidget: vi.fn(() => true),
-    resizeWidget: vi.fn(() => true),
-    removeWidget: vi.fn(),
-    addPage: vi.fn(() => 'nuova'),
-    updatePage: vi.fn(),
-    removePage: vi.fn(),
-    reorderPages,
-    setCoverEnabled: vi.fn(),
-  };
-}
-
-/** Page settings over a launcher whose reorder really changes the layout. */
-function PageHarness({
-  pageId,
-  initial = baseLayout,
-}: {
-  pageId: string | null;
-  initial?: LauncherLayout;
-}) {
-  const [layout, setLayout] = useState(initial);
-  const api = launcherApi(layout, (ids) =>
-    setLayout((current) => reorderPagesInLayout(current, ids))
-  );
-  return (
-    <WidgetRuntimeProvider value={createFixtureRuntime({ entities })}>
-      <LauncherProvider value={api}>
-        <PageSettingsSheet open onClose={() => undefined} pageId={pageId} />
-        <output data-testid="ordine">{layout.pages.map((page) => page.id).join(',')}</output>
-      </LauncherProvider>
-    </WidgetRuntimeProvider>
-  );
-}
-
-describe('CORR-5: riordino delle pagine', () => {
-  it('sposta con la tastiera, annuncia la posizione e non perde il focus al bordo', () => {
-    render(<PageHarness pageId="studio" />);
-    const earlier = screen.getByRole('button', { name: 'Sposta prima' });
-    const later = screen.getByRole('button', { name: 'Sposta dopo' });
-    act(() => earlier.focus());
-    fireEvent.click(earlier);
-    expect(screen.getByTestId('ordine')).toHaveTextContent('studio,home,ufficio');
-    expect(earlier).toBeDisabled();
-    expect(later).toHaveFocus();
-    expect(within(screen.getByRole('dialog')).getByRole('status')).toHaveTextContent(
-      'Pagina spostata alla posizione 1 di 3.'
-    );
-
-    fireEvent.click(later);
-    fireEvent.click(later);
-    expect(screen.getByTestId('ordine')).toHaveTextContent('home,ufficio,studio');
-    expect(later).toBeDisabled();
-    expect(earlier).toHaveFocus();
-    expect(within(screen.getByRole('dialog')).getByRole('status')).toHaveTextContent(
-      'Pagina spostata alla posizione 3 di 3.'
-    );
-  });
-
-  it('con una sola pagina spiega che non c’è un ordine da cambiare', () => {
-    render(
-      <PageHarness pageId="home" initial={{ ...baseLayout, pages: baseLayout.pages.slice(0, 1) }} />
-    );
-    expect(screen.queryByRole('button', { name: 'Sposta prima' })).not.toBeInTheDocument();
-    expect(
-      screen.getByText('C’è una sola pagina: non c’è un ordine da cambiare.')
-    ).toBeInTheDocument();
-  });
-});
-
-describe('DES-10: descrizione della pagina di widget', () => {
-  it('dice «Pagina di widget», mentre la scelta del tipo resta «Widget»', () => {
-    render(<PageHarness pageId="studio" />);
-    expect(
-      screen.getByRole('dialog', { name: 'Impostazioni della pagina' })
-    ).toHaveAccessibleDescription('Pagina di widget: Studio');
-    cleanup();
-    render(<PageHarness pageId={null} />);
-    const kinds = screen.getByRole('group', { name: 'Tipo di pagina' });
-    expect(within(kinds).getByRole('button', { name: 'Widget' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
-    expect(
-      within(kinds).queryByRole('button', { name: 'Pagina di widget' })
-    ).not.toBeInTheDocument();
-  });
-});
-
-describe('PAR-1: lettori delle pagine Multimedia e Sonos', () => {
-  function renderMediaPage(kind: PageKind, loaded = true) {
-    const layout = {
-      ...baseLayout,
-      pages: [...baseLayout.pages, { id: 'musica', label: 'Musica', kind, placements: {} }],
-    };
-    render(
-      <WidgetRuntimeProvider value={createFixtureRuntime({ entities, entitiesLoaded: loaded })}>
-        <LauncherProvider value={launcherApi(layout, vi.fn())}>
-          <PageSettingsSheet open onClose={() => undefined} pageId="musica" />
-        </LauncherProvider>
-      </WidgetRuntimeProvider>
-    );
-    return state.pages as ReturnType<typeof makePages>;
-  }
-
-  it('Multimedia elenca solo i lettori non Sonos, Sonos solo gli altoparlanti Sonos', () => {
-    renderMediaPage('media');
-    expect(screen.getByRole('switch', { name: 'Salotto' })).toBeInTheDocument();
-    expect(screen.queryByRole('switch', { name: 'Sonos studio' })).not.toBeInTheDocument();
-    cleanup();
-    renderMediaPage('sonos');
-    expect(screen.getByRole('switch', { name: 'Sonos studio' })).toBeInTheDocument();
-    expect(screen.queryByRole('switch', { name: 'Salotto' })).not.toBeInTheDocument();
-  });
-
-  it('con una scelta salvata aggiunge in coda e conserva i lettori assenti, come il legacy', () => {
-    state.pages = makePages({ pageSettings: { musica: { mediaIds: ['media_player.assente'] } } });
-    const pages = renderMediaPage('media');
-    const salotto = screen.getByRole('switch', { name: 'Salotto' });
-    expect(salotto).toHaveAttribute('aria-checked', 'false');
-    fireEvent.click(salotto);
-    expect(pages.savePageSetting).toHaveBeenLastCalledWith('musica', 'mediaIds', [
-      'media_player.assente',
-      'media_player.salotto',
-    ]);
-  });
-
-  it('mostra tutti: togliere un lettore salva tutti gli altri', () => {
-    const pages = renderMediaPage('media');
-    fireEvent.click(screen.getByRole('switch', { name: 'Cucina' }));
-    expect(pages.savePageSetting).toHaveBeenLastCalledWith('musica', 'mediaIds', [
-      'media_player.salotto',
-      'media_player.tv',
-    ]);
-  });
-
-  it('durante il caricamento delle entità non dice che i lettori mancano', () => {
-    renderMediaPage('media', false);
-    expect(screen.getByText('Caricamento dei lettori…')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Nessun lettore disponibile in Home Assistant.')
-    ).not.toBeInTheDocument();
-  });
-
-  it('una pagina di widget non ha la sezione dei lettori', () => {
-    render(<PageHarness pageId="studio" />);
-    expect(screen.queryByRole('heading', { name: 'Lettori della pagina' })).not.toBeInTheDocument();
-  });
-});
+/*
+ * CORR-5, DES-10 and PAR-1 tested the page settings sheet, split into the page editor by
+ * REP-20261008-001: the order of the pages moves to the arrows under the card
+ * (LauncherScreen.test.tsx), the players of the media pages to «Gestisci» in the page
+ * (AvMediaPage.test.tsx).
+ */

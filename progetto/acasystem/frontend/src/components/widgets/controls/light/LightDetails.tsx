@@ -1,13 +1,5 @@
 import { useCallback, useId } from 'react';
-import {
-  Body,
-  Button,
-  Caption,
-  Heading,
-  Numeric,
-  Slider,
-  Toggle,
-} from '@/components/primitives';
+import { Body, Button, Caption, Heading, Numeric, Slider, Toggle } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { CommandFeedback } from '../shared/CommandFeedback';

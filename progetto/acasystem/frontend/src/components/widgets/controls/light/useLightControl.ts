@@ -59,7 +59,8 @@ export function useLightControl(entityId: string, disabled = false): LightContro
   // Last brightness seen while on: shown while a «turn on» request is pending.
   const lastOnBrightness = useRef<number | null>(null);
   useEffect(() => {
-    if (confirmed.on && confirmed.brightness !== null) lastOnBrightness.current = confirmed.brightness;
+    if (confirmed.on && confirmed.brightness !== null)
+      lastOnBrightness.current = confirmed.brightness;
   }, [confirmed]);
 
   const sendBrightness = useCallback(

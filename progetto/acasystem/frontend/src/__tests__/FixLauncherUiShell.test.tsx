@@ -31,6 +31,19 @@ vi.mock('@/components/widgets/registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/components/widgets/registry')>();
   return {
     ...actual,
+    // The clock of the cover reports the visibility of its page (REP-20261007-030).
+    findWidgetDefinition: (id: string, settings?: CardSettings) =>
+      id.startsWith('cover_clock')
+        ? {
+            type: 'cover_clock',
+            label: 'Orologio',
+            icon: 'clock' as const,
+            frameless: true,
+            sizes: { min: { w: 1, h: 1 }, max: { w: 3, h: 3 }, default: { w: 2, h: 2 } },
+            matches: () => true,
+            Widget: CoverProbe,
+          }
+        : actual.findWidgetDefinition(id, settings),
     findPageKindDefinition: (kind: PageKind) =>
       kind === 'lights'
         ? { kind: 'lights' as const, label: 'Luci', Page: SpecialPage }
@@ -41,7 +54,6 @@ vi.mock('@/components/widgets/registry', async (importOriginal) => {
 function CoverProbe() {
   return <p data-testid="cover-visible">{String(usePageVisible())}</p>;
 }
-vi.mock('@/pages/cover/CoverPage', () => ({ CoverPage: () => <CoverProbe /> }));
 
 const ha: HomeAssistantContextValue = {
   entities: {},
@@ -147,7 +159,6 @@ function Harness() {
     <LauncherScreen
       controller={controller}
       runtime={runtime}
-      cover={<p>Copertina di prova</p>}
       connection={{ phase: 'connected', label: 'Collegato' }}
       chips={[]}
       onOpenSystem={() => undefined}
@@ -174,18 +185,30 @@ async function openScreen(pageId = 'home') {
 const placement = (pageId: string, id: string) =>
   latest?.layout.pages.find((page) => page.id === pageId)?.placements.tablet?.[id];
 
-function openMoveControls(name: string, action: 'Sposta' | 'Ridimensiona') {
+/**
+ * The settings of a widget with its «Dimensione» and «Pagina» (REP-20261008-001): a tap
+ * selects it, Invio (a click without a pointer) on the selected widget opens them.
+ */
+async function openPlacement(name: string) {
   fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name},`) }));
-  const menu = screen.getByRole('dialog', { name: `Azioni per ${name}` });
-  fireEvent.click(within(menu).getByRole('button', { name: action }));
-  return screen.getByRole('group', { name: `${action} ${name}` });
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name},`) }));
+  return screen.findByRole('dialog', { name: 'Impostazioni del widget' });
 }
+
+/** Labels of the size and page steps of the sheet, in order. */
+const placementSteps = (sheet: HTMLElement, name: string) =>
+  ['Larghezza', 'Altezza', 'Pagina'].flatMap((row) =>
+    within(within(sheet).getByRole('group', { name: `${row} di ${name}` }))
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label'))
+  );
 
 beforeEach(() => {
   localStorage.clear();
   localStorage.setItem(LAUNCHER_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
   latest = null;
   counters.specialPage = 0;
+  ha.entities = {};
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 afterEach(() => {
@@ -226,6 +249,8 @@ describe('PERF-1: i fotogrammi del trascinamento non ridisegnano le pagine speci
         clientX: 10,
         clientY: 10,
       });
+      // A widget not selected lifts after a press of a second (REP-20261008-001).
+      act(() => vi.advanceTimersByTime(1000));
       fireEvent.pointerMove(window, { pointerId: 1, clientX: 40, clientY: 50 });
       expect(document.querySelector('.aca-drag-ghost')).not.toBeNull();
       const baseline = counters.specialPage;
@@ -244,83 +269,90 @@ describe('PERF-1: i fotogrammi del trascinamento non ridisegnano le pagine speci
   });
 });
 
-describe('A11Y-1 e RESP-4: comandi a schermo per spostare e ridimensionare', () => {
-  it('offre tutti i comandi a singolo tocco nel piede, senza suggerimento dentro la pagina', async () => {
+describe('A11Y-1 e RESP-4: alternative a singolo tocco nelle impostazioni del widget', () => {
+  it('offre dimensione e pagina nel foglio, senza comandi a frecce nel piede né dentro la pagina', async () => {
     const { container } = await openScreen();
-    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
-    const move = openMoveControls('Tessera A', 'Sposta');
-    expect(move.closest('.aca-shell__footer')).not.toBeNull();
-    expect(
-      within(move)
-        .getAllByRole('button')
-        .map((button) => button.getAttribute('aria-label') ?? button.textContent)
-    ).toEqual([
-      'Sposta a sinistra',
-      'Sposta a destra',
-      'Sposta in alto',
-      'Sposta in basso',
-      'Sposta nella pagina precedente',
-      'Sposta nella pagina successiva',
-      'Fatto',
-    ]);
-    expect(container.querySelector('.aca-launcher-widget__mode')).toBeNull();
-    expect(
-      within(screen.getByRole('region', { name: 'Casa' })).queryByText(/Frecce per/)
-    ).toBeNull();
-
-    fireEvent.click(within(move).getByRole('button', { name: 'Fatto' }));
-    const resize = openMoveControls('Tessera A', 'Ridimensiona');
-    expect(
-      within(resize)
-        .getAllByRole('button')
-        .map((button) => button.getAttribute('aria-label') ?? button.textContent)
-    ).toEqual([
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica la disposizione' }));
+    const sheet = await openPlacement('Tessera A');
+    expect(placementSteps(sheet, 'Tessera A')).toEqual([
       'Riduci larghezza',
       'Aumenta larghezza',
       'Riduci altezza',
       'Aumenta altezza',
-      'Fatto',
+      'Sposta nella pagina precedente',
+      'Sposta nella pagina successiva',
     ]);
-    fireEvent.click(within(resize).getByRole('button', { name: 'Aumenta altezza' }));
+    // The on-screen arrows of the footer are gone (REP-20261008-001).
+    expect(container.querySelector('.aca-widget-position')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sposta con le frecce' })).toBeNull();
+    expect(
+      within(screen.getByRole('region', { name: 'Casa' })).queryByText(/Frecce per/)
+    ).toBeNull();
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Aumenta altezza' }));
     expect(placement('home', 'test_tile_a')).toEqual({ x: 0, y: 0, w: 2, h: 3 });
+    expect(within(sheet).getByRole('group', { name: 'Altezza di Tessera A' })).toHaveTextContent(
+      '3 quadrati'
+    );
   });
 
-  it('il focus resta sui comandi quando il widget cambia pagina, ed Esc chiude solo lo spostamento', async () => {
+  it('il focus resta sul comando quando il widget cambia pagina, il foglio lo segue ed Esc chiude solo il foglio', async () => {
     await openScreen();
-    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
-    const move = openMoveControls('Tessera A', 'Sposta');
-    const next = within(move).getByRole('button', { name: 'Sposta nella pagina successiva' });
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica la disposizione' }));
+    const sheet = await openPlacement('Tessera A');
+    const next = within(sheet).getByRole('button', { name: 'Sposta nella pagina successiva' });
     next.focus();
     fireEvent.click(next);
     await waitFor(() => expect(placement('altra', 'test_tile_a')).toBeDefined());
     expect(placement('home', 'test_tile_a')).toBeUndefined();
     expect(latest?.currentPageId).toBe('altra');
-    // A tap on the same control again keeps working: the focus did not jump to the widget.
+    // The focus did not jump to the widget, and the sheet shows its new page.
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
     expect(screen.getByRole('button', { name: 'Sposta nella pagina successiva' })).toHaveFocus();
+    expect(within(sheet).getByRole('group', { name: 'Pagina di Tessera A' })).toHaveTextContent(
+      'Altra'
+    );
 
     fireEvent.keyDown(screen.getByRole('button', { name: 'Sposta nella pagina successiva' }), {
       key: 'Escape',
     });
-    expect(screen.queryByRole('group', { name: 'Sposta Tessera A' })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Impostazioni del widget' })).toBeNull()
+    );
     expect(latest?.editMode).toBe(true);
+    // Closed, the focus goes back to the widget on its new page (its old handle is gone).
     await waitFor(() => expect(screen.getByRole('button', { name: /^Tessera A,/ })).toHaveFocus());
   });
 });
 
-describe('RESP-3: la conferma di rimozione usa la taglia md (bersagli da 44 px)', () => {
-  it('«×», «Annulla» e «Rimuovi» sono in taglia md', async () => {
+describe('RESP-3: rimozione e «Annulla» con bersagli da 44 px (REP-20261007-031)', () => {
+  it('il cestino della barra e «Annulla» del messaggio sono controlli da 44 px', async () => {
     await openScreen();
-    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica la disposizione' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Tessera A,/ }));
     const remove = screen.getByRole('button', { name: 'Rimuovi Tessera A' });
-    expect(remove).toHaveClass('aca-m--md');
+    expect(remove).toHaveClass('aca-bar-button');
     fireEvent.click(remove);
-    const confirm = screen.getByRole('dialog', { name: 'Conferma la rimozione di Tessera A' });
-    for (const name of ['Annulla', 'Rimuovi']) {
-      expect(within(confirm).getByRole('button', { name })).toHaveClass('aca-m--md');
-    }
+    const undo = document.querySelector<HTMLElement>('.aca-undo')!;
+    expect(within(undo).getByRole('button', { name: 'Annulla' })).toHaveClass('aca-m--md');
+  });
+});
+
+describe('«Modifica la disposizione» e Sistema, senza viso (ADR-0016, C1 e C3)', () => {
+  it('«Modifica la disposizione» ha un nome proprio, distinto da «Modifica le pagine», ed è il primo comando della schermata', async () => {
+    await openScreen();
+    const edit = screen.getByRole('button', { name: 'Modifica la disposizione' });
+    expect(edit).toHaveClass('aca-frame-pill');
+    expect(edit).toHaveAttribute('data-launcher-edit');
+    const commands = screen.getByRole('group', { name: 'Comandi della schermata' });
+    expect(commands.contains(edit)).toBe(true);
+    expect(commands.firstElementChild).toBe(edit.closest('button'));
+    // Sistema is the gear of the frame, not a part of a bar.
+    const gear = screen.getByRole('button', { name: 'Sistema' });
+    expect(gear.closest('.aca-system-gear')).not.toBeNull();
+    expect(gear.closest('.aca-shell__footer')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Stato e comandi' })).toBeNull();
   });
 });
 
@@ -341,19 +373,59 @@ describe('PERF-2: LauncherPage spegne la visibilità mentre Sistema copre il lau
       JSON.stringify({ ...layout, cover: { enabled: true } })
     );
     // Si parte da «Principale»: la copertina, a sinistra, si raggiunge dall'indicatore.
+    // Anche la categoria Casa contiene un orologio: osserviamo quello della Copertina.
+    const coverProbe = () =>
+      screen
+        .getAllByTestId('cover-visible')
+        .find((probe) => probe.closest('[data-launcher-page="cover"]'));
     const toCover = async () => {
-      expect(await screen.findByTestId('cover-visible')).toHaveTextContent('false');
+      await waitFor(() => expect(coverProbe()).toHaveTextContent('false'));
       fireEvent.change(screen.getByRole('slider', { name: 'Pagina', hidden: true }), {
         target: { value: '1' },
       });
     };
     const shown = renderPage(false);
     await toCover();
-    expect(screen.getByTestId('cover-visible')).toHaveTextContent('true');
+    expect(coverProbe()).toHaveTextContent('true');
     shown.unmount();
     renderPage(true);
     await toCover();
-    expect(screen.getByTestId('cover-visible')).toHaveTextContent('false');
+    expect(coverProbe()).toHaveTextContent('false');
+  });
+
+  it('mostra tutti i 25 preset senza associazione anche dopo il caricamento delle entità HA', async () => {
+    renderPage(false);
+    await waitFor(() => expect(document.querySelectorAll('.aca-category-widget')).toHaveLength(25));
+  });
+
+  it('il preset collegato usa l’entità reale', async () => {
+    const id = 'fan.preset_visibility';
+    ha.entities = fixtureEntities([fixtureEntity('fan.sala', 'on', { percentage: 50 })]);
+    localStorage.setItem(
+      LAUNCHER_LAYOUT_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        categoryDefaultsVersion: 1,
+        cover: { enabled: false },
+        pages: [
+          {
+            id: 'home',
+            label: 'Casa',
+            kind: 'widgets',
+            placements: { tablet: { [id]: { x: 0, y: 0, w: 2, h: 1 } } },
+          },
+        ],
+      })
+    );
+    localStorage.setItem(
+      'tunet_card_settings',
+      JSON.stringify({
+        [`home::${id}`]: { categoryWidgetType: 'fan', bindingEntityId: 'fan.sala' },
+      })
+    );
+    renderPage(false);
+    await waitFor(() => expect(document.querySelector(`[data-widget-id="${id}"]`)).not.toBeNull());
+    expect(document.querySelector('[data-category-bind]')).toBeNull();
   });
 });
 

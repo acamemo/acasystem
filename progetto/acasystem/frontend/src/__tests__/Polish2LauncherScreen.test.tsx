@@ -43,6 +43,9 @@ vi.mock('@/templates/sheets', () => ({
         >
           Aggiungi le attività
         </button>
+        <button type="button" onClick={onClose}>
+          Annulla l’aggiunta
+        </button>
       </div>
     ) : null,
   WidgetSettingsSheet: ({ open, widgetId, onClose }: WidgetSettingsSheetProps) =>
@@ -53,7 +56,6 @@ vi.mock('@/templates/sheets', () => ({
         </button>
       </div>
     ) : null,
-  PageSettingsSheet: () => null,
 }));
 
 function Tile({ id }: WidgetProps) {
@@ -120,7 +122,6 @@ function Harness() {
     <LauncherScreen
       controller={controller}
       runtime={runtime}
-      cover={<p>Copertina di prova</p>}
       connection={{ phase: 'connected', label: 'Connesso' }}
       chips={[]}
       onOpenSystem={() => undefined}
@@ -193,7 +194,13 @@ describe('cells kept by a hidden widget (V-04)', () => {
     act(() => latest?.setEditMode(true));
     expect(grid().querySelectorAll('[data-launcher-reserved]')).toHaveLength(0);
     expect(grid().querySelector('[data-widget-id="test_tile_hidden"]')).not.toBeNull();
-    expect(freeCellButtons()).toHaveLength(32);
+    // Edit mode begins on the first widget shown, never on the hidden one; the cells offer to
+    // move it there instead of adding.
+    expect(grid().querySelector('[data-widget-id="test_tile_a"]')).toHaveClass('is-selected');
+    expect(grid().querySelector('[data-widget-id="test_tile_hidden"]')).not.toHaveClass(
+      'is-selected'
+    );
+    expect(grid().querySelectorAll('button[data-launcher-cell]')).toHaveLength(32);
   });
 });
 
@@ -207,7 +214,7 @@ describe('free cells on the kit (R-05)', () => {
   });
 });
 
-describe('focus after a widget added from a cell opens its settings (R-02)', () => {
+describe('focus after a widget added from a cell opens its settings (R-02; selected since 2026-10-23)', () => {
   async function addTodoFrom(cell: { x: number; y: number }) {
     const button = screen.getByRole('button', { name: cellLabel(cell.x, cell.y) });
     act(() => button.focus());
@@ -220,7 +227,7 @@ describe('focus after a widget added from a cell opens its settings (R-02)', () 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   }
 
-  it('in view mode the focus goes to the new widget', async () => {
+  it('the new widget is selected in edit mode and the focus goes to its handle', async () => {
     await renderLauncher();
     await addTodoFrom({ x: 6, y: 3 });
     expect(latest?.layout.pages[0].placements.tablet?.todo_card_1).toEqual({
@@ -229,32 +236,96 @@ describe('focus after a widget added from a cell opens its settings (R-02)', () 
       w: 2,
       h: 2,
     });
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Apri todo_card_1' })).toHaveFocus()
-    );
-  });
-
-  it('in edit mode the focus goes to the handle of the new widget', async () => {
-    await renderLauncher();
-    act(() => latest?.setEditMode(true));
-    await addTodoFrom({ x: 2, y: 3 });
     await waitFor(() => expect(document.activeElement).toHaveClass('aca-launcher-widget__handle'));
     expect(document.activeElement?.closest('[data-widget-id]')).toHaveAttribute(
       'data-widget-id',
       'todo_card_1'
     );
+    expect(latest?.editMode).toBe(true);
   });
 
-  it('a plain add in view mode still leaves the focus on the free-cell stop', async () => {
+  it('a widget added with the keyboard: the cells entered with Tab end edit mode, Invio adds there', async () => {
+    await renderLauncher();
+    act(() => latest?.setEditMode(true));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    const first = grid().querySelector<HTMLElement>('button[data-launcher-cell][tabindex="0"]')!;
+    act(() => first.focus());
+    // The selection goes with the entry into the cells, and edit mode with it.
+    expect(latest?.editMode).toBe(false);
+    expect(screen.getAllByRole('button', { name: /^Aggiungi un widget: / }).length).toBeGreaterThan(
+      0
+    );
+  });
+});
+
+describe('a widget just added is shown selected in edit mode (the request of 2026-10-23)', () => {
+  const widgetOf = (id: string) => grid().querySelector<HTMLElement>(`[data-widget-id="${id}"]`);
+
+  async function addPlainFrom(cell: { x: number; y: number }) {
+    const button = screen.getByRole('button', { name: cellLabel(cell.x, cell.y) });
+    act(() => button.focus());
+    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi una tessera' }));
+  }
+
+  it('once the sheet has closed: edit mode, its frame and handles, its bar, nothing shaking', async () => {
+    await renderLauncher();
+    expect(latest?.editMode).toBe(false);
+    await addPlainFrom({ x: 6, y: 3 });
+    await waitFor(() => expect(latest?.editMode).toBe(true));
+    const added = widgetOf('test_tile_new')!;
+    // The same cue as a press and hold: the ring and the grip frame of the selected widget.
+    expect(added).toHaveClass('is-selected', 'is-editing');
+    expect(added.querySelector('.aca-resize-frame')).not.toBeNull();
+    expect(widgetOf('test_tile_a')).not.toHaveClass('is-selected');
+    // Its bar (remove, «Annulla», «Fine») is up; no «+ Widget» / «Pagine» bar and no overview.
+    const bar = screen.getByRole('toolbar', { name: /^Modifica / });
+    expect(bar).not.toHaveClass('aca-page-overview--hidden');
+    expect(within(bar).getByRole('button', { name: 'Fine' })).toBeInTheDocument();
+    expect(document.querySelector('.aca-edit-toolbar')).toBeNull();
+    expect(latest?.overview).toBe(false);
+    // «Fine» once and the person is back in use.
+    fireEvent.click(within(bar).getByRole('button', { name: 'Fine' }));
+    expect(latest?.editMode).toBe(false);
+    expect(widgetOf('test_tile_new')).not.toHaveClass('is-selected');
+  });
+
+  it('when the settings sheet of the new widget opens first, it is selected as that sheet closes', async () => {
     await renderLauncher();
     const button = screen.getByRole('button', { name: cellLabel(6, 3) });
     act(() => button.focus());
     fireEvent.click(button);
-    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi una tessera' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi le attività' }));
+    const settings = await screen.findByRole('dialog', { name: 'Impostazioni di todo_card_1' });
+    // Not yet: the sheets come first.
+    expect(latest?.editMode).toBe(false);
+    expect(widgetOf('todo_card_1')).not.toHaveClass('is-selected');
+    fireEvent.click(within(settings).getByRole('button', { name: 'Chiudi le impostazioni' }));
+    await waitFor(() => expect(latest?.editMode).toBe(true));
+    expect(widgetOf('todo_card_1')).toHaveClass('is-selected');
+  });
+
+  it('a cancelled adding selects nothing and does not enter edit mode', async () => {
+    await renderLauncher();
+    const button = screen.getByRole('button', { name: cellLabel(6, 3) });
+    act(() => button.focus());
+    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Annulla l’aggiunta' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(latest?.editMode).toBe(false);
+    expect(document.querySelector('.aca-launcher-widget.is-selected')).toBeNull();
+  });
+
+  it('with the layout locked the widget is added and nothing is selected', async () => {
+    await renderLauncher();
+    act(() => latest?.setLayoutOptions({ locked: true }));
+    await addPlainFrom({ x: 6, y: 3 });
     await waitFor(() =>
-      expect(document.activeElement?.getAttribute('aria-label') ?? '').toMatch(
-        /^Aggiungi un widget: /
-      )
+      expect(latest?.layout.pages[0].placements.tablet?.test_tile_new).toBeDefined()
     );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(latest?.editMode).toBe(false);
+    expect(document.querySelector('.aca-launcher-widget.is-selected')).toBeNull();
   });
 });

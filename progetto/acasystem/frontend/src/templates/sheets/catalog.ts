@@ -6,7 +6,7 @@
  */
 import type { CardSettings } from '@/@types/dashboard';
 import type { EntityMap } from '@/@types/ha';
-import type { CellSize, WidgetDefinition } from '@/@types/launcher';
+import type { WidgetDefinition } from '@/@types/launcher';
 import type { IconName } from '@/components/primitives';
 import { findWidgetDefinition } from '@/components/widgets/registry';
 import { isToggleEntity } from '@/utils/formatting';
@@ -189,6 +189,30 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
     hint: 'Ogni stanza nasce da un’area di Home Assistant con le sue entità.',
   },
   {
+    type: 'cover_clock',
+    label: 'Orologio',
+    icon: 'clock',
+    flow: 'simple',
+    sample: { id: 'cover_clock_esempio', settings: {} },
+    hint: 'L’orologio della copertina, con le lancette e l’ora.',
+  },
+  {
+    type: 'cover_calendar',
+    label: 'Data',
+    icon: 'text',
+    flow: 'simple',
+    sample: { id: 'cover_calendar_esempio', settings: {} },
+    hint: 'Il giorno della settimana e il numero del giorno, come in copertina.',
+  },
+  {
+    type: 'cover_weather',
+    label: 'Meteo di casa',
+    icon: 'sun',
+    flow: 'simple',
+    sample: { id: 'cover_weather_esempio', settings: {} },
+    hint: 'Il meteo della posizione di casa, come in copertina.',
+  },
+  {
     type: 'spacer',
     label: 'Separatore',
     icon: 'minus',
@@ -229,20 +253,6 @@ export function typeVisuals(): Map<string, TypeVisual> {
     })
   );
 }
-
-/** Distinct sizes a definition allows (min, default, max), smallest first. */
-export function sizeChoices(definition: WidgetDefinition | undefined): CellSize[] {
-  if (!definition) return [];
-  const { min, max } = definition.sizes;
-  const seen = new Map<string, CellSize>();
-  [min, definition.sizes.default, max].forEach((size) => {
-    seen.set(`${size.w}x${size.h}`, { w: size.w, h: size.h });
-  });
-  return [...seen.values()].sort((left, right) => left.w * left.h - right.w * right.h);
-}
-
-export const sizeKey = (size: CellSize) => `${size.w}x${size.h}`;
-export const sizeLabel = (size: CellSize) => `${size.w} × ${size.h}`;
 
 const SENSOR_DOMAINS = [
   'sensor.',
@@ -324,4 +334,32 @@ export function temperatureSensorIds(entities: EntityMap): string[] {
     const lower = id.toLowerCase();
     return deviceClass === 'temperature' || lower.includes('temperature') || lower.includes('temp');
   });
+}
+
+/*
+ * Categories of the tray (REP-20261007-035), as the widget picker of Android groups widgets:
+ * here by what they are for in the home rather than by app.
+ */
+export const WIDGET_CATEGORIES = [
+  { id: 'comandi', label: 'Luci e comandi', types: ['light', 'sensor', 'fan', 'cover', 'room'] },
+  { id: 'clima', label: 'Clima e meteo', types: ['climate', 'weather', 'cover_weather'] },
+  { id: 'sicurezza', label: 'Sicurezza', types: ['lock', 'alarm', 'camera'] },
+  { id: 'multimedia', label: 'Multimedia', types: ['media', 'sonos', 'androidtv', 'appletv'] },
+  {
+    id: 'casa',
+    label: 'Casa e info',
+    types: ['cover_clock', 'cover_calendar', 'calendar', 'todo', 'car', 'vacuum', 'mower'],
+  },
+  { id: 'energia', label: 'Energia', types: ['cost', 'nordpool'] },
+  { id: 'utilita', label: 'Utilità', types: ['spacer'] },
+] as const;
+
+export type WidgetCategoryId = (typeof WIDGET_CATEGORIES)[number]['id'];
+
+/** Category of a type of the catalog; «Utilità» for a type no category lists. */
+export function categoryOf(type: string): WidgetCategoryId {
+  const found = WIDGET_CATEGORIES.find((category) =>
+    (category.types as readonly string[]).includes(type)
+  );
+  return found?.id ?? 'utilita';
 }

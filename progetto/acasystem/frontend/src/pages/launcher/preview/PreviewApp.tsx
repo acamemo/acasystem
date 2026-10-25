@@ -8,18 +8,22 @@ import { usePages } from '@/hooks/context/PageContext';
 import { useToast } from '@/hooks/context/ToastContext';
 import { translateItalian } from '@/hooks/launcher/useItalianTranslate';
 import { useLauncherController, type LauncherStore } from '@/hooks/launcher/useLauncherController';
-import { useDeviceClass } from '@/hooks/launcher/useViewport';
+import { useDeviceClass, useViewportSize } from '@/hooks/launcher/useViewport';
 import { createFixtureRuntime } from '@/utils/fixtures/runtime';
 import { connectionSummary } from '@/utils/launcher/connection';
 import { buildStatusChips } from '@/utils/launcher/statusChips';
 import { LauncherScreen } from '@/templates/launcher/LauncherScreen';
-import { CoverPage } from '../../cover/CoverPage';
 import { previewEntities } from './previewFixtures';
 import { previewDefinitions } from './previewWidgets';
 
 const findDefinition = (widgetId: string, settings: CardSettings): WidgetDefinition | undefined =>
   previewDefinitions.find((item) => item.matches(widgetId, settings)) ??
   findWidgetDefinition(widgetId, settings);
+
+// A constant, as in LauncherPage: a new function at every render would redraw the whole launcher
+// (REP-20261012-003).
+const resolveSizes = (widgetId: string, settings: CardSettings) =>
+  findDefinition(widgetId, settings)?.sizes;
 
 /** Start options of the preview, read when it mounts (not when the module loads). */
 const readParams = () => new URLSearchParams(globalThis.location?.search ?? '');
@@ -44,6 +48,7 @@ export function PreviewApp() {
   const { addToast } = useToast();
   const pages = usePages();
   const deviceClass = useDeviceClass();
+  const { width: viewportWidth } = useViewportSize();
   const [entities, setEntities] = useState<EntityMap>(previewEntities);
 
   const store = useMemo<LauncherStore>(
@@ -72,8 +77,10 @@ export function PreviewApp() {
   );
   const controller = useLauncherController({
     store,
+    initializeCategoryPages: true,
     deviceClass,
-    resolveSizes: (widgetId, settings) => findDefinition(widgetId, settings)?.sizes,
+    viewportWidth,
+    resolveSizes,
   });
 
   // Start options from the query string, once the layout exists. The launcher is drawn only
@@ -168,7 +175,6 @@ export function PreviewApp() {
         <LauncherScreen
           controller={controller}
           runtime={runtime}
-          cover={<CoverPage />}
           connection={connectionSummary(flags)}
           chips={chips}
           notice={
@@ -184,7 +190,6 @@ export function PreviewApp() {
           onOpenSystem={openSystem}
           detailsWidgetId={detailsWidgetId}
           onCloseDetails={() => setDetailsWidgetId(null)}
-          isWidgetHidden={(_pageId, widgetId) => pages.hiddenCards.includes(widgetId)}
           findDefinition={findDefinition}
         />
       )}

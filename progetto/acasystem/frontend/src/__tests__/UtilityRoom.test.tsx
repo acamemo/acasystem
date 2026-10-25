@@ -26,9 +26,15 @@ const roomSettings = {
 };
 
 const entities = fixtureEntities([
-  fixtureEntity('light.soggiorno', 'on', { brightness: 128, supported_color_modes: ['brightness'] }),
+  fixtureEntity('light.soggiorno', 'on', {
+    brightness: 128,
+    supported_color_modes: ['brightness'],
+  }),
   fixtureEntity('light.lampada', 'off', { supported_color_modes: ['brightness'] }),
-  fixtureEntity('sensor.soggiorno_temperature', '21.4', { device_class: 'temperature', unit_of_measurement: '°C' }),
+  fixtureEntity('sensor.soggiorno_temperature', '21.4', {
+    device_class: 'temperature',
+    unit_of_measurement: '°C',
+  }),
   fixtureEntity('binary_sensor.soggiorno_motion', 'on', { device_class: 'motion' }),
   fixtureEntity('media_player.soggiorno_tv', 'playing', { media_title: 'Notiziario' }),
   fixtureEntity('vacuum.robot', 'cleaning', { battery_level: 60 }),
@@ -37,7 +43,12 @@ const entities = fixtureEntities([
   fixtureEntity('switch.presa', 'on'),
 ]);
 
-const props = (settings: Record<string, unknown> = roomSettings, w = 2, h = 2, editMode = false) => ({
+const props = (
+  settings: Record<string, unknown> = roomSettings,
+  w = 2,
+  h = 2,
+  editMode = false
+) => ({
   id: 'room_card_1',
   settingsKey: 'home::room_card_1',
   settings,
@@ -76,13 +87,19 @@ describe('stanza: riepilogo', () => {
     expect(roomSummary(entities, roomSettings, imperial)).toMatchObject({ temperatureUnit: '°F' });
     expect(roomSummary(entities, roomSettings, imperial).temperature).toBeCloseTo(70.52, 2);
     // Not loaded yet: the sensor reading as it is.
-    expect(roomSummary(entities, roomSettings, null)).toMatchObject({ temperature: 21.4, temperatureUnit: '°C' });
+    expect(roomSummary(entities, roomSettings, null)).toMatchObject({
+      temperature: 21.4,
+      temperatureUnit: '°C',
+    });
     renderWithRuntime(<RoomWidget {...props()} />, { entities, haConfig: imperial });
     expect(screen.getByText('70,5 °F')).toBeInTheDocument();
   });
 
   it('le impostazioni show* nascondono i chip', () => {
-    renderWithRuntime(<RoomWidget {...props({ ...roomSettings, showTemp: false, showDoorChip: false })} />, { entities });
+    renderWithRuntime(
+      <RoomWidget {...props({ ...roomSettings, showTemp: false, showDoorChip: false })} />,
+      { entities }
+    );
     expect(screen.queryByText('21,4 °C')).not.toBeInTheDocument();
     expect(screen.queryByText('Porta aperta')).not.toBeInTheDocument();
     expect(screen.getByText('Pulizia in corso')).toBeInTheDocument();
@@ -110,10 +127,13 @@ describe('stanza: widget', () => {
 
   it('luce principale scelta nelle impostazioni e taglia 2×1', () => {
     const callService = vi.fn().mockResolvedValue(undefined);
-    renderWithRuntime(<RoomWidget {...props({ ...roomSettings, mainLightEntityId: 'light.lampada' }, 2, 1)} />, {
-      entities,
-      callService,
-    });
+    renderWithRuntime(
+      <RoomWidget {...props({ ...roomSettings, mainLightEntityId: 'light.lampada' }, 2, 1)} />,
+      {
+        entities,
+        callService,
+      }
+    );
     expect(screen.getByText('21,4 °C · 1 luce accesa · Movimento')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('switch', { name: 'Luce principale di Soggiorno' }));
     expect(callService).toHaveBeenCalledWith('light', 'turn_on', { entity_id: 'light.lampada' });
@@ -126,7 +146,9 @@ describe('stanza: widget', () => {
     // Only the transparent opener presses the launcher frame; the light switch stays outside it.
     expect(opener).toHaveAttribute('data-widget-open');
     expect(view.container.querySelectorAll('[data-widget-open]')).toHaveLength(1);
-    expect(opener.contains(screen.getByRole('switch', { name: 'Luce principale di Soggiorno' }))).toBe(false);
+    expect(
+      opener.contains(screen.getByRole('switch', { name: 'Luce principale di Soggiorno' }))
+    ).toBe(false);
     fireEvent.click(opener);
     expect(openDetails).toHaveBeenCalledWith('room_card_1');
 
@@ -147,26 +169,40 @@ describe('stanza: widget', () => {
     view.update(
       {},
       <LauncherProvider value={launcher}>
-        <RoomWidget {...props({ ...roomSettings, navigateOnTap: true, navigateToPageId: 'soggiorno' })} />
+        <RoomWidget
+          {...props({ ...roomSettings, navigateOnTap: true, navigateToPageId: 'soggiorno' })}
+        />
       </LauncherProvider>
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Soggiorno, vai alla pagina della stanza' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Soggiorno, vai alla pagina della stanza' })
+    );
     expect(goToPage).toHaveBeenCalledWith(2);
   });
 
   it('stati: caricamento, stanza senza dispositivi, modifica inerte', () => {
-    const view = renderWithRuntime(<RoomWidget {...props()} />, { entities, entitiesLoaded: false });
+    const view = renderWithRuntime(<RoomWidget {...props()} />, {
+      entities,
+      entitiesLoaded: false,
+    });
     expect(screen.getByRole('status')).toHaveTextContent(/Caricamento/);
     view.update({ entitiesLoaded: true }, <RoomWidget {...props({ areaName: 'Vuota' })} />);
     expect(screen.getByText('Nessun dispositivo associato alla stanza')).toBeInTheDocument();
-    const { container } = renderWithRuntime(<RoomWidget {...props(roomSettings, 2, 2, true)} />, { entities });
+    const { container } = renderWithRuntime(<RoomWidget {...props(roomSettings, 2, 2, true)} />, {
+      entities,
+    });
     expect(container.querySelector('.utility-card')).toHaveAttribute('inert');
   });
 });
 
 describe('stanza: dettagli (servizi di RoomModal)', () => {
   const details = (settings: Record<string, unknown> = roomSettings) => (
-    <RoomDetails id="room_card_1" settingsKey="home::room_card_1" settings={settings} onClose={() => {}} />
+    <RoomDetails
+      id="room_card_1"
+      settingsKey="home::room_card_1"
+      settings={settings}
+      onClose={() => {}}
+    />
   );
 
   it('accendi o spegni tutte le luci, una chiamata per luce', async () => {
@@ -182,27 +218,39 @@ describe('stanza: dettagli (servizi di RoomModal)', () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(details(), { entities, callService });
     fireEvent.click(screen.getByRole('button', { name: /Metti in pausa soggiorno tv/ }));
-    expect(callService).toHaveBeenLastCalledWith('media_player', 'media_play_pause', { entity_id: 'media_player.soggiorno_tv' });
+    expect(callService).toHaveBeenLastCalledWith('media_player', 'media_play_pause', {
+      entity_id: 'media_player.soggiorno_tv',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Brano successivo su soggiorno tv' }));
-    expect(callService).toHaveBeenLastCalledWith('media_player', 'media_next_track', { entity_id: 'media_player.soggiorno_tv' });
+    expect(callService).toHaveBeenLastCalledWith('media_player', 'media_next_track', {
+      entity_id: 'media_player.soggiorno_tv',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Metti in pausa robot' }));
     expect(callService).toHaveBeenLastCalledWith('vacuum', 'pause', { entity_id: 'vacuum.robot' });
     fireEvent.click(screen.getByRole('button', { name: 'robot alla base' }));
-    expect(callService).toHaveBeenLastCalledWith('vacuum', 'return_to_base', { entity_id: 'vacuum.robot' });
+    expect(callService).toHaveBeenLastCalledWith('vacuum', 'return_to_base', {
+      entity_id: 'vacuum.robot',
+    });
   });
 
   it('altre entità: tapparella aperta/ferma/chiusa; sezioni ripiegabili salvate come il legacy', () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(details(), { entities, callService });
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi soggiorno' }));
-    expect(callService).toHaveBeenLastCalledWith('cover', 'close_cover', { entity_id: 'cover.soggiorno' });
+    expect(callService).toHaveBeenLastCalledWith('cover', 'close_cover', {
+      entity_id: 'cover.soggiorno',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Ferma soggiorno' }));
-    expect(callService).toHaveBeenLastCalledWith('cover', 'stop_cover', { entity_id: 'cover.soggiorno' });
+    expect(callService).toHaveBeenLastCalledWith('cover', 'stop_cover', {
+      entity_id: 'cover.soggiorno',
+    });
     const header = screen.getByRole('button', { name: 'Tapparelle' });
     expect(header).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(header);
     expect(header).toHaveAttribute('aria-expanded', 'false');
-    expect(JSON.parse(localStorage.getItem('tunet_room_collapsed_soggiorno') ?? '{}')).toEqual({ cover: true });
+    expect(JSON.parse(localStorage.getItem('tunet_room_collapsed_soggiorno') ?? '{}')).toEqual({
+      cover: true,
+    });
   });
 
   it('luminosità di una luce: turn_on con brightness_pct, a 0 turn_off', async () => {
@@ -210,19 +258,40 @@ describe('stanza: dettagli (servizi di RoomModal)', () => {
     renderWithRuntime(details(), { entities, callService });
     const lights = screen.getByRole('button', { name: /Luci/ }).closest('section') as HTMLElement;
     // The slider holds the pointer: it never starts the launcher's long press.
-    expect(within(lights).getByRole('slider', { name: 'Luminosità di lampada' }).closest('[data-no-long-press]')).not.toBeNull();
-    fireEvent.change(within(lights).getByRole('slider', { name: 'Luminosità di lampada' }), { target: { value: '40' } });
+    expect(
+      within(lights)
+        .getByRole('slider', { name: 'Luminosità di lampada' })
+        .closest('[data-no-long-press]')
+    ).not.toBeNull();
+    fireEvent.change(within(lights).getByRole('slider', { name: 'Luminosità di lampada' }), {
+      target: { value: '40' },
+    });
     await waitFor(() =>
-      expect(callService).toHaveBeenCalledWith('light', 'turn_on', { entity_id: 'light.lampada', brightness_pct: 40 })
+      expect(callService).toHaveBeenCalledWith('light', 'turn_on', {
+        entity_id: 'light.lampada',
+        brightness_pct: 40,
+      })
     );
-    fireEvent.change(within(lights).getByRole('slider', { name: 'Luminosità di soggiorno' }), { target: { value: '0' } });
-    await waitFor(() => expect(callService).toHaveBeenCalledWith('light', 'turn_off', { entity_id: 'light.soggiorno' }));
+    fireEvent.change(within(lights).getByRole('slider', { name: 'Luminosità di soggiorno' }), {
+      target: { value: '0' },
+    });
+    await waitFor(() =>
+      expect(callService).toHaveBeenCalledWith('light', 'turn_off', {
+        entity_id: 'light.soggiorno',
+      })
+    );
   });
 });
 
 describe('separatore', () => {
   const spacer = (settings: Record<string, unknown>, editMode = false) => (
-    <SpacerWidget id="spacer_card_1" settingsKey="home::spacer_card_1" settings={settings} size={{ w: 4, h: 1 }} editMode={editMode} />
+    <SpacerWidget
+      id="spacer_card_1"
+      settingsKey="home::spacer_card_1"
+      settings={settings}
+      size={{ w: 4, h: 1 }}
+      editMode={editMode}
+    />
   );
 
   it('spazio vuoto, contorno leggero solo in modifica', () => {
@@ -235,7 +304,9 @@ describe('separatore', () => {
   });
 
   it('divisore con titolo allineato', () => {
-    const { container } = renderWithRuntime(spacer({ variant: 'divider', heading: ' Esterno ', headingAlign: 'left' }));
+    const { container } = renderWithRuntime(
+      spacer({ variant: 'divider', heading: ' Esterno ', headingAlign: 'left' })
+    );
     expect(screen.getByRole('separator', { name: 'Esterno' })).toBeInTheDocument();
     expect(container.querySelectorAll('.utility-divider__line')).toHaveLength(1);
   });

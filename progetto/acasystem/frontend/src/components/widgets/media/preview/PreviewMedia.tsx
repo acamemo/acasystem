@@ -45,7 +45,13 @@ function buildEntities(): HassEntity[] {
       volume_level: 0.2,
       supported_features: 0xfffff,
     }),
-    { ...fixtureEntity('media_player.camera', 'off', { friendly_name: 'Camera da letto', supported_features: 0xfffff }), last_updated: '2026-01-01T00:00:00Z' },
+    {
+      ...fixtureEntity('media_player.camera', 'off', {
+        friendly_name: 'Camera da letto',
+        supported_features: 0xfffff,
+      }),
+      last_updated: '2026-01-01T00:00:00Z',
+    },
     fixtureEntity('media_player.garage', 'unavailable', { friendly_name: 'Garage' }),
     live('media_player.sonos_sala', 'playing', {
       friendly_name: 'Sonos sala',
@@ -54,7 +60,9 @@ function buildEntities(): HassEntity[] {
       entity_picture: '/immagine-mancante.jpg',
       group_members: ['media_player.sonos_sala', 'media_player.sonos_studio'],
       volume_level: 0.35,
-      sonos_favorites: [{ title: 'Jazz della sera', media_content_id: 'fav:1', media_content_type: 'playlist' }],
+      sonos_favorites: [
+        { title: 'Jazz della sera', media_content_id: 'fav:1', media_content_type: 'playlist' },
+      ],
     }),
     live('media_player.sonos_studio', 'playing', {
       friendly_name: 'Sonos studio',
@@ -75,7 +83,10 @@ function buildEntities(): HassEntity[] {
       media_series_title: 'Dark',
       entity_picture: PHOTO,
     }),
-    live('media_player.apple_tv', 'standby', { friendly_name: 'Apple TV studio', source_list: ['Musica', 'TV'] }),
+    live('media_player.apple_tv', 'standby', {
+      friendly_name: 'Apple TV studio',
+      source_list: ['Musica', 'TV'],
+    }),
     live('camera.ingresso', 'idle', { friendly_name: 'Ingresso', access_token: 'demo' }),
     live('camera.giardino', 'idle', { friendly_name: 'Giardino', access_token: 'demo' }),
     live('camera.box', 'unavailable', { friendly_name: 'Box auto' }),
@@ -94,7 +105,11 @@ const cardSettings: Record<string, CardSettings> = {
     linkedMediaPlayers: ['media_player.emby_sala'],
   },
   androidtv_card_2: { mediaPlayerId: 'media_player.tv_sala', remoteId: 'remote.tv_sala' },
-  appletv_card_1: { mediaPlayerId: 'media_player.apple_tv', remoteId: 'remote.apple_tv', tapAction: 'toggle' },
+  appletv_card_1: {
+    mediaPlayerId: 'media_player.apple_tv',
+    remoteId: 'remote.apple_tv',
+    tapAction: 'toggle',
+  },
   camera_card_1: {
     cameraId: 'camera.ingresso',
     cameraRefreshMode: 'motion',
@@ -109,8 +124,10 @@ const cardSettings: Record<string, CardSettings> = {
 /** Camera proxy paths of the fixtures point at the static images of public/. */
 function imageUrl(path?: string | null): string | null {
   if (!path) return null;
-  if (path.startsWith('/api/camera_proxy/camera.giardino')) return `${PHOTO}?${path.split('?')[1] ?? ''}`;
-  if (path.startsWith('/api/camera_proxy/camera.ingresso')) return `${ART}?${path.split('?')[1] ?? ''}`;
+  if (path.startsWith('/api/camera_proxy/camera.giardino'))
+    return `${PHOTO}?${path.split('?')[1] ?? ''}`;
+  if (path.startsWith('/api/camera_proxy/camera.ingresso'))
+    return `${ART}?${path.split('?')[1] ?? ''}`;
   return path;
 }
 
@@ -129,7 +146,12 @@ const SAMPLES: Array<{ title: string; items: Sample[] }> = [
       { id: 'media_player.soggiorno', size: { w: 4, h: 1 }, note: '4×1' },
       { id: 'media_player.soggiorno', size: { w: 2, h: 2 }, note: '2×2' },
       { id: 'media_player.soggiorno', size: { w: 4, h: 2 }, note: '4×2' },
-      { id: 'media_player.soggiorno', settingsKey: 'media_player_cover', size: { w: 2, h: 2 }, note: '2×2 copertina estesa' },
+      {
+        id: 'media_player.soggiorno',
+        settingsKey: 'media_player_cover',
+        size: { w: 2, h: 2 },
+        note: '2×2 copertina estesa',
+      },
       { id: 'media_player.cucina', size: { w: 2, h: 2 }, note: 'In pausa (attivo)' },
       { id: 'media_player.camera', size: { w: 2, h: 2 }, note: 'Spento, inattivo' },
       { id: 'media_player.garage', size: { w: 2, h: 1 }, note: 'Non disponibile' },
@@ -139,7 +161,11 @@ const SAMPLES: Array<{ title: string; items: Sample[] }> = [
   {
     title: 'Gruppo e Sonos',
     items: [
-      { id: 'media_group_1', size: { w: 2, h: 2 }, note: 'Gruppo Sonos, 2 lettori attivi, copertina rotta' },
+      {
+        id: 'media_group_1',
+        size: { w: 2, h: 2 },
+        note: 'Gruppo Sonos, 2 lettori attivi, copertina rotta',
+      },
       { id: 'media_group_1', size: { w: 4, h: 1 }, note: '4×1' },
     ],
   },
@@ -148,7 +174,11 @@ const SAMPLES: Array<{ title: string; items: Sample[] }> = [
     items: [
       { id: 'androidtv_card_1', size: { w: 2, h: 2 }, note: 'Android TV con Emby collegato' },
       { id: 'androidtv_card_2', size: { w: 2, h: 1 }, note: 'Android TV 2×1, logo app' },
-      { id: 'appletv_card_1', size: { w: 2, h: 2 }, note: 'Apple TV in standby, tocco = accensione' },
+      {
+        id: 'appletv_card_1',
+        size: { w: 2, h: 2 },
+        note: 'Apple TV in standby, tocco = accensione',
+      },
       { id: 'appletv_card_1', size: { w: 2, h: 1 }, note: 'Apple TV 2×1' },
     ],
   },
@@ -174,7 +204,11 @@ const definitionFor = (id: string): WidgetDefinition | undefined =>
 function Cell({ size, children }: { size: CellSize; children: ReactNode }) {
   return (
     <div className="preview-cell" style={{ '--w': size.w, '--h': size.h } as CSSProperties}>
-      <Surface behavior="static" className="aca-m--fill preview-frame" contentClassName="preview-frame__content">
+      <Surface
+        behavior="static"
+        className="aca-m--fill preview-frame"
+        contentClassName="preview-frame__content"
+      >
         {children}
       </Surface>
     </div>
@@ -258,7 +292,11 @@ export default function PreviewMedia() {
           con dati fittizi. Una cella misura 8,5 rem come sul tablet orizzontale.
         </Body>
         <label className="preview-toggle">
-          <input type="checkbox" checked={editMode} onChange={(event) => setEditMode(event.target.checked)} />
+          <input
+            type="checkbox"
+            checked={editMode}
+            onChange={(event) => setEditMode(event.target.checked)}
+          />
           <Body as="span" size="sm">
             Modalità modifica
           </Body>
@@ -279,9 +317,22 @@ export default function PreviewMedia() {
           Stati dei comandi
         </Heading>
         <div className="preview-grid">
-          {render({ id: 'media_player.cucina', size: { w: 2, h: 2 }, note: 'Richiesto, in attesa: premi Riproduci' }, pendingRuntime)}
-          {render({ id: 'media_player.cucina', size: { w: 2, h: 2 }, note: 'Errore: premi Riproduci' }, failingRuntime)}
-          {render({ id: 'media_player.soggiorno', size: { w: 2, h: 2 }, note: 'Caricamento' }, loadingRuntime)}
+          {render(
+            {
+              id: 'media_player.cucina',
+              size: { w: 2, h: 2 },
+              note: 'Richiesto, in attesa: premi Riproduci',
+            },
+            pendingRuntime
+          )}
+          {render(
+            { id: 'media_player.cucina', size: { w: 2, h: 2 }, note: 'Errore: premi Riproduci' },
+            failingRuntime
+          )}
+          {render(
+            { id: 'media_player.soggiorno', size: { w: 2, h: 2 }, note: 'Caricamento' },
+            loadingRuntime
+          )}
         </div>
       </section>
 
@@ -311,7 +362,12 @@ export default function PreviewMedia() {
           title={openDefinition?.label ?? ''}
         >
           {open && Details && (
-            <Details id={open.id} settingsKey={open.settingsKey} settings={openSettings} onClose={() => setOpen(null)} />
+            <Details
+              id={open.id}
+              settingsKey={open.settingsKey}
+              settings={openSettings}
+              onClose={() => setOpen(null)}
+            />
           )}
         </Sheet>
       </WidgetRuntimeProvider>

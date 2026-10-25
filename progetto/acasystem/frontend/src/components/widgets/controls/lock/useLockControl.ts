@@ -32,12 +32,15 @@ export function useLockControl(entityId: string | undefined, disabled: boolean) 
   const requiresCode = !!codeFormat && codeFormat !== 'none';
   const actionDisabled = disabled || !runtime.conn || unavailable || !entityId;
   const startingState = useRef(state);
-  const reached = useCallback((target: string, confirmed: string) =>
-    target === 'open'
-      ? confirmed === 'open' || confirmed === 'opening' ||
-        (confirmed === 'unlocked' && startingState.current === 'locked')
-      : target === confirmed,
-  []);
+  const reached = useCallback(
+    (target: string, confirmed: string) =>
+      target === 'open'
+        ? confirmed === 'open' ||
+          confirmed === 'opening' ||
+          (confirmed === 'unlocked' && startingState.current === 'locked')
+        : target === confirmed,
+    []
+  );
   const command = useTrackedCommand<string>(state, reached, LOCK_TIMEOUT_MS);
   const [confirmUnlock, setConfirmUnlock] = useState(false);
 

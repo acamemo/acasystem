@@ -72,7 +72,8 @@ export function resolveTv(
   if (linkedActive) {
     const appId = attrString(display, 'app_id').toLowerCase();
     const displayApp = attrString(display, 'app_name').toLowerCase();
-    if (appId.includes('jellyfin') || displayApp.includes('jellyfin')) logo = getMediaLogoUrl('jellyfin');
+    if (appId.includes('jellyfin') || displayApp.includes('jellyfin'))
+      logo = getMediaLogoUrl('jellyfin');
     else if (appId.includes('emby') || displayApp.includes('emby')) logo = getMediaLogoUrl('emby');
   }
   if (!logo) logo = getMediaLogoUrl(appName);
@@ -112,5 +113,7 @@ export function widgetPlayTarget(kind: TvKind, view: TvView, mediaPlayerId: stri
 
 /** Target of a details command: media_* actions go to the linked player when it is shown. */
 export function detailsTarget(action: string, view: TvView, mediaPlayerId: string): string {
-  return action.includes('media') && view.displayId !== mediaPlayerId ? view.displayId : mediaPlayerId;
+  return action.includes('media') && view.displayId !== mediaPlayerId
+    ? view.displayId
+    : mediaPlayerId;
 }

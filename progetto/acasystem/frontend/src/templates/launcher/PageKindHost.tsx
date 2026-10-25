@@ -8,7 +8,7 @@ import { displayLabel } from '@/utils/launcher/pageIdentity';
 import { ErrorBoundary } from './ErrorBoundary';
 
 /**
- * Special full page (luci, batterie, stanze, multimedia, Sonos) from its kind definition, in the
+ * Special full page (luci, batterie, stanze, multimedia, Sonos, Casa 3D) from its kind definition, in the
  * shell shared by every special page: the margins of the widget pages and the page title (h1).
  * Memoized: the pointer frames of a drag re-render the launcher, not the special pages.
  */
@@ -36,6 +36,7 @@ export const PageKindHost = memo(function PageKindHost({
             pageId={page.id}
             settings={settings}
             onSaveSetting={(key, value) => savePageSetting(page.id, key, value)}
+            editMode={editMode}
           />
         </ErrorBoundary>
       ) : (

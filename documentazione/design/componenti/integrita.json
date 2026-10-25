@@ -92,6 +92,14 @@
       "sha256": "AC5150A847786CCE7677571701231FDCFA2B7DD0C9C603F5A9C7AC5E1D836212",
       "source": "messaggio inline dell’utente del 2026-10-05/06, trascritto senza adattamenti",
       "note": "Trascrizione del testo incollato in chat: identità byte per byte con un file sorgente non dimostrabile; Pug, Sass/SCSS e JavaScript nello stesso file, come ricevuti."
+    },
+    {
+      "id": "UI-010",
+      "file": "originali/UI-010-tooltip.jsx.txt",
+      "bytes": 5364,
+      "sha256": "782FE9AA64D673621D773B82376BB9B0EC77236E034D6FBD8EF9ADBE239F47FC",
+      "source": "messaggio inline dell’utente del 2026-10-09, trascritto senza adattamenti",
+      "note": "Trascrizione del testo incollato in chat (componente con icone social e classe .tooltip): identità byte per byte con un file sorgente non dimostrabile. L'utente indica come oggetto della reference la sola nuvoletta (classe tooltip)."
     }
   ]
 }

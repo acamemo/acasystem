@@ -4,6 +4,7 @@ import type { PagesConfig, StatusPillConfig } from '@/@types/dashboard';
 import type { LauncherApi } from '@/@types/launcher';
 import { getClientId, getHassUrl } from '@/api/haUrl';
 import { saveTokens } from '@/api/oauthStorage';
+import { Casa3dHouseContext } from '@/casa3d/houseContext';
 import { ConnectPageControlProvider } from '@/hooks/context/ConfigContext';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import { fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
@@ -72,7 +73,6 @@ function makePages() {
     persistPageSettings: vi.fn(),
     persistCustomNames: vi.fn(),
     persistCustomIcons: vi.fn(),
-    persistHiddenCards: vi.fn(),
     saveStatusPillsConfig: vi.fn(),
     statusPillsConfig,
     setGridColumns: vi.fn(),
@@ -110,6 +110,7 @@ function createLauncherMock(): LauncherApi {
     goToPage: vi.fn(),
     editMode: false,
     setEditMode: vi.fn(),
+    setOverview: vi.fn(),
     placeWidget: vi.fn(),
     moveWidget: vi.fn(() => true),
     resizeWidget: vi.fn(() => true),
@@ -119,6 +120,11 @@ function createLauncherMock(): LauncherApi {
     removePage: vi.fn(),
     reorderPages: vi.fn(),
     setCoverEnabled: vi.fn(),
+    restoreLayout: vi.fn(),
+    setLayoutOptions: vi.fn(),
+    stackWidgets: vi.fn(() => null),
+    unstackWidget: vi.fn(),
+    setStackRotate: vi.fn(),
   };
 }
 
@@ -198,7 +204,7 @@ afterEach(() => {
 });
 
 describe('SystemPage', () => {
-  it('è una pagina intera con le sezioni previste e senza Aspetto né lingua', async () => {
+  it('è una pagina intera con le sezioni previste; Aspetto solo per tema e accento, senza lingua', async () => {
     const { onClose } = renderSystem();
     expect(screen.getByRole('main')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Sistema' })).toBeVisible();
@@ -209,17 +215,23 @@ describe('SystemPage', () => {
       'Profili',
       'Barra di stato',
       'Copertina',
+      'Aspetto',
+      'Casa 3D',
       'Informazioni',
     ]) {
       expect(screen.getByRole('heading', { level: 2, name: title })).toBeInTheDocument();
       expect(within(nav).getByRole('button', { name: title })).toBeInTheDocument();
     }
+    // Aspetto (ADR-0011, REP-20261007-008) holds the Kit 2 theme and accent, and since
+    // REP-20261007-038 the wallpaper the user asked for; the other legacy appearance
+    // preferences stay gone (ADR-0007).
+    expect(screen.getByRole('group', { name: 'Tema' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Colore d’accento' })).toBeInTheDocument();
     const text = document.body.textContent ?? '';
-    expect(text).not.toMatch(/\b(aspetto|lingua|tema|sfondo|unità di misura|carattere|blocco)\b/i);
-    for (const removed of ['Aspetto', 'Lingua', 'Tema']) {
-      expect(screen.queryByRole('heading', { name: removed })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: removed })).not.toBeInTheDocument();
-    }
+    expect(screen.getByRole('group', { name: 'Sfondo' })).toBeInTheDocument();
+    expect(text).not.toMatch(/\b(lingua|unità di misura|carattere|blocco)\b/i);
+    expect(screen.queryByRole('heading', { name: 'Lingua' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Lingua' })).not.toBeInTheDocument();
     expect(await screen.findByText('9.9.9')).toBeVisible();
     expect(screen.getByText('GPL-3.0')).toBeVisible();
     expect(screen.getByText(/deriva da Tunet 1\.22\.1/)).toBeVisible();
@@ -230,7 +242,10 @@ describe('SystemPage', () => {
 
   it('mostra il collegamento tramite Acasystem, l’accesso e l’utente, senza indirizzi', () => {
     renderSystem();
-    expect(screen.getByText('Collegato')).toBeVisible();
+    expect(screen.getByText('Sincronizzato')).toBeVisible();
+    // The band squeezes «Sincronizzato» to assistive technology only (REP-20261013-002, ADR-0013):
+    // here, outside the status bar, it is written in full.
+    expect(screen.getByText('Sincronizzato').closest('.aca-status-bar')).toBeNull();
     expect(screen.getByText('Collegato a Home Assistant tramite Acasystem')).toBeVisible();
     expect(screen.getByText('Utente e password')).toBeVisible();
     expect(screen.getByText('Mattia · Proprietario')).toBeVisible();
@@ -301,6 +316,95 @@ describe('SystemPage', () => {
     render(<SystemPage onClose={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Collega di nuovo' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Esci' })).toBeVisible();
+  });
+
+  it('sceglie la qualità della vista 3D di questo dispositivo (ADR-0014, T5)', () => {
+    renderSystem();
+    const group = screen.getByRole('group', { name: 'Qualità della vista 3D' });
+    expect(within(group).getByRole('button', { name: 'Light' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    fireEvent.click(within(group).getByRole('button', { name: 'Medium' }));
+    expect(localStorage.getItem('aca_casa3d_quality')).toBe('medium');
+    expect(within(group).getByRole('button', { name: 'Medium' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
+  it('apre la casa a schermo intero da «Casa 3D» (R1), dicendo quale pulsante l’ha aperta', () => {
+    const open = vi.fn();
+    renderSystem();
+    // fuori dall’app non c’è nulla da aprire
+    expect(screen.queryByRole('button', { name: 'Apri la casa' })).toBeNull();
+    cleanup();
+    render(
+      <Casa3dHouseContext.Provider value={{ open }}>
+        <SystemPage onClose={vi.fn()} />
+      </Casa3dHouseContext.Provider>
+    );
+    const button = screen.getByRole('button', { name: 'Apri la casa' });
+    fireEvent.click(button);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith(button);
+    // il pulsante porta il segno con cui l’app lo ritrova quando la casa si chiude
+    expect(button).toHaveAttribute('data-casa-opener');
+  });
+
+  it('blocca la disposizione dalla Schermata Home (REP-20261007-033)', () => {
+    const { launcher } = renderSystem();
+    const toggle = screen.getByRole('switch', { name: 'Blocca la disposizione' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(launcher.setLayoutOptions).toHaveBeenCalledWith({ locked: true });
+  });
+
+  it('«Modifica le pagine» chiude Sistema e apre la vista pagine del launcher (ADR-0016, C3; 2026-10-23)', () => {
+    const { launcher, onClose } = renderSystem();
+    const button = screen.getByRole('button', { name: 'Modifica le pagine' });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    // La modifica da sola esiste solo con un widget selezionato: qui si apre la vista pagine.
+    expect(launcher.setEditMode).toHaveBeenCalledWith(true);
+    expect(launcher.setOverview).toHaveBeenCalledWith(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('«Modifica le pagine» con la disposizione bloccata non fa nulla e dice come sbloccare', () => {
+    const launcher = createLauncherMock();
+    launcher.layout = { ...launcher.layout, locked: true };
+    mocks.pages = {
+      ...pages(),
+      launcherLayout: { ...pages().launcherLayout, locked: true },
+    };
+    const { onClose } = renderSystem(launcher);
+    expect(screen.getByRole('button', { name: 'Modifica le pagine' })).toBeDisabled();
+    expect(screen.getByText(/La disposizione è bloccata: sbloccala qui sotto/)).toBeVisible();
+    expect(launcher.setEditMode).not.toHaveBeenCalled();
+    expect(launcher.setOverview).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('senza il launcher (Sistema come rotta a parte) la voce «Modifica le pagine» non c’è', () => {
+    render(
+      <ConnectPageControlProvider value={{ open: vi.fn(), cancel: null }}>
+        <SystemPage onClose={vi.fn()} />
+      </ConnectPageControlProvider>
+    );
+    expect(screen.queryByRole('button', { name: 'Modifica le pagine' })).toBeNull();
+  });
+
+  it('sceglie la densità della griglia (REP-20261007-034)', () => {
+    const { launcher } = renderSystem();
+    // The density is the default of the pages without their own columns (REP-20261008-001, E9).
+    expect(
+      screen.getByText(
+        'Vale per le pagine senza una scelta di colonne; ogni pagina può averne una in Modifica le pagine. Compatta: meno celle. Ampia: più celle.'
+      )
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Ampia' }));
+    expect(launcher.setLayoutOptions).toHaveBeenCalledWith({ density: 'wide' });
   });
 
   it('attiva e disattiva la copertina con il launcher', () => {

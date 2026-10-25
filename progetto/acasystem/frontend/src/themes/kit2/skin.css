@@ -1,0 +1,227 @@
+/*
+ * Kit 2 skin of the app (ADR-0011, REP-20261007-008). Loaded after the Metallo theme
+ * (themes/acasystem), it gives Kit 2's look to the same material families and components the
+ * app already uses (ADR-0010), without touching their files:
+ *   1. the Metallo tokens are mapped onto Kit 2 (surface, soft shadow pair, ink, accent);
+ *   2. a few behaviours differ: the press sinks the element instead of scaling it, and the
+ *      on / current / selected states are recessed with the accent ink.
+ * The Metallo files stay intact: removing this import from main.tsx brings the Metallo back.
+ * Shadow lists keep the Metallo layer counts (socket 4, shell 3, face 7 + LED), so the
+ * transitions of the material still interpolate.
+ */
+
+/* ── 1. Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  /* Two Kit 2 pairs padded to the Metallo layer counts. */
+  --k2-none: 0 0 0 0 transparent;
+  --k2-socket-raised:
+    var(--k2-none), var(--k2-none), 4px 4px 8px var(--k2-shade), -3px -3px 7px var(--k2-light);
+  --k2-socket-raised-lg:
+    var(--k2-none), var(--k2-none), 9px 9px 16px var(--k2-shade), -3px -3px 20px var(--k2-light);
+  --k2-socket-none: var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none);
+  --k2-face-flat:
+    var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none),
+    var(--k2-none);
+  --k2-face-in:
+    inset 3px 3px 6px var(--k2-shade), inset -3px -3px 6px var(--k2-light), var(--k2-none),
+    var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none);
+
+  /* Surfaces: one flat surface; relief comes only from the shadow pair. */
+  --aca-page: var(--k2-bg);
+  --aca-face: linear-gradient(var(--k2-bg), var(--k2-bg));
+  --aca-face-well: linear-gradient(var(--k2-bg), var(--k2-bg));
+  --aca-socket-well: var(--k2-bg);
+
+  /* Ink. */
+  --aca-ink: linear-gradient(var(--k2-ink), var(--k2-ink));
+  --aca-ink-strong: linear-gradient(var(--k2-ink), var(--k2-ink));
+  --aca-ink-solid: var(--k2-ink);
+  --aca-ink-muted: var(--k2-ink-muted);
+
+  /* Accent: on, fills and selection all use the Kit 2 accent; danger stays red. */
+  --aca-orange: var(--k2-accent);
+  --aca-orange-light: var(--k2-accent-light);
+  --aca-blue: var(--k2-accent);
+  --aca-on-orange: var(--k2-on-accent);
+  --aca-on-blue: var(--k2-on-accent);
+  --aca-orange-bright: var(--k2-accent);
+  --aca-blue-bright: var(--k2-accent);
+  --aca-face-orange: linear-gradient(var(--k2-accent), var(--k2-accent));
+  --aca-face-orange-well: var(--k2-fill);
+  --aca-fill: linear-gradient(
+    90deg,
+    var(--k2-accent-dark),
+    var(--k2-accent),
+    var(--k2-accent-light)
+  );
+  --aca-fill-vertical: linear-gradient(
+    0deg,
+    var(--k2-accent-dark),
+    var(--k2-accent),
+    var(--k2-accent-light)
+  );
+  --aca-ink-on-orange: linear-gradient(var(--k2-on-accent), var(--k2-on-accent));
+
+  /* Shadows: raised = Kit 2 pair; wells and selection = Kit 2 inset; no shell, no LED glow. */
+  --aca-socket-shadow: var(--k2-socket-raised);
+  --aca-socket-shadow-card: var(--k2-socket-raised-lg);
+  --aca-socket-shadow-flat: var(--k2-socket-none);
+  --aca-socket-shadow-card-flat: var(--k2-socket-none);
+  --aca-socket-shadow-well: var(--k2-socket-none);
+  --aca-shell: var(--k2-none), var(--k2-none), var(--k2-none);
+  --aca-shell-card: var(--k2-none), var(--k2-none), var(--k2-none);
+  --aca-shell-flat: var(--k2-none), var(--k2-none), var(--k2-none);
+  --aca-face-rest-layers: var(--k2-face-flat);
+  --aca-face-soft-layers: var(--k2-face-in);
+  --aca-face-pressed-layers: var(--k2-face-in);
+  --aca-led-selected: var(--k2-none);
+  --aca-face-selected: var(--k2-face-in), var(--k2-none);
+
+  /* Geometry closer to the references: rounded keys and cards. */
+  --aca-radius-rounded: 12px;
+  --aca-radius-card: 24px;
+  --aca-font: var(--k2-font);
+}
+
+/* ── 2. Behaviours ─────────────────────────────────────────────────────── */
+@layer components {
+  /* Labels: plain ink, no engraving (Kit 2 has flat type). */
+  .aca-m__label,
+  .aca-ink--engraved {
+    letter-spacing: 0;
+    text-shadow: none;
+  }
+
+  /* Wells: no hole shade, the inset pair carries the depth. */
+  :is(.aca-well, .aca-m--well)::after {
+    display: none;
+  }
+
+  /* Card faces keep the lg pair on the selection LED override of the Metallo kit. */
+  :is(.aca-card, .aca-m--card, .aca-square) {
+    --aca-face-selected: var(--k2-face-in), var(--k2-none);
+  }
+
+  /* Press: the element sinks (inset pair) instead of scaling. */
+  :is(.aca-fx-press, .aca-m--press):is(:active, .is-active):not(:disabled, [aria-disabled='true'])
+    > .aca-m__outer {
+    transform: none;
+  }
+  :is(.aca-fx-press, .aca-m--press):is(:active, .is-active):not(:disabled, [aria-disabled='true']) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  :is(.aca-fx-press, .aca-m--press):is(:active, .is-active):not(:disabled, [aria-disabled='true'])
+    > .aca-m__outer
+    > .aca-m__face {
+    box-shadow: var(--aca-face-pressed);
+  }
+  .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer {
+    transform: none;
+  }
+  .aca-launcher-widget__frame:has([data-widget-open]:active) > .aca-m__outer > .aca-m__face {
+    box-shadow: var(--aca-face-pressed);
+  }
+  /*
+   * Nothing scales on these presses here, so the pressables inside a widget need no compositor
+   * layer of their own (REP-20261012-003): the widget has one. About a third fewer layers in the
+   * launcher, with the same press. The hosted knobs and thumbs still scale and keep theirs. Not
+   * the shell of the widget frame: launcher.css, which comes after this sheet, still scales it
+   * on the opening of the details, and it keeps the layer that scale needs (REP-20261007-005).
+   */
+  .aca-launcher-widget :is(.aca-fx-press, .aca-m--press) > .aca-m__outer {
+    will-change: auto;
+  }
+
+  /* Hover (mouse): the accent ink instead of a brighter face. */
+  @media (hover: hover) and (pointer: fine) {
+    :is(.aca-fx-hover-light, .aca-m--press):is(:hover, .is-hover):not(
+        :disabled,
+        [aria-disabled='true']
+      )
+      > .aca-m__outer
+      > .aca-m__face {
+      filter: none;
+    }
+    :is(.aca-fx-hover-light, .aca-m--press):is(:hover, .is-hover):not(
+        :disabled,
+        [aria-disabled='true'],
+        .aca-tone-primary,
+        .aca-m--primary
+      )
+      > .aca-m__outer
+      > .aca-m__face
+      > .aca-m__content {
+      color: var(--k2-accent);
+    }
+  }
+
+  /* On / current: recessed with the accent ink, like the selection (no line, no halo). */
+  .aca-m:is(.aca-on, .aca-current) {
+    box-shadow: var(--aca-m-socket-flat);
+    outline: none;
+  }
+  .aca-m:is(.aca-on, .aca-current) > .aca-m__outer > .aca-m__face {
+    box-shadow: var(--aca-face-selected);
+  }
+  .aca-m:is(.aca-on, .aca-current) > .aca-m__outer > .aca-m__face > .aca-m__content {
+    color: var(--k2-accent);
+  }
+  .aca-m:is(.aca-on, .aca-current) > .aca-m__outer > .aca-m__face > .aca-m__content .aca-m__label {
+    background-image: linear-gradient(var(--k2-accent), var(--k2-accent));
+  }
+  /* Selection by ARIA: accent ink (the Metallo used a darker blue ink). */
+  :is(
+      .aca-selected,
+      :is(.aca-fx-press, .aca-m--press):is(
+        [aria-pressed='true'],
+        [aria-current='page'],
+        [aria-current='true'],
+        [aria-selected='true'],
+        [aria-expanded='true']
+      )
+    ):not(.aca-on, .aca-current)
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content {
+    color: var(--k2-accent);
+  }
+
+  /* Primary: accent face with its inner light and shade, white text. */
+  :is(.aca-tone-primary, .aca-m--primary) > .aca-m__outer > .aca-m__face {
+    box-shadow:
+      var(--k2-accent-face), var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none),
+      var(--k2-none), var(--k2-none);
+  }
+  /*
+   * Same weight as the generic press (fx-press + :not) and declared after it, so a pressed
+   * primary keeps its accent shadows instead of the grey inset pair (REP-20261007-023).
+   */
+  :is(.aca-tone-primary, .aca-m--primary):is(:active, .is-active):not(
+      :disabled,
+      [aria-disabled='true']
+    )
+    > .aca-m__outer
+    > .aca-m__face {
+    box-shadow:
+      var(--k2-accent-face-pressed), var(--k2-none), var(--k2-none), var(--k2-none), var(--k2-none),
+      var(--k2-none), var(--k2-none);
+  }
+
+  /* Focus: the accent ring. */
+  .aca-m:is(:focus-visible, .is-focus) {
+    outline-color: var(--k2-accent);
+  }
+
+  /* Disabled pressables: flat, as in the references. */
+  :is(.aca-fx-press, .aca-m--press):is(:disabled, [aria-disabled='true']) {
+    box-shadow: var(--aca-m-socket-flat);
+  }
+  /* The switch has its own Kit 2 component since REP-20261007-021 (components.css). */
+}
+
+/* Page background of the app. */
+html,
+body {
+  background: var(--k2-bg);
+  color: var(--k2-ink);
+}

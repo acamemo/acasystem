@@ -109,12 +109,10 @@ export function HistoryChart({
       );
     });
   } else {
-    const points = data.map(
-      (point): [number, number] => [
-        data.length === 1 ? VIEW_W / 2 : ((point.time.getTime() - first) / span) * VIEW_W,
-        scale.y(point.value),
-      ]
-    );
+    const points = data.map((point): [number, number] => [
+      data.length === 1 ? VIEW_W / 2 : ((point.time.getTime() - first) / span) * VIEW_W,
+      scale.y(point.value),
+    ]);
     const line = linePath(points);
     const area = `${line} L${VIEW_W},${VIEW_H} L0,${VIEW_H} Z`;
     shapes = (
@@ -182,7 +180,11 @@ export function PriceBars({
 }) {
   if (data.length === 0) return null;
   const values = data.map((point) => point.value);
-  const scale = scaleOf(values, values.some((value) => value < 0), 4);
+  const scale = scaleOf(
+    values,
+    values.some((value) => value < 0),
+    4
+  );
   const slot = VIEW_W / data.length;
 
   if (variant === 'line') {

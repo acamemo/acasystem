@@ -6,7 +6,14 @@ import type { HassEntity } from 'home-assistant-js-websocket';
 import type { CardSettings } from '@/@types/dashboard';
 import type { EntityMap, HaConfig } from '@/@types/ha';
 import { getEffectiveRoomEntityIds } from '@/utils/roomEntities';
-import { attr, numberAttr, numericState, settingFlag, settingString, stringAttr } from '../shared/entity';
+import {
+  attr,
+  numberAttr,
+  numericState,
+  settingFlag,
+  settingString,
+  stringAttr,
+} from '../shared/entity';
 import { haUnit, temperatureReading } from '../shared/units';
 
 export interface RoomFlags {
@@ -79,27 +86,40 @@ const COVER_LABEL: Record<string, string> = {
  * Everything the card shows, with the legacy detection rules and setting overrides. The
  * temperature is shown in the unit of Home Assistant (`haConfig`), converted from the sensor.
  */
-export function roomSummary(entities: EntityMap, settings: CardSettings, haConfig: HaConfig | null): RoomSummary {
+export function roomSummary(
+  entities: EntityMap,
+  settings: CardSettings,
+  haConfig: HaConfig | null
+): RoomSummary {
   const ids = getEffectiveRoomEntityIds(settings);
   const lightIds = byDomain(ids, 'light');
   const configuredMain = settingString(settings, 'mainLightEntityId');
-  const mainLightId = configuredMain && entities[configuredMain] ? configuredMain : (lightIds[0] ?? null);
+  const mainLightId =
+    configuredMain && entities[configuredMain] ? configuredMain : (lightIds[0] ?? null);
 
   const doorId =
     settingString(settings, 'doorEntityId') ??
     ids.find((id) => ['door', 'window', 'garage_door'].includes(deviceClass(entities[id]) ?? '')) ??
     null;
-  const climateId = settingString(settings, 'climateEntityId') ?? ids.find((id) => id.startsWith('climate.')) ?? null;
+  const climateId =
+    settingString(settings, 'climateEntityId') ??
+    ids.find((id) => id.startsWith('climate.')) ??
+    null;
   const tempId =
     settingString(settings, 'tempEntityId') ??
     ids.find((id) => {
       const entity = entities[id];
-      return Boolean(entity) && (deviceClass(entity) === 'temperature' || id.includes('temperature') || id.includes('temp'));
+      return (
+        Boolean(entity) &&
+        (deviceClass(entity) === 'temperature' || id.includes('temperature') || id.includes('temp'))
+      );
     }) ??
     null;
   const motionId =
     settingString(settings, 'motionEntityId') ??
-    ids.find((id) => ['motion', 'occupancy', 'presence'].includes(deviceClass(entities[id]) ?? '')) ??
+    ids.find((id) =>
+      ['motion', 'occupancy', 'presence'].includes(deviceClass(entities[id]) ?? '')
+    ) ??
     null;
 
   const climate = climateId ? entities[climateId] : undefined;
@@ -114,7 +134,11 @@ export function roomSummary(entities: EntityMap, settings: CardSettings, haConfi
   const sensorTemperature = numericState(tempEntity);
   const reading =
     sensorTemperature !== null
-      ? temperatureReading(sensorTemperature, stringAttr(tempEntity, 'unit_of_measurement'), haConfig)
+      ? temperatureReading(
+          sensorTemperature,
+          stringAttr(tempEntity, 'unit_of_measurement'),
+          haConfig
+        )
       : { value: numberAttr(climate, 'current_temperature'), unit: climateUnit };
 
   const activeVacuum =
@@ -124,7 +148,8 @@ export function roomSummary(entities: EntityMap, settings: CardSettings, haConfi
   const activeCover =
     byDomain(ids, 'cover')
       .map((id) => entities[id])
-      .find((entity) => entity && !['closed', 'unavailable', 'unknown'].includes(entity.state)) ?? null;
+      .find((entity) => entity && !['closed', 'unavailable', 'unknown'].includes(entity.state)) ??
+    null;
 
   const toggleDomains = new Set(['switch', 'fan', 'cover', 'climate', 'media_player']);
   const activeDevices = ids.filter((id) => {
@@ -133,7 +158,8 @@ export function roomSummary(entities: EntityMap, settings: CardSettings, haConfi
     const domain = id.split('.')[0] ?? '';
     if (!toggleDomains.has(domain)) return false;
     if (domain === 'media_player') return entity.state === 'playing';
-    if (domain === 'climate') return Boolean(entity.state) && !['off', 'unavailable', 'unknown'].includes(entity.state);
+    if (domain === 'climate')
+      return Boolean(entity.state) && !['off', 'unavailable', 'unknown'].includes(entity.state);
     if (domain === 'cover') return ['opening', 'open'].includes(entity.state);
     return entity.state === 'on';
   }).length;
@@ -149,10 +175,12 @@ export function roomSummary(entities: EntityMap, settings: CardSettings, haConfi
     occupied: motion?.state === 'on',
     occupancyLabel: deviceClass(motion) === 'motion' ? 'Movimento' : 'Occupata',
     lightsOn: lightIds.filter((id) => entities[id]?.state === 'on').length,
-    mediaPlaying: byDomain(ids, 'media_player').filter((id) => entities[id]?.state === 'playing').length,
+    mediaPlaying: byDomain(ids, 'media_player').filter((id) => entities[id]?.state === 'playing')
+      .length,
     activeDevices,
     vacuumLabel: vacuumState ? (VACUUM_LABEL[vacuumState] ?? vacuumState.replace(/_/g, ' ')) : null,
-    vacuumTone: vacuumState === 'error' ? 'danger' : vacuumState === 'cleaning' ? 'active' : 'neutral',
+    vacuumTone:
+      vacuumState === 'error' ? 'danger' : vacuumState === 'cleaning' ? 'active' : 'neutral',
     coverLabel: activeCover ? (COVER_LABEL[activeCover.state] ?? activeCover.state) : null,
     doorOpen: doorId ? entities[doorId]?.state === 'on' : false,
   };

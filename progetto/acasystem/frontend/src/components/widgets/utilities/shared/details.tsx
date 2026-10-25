@@ -1,12 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import {
-  Button,
-  Caption,
-  Heading,
-  Numeric,
-  Popover,
-  SelectTrigger,
-} from '@/components/primitives';
+import { Button, Caption, Heading, Numeric, Popover, SelectTrigger } from '@/components/primitives';
 import { UtilityIcon, type UtilityIconName } from './UtilityIcon';
 import '../utilities.css';
 

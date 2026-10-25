@@ -76,3 +76,16 @@ export function BlindsGlyph(props: MxIconProps) {
     </Glyph>
   );
 }
+
+/**
+ * Plain «×» (REP-20261007-026): mx-icons only ships it inside a square or a circle. Two
+ * diagonals on the same grid and stroke as the linear set.
+ */
+export function CloseGlyph(props: MxIconProps) {
+  return (
+    <Glyph {...props}>
+      <path d="M6.5 6.5l11 11" />
+      <path d="M17.5 6.5l-11 11" />
+    </Glyph>
+  );
+}

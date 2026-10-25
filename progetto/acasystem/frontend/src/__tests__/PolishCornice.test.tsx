@@ -1,9 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { Icon } from '@/components/primitives';
-import { COVER_SETTING_LABEL, EditToolbar } from '@/components/system/edit/EditToolbar';
-import { WidgetEditControls } from '@/components/system/edit/WidgetEditControls';
-import { WidgetPositionControls } from '@/components/system/edit/WidgetPositionControls';
+import { EditToolbar } from '@/components/system/edit/EditToolbar';
+import { WidgetActionBar } from '@/components/system/edit/WidgetActionBar';
 import { PageIndicator } from '@/components/system/page-indicator/PageIndicator';
 import { StatusBar, overflowEdges } from '@/components/system/status-bar/StatusBar';
 import type { StatusChip } from '@/utils/launcher/statusChips';
@@ -28,6 +26,7 @@ beforeAll(async () => {
     status: 'src/components/system/status-bar/statusBar.css',
     edit: 'src/components/system/edit/edit.css',
     indicator: 'src/components/system/page-indicator/pageIndicator.css',
+    kit: 'src/themes/acasystem/components.css',
   })) {
     css[key] = fs.readFileSync(path, 'utf8');
   }
@@ -42,59 +41,48 @@ function rule(file: string, selector: string): string {
 
 const toolbarProps = {
   onAddWidget: () => undefined,
-  onPageSettings: () => undefined,
-  onNewPage: () => undefined,
-  coverEnabled: true,
-  onCoverChange: () => undefined,
+  onPages: () => undefined,
+  onDone: () => undefined,
 };
 
 describe('fascia del piè di pagina (L-01, B-04, K05)', () => {
-  it('ha un’altezza fissa che non dipende dalla modalità modifica', () => {
+  it('ha un’altezza fissa che non dipende dalla modalità modifica (ADR-0016)', () => {
     const footer = rule('shell', '.aca-shell__footer');
-    expect(footer).toMatch(/height:\s*calc\(/);
-    expect(footer).toMatch(
-      /grid-template-rows:\s*var\(--aca-control-height\) var\(--aca-control-height\)/
+    // The bars lie over the pages in a band of their own (--aca-bars-foot); the band the pager
+    // reaches under is the safe area (--aca-shell-foot).
+    expect(footer).toMatch(/height:\s*var\(--aca-bars-foot\)/);
+    expect(rule('shell', '.aca-shell')).toMatch(
+      /--aca-bars-foot:\s*calc\(\s*var\(--aca-float-height\) \+ var\(--aca-space-2\) \+ var\(--aca-space-3\)/
     );
+    // One row of the frame controls at every width, with no row for the indicator.
+    expect(footer).toMatch(/grid-template-rows:\s*var\(--aca-float-height\);/);
     expect(footer).toMatch(/padding:\s*var\(--aca-space-2\) var\(--aca-gutter\)/);
     // No rule of the frame changes the band with the edit state.
     expect(css.shell).not.toMatch(/is-editing[^{]*\{[^}]*height/);
-    // Where there is room (from 40rem since the second round, V-02): one row of the frame
-    // controls, still a fixed height.
-    const shell = (css.shell ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
-    const wide = /@media \(min-width: 40rem\) \{\s*\.aca-shell__footer \{([^}]*)\}/.exec(
-      shell
-    )?.[1];
-    expect(wide).toMatch(/grid-template-rows:\s*var\(--aca-control-height\);/);
-    expect(wide).toMatch(/height:\s*calc\(\s*var\(--aca-control-height\)/);
-    // In that single row the edit bar shares the row of the indicator (no implicit second row
-    // outside the band).
-    const media = /@media \(min-width: 40rem\) \{([\s\S]*?)\n {2}\}/.exec(shell)?.[1] ?? '';
-    expect(media).toMatch(
-      /\.aca-shell__footer > :not\(\.aca-indicator\),\s*\.aca-shell__footer > \.aca-widget-position \{\s*grid-row: 1;/
-    );
   });
 
-  it('i comandi di spostamento prendono la fascia e nascondono l’indicatore senza spostarlo', () => {
-    expect(
-      rule('shell', '.aca-shell__footer:has(> .aca-widget-position) > .aca-indicator')
-    ).toMatch(/visibility:\s*hidden/);
-    expect(rule('shell', '.aca-shell__footer > .aca-edit-toolbar')).toMatch(
-      /grid-template-columns:\s*subgrid/
-    );
+  it('la barra di modifica ha tutta la riga; i comandi a frecce non ci sono più', () => {
+    // The on-screen move controls were removed (REP-20261008-001): no rule of theirs is left.
+    expect(css.shell).not.toMatch(/\.aca-widget-position/);
+    // Whatever the bar is, it takes the one cell of the band; its groups go to the two ends.
+    expect(rule('shell', '.aca-shell__footer > *')).toMatch(/grid-column:\s*1;/);
+    expect(rule('edit', '.aca-edit-toolbar')).toMatch(/justify-content:\s*space-between/);
   });
 });
 
 describe('barra di modifica (L-07, B-09, K08, L-20, L-21)', () => {
-  it('mette prima l’azione sempre disponibile e usa la variante control alla stessa taglia', () => {
-    render(<EditToolbar {...toolbarProps} canAddWidget canEditPage />);
+  it('ha «+ Widget», «Pagine» (control, stessa taglia) e «Fine» (primaria, con testo; REP-20261009-004)', () => {
+    const onPages = vi.fn();
+    const onDone = vi.fn();
+    render(<EditToolbar {...toolbarProps} canAddWidget onPages={onPages} onDone={onDone} />);
     const bar = screen.getByRole('group', { name: 'Modifica della disposizione' });
     const buttons = within(bar).getAllByRole('button');
-    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
-      'Nuova pagina',
-      'Pagina',
-      'Aggiungi widget',
-    ]);
-    for (const button of buttons) {
+    // REP-20261007-019: short visible texts, contained in the accessible names (WCAG 2.5.3).
+    expect(
+      buttons.map((button) => button.getAttribute('aria-label') ?? button.textContent)
+    ).toEqual(['Aggiungi widget', 'Modifica le pagine', 'Fine']);
+    expect(buttons.map((button) => button.textContent)).toEqual(['Widget', 'Pagine', 'Fine']);
+    for (const button of buttons.slice(0, 2)) {
       expect(button).toHaveClass('aca-m--md', 'aca-frame-pill', 'aca-edit-toolbar__button');
       expect(button).not.toHaveClass('aca-m--primary');
       // Icon-only on narrow screens: the name stays in aria-label and title.
@@ -103,129 +91,86 @@ describe('barra di modifica (L-07, B-09, K08, L-20, L-21)', () => {
     expect(screen.getByRole('button', { name: 'Aggiungi widget' })).toHaveAttribute(
       'data-launcher-add'
     );
-    // Two groups: actions at the start, the cover setting at the end.
+    // «Fine» is the one orange action and keeps its text at every density: it does not take the
+    // icon-only look of the footer band.
+    expect(buttons[2]).toHaveClass('aca-m--primary', 'aca-m--md', 'aca-frame-pill');
+    expect(buttons[2]).not.toHaveClass('aca-edit-toolbar__button');
+    // Two groups: «+ Widget» at the start, «Pagine» and «Fine» at the end; no switch is left.
     expect(bar.querySelectorAll(':scope > .aca-edit-toolbar__group')).toHaveLength(2);
+    expect(bar.querySelector(':scope > .aca-edit-toolbar__pages')).toContainElement(buttons[1]);
+    expect(bar.querySelector(':scope > .aca-edit-toolbar__pages')).toContainElement(buttons[2]);
+    expect(within(bar).queryByRole('switch')).toBeNull();
+    fireEvent.click(buttons[1]);
+    expect(onPages).toHaveBeenCalledTimes(1);
+    fireEvent.click(buttons[2]);
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  it('sulla copertina spiega perché mancano le azioni invece di mostrarle disabilitate', () => {
-    const { rerender } = render(
-      <EditToolbar {...toolbarProps} canAddWidget={false} canEditPage={false} />
-    );
+  it('su una pagina speciale spiega perché manca «+ Widget» invece di mostrarlo disabilitato', () => {
+    render(<EditToolbar {...toolbarProps} canAddWidget={false} />);
     const bar = screen.getByRole('group', { name: 'Modifica della disposizione' });
     expect(
       within(bar)
         .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label'))
-    ).toEqual(['Nuova pagina']);
+        .map((b) => b.getAttribute('aria-label') ?? b.textContent)
+    ).toEqual(['Modifica le pagine', 'Fine']);
     expect(bar.querySelector('button:disabled')).toBeNull();
-    expect(screen.getByText('La copertina non contiene widget')).toBeInTheDocument();
-
-    rerender(<EditToolbar {...toolbarProps} canAddWidget={false} canEditPage />);
-    expect(
-      within(bar)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label'))
-    ).toEqual(['Nuova pagina', 'Pagina']);
     expect(screen.getByText('Questa pagina non contiene widget')).toBeInTheDocument();
   });
 
-  it('chiama l’interruttore «Mostra copertina» e lo porta a 44 px', () => {
-    const onCoverChange = vi.fn();
-    render(
-      <EditToolbar
-        {...toolbarProps}
-        canAddWidget
-        canEditPage
-        coverEnabled={false}
-        onCoverChange={onCoverChange}
-      />
-    );
-    const toggle = screen.getByRole('switch', { name: COVER_SETTING_LABEL });
-    expect(COVER_SETTING_LABEL).toBe('Mostra copertina');
-    expect(toggle).toHaveAttribute('title', 'Mostra copertina');
-    fireEvent.click(toggle);
-    expect(onCoverChange).toHaveBeenCalledWith(true);
-    expect(rule('edit', '.aca-edit-toolbar__toggle.aca-m')).toMatch(
-      /font-size:\s*calc\(var\(--aca-control-height\) \/ 2\.25\)/
-    );
+  it('i pulsanti stanno a 44 px e la copertina non ha più regole nella barra', () => {
     expect(rule('edit', '.aca-frame-pill.aca-m--pill')).toMatch(
       /--aca-pad:\s*calc\(\(var\(--aca-control-height\) - 1\.25em\) \/ 2\) 1\.25em/
     );
-  });
-
-  it('i comandi di spostamento hanno «Fatto» non arancione e la freccia su con la sua icona', () => {
-    const { container } = render(
-      <WidgetPositionControls
-        name="Luce"
-        mode="move"
-        onStep={() => undefined}
-        onPage={() => undefined}
-        onDone={() => undefined}
-      />
-    );
-    const done = screen.getByRole('button', { name: 'Fatto' });
-    expect(done).not.toHaveClass('aca-m--primary');
-    expect(done).toHaveClass('aca-frame-pill');
-    const up = screen.getByRole('button', { name: 'Sposta in alto' });
-    expect(up.querySelector('svg')?.getAttribute('style') ?? '').not.toMatch(/rotate/);
-    const { container: reference } = render(<Icon name="chevronUp" size="md" />);
-    expect(up.querySelector('svg')?.innerHTML).toBe(reference.querySelector('svg')?.innerHTML);
-    expect(container.querySelector('.aca-widget-position__name')).toHaveTextContent('Sposta Luce');
+    expect(css.edit).not.toMatch(/aca-edit-toolbar__(cover|short|toggle)/);
+    // The bar of the pages has icons without words (REP-20261009-002), and its reasons never
+    // reach the bar of the widget, which shares the classes of the overview bar.
+    const edit = (css.edit ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(edit).not.toMatch(/aca-page-overview__text/);
+    expect(edit).not.toMatch(/\.aca-page-overview \.aca-bar-button:disabled/);
   });
 });
 
-describe('«×» di rimozione e menu del widget (L-06, K06, B-11, K21, K24)', () => {
-  function renderControls(onRemove = vi.fn()) {
+describe('barra del widget selezionato, al posto di «×» e del menu (REP-20261007-029)', () => {
+  function renderBar(onRemove = vi.fn(), changed = false) {
     render(
-      <WidgetEditControls
+      <WidgetActionBar
+        hidden={false}
         name="Luce cucina"
-        handle={(props) => <button {...props} type="button" aria-label="Luce cucina" />}
-        onMove={() => undefined}
-        onResize={() => undefined}
-        onSettings={() => undefined}
+        changed={changed}
+        onDone={() => undefined}
+        onUndo={() => undefined}
         onRemove={onRemove}
       />
     );
     return onRemove;
   }
 
-  it('il pomello è piccolo, centrato sullo spigolo, con area di tocco di 44 px', () => {
-    renderControls();
-    const remove = screen.getByRole('button', { name: 'Rimuovi Luce cucina' });
-    expect(remove).toHaveClass('aca-widget-edit__remove', 'aca-m--circle', 'aca-m--md');
-    const knob = rule('edit', '.aca-widget-edit__remove.aca-m');
-    expect(knob).toMatch(/--aca-dim:\s*var\(--aca-space-5\)/);
-    expect(knob).toMatch(/top:\s*calc\(var\(--aca-dim\) \/ -2\)/);
-    expect(knob).toMatch(/left:\s*calc\(var\(--aca-dim\) \/ -2\)/);
-    expect(rule('edit', '.aca-widget-edit__remove::before')).toMatch(
-      /inset:\s*calc\(\(var\(--aca-dim\) - var\(--aca-control-height\)\) \/ 2\)/
-    );
+  it('la cornice di presa del widget selezionato esce di 2 rem oltre il widget (REP-20261008-001)', () => {
+    expect(rule('edit', '.aca-resize-frame')).toMatch(/--aca-resize-out:\s*2rem/);
+    expect(rule('edit', '.aca-resize-frame')).toMatch(/--aca-resize-in:\s*min\(1rem, 16%\)/);
   });
 
-  it('conferma con «Rimuovi» nella variante danger, alla taglia dei controlli', () => {
-    const onRemove = renderControls();
+  it('il cestino rimuove subito, senza conferma (come Android, REP-20261007-031)', () => {
+    const onRemove = renderBar();
     fireEvent.click(screen.getByRole('button', { name: 'Rimuovi Luce cucina' }));
-    const confirm = screen.getByRole('dialog', { name: 'Conferma la rimozione di Luce cucina' });
-    const remove = within(confirm).getByRole('button', { name: 'Rimuovi' });
-    expect(remove).toHaveClass('aca-m--danger', 'aca-frame-pill', 'aca-m--md');
-    expect(remove).not.toHaveClass('aca-m--primary');
-    expect(within(confirm).getByRole('button', { name: 'Annulla' })).toHaveClass('aca-frame-pill');
-    fireEvent.click(remove);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
-  it('«Sposta» e «Ridimensiona» hanno icone proprie, diverse da «Nuova pagina»', () => {
-    renderControls();
-    fireEvent.click(screen.getByRole('button', { name: 'Luce cucina' }));
-    const menu = screen.getByRole('dialog', { name: 'Azioni per Luce cucina' });
-    const svg = (name: string) =>
-      within(menu).getByRole('button', { name }).querySelector('svg')?.innerHTML;
-    const iconOf = (name: 'move' | 'resize' | 'grid' | 'chevronRight') =>
-      render(<Icon name={name} size="md" />).container.querySelector('svg')?.innerHTML;
-    expect(svg('Sposta')).toBe(iconOf('move'));
-    expect(svg('Ridimensiona')).toBe(iconOf('resize'));
-    expect(svg('Sposta')).not.toBe(iconOf('grid'));
-    expect(svg('Ridimensiona')).not.toBe(iconOf('chevronRight'));
+  it('«Annulla» è attivo solo dopo una modifica; la barra ha solo Rimuovi, Annulla e Fine', () => {
+    renderBar(vi.fn(), false);
+    const bar = screen.getByRole('toolbar', { name: 'Modifica Luce cucina' });
+    expect(within(bar).getByRole('button', { name: 'Annulla' })).toBeDisabled();
+    // U3: no settings (double tap on the widget) and no arrows (REP-20261008-001).
+    expect(
+      within(bar)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label') ?? button.textContent)
+    ).toEqual(['Rimuovi Luce cucina', 'Annulla', 'Fine']);
+    expect(bar.querySelector('[data-widget-action="settings"]')).toBeNull();
+    expect(bar.querySelector('[data-widget-action="move"]')).toBeNull();
+    expect(bar.querySelector('[data-widget-action="resize"]')).toBeNull();
   });
 });
 
@@ -240,8 +185,7 @@ function renderBar(overrides: Partial<Parameters<typeof StatusBar>[0]> = {}) {
       time={new Date(2026, 9, 7, 9, 5)}
       connection={{ phase: 'connected', label: 'Collegato' }}
       chips={chips}
-      editMode={false}
-      onToggleEdit={() => undefined}
+      onEdit={() => undefined}
       onOpenSystem={() => undefined}
       updateCount={2}
       {...overrides}
@@ -250,38 +194,30 @@ function renderBar(overrides: Partial<Parameters<typeof StatusBar>[0]> = {}) {
 }
 
 describe('barra di stato (L-14, K22, L-15, K20, K25, K09)', () => {
-  it('ha un’altezza fissa e pulsanti circolari da 44 px; «Fine» è alto quanto loro', () => {
-    const { rerender } = renderBar();
-    expect(screen.getByRole('button', { name: 'Modifica' })).toHaveClass(
-      'aca-m--circle',
-      'aca-m--md'
-    );
-    expect(screen.getByRole('button', { name: /^Sistema/ })).toHaveClass(
-      'aca-m--circle',
-      'aca-m--md'
-    );
-    rerender(
-      <StatusBar
-        time={null}
-        connection={{ phase: 'connected', label: 'Collegato' }}
-        chips={chips}
-        editMode
-        onToggleEdit={() => undefined}
-        onOpenSystem={() => undefined}
-      />
-    );
-    expect(screen.getByRole('button', { name: 'Fine' })).toHaveClass(
-      'aca-m--primary',
-      'aca-m--md',
-      'aca-status-bar__done-button'
-    );
+  it('ha un’altezza fissa e pulsanti da 44 px; «Modifica» non diventa «Fine» (REP-20261009-004, D1)', () => {
+    renderBar();
+    // «Modifica» is the pencil with its name, at the height of the frame controls (44 px) like
+    // «Pagine» of the edit bar; Sistema is an icon button of the kit (REP-20261013-002).
+    const edit = screen.getByRole('button', { name: 'Modifica' });
+    expect(edit).toHaveClass('aca-frame-pill');
+    expect(edit).toHaveTextContent('Modifica');
+    expect(rule('edit', '.aca-frame-pill.aca-m--pill')).toMatch(/--aca-pad:\s*calc\(/);
+    expect(screen.getByRole('button', { name: /^Sistema/ })).toHaveClass('aca-bar-button');
+    expect(screen.queryByRole('button', { name: 'Fine' })).toBeNull();
+    // Kit component since REP-20261007-024 (also sheets, modals, Sistema).
+    expect(rule('kit', '.aca-bar-button')).toMatch(/height:\s*var\(--aca-control-height\)/);
+    // Two floating pills (REP-20261007-014), as high as the groups of the edit bar, with the
+    // same raised look; the root is absolute in the band and takes no pointer.
     const bar = rule('status', '.aca-status-bar');
-    expect(bar).toMatch(/grid-template-rows:\s*var\(--aca-control-height\);/);
-    expect(bar).toMatch(/padding:\s*var\(--aca-space-2\) var\(--aca-gutter\)/);
-    expect(bar).not.toMatch(/min-height/);
-    expect(rule('status', '.aca-status-bar__done-button.aca-m--pill')).toMatch(
-      /--aca-pad:\s*calc\(\(var\(--aca-control-height\) - 1\.25em\) \/ 2\) 1\.25em/
-    );
+    expect(bar).toMatch(/position:\s*absolute/);
+    expect(bar).toMatch(/pointer-events:\s*none/);
+    const pill = rule('status', '.aca-status-bar__pill');
+    expect(pill).toMatch(/height:\s*var\(--aca-float-height\)/);
+    expect(pill).toMatch(/padding:\s*var\(--aca-space-1\)/);
+    expect(pill).toMatch(/box-shadow:\s*var\(--aca-socket-shadow\)/);
+    expect(pill).not.toMatch(/min-height/);
+    // The morph of the pencil into «Fine» went with «Fine» (it is in the edit bar).
+    expect(css.status).not.toMatch(/aca-edit-toggle/);
   });
 
   it('sulla copertina tiene il posto dell’ora, invisibile e muto', () => {
@@ -354,16 +290,14 @@ describe('indicatore di pagina (L-18, K10, K11)', () => {
     expect(rule('indicator', '.aca-indicator__content')).toMatch(
       /height:\s*calc\(var\(--aca-control-height\) - 2 \* var\(--aca-pad\)\)/
     );
-    // The label stays out of the flow (DES-8): the groove does not move while swiping.
-    expect(rule('indicator', '.aca-indicator__label')).toMatch(/position:\s*absolute/);
+    // The name sits under the groove (REP-20261007-012): centred, so the groove does not move.
+    expect(rule('indicator', '.aca-indicator')).toMatch(/flex-direction:\s*column/);
   });
 
-  it('in modifica il nome della pagina si ferma prima dell’impostazione della copertina', () => {
-    // Second round (R-06): the room comes from the band (100cqw) and from the measured end of
-    // the edit bar (--aca-band-end, footerBand.ts), not from a width estimated by hand.
-    expect(rule('indicator', '.aca-indicator__label')).toMatch(
-      /max-width:\s*min\(\s*14rem,\s*calc\(\(100cqw - 100%\) \/ 2 - var\(--aca-space-4\) - var\(--aca-band-end, 0px\)\)\s*\)/
-    );
+  it('il nome della pagina sta sotto la scanalatura e non supera la banda', () => {
+    // REP-20261007-012: one centred line under the groove, bounded by the band (100cqw).
+    expect(rule('indicator', '.aca-indicator__label')).toMatch(/max-width:\s*min\(14rem, 100cqw\)/);
+    expect(rule('indicator', '.aca-indicator__label')).not.toMatch(/position:\s*absolute/);
     expect(css.shell).not.toMatch(/--aca-band-end:\s*[\d.]+rem/);
   });
 });

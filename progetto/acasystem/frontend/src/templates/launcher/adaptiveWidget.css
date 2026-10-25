@@ -1,0 +1,73 @@
+.aca-adaptive-widget {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: var(--aca-space-3);
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+
+.aca-adaptive-widget[data-tier='compact'] {
+  align-items: center;
+  justify-content: center;
+  padding: var(--aca-space-2);
+}
+
+.aca-adaptive-widget__chart-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.aca-adaptive-widget__chart-wrap .uikwa-chart {
+  width: 100%;
+  height: 100%;
+  max-height: 140px;
+}
+
+.aca-adaptive-widget__controls-wrap {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aca-space-2);
+  margin-top: auto;
+}
+
+.aca-adaptive-widget[data-tier='compact'] .aca-adaptive-widget__controls-wrap {
+  margin-top: 0;
+  height: 100%;
+}
+
+.aca-adaptive-widget .uikwa-controls {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aca-space-3);
+}
+
+.aca-adaptive-widget[data-tier='compact'] .uikwa-controls {
+  gap: var(--aca-space-2);
+}
+
+.aca-adaptive-widget .uikwa-range,
+.aca-adaptive-widget .uikwa-toggle,
+.aca-adaptive-widget .uikw-reading,
+.aca-adaptive-widget .uikwa-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}

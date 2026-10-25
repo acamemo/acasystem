@@ -8,7 +8,6 @@ const partialPages = (config: Record<string, string[]>) => config as PagesConfig
 type CtxOverrides = {
   addCardType?: string;
   selectedEntities?: string[];
-  hiddenCards?: string[];
 };
 
 function makeCtx(overrides: CtxOverrides = {}) {
@@ -29,8 +28,6 @@ function makeCtx(overrides: CtxOverrides = {}) {
     selectedSpacerVariant: 'divider',
     cardSettings: {},
     persistCardSettings: vi.fn(),
-    hiddenCards: [],
-    persistHiddenCards: vi.fn(),
     getCardSettingsKey: vi.fn((id: string) => id),
     setSelectedEntities: vi.fn(),
     setShowAddCardModal: vi.fn(),
@@ -78,16 +75,11 @@ describe('handleAddSelected lock cards', () => {
     expect(ctx.persistConfig).not.toHaveBeenCalled();
   });
 
-  it('unhides a direct lock entity when it is explicitly added again', () => {
-    const ctx = makeCtx({
-      addCardType: 'entity',
-      selectedEntities: ['lock.front_door'],
-      hiddenCards: ['lock.front_door', 'sensor.hidden'],
-    });
+  it('adds a direct lock entity as it is, with nothing to unhide', () => {
+    const ctx = makeCtx({ addCardType: 'entity', selectedEntities: ['lock.front_door'] });
 
     handleAddSelected(ctx);
 
     expect(ctx.persistConfig).toHaveBeenCalledWith({ home: ['lock.front_door'] });
-    expect(ctx.persistHiddenCards).toHaveBeenCalledWith(['sensor.hidden']);
   });
 });

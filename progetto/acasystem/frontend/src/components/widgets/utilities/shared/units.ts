@@ -24,13 +24,18 @@ type ConvertibleKind = 'length' | 'temperature';
 const clean = (unit: string | null | undefined): string => (unit ?? '').trim();
 
 /** Metric or imperial for one kind, from the unit HA declares for it; null until loaded. */
-export function haUnitMode(kind: ConvertibleKind, haConfig: HaConfig | null): EffectiveUnitMode | null {
+export function haUnitMode(
+  kind: ConvertibleKind,
+  haConfig: HaConfig | null
+): EffectiveUnitMode | null {
   if (!haConfig) return null;
   const declared =
     kind === 'length'
       ? clean(haConfig.unit_system?.length ?? haConfig.length_unit)
       : clean(haConfig.unit_system?.temperature ?? haConfig.temperature_unit);
-  return declared ? getUnitModeFromUnit(kind, declared) : getEffectiveUnitMode('follow_ha', haConfig);
+  return declared
+    ? getUnitModeFromUnit(kind, declared)
+    : getEffectiveUnitMode('follow_ha', haConfig);
 }
 
 /** Unit HA uses for a kind (`km`/`mi`, `°C`/`°F`), or the fallback until the config is loaded. */
@@ -48,7 +53,8 @@ function convertReading(
 ): UnitReading {
   const from = clean(sourceUnit) || defaultUnit;
   const mode = haUnitMode(kind, haConfig);
-  if (value === null || !mode) return { value, unit: mode ? getDisplayUnitForKind(kind, mode) : from };
+  if (value === null || !mode)
+    return { value, unit: mode ? getDisplayUnitForKind(kind, mode) : from };
   return {
     value: convertValueByKind(value, { kind, fromUnit: from, unitMode: mode }),
     unit: getDisplayUnitForKind(kind, mode),
@@ -77,7 +83,10 @@ export function temperatureReading(
  * Currency of the energy widgets (legacy order): the card setting, then the currency of HA.
  * Null when neither is known: the figure is shown without a currency instead of a guess.
  */
-export function currencyUnit(setting: string | null | undefined, haConfig: HaConfig | null): string | null {
+export function currencyUnit(
+  setting: string | null | undefined,
+  haConfig: HaConfig | null
+): string | null {
   const chosen = clean(setting) || clean(haConfig?.currency);
   return chosen ? currencySymbol(chosen) : null;
 }

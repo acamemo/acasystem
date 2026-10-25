@@ -10,7 +10,19 @@ import type { UnitsMode } from '@/@types/dashboard';
 import type { LauncherLayout } from '@/@types/launcher';
 import type { CollectedSnapshot, SnapshotContextSetters } from '@/@types/snapshot';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '@/utils/i18n';
+import { parseCasa3dQuality, readStoredCasa3dQuality, setCasa3dQuality } from '@/casa3d/quality';
+import {
+  WIDGET_MEMORY_STORAGE_KEY,
+  emptyWidgetMemory,
+  mergeWidgetMemory,
+  normalizeWidgetState,
+  rememberLeavingWidgets,
+  sanitizeWidgetMemory,
+  widgetPages,
+  type WidgetMemory,
+} from '@/utils/launcher/deviceMemory';
 import { LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
+import { loadWidgetMemory, readStoredWidgetState } from '@/utils/launcher/widgetStateStorage';
 import { isObject, type UnknownRecord } from '@/validators/guards';
 import {
   isPartialSectionSpacing,
@@ -36,9 +48,24 @@ export interface LauncherSnapshotSetters {
   persistLauncherLayout?: (layout: LauncherLayout | null) => void;
 }
 
+/** Options of applySnapshot. */
+export interface SnapshotApplyOptions {
+  /** Also apply the preferences of this device (the synchronised current settings). */
+  device?: boolean;
+}
+
 const SNAPSHOT_VERSION = 1;
 
 // ── helpers ──────────────────────────────────────────────────────────
+
+/** The id this browser gave itself for the settings synchronisation (useSettingsSync). */
+const readOwnDeviceId = (): string => {
+  try {
+    return localStorage.getItem('tunet_device_id') || '';
+  } catch {
+    return '';
+  }
+};
 
 const readJSON = (key: string, fallback: unknown = null): unknown => {
   try {
@@ -82,7 +109,7 @@ export function collectSnapshot(): CollectedSnapshot {
     layout: {
       pagesConfig: readJSON('tunet_pages_config', { header: [], pages: ['home'], home: [] }),
       cardSettings: readJSON('tunet_card_settings', {}),
-      hiddenCards: readJSON('tunet_hidden_cards', []),
+      widgetMemory: readJSON(WIDGET_MEMORY_STORAGE_KEY, emptyWidgetMemory()),
       customNames: readJSON('tunet_custom_names', {}),
       customIcons: readJSON('tunet_custom_icons', {}),
       pageSettings: readJSON('tunet_page_settings', {}),
@@ -128,10 +155,59 @@ export function collectSnapshot(): CollectedSnapshot {
     ...snapshot.layout,
     launcherLayout: readJSON(LAUNCHER_LAYOUT_STORAGE_KEY, null),
   };
-  return { ...snapshot, layout };
+  // Quality of the Casa 3D view (ADR-0014, T5): only once the user chose one, so a snapshot of a
+  // device that never did stays as it was.
+  // The block carries the id of this device: published to other devices, it is not applied there.
+  const casa3dQuality = readStoredCasa3dQuality();
+  const deviceId = readOwnDeviceId();
+  return casa3dQuality && deviceId
+    ? { ...snapshot, layout, device: { id: deviceId, casa3dQuality } }
+    : { ...snapshot, layout };
 }
 
 // ── apply ────────────────────────────────────────────────────────────
+
+/**
+ * The widget state of an incoming snapshot (a profile, an imported file, another device or an
+ * older version) in the shape of ADR-0019: the memory is cleaned, and the widgets an older
+ * snapshot lists as hidden leave the pages (layout and page lists) with their configuration
+ * moved to the memory. `hiddenCards` is not carried any further. Nothing else changes.
+ */
+function withMigratedWidgets(layout: UnknownRecord): UnknownRecord {
+  const { hiddenCards, ...rest } = layout;
+  const hidden = sanitizeStringList(hiddenCards) ?? [];
+  const memory: WidgetMemory | null =
+    layout.widgetMemory !== undefined ? sanitizeWidgetMemory(layout.widgetMemory) : null;
+  if (hidden.length === 0) return memory ? { ...rest, widgetMemory: memory } : rest;
+
+  const launcher = snapshotLauncherLayout(layout) ?? null;
+  const pagesConfig = layout.pagesConfig ? sanitizePagesConfig(layout.pagesConfig) : null;
+  const before = {
+    layout: launcher,
+    pagesConfig,
+    // What the snapshot does not carry is read from this device, where the widgets are.
+    cardSettings:
+      sanitizeCardSettingsMap(layout.cardSettings) ??
+      sanitizeCardSettingsMap(readJSON('tunet_card_settings')) ??
+      {},
+    customNames:
+      sanitizeStringMap(layout.customNames) ??
+      sanitizeStringMap(readJSON('tunet_custom_names')) ??
+      {},
+    customIcons:
+      sanitizeStringMap(layout.customIcons) ??
+      sanitizeStringMap(readJSON('tunet_custom_icons')) ??
+      {},
+    memory: memory ?? loadWidgetMemory(),
+  };
+  const after = normalizeWidgetState(before, hidden, Date.now(), { sweep: false });
+  const migrated: UnknownRecord = { ...rest, widgetMemory: after.memory };
+  if (after.layout && after.layout !== before.layout) migrated.launcherLayout = after.layout;
+  if (after.pagesConfig && after.pagesConfig !== before.pagesConfig) {
+    migrated.pagesConfig = after.pagesConfig;
+  }
+  return migrated;
+}
 
 const writeJSON = (key: string, value: unknown) => {
   localStorage.setItem(key, JSON.stringify(value));
@@ -146,19 +222,52 @@ const writeJSON = (key: string, value: unknown) => {
  *
  * @param snapshot Versioned snapshot (from collectSnapshot or API)
  * @param contextSetters Object with setter functions from PageContext + ConfigContext
+ * @param options `device: true` applies the preferences of this device too
  */
 export function applySnapshot(
   snapshot: unknown,
-  contextSetters: SnapshotContextSetters & LauncherSnapshotSetters = {}
+  contextSetters: SnapshotContextSetters & LauncherSnapshotSetters = {},
+  options: SnapshotApplyOptions = {}
 ): void {
   if (!isObject(snapshot)) return;
 
-  const layout: UnknownRecord = isObject(snapshot.layout) ? snapshot.layout : {};
+  // ── Preferences of this device (Casa 3D quality): only from this device's own current settings,
+  // never from a profile, an imported file or a copy published by another device ──
+  if (options.device && isObject(snapshot.device)) {
+    const ownId = readOwnDeviceId();
+    const casa3dQuality =
+      ownId && snapshot.device.id === ownId
+        ? parseCasa3dQuality(snapshot.device.casa3dQuality)
+        : null;
+    if (casa3dQuality) setCasa3dQuality(casa3dQuality);
+  }
+
+  const layout: UnknownRecord = withMigratedWidgets(
+    isObject(snapshot.layout) ? snapshot.layout : {}
+  );
   const appearance: UnknownRecord = isObject(snapshot.appearance) ? snapshot.appearance : {};
 
   // ── Launcher layout: the cleaned layout, or none (the launcher migrates again from
   // pagesConfig) when the snapshot brings pages without a valid launcher layout ──
   const launcherLayout = snapshotLauncherLayout(layout);
+
+  // ── Widget memory (ADR-0019): the memory of this device stays; the incoming one is added to it,
+  // entry by entry; and the linked widgets the incoming pages leave out are kept in it, so a
+  // profile, a file or a blank start does not lose their configuration with the pages ──
+  const replacesPages =
+    Boolean(launcherLayout) || launcherLayout === null || Boolean(layout.pagesConfig);
+  let widgetMemory: WidgetMemory = loadWidgetMemory();
+  if (replacesPages) {
+    const keptIds = new Set<string>(launcherLayout ? widgetPages(launcherLayout).keys() : []);
+    const incomingPages = layout.pagesConfig ? sanitizePagesConfig(layout.pagesConfig) : null;
+    for (const list of Object.values(incomingPages ?? {})) list.forEach((id) => keptIds.add(id));
+    widgetMemory = rememberLeavingWidgets(readStoredWidgetState(), keptIds);
+  }
+  if (layout.widgetMemory) {
+    widgetMemory = mergeWidgetMemory(widgetMemory, sanitizeWidgetMemory(layout.widgetMemory));
+  }
+  const memoryChanged = replacesPages || Boolean(layout.widgetMemory);
+
   if (launcherLayout) {
     writeJSON(LAUNCHER_LAYOUT_STORAGE_KEY, launcherLayout);
     contextSetters.persistLauncherLayout?.(launcherLayout);
@@ -170,7 +279,7 @@ export function applySnapshot(
   // ── Layout → localStorage ──
   if (layout.pagesConfig) writeJSON('tunet_pages_config', layout.pagesConfig);
   if (layout.cardSettings) writeJSON('tunet_card_settings', layout.cardSettings);
-  if (layout.hiddenCards) writeJSON('tunet_hidden_cards', layout.hiddenCards);
+  if (memoryChanged) writeJSON(WIDGET_MEMORY_STORAGE_KEY, widgetMemory);
   if (layout.customNames) writeJSON('tunet_custom_names', layout.customNames);
   if (layout.customIcons) writeJSON('tunet_custom_icons', layout.customIcons);
   if (layout.pageSettings) writeJSON('tunet_page_settings', layout.pageSettings);
@@ -228,7 +337,6 @@ export function applySnapshot(
   const pageSettings = layout.pageSettings ? sanitizePageSettingsMap(layout.pageSettings) : null;
   const customNames = layout.customNames ? sanitizeStringMap(layout.customNames) : null;
   const customIcons = layout.customIcons ? sanitizeStringMap(layout.customIcons) : null;
-  const hiddenCards = layout.hiddenCards ? sanitizeStringList(layout.hiddenCards) : null;
   const headerSettings = layout.headerSettings
     ? sanitizeHeaderSettings(layout.headerSettings)
     : null;
@@ -242,7 +350,7 @@ export function applySnapshot(
   if (s.persistPageSettings && pageSettings) s.persistPageSettings(pageSettings);
   if (s.persistCustomNames && customNames) s.persistCustomNames(customNames);
   if (s.persistCustomIcons && customIcons) s.persistCustomIcons(customIcons);
-  if (s.persistHiddenCards && hiddenCards) s.persistHiddenCards(hiddenCards);
+  if (s.persistWidgetMemory && memoryChanged) s.persistWidgetMemory(widgetMemory);
   if (s.setGridColumns && layout.gridColumns !== undefined)
     s.setGridColumns(Number(layout.gridColumns));
   if (s.setDynamicGridColumns && layout.dynamicGridColumns !== undefined)

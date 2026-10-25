@@ -48,7 +48,11 @@ export function CostWidget({ id, settings, size, editMode }: WidgetProps) {
 
   if (!config.todayId && !config.monthId) {
     return card(
-      <CardMessage icon="wallet" title="Scegli le entità dei costi" detail="Dalle impostazioni del widget" />
+      <CardMessage
+        icon="wallet"
+        title="Scegli le entità dei costi"
+        detail="Dalle impostazioni del widget"
+      />
     );
   }
 

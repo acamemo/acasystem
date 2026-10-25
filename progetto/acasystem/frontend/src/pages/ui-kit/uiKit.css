@@ -126,3 +126,32 @@
 .uik-climate__thermo {
   align-self: stretch;
 }
+
+/* The real cover page inside a 16:9 frame (it sizes itself on its own container). */
+.uik-cover-frame {
+  display: flex;
+  aspect-ratio: 16 / 9;
+  max-width: 960px;
+  border-radius: 24px;
+  background: var(--aca-page);
+  box-shadow: inset 0 0 0 1px rgb(5 5 5 / 8%);
+  overflow: hidden;
+}
+
+/* The status bar specimen: the page width it has in the launcher. */
+.uik-bar-frame {
+  max-width: 960px;
+  padding-bottom: var(--aca-space-3, 0.75rem);
+}
+
+/* The footer band of the launcher, at the height it has there (the frame gives its measures). */
+.uik-band-shell {
+  height: auto;
+  padding-top: 0;
+}
+
+/* Footer-like frame for the edit bars: 44 px controls plus the bar padding. */
+.uik-edit-frame {
+  --aca-float-height: calc(var(--aca-control-height) + 2 * var(--aca-space-1));
+  padding: var(--aca-space-3) 0;
+}

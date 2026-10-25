@@ -10,15 +10,27 @@ import {
   buildDeltaSeries,
   readCostSettings,
 } from '@/components/widgets/utilities/energy/costData';
-import { priceLevel, priceSeries, priceUnit, readNordpoolSettings, withSupport } from '@/components/widgets/utilities/energy/nordpoolData';
+import {
+  priceLevel,
+  priceSeries,
+  priceUnit,
+  readNordpoolSettings,
+  withSupport,
+} from '@/components/widgets/utilities/energy/nordpoolData';
 import { currencySymbol, formatNumber } from '@/components/widgets/utilities/shared/format';
 import { currencyUnit } from '@/components/widgets/utilities/shared/units';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { fakeConnection, renderWithRuntime } from './UtilityHarness';
 
-const costSettings = { todayId: 'sensor.cost_today', monthId: 'sensor.cost_month', currency: 'EUR', decimals: 2 };
+const costSettings = {
+  todayId: 'sensor.cost_today',
+  monthId: 'sensor.cost_month',
+  currency: 'EUR',
+  decimals: 2,
+};
 const fixtureConfig = createFixtureRuntime().haConfig;
-const withCurrency = (currency: string | undefined) => fixtureConfig && { ...fixtureConfig, currency };
+const withCurrency = (currency: string | undefined) =>
+  fixtureConfig && { ...fixtureConfig, currency };
 const costEntities = fixtureEntities([
   fixtureEntity('sensor.cost_today', '3.456'),
   fixtureEntity('sensor.cost_month', '8989.3'),
@@ -48,14 +60,18 @@ describe('formattazione italiana', () => {
     expect(currencyUnit('  ', withCurrency('EUR'))).toBe('€');
     expect(currencyUnit(null, withCurrency(undefined))).toBeNull();
     expect(currencyUnit(null, null)).toBeNull();
-    expect(priceUnit(readNordpoolSettings({ nordpoolId: 'sensor.x' }), withCurrency('USD'))).toBe('$');
+    expect(priceUnit(readNordpoolSettings({ nordpoolId: 'sensor.x' }), withCurrency('USD'))).toBe(
+      '$'
+    );
   });
 });
 
 describe('costi energetici', () => {
   it('impostazioni legacy e valori come GenericEnergyCostCard', () => {
     expect(readCostSettings({}).decimals).toBe(0);
-    renderWithRuntime(<CostWidget {...props('cost_card_1', costSettings)} />, { entities: costEntities });
+    renderWithRuntime(<CostWidget {...props('cost_card_1', costSettings)} />, {
+      entities: costEntities,
+    });
     expect(screen.getByText('3,46')).toBeInTheDocument();
     // The month total is rounded to whole units.
     expect(screen.getByText('8.989')).toBeInTheDocument();
@@ -74,7 +90,10 @@ describe('costi energetici', () => {
     expect(screen.queryByText('$')).not.toBeInTheDocument();
     expect(screen.queryByText('€')).not.toBeInTheDocument();
     // The card setting wins over Home Assistant.
-    view.update({ haConfig: withCurrency('USD') }, <CostWidget {...props('cost_card_1', costSettings)} />);
+    view.update(
+      { haConfig: withCurrency('USD') },
+      <CostWidget {...props('cost_card_1', costSettings)} />
+    );
     expect(screen.getAllByText('€')).toHaveLength(2);
   });
 
@@ -84,7 +103,9 @@ describe('costi energetici', () => {
       entities: costEntities,
       openDetails,
     });
-    const opener = screen.getByRole('button', { name: 'Costi energetici, apri lo storico dei costi' });
+    const opener = screen.getByRole('button', {
+      name: 'Costi energetici, apri lo storico dei costi',
+    });
     expect(opener).toHaveAttribute('data-widget-open');
     fireEvent.click(opener);
     expect(openDetails).toHaveBeenCalledWith('cost_card_1');
@@ -95,7 +116,9 @@ describe('costi energetici', () => {
 
   it('nome personalizzato, etichette e taglia 2×1', () => {
     renderWithRuntime(
-      <CostWidget {...props('cost_card_1', { ...costSettings, todayLabel: 'Oggi finora' }, 3, 1)} />,
+      <CostWidget
+        {...props('cost_card_1', { ...costSettings, todayLabel: 'Oggi finora' }, 3, 1)}
+      />,
       { entities: costEntities, customNames: { cost_card_1: 'Bolletta' } }
     );
     expect(screen.getByText('Bolletta')).toBeInTheDocument();
@@ -124,7 +147,10 @@ describe('costi energetici', () => {
 
   it('serie dello storico: secchi orari, variazioni e copertura dell’intervallo', () => {
     const now = new Date('2026-10-06T12:00:00Z').getTime();
-    const at = (hoursAgo: number, value: number) => ({ time: new Date(now - hoursAgo * 3_600_000), value });
+    const at = (hoursAgo: number, value: number) => ({
+      time: new Date(now - hoursAgo * 3_600_000),
+      value,
+    });
     const points = [at(3.5, 1), at(3.2, 1.5), at(2.5, 2), at(1.2, 4)];
     const buckets = buildBuckets(points, 24, now);
     expect(buckets.map((point) => point.value)).toEqual([1.5, 2, 4]);
@@ -152,33 +178,53 @@ describe('costi energetici', () => {
       }),
       'recorder/statistics_during_period': () => ({}),
     });
-    renderWithRuntime(<CostDetails id="cost_card_1" settingsKey="k" settings={costSettings} onClose={() => {}} />, {
-      conn,
-      entities: costEntities,
-    });
-    expect(await screen.findByRole('img', { name: /Costi di oggi, ultime 24 ore/ })).toBeInTheDocument();
+    renderWithRuntime(
+      <CostDetails id="cost_card_1" settingsKey="k" settings={costSettings} onClose={() => {}} />,
+      {
+        conn,
+        entities: costEntities,
+      }
+    );
+    expect(
+      await screen.findByRole('img', { name: /Costi di oggi, ultime 24 ore/ })
+    ).toBeInTheDocument();
     expect(screen.getByText('Massimo')).toBeInTheDocument();
     expect(sendMessagePromise).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'history/history_during_period', entity_ids: ['sensor.cost_today'], minimal_response: true })
+      expect.objectContaining({
+        type: 'history/history_during_period',
+        entity_ids: ['sensor.cost_today'],
+        minimal_response: true,
+      })
     );
     fireEvent.click(screen.getByRole('button', { name: 'Questo mese' }));
     await waitFor(() =>
-      expect(sendMessagePromise).toHaveBeenCalledWith(expect.objectContaining({ entity_ids: ['sensor.cost_month'] }))
+      expect(sendMessagePromise).toHaveBeenCalledWith(
+        expect.objectContaining({ entity_ids: ['sensor.cost_month'] })
+      )
     );
   });
 
   it('dettagli senza collegamento: messaggio chiaro', () => {
-    renderWithRuntime(<CostDetails id="cost_card_1" settingsKey="k" settings={costSettings} onClose={() => {}} />, {
-      entities: costEntities,
-    });
-    expect(screen.getByText('Storico non disponibile: Home Assistant non è collegato.')).toBeInTheDocument();
+    renderWithRuntime(
+      <CostDetails id="cost_card_1" settingsKey="k" settings={costSettings} onClose={() => {}} />,
+      {
+        entities: costEntities,
+      }
+    );
+    expect(
+      screen.getByText('Storico non disponibile: Home Assistant non è collegato.')
+    ).toBeInTheDocument();
   });
 });
 
 describe('Nordpool', () => {
   const now = new Date(2026, 9, 6, 14, 20);
   const today = Array.from({ length: 24 }, (_, hour) => (hour === 14 ? 0.5 : 0.2));
-  const nordpool = fixtureEntity('sensor.nordpool', '0.5', { today, tomorrow_valid: false, currency: 'EUR' });
+  const nordpool = fixtureEntity('sensor.nordpool', '0.5', {
+    today,
+    tomorrow_valid: false,
+    currency: 'EUR',
+  });
 
   it('fasce dal tempo, prezzo attuale dallo stato e livello rispetto alla media', () => {
     const series = priceSeries(nordpool, now);
@@ -208,7 +254,9 @@ describe('Nordpool', () => {
 
   it('widget: prezzo, livello e stati', () => {
     const view = renderWithRuntime(
-      <NordpoolWidget {...props('nordpool_card_1', { nordpoolId: 'sensor.nordpool', decimals: 2 })} />,
+      <NordpoolWidget
+        {...props('nordpool_card_1', { nordpoolId: 'sensor.nordpool', decimals: 2 })}
+      />,
       { entities: fixtureEntities([nordpool]) }
     );
     expect(screen.getByText('0,50')).toBeInTheDocument();
@@ -221,7 +269,10 @@ describe('Nordpool', () => {
     view.update({ haConfig: fixtureConfig });
     view.update({}, <NordpoolWidget {...props('nordpool_card_1', {})} />);
     expect(screen.getByText('Scegli il sensore dei prezzi')).toBeInTheDocument();
-    view.update({ entities: {} }, <NordpoolWidget {...props('nordpool_card_1', { nordpoolId: 'sensor.nordpool' })} />);
+    view.update(
+      { entities: {} },
+      <NordpoolWidget {...props('nordpool_card_1', { nordpoolId: 'sensor.nordpool' })} />
+    );
     expect(screen.getByText('Sensore dei prezzi non trovato')).toBeInTheDocument();
   });
 
@@ -230,7 +281,12 @@ describe('Nordpool', () => {
     vi.setSystemTime(now);
     const saveCardSetting = vi.fn();
     renderWithRuntime(
-      <NordpoolDetails id="nordpool_card_1" settingsKey="home::nordpool_card_1" settings={{ nordpoolId: 'sensor.nordpool' }} onClose={() => {}} />,
+      <NordpoolDetails
+        id="nordpool_card_1"
+        settingsKey="home::nordpool_card_1"
+        settings={{ nordpoolId: 'sensor.nordpool' }}
+        onClose={() => {}}
+      />,
       { entities: fixtureEntities([nordpool]), saveCardSetting }
     );
     const explorer = screen.getByRole('slider', { name: 'Fascia oraria' });

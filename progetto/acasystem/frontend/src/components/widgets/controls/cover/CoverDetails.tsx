@@ -81,7 +81,9 @@ export function CoverDetails({ id, settings }: WidgetDetailsProps) {
                 variant="control"
                 size="sm"
                 aria-pressed={cover.state === 'closed'}
-                aria-busy={cover.motion.pending && cover.motion.value === 'closed' ? true : undefined}
+                aria-busy={
+                  cover.motion.pending && cover.motion.value === 'closed' ? true : undefined
+                }
                 disabled={blocked}
                 onClick={cover.close}
                 contentClassName="ctl-action__content"
@@ -199,7 +201,9 @@ export function CoverDetails({ id, settings }: WidgetDetailsProps) {
               </dt>
               <dd>
                 <Body as="span" size="sm">
-                  {cover.positionCommand.pending ? `${cover.position}% richiesta` : `${cover.position}%`}
+                  {cover.positionCommand.pending
+                    ? `${cover.position}% richiesta`
+                    : `${cover.position}%`}
                 </Body>
               </dd>
             </div>

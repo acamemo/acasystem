@@ -1,0 +1,50 @@
+/* Casa 3D development page (#/casa3d-prova): the stage takes the screen, the notes sit below it. */
+.c3p-page {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--aca-space-3, 0.75rem);
+  padding: var(--aca-space-3, 0.75rem) var(--aca-gutter, 1rem);
+  background: var(--aca-page);
+  color: var(--aca-ink-solid);
+  font-family: var(--aca-font);
+}
+.c3p-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--aca-space-3, 0.75rem);
+  align-items: center;
+  justify-content: space-between;
+}
+.c3p-title {
+  display: grid;
+  gap: var(--aca-space-1, 0.25rem);
+}
+.c3p-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--aca-radius-lg, 1rem);
+}
+.c3p-message {
+  display: grid;
+  gap: var(--aca-space-3, 0.75rem);
+  justify-items: start;
+}
+.c3p-view {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.c3p-panel {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: min(24rem, 100%);
+}
+.c3p-info {
+  display: grid;
+  gap: var(--aca-space-1, 0.25rem);
+}

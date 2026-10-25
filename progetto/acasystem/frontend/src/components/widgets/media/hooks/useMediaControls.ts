@@ -11,7 +11,12 @@ import {
   VOLUME_STEP,
   type Entity,
 } from '../model/entity';
-import { useConfirmedCommand, useServiceActions, useThrottled, type ConfirmedCommand } from './commands';
+import {
+  useConfirmedCommand,
+  useServiceActions,
+  useThrottled,
+  type ConfirmedCommand,
+} from './commands';
 
 export interface MediaControls {
   entity: Entity | undefined;
@@ -55,7 +60,9 @@ export function useMediaControls(entityId: string | null): MediaControls {
   const power = useConfirmedCommand(Boolean(entity && entity.state !== 'off'), {
     ignoreWhilePending: true,
   });
-  const volume = useConfirmedCommand(attrNumber(entity, 'volume_level') ?? 0, { equals: sameVolume });
+  const volume = useConfirmedCommand(attrNumber(entity, 'volume_level') ?? 0, {
+    equals: sameVolume,
+  });
   const muted = useConfirmedCommand(attrBoolean(entity, 'is_volume_muted'));
   const shuffle = useConfirmedCommand(attrBoolean(entity, 'shuffle'));
   const repeat = useConfirmedCommand(attrString(entity, 'repeat') || 'off');

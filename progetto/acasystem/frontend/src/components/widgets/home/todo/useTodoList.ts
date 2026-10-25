@@ -33,6 +33,15 @@ export interface TodoListState {
   toggle: (item: TodoItemView) => void;
   add: (summary: string) => Promise<boolean>;
   remove: (item: TodoItemView) => void;
+  update: (
+    item: TodoItemView,
+    changes: {
+      rename?: string;
+      due_date?: string | null;
+      due_datetime?: string | null;
+      description?: string;
+    }
+  ) => Promise<boolean>;
 }
 
 interface Fetched {
@@ -93,6 +102,7 @@ export function useTodoList(
       setRemoved(
         (current) => new Set([...current].filter((id) => items.some((item) => item.id === id)))
       );
+      return items;
     } catch {
       if (mounted.current && visibleRef.current) {
         setFetched((current) => ({
@@ -174,6 +184,43 @@ export function useTodoList(
   };
 
   const current = fetched?.key === entityId ? fetched : null;
+  const update = async (
+    item: TodoItemView,
+    changes: {
+      rename?: string;
+      due_date?: string | null;
+      due_datetime?: string | null;
+      description?: string;
+    }
+  ): Promise<boolean> => {
+    if (!entityId) return false;
+    setActionError(null);
+    try {
+      await send({
+        domain: 'todo',
+        service: 'update_item',
+        data: { target: { entity_id: entityId }, item: item.id, ...changes },
+      });
+      await new Promise((resolve) => setTimeout(resolve, REFRESH_AFTER_CHANGE_MS));
+      if (!mounted.current) return false;
+      const actual = (await refresh())?.find((candidate) => candidate.id === item.id);
+      const confirmed =
+        actual &&
+        (changes.rename === undefined || actual.summary === changes.rename) &&
+        (changes.description === undefined || (actual.description ?? '') === changes.description) &&
+        (changes.due_date === undefined ||
+          (actual.due?.slice(0, 10) ?? null) === changes.due_date) &&
+        (changes.due_datetime === undefined ||
+          (changes.due_datetime === null
+            ? !actual.due
+            : new Date(actual.due ?? '').getTime() === new Date(changes.due_datetime).getTime()));
+      if (!confirmed) setActionError('Home Assistant non ha confermato la modifica.');
+      return Boolean(confirmed);
+    } catch {
+      if (mounted.current) setActionError('Attività non aggiornata. Riprova.');
+      return false;
+    }
+  };
   const items = (current?.items ?? [])
     .filter((item) => !removed.has(item.id))
     .map((item) => (requested[item.id] ? { ...item, status: requested[item.id] } : item));
@@ -193,5 +240,6 @@ export function useTodoList(
     toggle,
     add,
     remove,
+    update,
   };
 }

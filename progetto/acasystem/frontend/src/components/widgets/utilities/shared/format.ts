@@ -32,7 +32,10 @@ export function formatNumber(value: number | null | undefined, decimals = 0, fal
 /** Like formatNumber, but drops trailing zeros (1 decimal at most by default): «12,5», «12». */
 export function formatCompact(value: number | null | undefined, maxDecimals = 1, fallback = '--') {
   if (value === null || value === undefined || !Number.isFinite(value)) return fallback;
-  return new Intl.NumberFormat(LOCALE, { useGrouping: true, maximumFractionDigits: maxDecimals }).format(value);
+  return new Intl.NumberFormat(LOCALE, {
+    useGrouping: true,
+    maximumFractionDigits: maxDecimals,
+  }).format(value);
 }
 
 /** Parses a Home Assistant state or attribute, accepting a decimal comma. */
@@ -119,7 +122,8 @@ export function formatClock(date: Date): string {
 
 /** Axis label of a time series for a range in hours. */
 export function formatAxisTime(date: Date, rangeHours: number): string {
-  if (rangeHours >= 168) return date.toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric' });
+  if (rangeHours >= 168)
+    return date.toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric' });
   if (rangeHours >= 48)
     return `${date.toLocaleDateString(LOCALE, { weekday: 'short' })} ${formatClock(date)}`;
   return formatClock(date);

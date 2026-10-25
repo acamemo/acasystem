@@ -52,9 +52,16 @@ export function NordpoolDetails({ settingsKey, settings }: WidgetDetailsProps) {
   const series = priceSeries(entity, now);
   const unit = priceUnit(config, runtime.haConfig) ?? undefined;
   const adjust = (value: number) => (support ? withSupport(value) : value);
-  const points: PricePoint[] = series.points.map((point) => ({ ...point, value: adjust(point.value) }));
+  const points: PricePoint[] = series.points.map((point) => ({
+    ...point,
+    value: adjust(point.value),
+  }));
   const stats = series.stats
-    ? { min: adjust(series.stats.min), max: adjust(series.stats.max), avg: adjust(series.stats.avg) }
+    ? {
+        min: adjust(series.stats.min),
+        max: adjust(series.stats.max),
+        avg: adjust(series.stats.avg),
+      }
     : null;
   const current = series.current === null ? null : adjust(series.current);
   const fmt = (value: number) => formatNumber(value, config.decimals);
@@ -76,7 +83,8 @@ export function NordpoolDetails({ settingsKey, settings }: WidgetDetailsProps) {
               label: 'Prezzo attuale',
               value: formatNumber(current, config.decimals),
               unit,
-              note: current !== null && stats ? <Caption>{PRICE_LEVEL_LABEL[level]}</Caption> : null,
+              note:
+                current !== null && stats ? <Caption>{PRICE_LEVEL_LABEL[level]}</Caption> : null,
             },
             ...(stats
               ? [
@@ -102,7 +110,9 @@ export function NordpoolDetails({ settingsKey, settings }: WidgetDetailsProps) {
                 }`
               }
             />
-            <Caption>Usa le frecce o tocca il grafico per leggere il prezzo di ogni fascia.</Caption>
+            <Caption>
+              Usa le frecce o tocca il grafico per leggere il prezzo di ogni fascia.
+            </Caption>
           </>
         ) : (
           <Body size="sm" tone="muted">

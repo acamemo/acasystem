@@ -116,8 +116,8 @@ function PreviewNote({ size }: WidgetProps) {
       </Heading>
       {size.h > 1 && (
         <Body size="sm" tone="muted">
-          Tieni premuto per modificare la disposizione. Trascina i widget, cambia le dimensioni
-          dall’angolo o usa la tastiera.
+          Tieni premuto per modificare la disposizione. Trascina i widget e cambia le dimensioni con
+          i pallini.
         </Body>
       )}
       <Caption tone="info">{`${size.w} per ${size.h} celle`}</Caption>

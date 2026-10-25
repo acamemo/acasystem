@@ -19,7 +19,15 @@ const ratioOf = (value: number, min: number, max: number) =>
  * Gauge, donut and bar of the legacy SensorGauge, drawn with the Metallo accents: the fill
  * takes the threshold tone (danger, orange or blue); the value is always in text as well.
  */
-export function SensorVisual({ kind, value, min, max, tone, label, compact = false }: SensorVisualProps) {
+export function SensorVisual({
+  kind,
+  value,
+  min,
+  max,
+  tone,
+  label,
+  compact = false,
+}: SensorVisualProps) {
   const ratio = ratioOf(value, min, max);
   const className = [
     'ctl-visual',

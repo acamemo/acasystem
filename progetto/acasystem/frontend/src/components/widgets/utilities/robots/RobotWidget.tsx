@@ -1,13 +1,29 @@
+import { useServiceCatalog } from '../../adaptive/useServiceCatalog';
 import { useId, type ReactNode } from 'react';
 import { Body, Button, Caption } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { friendlyName, isUnavailableState } from '../shared/entity';
 import { formatCompact } from '../shared/format';
-import { CardMessage, CardSkeleton, Chip, IconWell, Notice, UtilityCard, commandNotice } from '../shared/UtilityCard';
+import {
+  CardMessage,
+  CardSkeleton,
+  Chip,
+  IconWell,
+  Notice,
+  UtilityCard,
+  commandNotice,
+} from '../shared/UtilityCard';
 import { UtilityIcon } from '../shared/UtilityIcon';
 import { stateIn, useCommand } from '../shared/useCommand';
-import { isErrorState, mowerSpec, vacuumSpec, type RobotAction, type RobotSpec } from './robotSpecs';
+import {
+  robotActionSupported,
+  isErrorState,
+  mowerSpec,
+  vacuumSpec,
+  type RobotAction,
+  type RobotSpec,
+} from './robotSpecs';
 
 /**
  * Card of a robot (vacuum or lawn mower): state, battery, room or zone and the two commands
@@ -16,6 +32,7 @@ import { isErrorState, mowerSpec, vacuumSpec, type RobotAction, type RobotSpec }
  */
 function RobotWidget({ spec, id, size, editMode }: WidgetProps & { spec: RobotSpec }) {
   const runtime = useWidgetRuntime();
+  const services = useServiceCatalog();
   const entity = runtime.entities[id];
   const command = useCommand(entity);
   const noticeId = `esito-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -38,12 +55,14 @@ function RobotWidget({ spec, id, size, editMode }: WidgetProps & { spec: RobotSp
   );
 
   if (!runtime.entitiesLoaded) return card(<CardSkeleton label={`Caricamento di ${name}…`} />);
-  if (!entity) return card(<CardMessage icon="warning" title="Dispositivo non trovato" detail={id} />);
+  if (!entity)
+    return card(<CardMessage icon="warning" title="Dispositivo non trovato" detail={id} />);
 
   const battery = spec.battery(entity);
   const place = spec.place(entity);
   const primary = spec.primary(entity);
-  const pendingAction = command.pendingKey === primary.key ? primary : command.pendingKey === 'dock' ? spec.dock : null;
+  const pendingAction =
+    command.pendingKey === primary.key ? primary : command.pendingKey === 'dock' ? spec.dock : null;
   const status = pendingAction ? pendingAction.requested : spec.stateLabel(state, battery);
   const notice = commandNotice(command.errorKey, command.unconfirmedKey);
 
@@ -62,7 +81,11 @@ function RobotWidget({ spec, id, size, editMode }: WidgetProps & { spec: RobotSp
       size="md"
       shape={labelled ? 'pill' : 'circle'}
       loading={command.pendingKey === action.key}
-      disabled={unavailable}
+      disabled={
+        unavailable ||
+        !runtime.conn ||
+        !robotActionSupported(entity, action.domain, action.service, services)
+      }
       aria-label={labelled ? undefined : action.label}
       aria-describedby={notice ? noticeId : undefined}
       onClick={() => send(action)}
@@ -113,7 +136,10 @@ function RobotWidget({ spec, id, size, editMode }: WidgetProps & { spec: RobotSp
       </div>
       <div className="utility-chips utility-grow">
         {batteryText && (
-          <Chip icon={battery !== null && battery <= 20 ? 'batteryLow' : 'battery'} tone={battery !== null && battery <= 20 ? 'danger' : 'neutral'}>
+          <Chip
+            icon={battery !== null && battery <= 20 ? 'batteryLow' : 'battery'}
+            tone={battery !== null && battery <= 20 ? 'danger' : 'neutral'}
+          >
             {batteryText}
           </Chip>
         )}

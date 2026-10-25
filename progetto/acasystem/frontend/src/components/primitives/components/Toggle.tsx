@@ -1,6 +1,6 @@
 import type { ComponentPropsWithRef } from 'react';
 import { Icon } from './Icon';
-import { MaterialLayers, materialClass, type MaterialSize } from './Material';
+import type { MaterialSize } from './Material';
 
 export type ToggleProps = Omit<
   ComponentPropsWithRef<'button'>,
@@ -9,8 +9,9 @@ export type ToggleProps = Omit<
   /** State shown by the switch: the requested one while pending, the confirmed one otherwise. */
   checked: boolean;
   size?: MaterialSize;
-  /** compact hides the label and shortens the track. */
+  /** compact: the smaller switch of bars and rows. */
   compact?: boolean;
+  /** Names of the two states, kept as hidden text (the switch role announces the state). */
   onLabel?: string;
   offLabel?: string;
   /**
@@ -19,13 +20,20 @@ export type ToggleProps = Omit<
    */
   pending?: boolean;
   /**
-   * The last request failed: aria-invalid, danger LED and a mark on the knob.
+   * The last request failed: aria-invalid, danger ring and a mark on the knob.
    * The owner explains the error in text and links it with aria-describedby.
    */
   error?: boolean;
 };
 
-/** Switch made of a recessed track and a hosted metal knob; state is in aria-checked. */
+const GRIP = Array.from({ length: 12 }, (_, index) => index);
+
+/**
+ * Switch (REP-20261007-021), after the grip-knob switch shared by the user and adapted to Kit 2:
+ * a raised rim, a recessed track (the accent fill when on) and a round knob with a 3×4 grip.
+ * Geometry in em: track 3 × 1.5, knob 1.375 centred, so the gap around the knob is 0.0625 on
+ * every side, on and off. State is in aria-checked; the knob moves with a transform.
+ */
 export function Toggle({
   checked,
   size = 'md',
@@ -45,36 +53,33 @@ export function Toggle({
       aria-checked={checked}
       aria-busy={pending || undefined}
       aria-invalid={error || undefined}
-      className={materialClass(
-        { behavior: 'well', shape: 'pill', size },
+      className={[
         'aca-toggle',
-        'aca-m-host',
+        size !== 'inherit' && `aca-toggle--${size}`,
         compact && 'aca-toggle--compact',
-        className
-      )}
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
       {...props}
     >
-      <MaterialLayers contentClassName="aca-toggle__content">
-        {!compact && (
-          <span className="aca-m__label aca-toggle__label" aria-hidden="true">
-            {checked ? onLabel : offLabel}
-          </span>
-        )}
-        <span
-          className={materialClass(
-            { behavior: 'static', shape: 'circle', size: 'inherit' },
-            'aca-m--hosted',
-            'aca-toggle__knob'
+      <span className="aca-toggle__track" aria-hidden="true">
+        <span className="aca-toggle__knob">
+          {error ? (
+            <Icon name="warning" className="aca-mark" color="var(--aca-danger-ink-icon)" />
+          ) : (
+            <span className="aca-toggle__grip">
+              {GRIP.map((dot) => (
+                <span key={dot} className="aca-toggle__dot" />
+              ))}
+            </span>
           )}
-          aria-hidden="true"
-        >
-          <MaterialLayers>
-            {error && (
-              <Icon name="warning" className="aca-mark" color="var(--aca-danger-ink-icon)" />
-            )}
-          </MaterialLayers>
         </span>
-      </MaterialLayers>
+      </span>
+      {/* State name kept for the page (tests, copies); the switch role already announces it. */}
+      <span className="aca-toggle__label" aria-hidden="true">
+        {checked ? onLabel : offLabel}
+      </span>
     </button>
   );
 }

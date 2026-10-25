@@ -2,7 +2,11 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PageSettings } from '@/@types/dashboard';
-import { LightsPage, LightsPageView, sortLights } from '@/components/widgets/controls/light/LightsPage';
+import {
+  LightsPage,
+  LightsPageView,
+  sortLights,
+} from '@/components/widgets/controls/light/LightsPage';
 import { findPageKindDefinition } from '@/components/widgets/registry';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
@@ -21,7 +25,10 @@ const lights = [
     brightness: 255,
     area_name: 'Zona notte',
   }),
-  fixtureEntity('light.studio', 'off', { friendly_name: 'Studio', supported_color_modes: ['onoff'] }),
+  fixtureEntity('light.studio', 'off', {
+    friendly_name: 'Studio',
+    supported_color_modes: ['onoff'],
+  }),
   fixtureEntity('light.garage', 'unavailable', { friendly_name: 'Garage' }),
   fixtureEntity('light.gruppo', 'on', {
     friendly_name: 'Tutte le luci giorno',
@@ -35,10 +42,13 @@ const lights = [
 function renderPage(settings: PageSettings = {}) {
   const onSaveSetting = vi.fn();
   const callService = serviceMock();
-  const view = renderWithRuntime(<LightsPageView settings={settings} onSaveSetting={onSaveSetting} />, {
-    entities: fixtureEntities(lights),
-    callService,
-  });
+  const view = renderWithRuntime(
+    <LightsPageView settings={settings} onSaveSetting={onSaveSetting} />,
+    {
+      entities: fixtureEntities(lights),
+      callService,
+    }
+  );
   return { ...view, onSaveSetting, callService };
 }
 
@@ -149,7 +159,11 @@ describe('Pagina delle luci (legacy LightsPage)', () => {
     );
     const view = render(
       withRuntime(
-        <LightsPage pageId="luci" settings={{ lightsSort: 'name-za' }} onSaveSetting={onSaveSetting} />
+        <LightsPage
+          pageId="luci"
+          settings={{ lightsSort: 'name-za' }}
+          onSaveSetting={onSaveSetting}
+        />
       )
     );
     expect(screen.getByRole('button', { name: 'Ordina: Nome Z→A' })).toBeInTheDocument();

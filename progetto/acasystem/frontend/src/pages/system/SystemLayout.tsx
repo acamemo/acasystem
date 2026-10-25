@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Body, Button, Caption, Heading, Icon, Surface, Title } from '@/components/primitives';
+import { AiDevelopmentNotice } from './AiDevelopmentNotice';
 import './system.css';
 
 export interface SystemSectionEntry {
@@ -37,21 +38,21 @@ export function SystemLayout({
   return (
     <main className="aca-system">
       <header className="aca-system__bar">
-        <Button
-          variant="control"
-          shape="circle"
-          size="md"
+        <button
+          type="button"
+          className="aca-bar-button"
           aria-label="Torna al launcher"
           onClick={onClose}
         >
           <Icon name="chevronLeft" size="md" />
-        </Button>
+        </button>
         <div className="aca-system__bar-text">
           <Title level={1} tabIndex={-1} ref={title}>
             Sistema
           </Title>
           <Caption>Collegamento, profili, barra di stato e informazioni</Caption>
         </div>
+        <AiDevelopmentNotice />
       </header>
 
       <div className="aca-system__layout">

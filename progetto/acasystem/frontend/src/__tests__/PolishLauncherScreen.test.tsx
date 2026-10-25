@@ -48,7 +48,6 @@ vi.mock('@/templates/sheets', () => ({
       </div>
     ) : null,
   WidgetSettingsSheet: () => null,
-  PageSettingsSheet: () => null,
 }));
 
 function Tile({ id, size }: WidgetProps) {
@@ -116,7 +115,6 @@ function Harness() {
     <LauncherScreen
       controller={controller}
       runtime={runtime}
-      cover={<p>Copertina di prova</p>}
       connection={{ phase: 'connected', label: 'Connesso' }}
       chips={[]}
       onOpenSystem={() => undefined}
@@ -158,7 +156,8 @@ describe('«Principale» as the base screen', () => {
     expect(latest?.currentPageId).toBe('home');
     expect(latest?.currentPage).toBe(1);
     expect(latest?.entries[0].key).toBe('cover');
-    expect(screen.getByRole('slider', { name: 'Pagina' })).toHaveAttribute(
+    // The indicator waits above the screen in use (ADR-0016): it is read from the element.
+    expect(document.querySelector('.aca-indicator__input')).toHaveAttribute(
       'aria-valuetext',
       'Pagina 2 di 3: Principale'
     );
@@ -186,7 +185,7 @@ describe('free cells with «+»', () => {
     vi.unstubAllGlobals();
   });
 
-  it('draws a «+» button on every free cell only, the same in view and in edit mode', async () => {
+  it('draws a «+» button on every free cell only, the same cells in view and in edit mode', async () => {
     await renderLauncher();
     const view = cellsOf('Principale').map((cell) => cell.getAttribute('aria-label'));
     expect(view).toHaveLength(36);
@@ -194,8 +193,14 @@ describe('free cells with «+»', () => {
     expect(view).not.toContain(cellLabel(1, 1));
     expect(view[0]).toBe(cellLabel(2, 0));
 
+    // In edit mode the widget selected on entering is moved by a cell (E2): the same cells,
+    // saying where the widget goes instead of what is added (2026-10-23).
     act(() => latest?.setEditMode(true));
-    expect(cellsOf('Principale').map((cell) => cell.getAttribute('aria-label'))).toEqual(view);
+    const edit = Array.from(
+      region('Principale').querySelectorAll<HTMLElement>('button[data-launcher-cell]')
+    );
+    expect(edit.map((cell) => cell.dataset.launcherCell)).toHaveLength(36);
+    expect(edit[0].getAttribute('aria-label')).toBe('Sposta Tessera qui: colonna 3, riga 1');
   });
 
   it('is one tab stop per grid; arrows, Home and End move between free cells', async () => {
@@ -234,14 +239,13 @@ describe('free cells with «+»', () => {
     fireEvent.click(within(sheet).getByRole('button', { name: 'Aggiungi una tessera' }));
     expect(placement('home', 'test_tile_new')).toEqual({ x: 5, y: 2, w: 2, h: 2 });
     expect(screen.getByText('Tessera test_tile_new 2x2')).toBeInTheDocument();
-    // The cells it now covers are no longer free.
+    // The cells it now covers are no longer free (the new widget is selected, in edit mode).
     expect(screen.queryByRole('button', { name: cellLabel(6, 3) })).not.toBeInTheDocument();
-    expect(cellsOf('Principale')).toHaveLength(32);
+    expect(region('Principale').querySelectorAll('button[data-launcher-cell]')).toHaveLength(32);
   });
 
   it('keeps widgets added together near the touched cell', async () => {
     await renderLauncher();
-    act(() => latest?.setEditMode(true));
     fireEvent.click(screen.getByRole('button', { name: cellLabel(6, 3) }));
     fireEvent.click(screen.getByRole('button', { name: 'Aggiungi due tessere' }));
     expect(placement('home', 'test_tile_x')).toEqual({ x: 6, y: 3, w: 2, h: 1 });
@@ -249,17 +253,15 @@ describe('free cells with «+»', () => {
     expect(second && second.x >= 4 && second.y >= 2).toBe(true);
   });
 
-  it('without a cell (edit bar) the widget still goes to the first free rectangle', async () => {
+  it('there is no «+ Widget» button nor tray: the widget goes where the cell touched is (2026-10-23)', async () => {
     await renderLauncher();
     act(() => latest?.setEditMode(true));
-    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi widget' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi una tessera' }));
-    expect(placement('home', 'test_tile_new')).toEqual({ x: 2, y: 0, w: 2, h: 2 });
+    expect(screen.queryByRole('button', { name: 'Aggiungi widget' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Aggiungi un widget' })).not.toBeInTheDocument();
   });
 
-  it('gives the focus to the new widget in edit mode once the sheet closes', async () => {
+  it('gives the focus to the new widget, selected in edit mode, once the sheet closes', async () => {
     await renderLauncher();
-    act(() => latest?.setEditMode(true));
     const cell = screen.getByRole('button', { name: cellLabel(4, 0) });
     act(() => cell.focus());
     fireEvent.click(cell);
@@ -285,6 +287,8 @@ describe('free cells with «+»', () => {
     vi.stubGlobal('PointerEvent', Pointer);
     const grid = region('Principale').querySelector('.aca-launcher-grid');
     expect(grid).not.toHaveClass('is-dragging');
+    // Selected first, the widget drags at once (not selected it lifts after a second).
+    fireEvent.click(screen.getByRole('button', { name: /^Tessera,/ }));
     fireEvent.pointerDown(screen.getByRole('button', { name: /^Tessera,/ }), {
       pointerId: 1,
       button: 0,
@@ -297,5 +301,135 @@ describe('free cells with «+»', () => {
     expect(region('Principale').querySelectorAll('.aca-launcher-cell')).toHaveLength(40);
     fireEvent.pointerCancel(window, { pointerId: 1 });
     await waitFor(() => expect(grid).not.toHaveClass('is-dragging'));
+  });
+
+  it('the wells go out only on the pages in reach of the finger (0.9.28, G2 tracing)', async () => {
+    const page = (id: string, label: string) => ({
+      id,
+      label,
+      kind: 'widgets' as const,
+      placements: { tablet: { [`test_tile_${id}`]: { x: 0, y: 0, w: 2, h: 2 } } },
+    });
+    await renderLauncher({
+      ...layout,
+      pages: [
+        layout.pages[0],
+        page('p2', 'Seconda'),
+        page('p3', 'Terza'),
+        page('p4', 'Quarta'),
+        page('p5', 'Quinta'),
+      ],
+    });
+    act(() => latest?.setEditMode(true));
+    class Pointer extends MouseEvent {
+      pointerId: number;
+      constructor(type: string, options: MouseEventInit & { pointerId?: number } = {}) {
+        super(type, options);
+        this.pointerId = options.pointerId ?? 0;
+      }
+    }
+    vi.stubGlobal('PointerEvent', Pointer);
+    const grids = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('.aca-pager__page')).map((section) =>
+        section.querySelector('.aca-launcher-grid')
+      );
+    const own = within(region('Principale')).getByRole('button', { name: /^Tessera,/ });
+    fireEvent.click(own);
+    fireEvent.pointerDown(own, {
+      pointerId: 1,
+      button: 0,
+      clientX: 10,
+      clientY: 10,
+    });
+    fireEvent.pointerMove(window, { pointerId: 1, clientX: 40, clientY: 50 });
+    await waitFor(() =>
+      expect(region('Principale').querySelector('.aca-launcher-grid')).toHaveClass('is-dragging')
+    );
+    // The cover is at 0, «Principale» at 1: the page in view only (W1, tracing of 2026-10-25), not
+    // its two neighbours as before, and not the ones further on.
+    const all = grids();
+    expect(all).toHaveLength(6);
+    expect(all.filter((grid) => grid?.classList.contains('is-dragging'))).toHaveLength(1);
+    expect(all[1]).toHaveClass('is-dragging');
+    fireEvent.pointerCancel(window, { pointerId: 1 });
+  });
+
+  it('the neighbour takes the drag style when the finger arms its edge, and the page left keeps it to the end (W1)', async () => {
+    const page = (id: string, label: string) => ({
+      id,
+      label,
+      kind: 'widgets' as const,
+      placements: { tablet: { [`test_tile_${id}`]: { x: 0, y: 0, w: 2, h: 2 } } },
+    });
+    await renderLauncher({
+      ...layout,
+      pages: [layout.pages[0], page('p2', 'Seconda'), page('p3', 'Terza')],
+    });
+    act(() => latest?.setEditMode(true));
+    class Pointer extends MouseEvent {
+      pointerId: number;
+      constructor(type: string, options: MouseEventInit & { pointerId?: number } = {}) {
+        super(type, options);
+        this.pointerId = options.pointerId ?? 0;
+      }
+    }
+    vi.stubGlobal('PointerEvent', Pointer);
+    // A pager of 1000 px: the edges are the 72 px at each side.
+    const original = Element.prototype.getBoundingClientRect;
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element
+    ) {
+      return this.classList.contains('aca-pager')
+        ? ({ left: 0, right: 1000, top: 0, bottom: 700, width: 1000, height: 700 } as DOMRect)
+        : original.call(this);
+    });
+    const grids = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('.aca-pager__page')).map((section) =>
+        section.querySelector('.aca-launcher-grid')
+      );
+    const dragging = () => grids().map((grid) => grid?.classList.contains('is-dragging'));
+    const own = within(region('Principale')).getByRole('button', { name: /^Tessera,/ });
+    fireEvent.click(own);
+    fireEvent.pointerDown(own, { pointerId: 1, button: 0, clientX: 300, clientY: 10 });
+    fireEvent.pointerMove(window, { pointerId: 1, clientX: 340, clientY: 50 });
+    await waitFor(() => expect(dragging()).toEqual([false, true, false, false]));
+    // The finger on the right edge: the page at 2 gets the class before it comes ...
+    fireEvent.pointerMove(window, { pointerId: 1, clientX: 990, clientY: 50 });
+    await waitFor(() => expect(dragging()).toEqual([false, true, true, false]));
+    // ... and the finger leaving the edge does not take it off: it keeps it to the end.
+    fireEvent.pointerMove(window, { pointerId: 1, clientX: 500, clientY: 50 });
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(dragging()).toEqual([false, true, true, false]);
+    // Nothing keeps it after the session.
+    fireEvent.pointerCancel(window, { pointerId: 1 });
+    await waitFor(() => expect(dragging()).toEqual([false, false, false, false]));
+  });
+
+  it('a resize draws the drag style on the grid it starts from and on no other (W1)', async () => {
+    await renderLauncher();
+    act(() => latest?.setEditMode(true));
+    class Pointer extends MouseEvent {
+      pointerId: number;
+      constructor(type: string, options: MouseEventInit & { pointerId?: number } = {}) {
+        super(type, options);
+        this.pointerId = options.pointerId ?? 0;
+      }
+    }
+    vi.stubGlobal('PointerEvent', Pointer);
+    const grids = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('.aca-pager__page')).map((section) =>
+        section.querySelector('.aca-launcher-grid')
+      );
+    const widget = region('Principale').querySelector<HTMLElement>('[data-widget-id]')!;
+    fireEvent.click(within(region('Principale')).getByRole('button', { name: /^Tessera,/ }));
+    const side = widget.querySelector<HTMLElement>('[data-resize-side="e"]')!;
+    fireEvent.pointerDown(side, { pointerId: 2, button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { pointerId: 2, clientX: 140, clientY: 100 });
+    await waitFor(() => expect(widget).toHaveClass('is-resizing'));
+    const marked = grids().filter((grid) => grid?.classList.contains('is-dragging'));
+    expect(marked).toHaveLength(1);
+    expect(marked[0]).toBe(region('Principale').querySelector('.aca-launcher-grid'));
+    fireEvent.pointerUp(window, { pointerId: 2, clientX: 140, clientY: 100 });
+    await waitFor(() => expect(grids().some((grid) => grid?.classList.contains('is-dragging'))).toBe(false));
   });
 });

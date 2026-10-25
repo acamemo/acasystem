@@ -1,0 +1,15 @@
+/* Still picture of the plan (SVG), shared by the launcher page and the house screen. */
+@layer components {
+  .c3d-plan {
+    position: absolute;
+    inset: var(--aca-space-4, 1rem);
+    inline-size: calc(100% - 2 * var(--aca-space-4, 1rem));
+    block-size: calc(100% - 2 * var(--aca-space-4, 1rem));
+  }
+  .c3d-plan__room {
+    fill: color-mix(in srgb, var(--aca-blue) 12%, transparent);
+    stroke: var(--aca-ink-muted);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+}

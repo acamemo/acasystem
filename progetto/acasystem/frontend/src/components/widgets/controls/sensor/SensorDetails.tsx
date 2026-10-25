@@ -48,7 +48,12 @@ export function SensorDetails({ id, settings }: WidgetDetailsProps) {
             pending={controls.actionPending || controls.optionPending || controls.numberPending}
           />
           {model.isToggleDomain && (
-            <EntityToggle controls={controls} name={name} compact={false} describedBy={feedbackId} />
+            <EntityToggle
+              controls={controls}
+              name={name}
+              compact={false}
+              describedBy={feedbackId}
+            />
           )}
         </div>
         {model.isUnavailable && (

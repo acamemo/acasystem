@@ -9,7 +9,7 @@ const wrapper = ({ children }: { children?: ReactNode }) => <PageProvider>{child
 describe('sensor card instance persistence', () => {
   beforeEach(() => localStorage.clear());
 
-  it('preserves independent names, icons, actions and visibility through a profile roundtrip', async () => {
+  it('preserves independent names, icons and actions through a profile roundtrip', async () => {
     const cardIds = ['scene.night', 'entity_card_first', 'entity_card_second'];
     const pagesConfig = { header: [], pages: ['home'], home: cardIds };
     localStorage.setItem('tunet_pages_config', JSON.stringify(pagesConfig));
@@ -34,7 +34,6 @@ describe('sensor card instance persistence', () => {
       first.result.current.saveCustomName('entity_card_first', 'Bedtime');
       first.result.current.saveCustomName('entity_card_second', 'Hall');
       first.result.current.saveCustomIcon('entity_card_first', 'Moon');
-      first.result.current.toggleCardVisibility('entity_card_first');
     });
     await waitFor(() =>
       expect(
@@ -67,6 +66,5 @@ describe('sensor card instance persistence', () => {
       entity_card_second: 'Hall',
     });
     expect(restored.result.current.customIcons).toEqual({ entity_card_first: 'Moon' });
-    expect(restored.result.current.hiddenCards).toEqual(['entity_card_first']);
   });
 });

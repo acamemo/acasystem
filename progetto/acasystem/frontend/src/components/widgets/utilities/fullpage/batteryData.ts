@@ -57,7 +57,9 @@ export function isCharging(entity: HassEntity): boolean {
 
 /** Every entity with `device_class: battery` (sensors and binary sensors). */
 export function batteryEntities(entities: EntityMap): HassEntity[] {
-  return Object.values(entities).filter((entity) => stringAttr(entity, 'device_class') === 'battery');
+  return Object.values(entities).filter(
+    (entity) => stringAttr(entity, 'device_class') === 'battery'
+  );
 }
 
 export const batteryName = (entity: HassEntity) =>
@@ -70,12 +72,23 @@ export function batteryArea(entity: HassEntity, areas: Map<string, string>): str
   return stringAttr(entity, 'area_name');
 }
 
-const compareNames = (a: HassEntity, b: HassEntity) => batteryName(a).localeCompare(batteryName(b), 'it');
+const compareNames = (a: HassEntity, b: HassEntity) =>
+  batteryName(a).localeCompare(batteryName(b), 'it');
 
 /** Filter, search and sort with the legacy rules (lowest level first by default). */
 export function arrangeBatteries(
   list: HassEntity[],
-  { filter, search, sort, areaOf }: { filter: BatteryFilter; search: string; sort: BatterySort; areaOf: (entity: HassEntity) => string | null }
+  {
+    filter,
+    search,
+    sort,
+    areaOf,
+  }: {
+    filter: BatteryFilter;
+    search: string;
+    sort: BatterySort;
+    areaOf: (entity: HassEntity) => string | null;
+  }
 ): HassEntity[] {
   let result = filter === 'all' ? list : list.filter((entity) => batteryStatus(entity) === filter);
   const term = search.trim().toLowerCase();

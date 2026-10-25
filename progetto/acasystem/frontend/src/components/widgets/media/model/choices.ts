@@ -89,18 +89,36 @@ export function normalizeChoice(item: unknown, fallbackType: string): MediaChoic
   if (typeof item === 'string') {
     const value = item.trim();
     if (!value) return null;
-    return { id: value, label: value, type: fallbackType, source: inferSourceFromId(value), image: null };
+    return {
+      id: value,
+      label: value,
+      type: fallbackType,
+      source: inferSourceFromId(value),
+      image: null,
+    };
   }
   if (!isRecord(item)) return null;
-  const idValue = [item.media_content_id, item.id, item.uri, item.url, item.entity_id, item.value].find(
-    Boolean
-  );
+  const idValue = [
+    item.media_content_id,
+    item.id,
+    item.uri,
+    item.url,
+    item.entity_id,
+    item.value,
+  ].find(Boolean);
   if (typeof idValue !== 'string') return null;
   const label = firstText(item, ['title', 'name', 'friendly_name', 'label']) || idValue;
   const type = firstText(item, ['media_content_type', 'type']) || fallbackType;
   const source =
-    firstText(item, ['provider', 'source', 'app_name', 'media_source', 'integration', 'library_name', 'domain']) ||
-    inferSourceFromId(idValue);
+    firstText(item, [
+      'provider',
+      'source',
+      'app_name',
+      'media_source',
+      'integration',
+      'library_name',
+      'domain',
+    ]) || inferSourceFromId(idValue);
   const image =
     firstText(item, [
       'thumbnail',
@@ -135,7 +153,8 @@ export function isMusicContent(node: unknown): boolean {
   const type = firstText(node, ['media_content_type', 'media_class', 'type']).toLowerCase();
   const id = firstText(node, ['media_content_id', 'id', 'uri']).toLowerCase();
   const title = firstText(node, ['title', 'name']).toLowerCase();
-  const browsableContainer = node.can_expand === true && ['', 'app', 'directory', 'folder'].includes(type);
+  const browsableContainer =
+    node.can_expand === true && ['', 'app', 'directory', 'folder'].includes(type);
   if (BLOCKED_MEDIA_TYPES.has(type) && !browsableContainer) return false;
   if (BLOCKED_ID_PATTERNS.some((pattern) => id.includes(pattern))) return false;
   if (BLOCKED_TITLE_WORDS.some((word) => title.includes(word))) return false;
@@ -143,10 +162,7 @@ export function isMusicContent(node: unknown): boolean {
 }
 
 const normalizeBrowseText = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+  value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function nodeMatches(node: BrowseNode, terms: readonly string[]): boolean {
   const haystack = normalizeBrowseText(
@@ -215,7 +231,10 @@ export async function browseMediaChoices(
   const addPlayable = (node: BrowseNode, bucket: ChoiceBucket, sourceHint: string) => {
     if (node.can_play !== true) return;
     const fallbackType = bucket === 'playlists' ? 'playlist' : 'music';
-    const normalized = normalizeChoices([{ ...node, source: text(node.source) || sourceHint }], fallbackType);
+    const normalized = normalizeChoices(
+      [{ ...node, source: text(node.source) || sourceHint }],
+      fallbackType
+    );
     result[bucket].push(...normalized);
   };
 
@@ -290,6 +309,7 @@ export function filterChoices(list: MediaChoice[], query: string): MediaChoice[]
   const needle = query.trim().toLowerCase();
   if (!needle) return list;
   return list.filter(
-    (choice) => choice.label.toLowerCase().includes(needle) || choice.id.toLowerCase().includes(needle)
+    (choice) =>
+      choice.label.toLowerCase().includes(needle) || choice.id.toLowerCase().includes(needle)
   );
 }

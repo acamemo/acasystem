@@ -10,7 +10,14 @@ import {
   toggleClimateFavoriteMode,
 } from '@/utils/climateFavorites';
 import { EntitySelect } from '../parts/EntityPicker';
-import { ChoiceGroup, FormRow, Notice, SheetSection, ToggleRow } from '../parts/Form';
+import {
+  ChoiceGroup,
+  DeviceScopeNote,
+  FormRow,
+  Notice,
+  SheetSection,
+  ToggleRow,
+} from '../parts/Form';
 import { useDomId } from '../parts/hooks';
 
 type Save = (key: string, value: unknown) => void;
@@ -337,6 +344,7 @@ export function CarSection({
           />
         )}
       </FormRow>
+      <DeviceScopeNote />
       {CAR_FIELDS.map((field) => {
         const suggested = match.options[field.match];
         const value = typeof settings[field.key] === 'string' ? String(settings[field.key]) : null;

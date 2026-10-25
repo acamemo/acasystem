@@ -1,0 +1,19 @@
+/*
+ * Cover cards as widgets (REP-20261007-030): the card fills its cell; dial, day number and
+ * temperature size on the shorter side of the cell (a size container), as they did on the
+ * shorter side of the cover row.
+ */
+@layer components {
+  .aca-cover-widget {
+    container: aca-cover-widget / size;
+    display: grid;
+    width: 100%;
+    height: 100%;
+  }
+  .aca-cover-widget > .aca-cover-card.aca-m {
+    --aca-cover-side: min(100cqw, 100cqh);
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+}

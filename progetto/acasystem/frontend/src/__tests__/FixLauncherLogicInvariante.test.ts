@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { DeviceClass, LauncherLayout, LauncherPage, WidgetSizes } from '@/@types/launcher';
 import { DEFAULT_GRIDS } from '@/utils/launcher/deviceClass';
 import { packItems } from '@/utils/launcher/grid';
-import { ensureDeviceClass, type LayoutContext } from '@/utils/launcher/layout';
+import { ensureDeviceClass, pageClass, type LayoutContext } from '@/utils/launcher/layout';
 
 const SIZES: Record<string, WidgetSizes> = {
   s: { min: { w: 1, h: 1 }, max: { w: 2, h: 2 }, default: { w: 1, h: 1 } },
@@ -15,10 +15,11 @@ const SIZES: Record<string, WidgetSizes> = {
   l: { min: { w: 2, h: 1 }, max: { w: 4, h: 2 }, default: { w: 2, h: 2 } },
 };
 const sizeOf = (id: string) => SIZES[id[0]] ?? SIZES.l;
-const ctx = (deviceClass: DeviceClass): LayoutContext => ({
+const ctx = (deviceClass: DeviceClass, viewportWidth?: number): LayoutContext => ({
   deviceClass,
   grids: DEFAULT_GRIDS,
   sizesOf: (id) => sizeOf(id),
+  viewportWidth,
 });
 
 function rng(seed: number) {
@@ -50,15 +51,20 @@ function randomLayout(seed: number): LauncherLayout {
 const family = (layout: LauncherLayout, root: string) =>
   layout.pages.filter((page) => (page.continuationOf ?? page.id) === root);
 
-function lost(layout: LauncherLayout, deviceClass: DeviceClass) {
+/** Widgets of the tablet missing from their family on that screen, and widgets on two of its pages. */
+function lost(layout: LauncherLayout, deviceClass: DeviceClass, viewportWidth?: number) {
   const missing: string[] = [];
   for (const root of layout.pages.filter((page) => !page.continuationOf)) {
     const members = family(layout, root.id);
+    // The key the family shows on that screen (phoneLandscape@8x2 on a landscape phone).
+    const key = pageClass(layout, root, ctx(deviceClass, viewportWidth));
     const inTablet = new Set(members.flatMap((page) => Object.keys(page.placements.tablet ?? {})));
-    const inClass = new Set(
-      members.flatMap((page) => Object.keys(page.placements[deviceClass] ?? {}))
-    );
+    const shown = members.flatMap((page) => Object.keys(page.placements[key] ?? {}));
+    const inClass = new Set(shown);
     for (const id of inTablet) if (!inClass.has(id)) missing.push(`${root.id}:${id}`);
+    for (const id of shown.filter((item, index) => shown.indexOf(item) !== index)) {
+      missing.push(`${root.id}:${id} due volte`);
+    }
   }
   return missing;
 }
@@ -73,6 +79,24 @@ describe('avversario: invariante di appartenenza tra classi', () => {
         const missing = lost(layout, deviceClass);
         if (missing.length) failures.push(`seme ${seed} ${deviceClass}: ${missing.join(', ')}`);
       }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('nessun widget perso né doppio dal 6×2 storico all’8×2 del Lenovo (200 layout casuali)', () => {
+    // The landscape phone arranged first as by the earlier build, on 6×2 with its continuations
+    // (a narrow landscape screen still shows it); then the Lenovo seeds its 8×2 from it (E11).
+    const failures: string[] = [];
+    for (let seed = 1; seed <= 200; seed++) {
+      let layout = ensureDeviceClass(randomLayout(seed), ctx('tablet'));
+      layout = ensureDeviceClass(layout, ctx('phoneLandscape', 640));
+      const before = layout.pages.length;
+      const narrow = lost(layout, 'phoneLandscape', 640);
+      if (narrow.length) failures.push(`seme ${seed} 6×2: ${narrow.join(', ')}`);
+      layout = ensureDeviceClass(layout, ctx('phoneLandscape', 1024));
+      const wide = lost(layout, 'phoneLandscape', 1024);
+      if (wide.length) failures.push(`seme ${seed} 8×2: ${wide.join(', ')}`);
+      if (layout.pages.length !== before) failures.push(`seme ${seed}: pagine nuove`);
     }
     expect(failures).toEqual([]);
   });

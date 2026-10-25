@@ -69,10 +69,22 @@ export function NordpoolWidget({ id, settings, size, editMode }: WidgetProps) {
 
   if (!runtime.entitiesLoaded) return card(<CardSkeleton label={`Caricamento di ${name}…`} />);
   if (!config.nordpoolId) {
-    return card(<CardMessage icon="energy" title="Scegli il sensore dei prezzi" detail="Dalle impostazioni del widget" />);
+    return card(
+      <CardMessage
+        icon="energy"
+        title="Scegli il sensore dei prezzi"
+        detail="Dalle impostazioni del widget"
+      />
+    );
   }
   if (!entity) {
-    return card(<CardMessage icon="warning" title="Sensore dei prezzi non trovato" detail={config.nordpoolId} />);
+    return card(
+      <CardMessage
+        icon="warning"
+        title="Sensore dei prezzi non trovato"
+        detail={config.nordpoolId}
+      />
+    );
   }
 
   const series = priceSeries(entity, now);
@@ -81,7 +93,10 @@ export function NordpoolWidget({ id, settings, size, editMode }: WidgetProps) {
   const level = priceLevel(series.current, series.stats?.avg);
   const priceText = formatNumber(series.current, config.decimals);
   const levelChip = !unavailable && series.stats && (
-    <Chip icon={levelIcon[level]} tone={level === 'high' || level === 'veryHigh' ? 'active' : 'neutral'}>
+    <Chip
+      icon={levelIcon[level]}
+      tone={level === 'high' || level === 'veryHigh' ? 'active' : 'neutral'}
+    >
       {PRICE_LEVEL_LABEL[level]}
     </Chip>
   );
@@ -95,9 +110,7 @@ export function NordpoolWidget({ id, settings, size, editMode }: WidgetProps) {
           <Amount value={priceText} unit={unavailable ? null : unit} size="md" />
         </div>
         {size.w >= 3 && <div className="utility-hide-narrow">{levelChip}</div>}
-        {size.w < 3 && !unavailable && (
-          <span className="sr-only">{PRICE_LEVEL_LABEL[level]}</span>
-        )}
+        {size.w < 3 && !unavailable && <span className="sr-only">{PRICE_LEVEL_LABEL[level]}</span>}
       </>
     );
   }
@@ -130,7 +143,11 @@ export function NordpoolWidget({ id, settings, size, editMode }: WidgetProps) {
       )}
       {series.points.length > 0 && (
         <div className="utility-spark utility-hide-short">
-          <PriceBars data={series.points} currentIndex={series.currentIndex} variant={config.graphStyle} />
+          <PriceBars
+            data={series.points}
+            currentIndex={series.currentIndex}
+            variant={config.graphStyle}
+          />
         </div>
       )}
     </>

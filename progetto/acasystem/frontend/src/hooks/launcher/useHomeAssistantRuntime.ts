@@ -21,7 +21,15 @@ export function useHomeAssistantRuntime({
   editMode,
   now,
 }: HomeAssistantRuntimeOptions): WidgetRuntime {
-  const { entities, entitiesLoaded, conn, activeUrl, haConfig } = useHomeAssistant();
+  const {
+    entities,
+    entitiesLoaded,
+    conn: retainedConn,
+    connected,
+    activeUrl,
+    haConfig,
+  } = useHomeAssistant();
+  const conn = connected && retainedConn?.connected !== false ? retainedConn : null;
   const { cardSettings, saveCardSetting, customNames, customIcons } = usePages();
   const { callService, getEntityImageUrl } = useEntityHelpers({
     entities,

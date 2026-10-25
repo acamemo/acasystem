@@ -2,23 +2,41 @@ name: aca-tunet
 
 services:
   tunet:
-    image: aca-system:0.5
+    # The release is ACASYSTEM_VERSION in progetto/.env (REP-20261012-004): image tag, the
+    # version of /api/health and the one shown at the bottom of Sistema.
+    image: aca-system:${ACASYSTEM_VERSION:?set ACASYSTEM_VERSION in progetto/.env}
     build:
       context: ./acasystem
+      args:
+        ACASYSTEM_VERSION: ${ACASYSTEM_VERSION}
     ports:
-      - '127.0.0.1:3002:3002'
+      - "127.0.0.1:3002:3002"
+      # Wi-Fi address of this PC: tablets on the same network open http://192.168.1.27:3002
+      # (REP-20261007-011; it follows the PC's network: 172.20.10.6, 10.165.121.134, 192.168.1.11, 192.168.1.42, 192.168.1.7, 192.168.1.17, 192.168.1.7
+      # on 2026-10-08/14). If the PC gets another address, update it here.
+      # 2026-10-15: Wi-Fi observed at 192.168.1.19 (REP-20261015-003); 2026-10-19: back to 192.168.1.7, then 192.168.1.27 (REP-20261019-003). 2026-10-21: Wi-Fi at 172.20.10.6 (phase "banco" of T5, REP-20261020-002), then back to 192.168.1.7 (phase "banco" of T6). 2026-10-21: Wi-Fi at 192.168.1.27 (phase "banco" of 0.9.23). 2026-10-23: Wi-Fi at 192.168.1.7 (phase "banco" of 0.9.27, REP-20261022-002, step Z).
+      - "192.168.1.7:3002:3002"
     extra_hosts:
-      - 'host.docker.internal:host-gateway'
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     environment:
+      ACASYSTEM_VERSION: ${ACASYSTEM_VERSION}
       NODE_ENV: production
       DATA_DIR: /app/data
       TUNET_INTERNAL_HA_URL: http://host.docker.internal:8123
-      TUNET_ENCRYPTION_MODE: 'off'
+      TUNET_ENCRYPTION_MODE: "off"
     volumes:
       - tunet-data:/app/data
     healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:3002/api/health']
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:3002/api/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

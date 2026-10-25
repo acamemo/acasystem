@@ -1,55 +1,140 @@
-/* Status bar of the launcher (ADR-0007): on the page background, one line on tablets. */
+/*
+ * Status bar of the launcher (ADR-0007, ADR-0013): in the footer band, on the page background.
+ * Two floating pills at the two ends of the band, the page indicator between them.
+ */
 @layer components {
   /*
-   * Fixed height (REP-20261007-001, L-14/K09): one row of frame controls (44 px) plus the
-   * padding, the same with «Modifica» and with «Fine»; side margin --aca-gutter like the pages.
+   * REP-20261013-002, ADR-0013: absolute inside the area of the band's grid where the indicator
+   * is (appShell.css places it), so it sizes no column and the band keeps its height in every
+   * state. The root takes no pointer; its pills do. One row of frame controls (44 px) plus the
+   * padding, like the pills of the edit bar.
    */
   .aca-status-bar {
+    /* One rhythm for the bar (REP-20261007-016): the items of a pill share the same gap. */
+    --aca-bar-gap: var(--aca-space-3);
+    position: absolute;
+    inset: 0;
     display: grid;
-    flex: none;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: var(--aca-control-height);
-    grid-template-areas: 'start chips actions';
+    grid-template-columns: auto auto;
     align-items: center;
-    gap: var(--aca-space-1) var(--aca-space-4);
-    padding: var(--aca-space-2) var(--aca-gutter);
+    justify-content: space-between;
+    column-gap: var(--aca-space-4);
+    min-width: 0;
     box-sizing: border-box;
     font-family: var(--aca-font);
+    pointer-events: none;
   }
-
-  .aca-status-bar__start {
-    grid-area: start;
+  /*
+   * Floating pills (REP-20261007-014, REP-20261007-017): raised, detached from the edges of the
+   * screen like the groups of the edit bar. Each takes at most what the indicator leaves it
+   * (--aca-band-side, footerBand.ts); the chips and the connection give way inside it.
+   */
+  .aca-status-bar__pill {
     display: flex;
     align-items: center;
-    gap: var(--aca-space-3);
+    gap: var(--aca-bar-gap);
     min-width: 0;
+    max-width: var(--aca-band-side, none);
+    height: var(--aca-float-height);
+    padding: var(--aca-space-1);
+    box-sizing: border-box;
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow);
+    pointer-events: auto;
+    /* A stable layer: the pills slide in and out, and a layer made at each move cost a raster. */
+    will-change: transform, opacity;
+    transition:
+      transform 360ms var(--aca-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+      opacity 240ms ease-out;
+  }
+  .aca-status-bar__start {
+    /* The clock is text: it gets room before the edge of the pill, the gear sits at the other. */
+    padding-inline-start: var(--aca-space-4);
+  }
+  .aca-status-bar__end {
+    justify-self: end;
+  }
+  /*
+   * Out of its mode (the cover, edit mode, the view of the pages) the bar waits below the screen
+   * and rises on the other pages (REP-20261007-015, REP-20261009-004, D1), like the edit bar.
+   */
+  .aca-status-bar--hidden > .aca-status-bar__pill {
+    transform: translateY(calc(100% + var(--aca-space-3) + 0.75rem));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 240ms ease-in,
+      opacity 200ms ease-in;
+  }
+  /*
+   * Swapping with the edit bar (REP-20261013-002): the bar that comes waits for the one that
+   * goes (180 ms) to be gone, so «Modifica» and «Fine» are never on screen together (the wait of
+   * the edit bar is in edit.css). Outside edit mode that is also the wait of a bar that comes
+   * back from the cover, a pause that does no harm.
+   */
+  .aca-shell:not(.is-editing) .aca-status-bar:not(.aca-status-bar--hidden) > .aca-status-bar__pill {
+    transition-delay: 180ms;
+  }
+  /* Reduced motion: a fade of 120 ms, the bar that comes after the one that goes. */
+  @media (prefers-reduced-motion: reduce) {
+    .aca-status-bar__pill,
+    .aca-status-bar--hidden > .aca-status-bar__pill {
+      transform: none;
+      transition: opacity 120ms linear;
+    }
+    .aca-shell:not(.is-editing)
+      .aca-status-bar:not(.aca-status-bar--hidden)
+      > .aca-status-bar__pill {
+      transform: none;
+      transition: opacity 120ms linear 120ms;
+    }
+  }
+
+  /* Buttons inside a pill: no raised edge, like the buttons of the edit bar. */
+  .aca-status-bar__pill .aca-frame-pill.aca-m:not(:active, .is-active),
+  .aca-status-bar__pill .aca-frame-pill.aca-m:not(:active, .is-active) > .aca-m__outer,
+  .aca-status-bar__pill
+    .aca-frame-pill.aca-m:not(:active, .is-active)
+    > .aca-m__outer
+    > .aca-m__face {
+    box-shadow: none;
+  }
+
+  .aca-status-bar__icon.aca-m:not(:active, .is-active) > .aca-m__outer,
+  .aca-status-bar__icon.aca-m:not(:active, .is-active) > .aca-m__outer > .aca-m__face {
+    box-shadow: none;
   }
 
   .aca-status-bar__time {
-    font-weight: var(--aca-weight-medium);
+    flex: none;
     white-space: nowrap;
   }
-  /* On the cover: the clock keeps its place, so the chips do not jump at every swipe. */
+  /* On the cover: the clock keeps its place, so the connection and the gear do not move. */
   .aca-status-bar__time--reserved {
     visibility: hidden;
   }
 
   .aca-status-bar__chips {
-    grid-area: chips;
     display: flex;
+    flex: 0 1 auto;
     align-items: center;
     gap: var(--aca-space-2);
     min-width: 0;
-    /* Room for the soft shadows of the chips inside the scroll area, without moving them:
-       the first chip starts on the column edge (on phones, under the clock). */
-    margin: calc(-1 * var(--aca-space-2)) calc(-1 * var(--aca-space-3));
-    padding: var(--aca-space-3);
+    height: var(--aca-control-height);
+    /* Room for the soft shadows of the chips inside the scroll area. */
+    padding: var(--aca-space-1) var(--aca-space-2);
+    box-sizing: border-box;
     list-style: none;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
   }
   .aca-status-bar__chips::-webkit-scrollbar {
+    display: none;
+  }
+  /* No chips: the list stays mounted (the band does not see them come) but takes no room. */
+  .aca-status-bar__chips[hidden] {
     display: none;
   }
   /* Chips out of view (K25): the side that hides them fades, so the row reads as scrollable. */
@@ -81,13 +166,79 @@
     flex: none;
   }
 
-  .aca-status-bar__actions {
-    grid-area: actions;
-    display: flex;
-    align-items: center;
-    gap: var(--aca-space-3);
+  /* «Modifica»: the pencil with its name, like «Pagine» of the edit bar. */
+  .aca-status-bar__edit {
+    flex: none;
+  }
+  .aca-status-bar__edit-content {
+    gap: var(--aca-space-2);
+  }
+  .aca-status-bar__edit-text {
+    white-space: nowrap;
   }
 
+  /*
+   * Densities, chosen by the footer band on the room the indicator leaves (data-band-density on
+   * the bar, footerBand.ts), from the richest to the leanest:
+   * - text: everything written;
+   * - short: «Sincronizzato» for assistive technology only; the words of the other phases stay;
+   * - icons: «Modifica» is the pencil alone, a round 44 px button named by aria-label and title.
+   * Below 40rem the band has two rows and the bar the second one, with little room: the leanest
+   * look holds there at any density.
+   */
+  .aca-status-bar:is([data-band-density='short'], [data-band-density='icons'])
+    .aca-connection--connected
+    .aca-connection__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .aca-status-bar[data-band-density='icons'] .aca-status-bar__edit-text {
+    display: none;
+  }
+  .aca-status-bar[data-band-density='icons'] .aca-status-bar__edit.aca-m--pill {
+    --aca-pad: 0;
+  }
+  .aca-status-bar[data-band-density='icons'] .aca-status-bar__edit > .aca-m__outer > .aca-m__face {
+    width: var(--aca-control-height);
+    height: var(--aca-control-height);
+  }
+  .aca-status-bar[data-band-density='icons']
+    .aca-status-bar__edit
+    > .aca-m__outer
+    > .aca-m__face
+    > .aca-m__content {
+    height: 100%;
+  }
+
+  /*
+   * While the band measures the bar (data-band-measure, before paint): every pill at its natural
+   * width, without the chips, which take what is left. The word of an unusual connection phase
+   * counts at a few letters (3em): it gives way to an ellipsis before «Modifica» or the stops of
+   * the indicator change (REP-20261013-002, review of stage 3, round 2).
+   */
+  [data-band-measure] .aca-status-bar__pill {
+    width: max-content;
+    max-width: none;
+  }
+  [data-band-measure]
+    .aca-status-bar
+    .aca-connection:not(.aca-connection--connected)
+    .aca-connection__label {
+    max-width: 3em;
+  }
+  [data-band-measure] .aca-status-bar__chips {
+    flex: none;
+    width: 0;
+    padding: 0;
+  }
+
+  /* Bar buttons (.aca-bar-button) are a kit component since REP-20261007-024 (components.css). */
   .aca-status-bar__system {
     /* Updates are information, not an error (K20): blue dot. */
     --aca-badge: var(--aca-blue);
@@ -100,22 +251,28 @@
     right: 0.2em;
   }
 
-  /* «Fine» at the 44 px of the round buttons (same rule as .aca-frame-pill in edit.css). */
-  .aca-status-bar__done-button.aca-m--pill {
-    --aca-pad: calc((var(--aca-control-height) - 1.25em) / 2) 1.25em;
-  }
-  .aca-status-bar__done {
-    gap: var(--aca-space-2);
-    min-height: 1.25em;
-  }
-
   /* Connection: LED + icon + text. */
   .aca-connection {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: var(--aca-bar-gap, var(--aca-space-3));
     min-width: 0;
     white-space: nowrap;
+  }
+  /*
+   * In the bar the word gives way when the pill is short of room («Sessione sc…»). An unusual
+   * phase keeps a few letters (3em, «Ric…», «Ses…»: the word carries the state besides the colour
+   * of the LED, WCAG 1.4.1), not by a minimum width, which would draw it under the gear when the
+   * pill is short: the band measures the pill with those letters and gives it that room
+   * (footerBand.ts), and a pill that still gets less clips the word inside itself
+   * (REP-20261013-002, review of stage 3, round 2).
+   */
+  .aca-status-bar .aca-connection__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* One line: the type's «pretty» wrap would otherwise break it before the ellipsis. */
+    text-wrap: nowrap;
   }
   .aca-connection__led {
     flex: none;
@@ -125,15 +282,9 @@
     background: var(--aca-ink-muted);
     box-shadow: inset 0 0.05rem 0.1rem rgb(5 5 5 / 30%);
   }
-  .aca-connection__icon {
-    color: var(--aca-ink-muted);
-  }
   .aca-connection--connected .aca-connection__led {
     background: var(--aca-blue);
     box-shadow: 0 0 0.35rem var(--aca-blue);
-  }
-  .aca-connection--connected .aca-connection__icon {
-    color: var(--aca-blue-ink-icon);
   }
   .aca-connection--connecting .aca-connection__led,
   .aca-connection--reconnecting .aca-connection__led {
@@ -143,15 +294,22 @@
     background: var(--aca-danger);
     box-shadow: 0 0 0.35rem var(--aca-danger);
   }
-  .aca-connection--error .aca-connection__icon {
-    color: var(--aca-danger-ink-icon);
-  }
 
   /* Chips: compact pills of the kit, with the flat lift (they sit in a scrolling row). */
   .aca-m.aca-chip {
     --aca-pad: 0.45em 0.95em;
     --aca-m-socket: var(--aca-socket-shadow-flat);
     flex: none;
+  }
+  /*
+   * A chip that opens details is a control: its touch target reaches 44 px (REP-20261013-002),
+   * with an invisible area inside the 44 px row of the chips; the chip itself keeps its size.
+   */
+  button.aca-m.aca-chip::after {
+    content: '';
+    position: absolute;
+    inset-block: calc((100% - var(--aca-control-height)) / 2);
+    inset-inline: 0;
   }
   .aca-chip--static {
     display: inline-block;
@@ -192,13 +350,56 @@
     text-align: center;
   }
 
-  /* Notice under the bar while Home Assistant is unreachable. */
+  /* Notice at the top of the screen while Home Assistant is unreachable. */
   .aca-connection-notice {
-    padding: 0 var(--aca-gutter) var(--aca-space-2);
+    /* Above the pager, which reaches under it; only the card takes the pointer. */
+    position: relative;
+    z-index: var(--aca-z-sticky);
+    /* The status bar left the top (ADR-0013): the notice has the margin the bar had. */
+    padding: var(--aca-space-3) var(--aca-gutter) var(--aca-space-2);
+    pointer-events: none;
+    /* In by a fade and a small scale, no slide (the user's answer of 2026-10-23). */
+    transform-origin: top center;
+    animation: aca-notice-in var(--aca-dur-enter-sm, 240ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-connection-notice.is-leaving {
+    animation: aca-notice-out var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in)
+      forwards;
+  }
+  @keyframes aca-notice-in {
+    from {
+      opacity: 0;
+      scale: var(--aca-scale-enter, 0.92);
+    }
+  }
+  @keyframes aca-notice-out {
+    to {
+      opacity: 0;
+      scale: var(--aca-scale-enter, 0.92);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-connection-notice {
+      animation: aca-notice-fade-in var(--aca-dur-reduced, 120ms) linear;
+    }
+    .aca-connection-notice.is-leaving {
+      animation: aca-notice-fade-out var(--aca-dur-reduced, 120ms) linear forwards;
+    }
+    @keyframes aca-notice-fade-in {
+      from {
+        opacity: 0;
+      }
+    }
+    @keyframes aca-notice-fade-out {
+      to {
+        opacity: 0;
+      }
+    }
   }
   .aca-connection-notice > .aca-m.aca-m--card {
     --aca-pad: 0.75em 1em;
     --aca-radius: var(--aca-radius-rounded);
+    pointer-events: auto;
   }
   .aca-connection-notice__content {
     display: flex;
@@ -216,18 +417,55 @@
     min-width: 0;
   }
 
-  /* Narrow screens: chips on their own line under the clock and the buttons. */
+  /*
+   * Narrow screens: the band has two rows and the bar the second one. The clock, the LED and
+   * the gear keep their room; the chips take what is left of the right pill, which keeps the
+   * round «Modifica» (the leanest look of the densities above, at any density).
+   */
   @media (max-width: 639px) {
     .aca-status-bar {
-      grid-template-columns: minmax(0, 1fr) auto;
-      grid-template-rows: var(--aca-control-height) auto;
-      grid-template-areas:
-        'start actions'
-        'chips chips';
-      gap: var(--aca-space-1) var(--aca-space-3);
+      /*
+       * The right pill keeps what it needs at least (REP-20261013-002, review of stage 3): its
+       * padding, the chip row at its padding, the gap and the 44 px button. Without it the word
+       * of an unusual connection phase takes the room and «Modifica» is drawn out of its pill.
+       * Not min-content: a row of chips that scrolls counts for all its chips.
+       */
+      grid-template-columns:
+        auto
+        minmax(
+          calc(
+            var(--aca-control-height) + 2 * var(--aca-space-1) + var(--aca-bar-gap) + 2 *
+              var(--aca-space-2)
+          ),
+          1fr
+        );
     }
-    .aca-status-bar__chips:empty {
+    /* The chips scroll inside what is left of the row, they do not push the pill out of it. */
+    .aca-status-bar__end {
+      max-width: 100%;
+    }
+    .aca-status-bar .aca-connection--connected .aca-connection__label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .aca-status-bar__edit-text {
       display: none;
+    }
+    .aca-status-bar__edit.aca-m--pill {
+      --aca-pad: 0;
+    }
+    .aca-status-bar__edit > .aca-m__outer > .aca-m__face {
+      width: var(--aca-control-height);
+      height: var(--aca-control-height);
+    }
+    .aca-status-bar__edit > .aca-m__outer > .aca-m__face > .aca-m__content {
+      height: 100%;
     }
     .aca-chip__detail {
       max-width: 8rem;
@@ -237,6 +475,14 @@
   @media (prefers-reduced-motion: reduce) {
     .aca-connection__led {
       animation: none !important;
+    }
+  }
+}
+
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .aca-bar-button {
+      transition-duration: 0ms !important;
     }
   }
 }

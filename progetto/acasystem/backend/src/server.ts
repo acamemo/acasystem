@@ -2,7 +2,7 @@ import express from 'express';
 import type { Express } from 'express';
 import { fileURLToPath } from 'node:url';
 import { isProductionEnvironment, readPort } from './config/env.ts';
-import { DEFAULT_FRONTEND_DIST_PATH } from './config/paths.ts';
+import { DEFAULT_CASA3D_DIST_PATH, DEFAULT_FRONTEND_DIST_PATH } from './config/paths.ts';
 import { JSON_BODY_LIMIT } from './config/security.ts';
 import { resolveAppVersion } from './config/version.ts';
 import { createHealthController } from './controllers/healthController.ts';
@@ -12,6 +12,8 @@ import { createApiRateLimiter, createAssetFallbackRateLimiter } from './middlewa
 import { securityHeaders } from './middlewares/securityHeaders.ts';
 import { getDatabase } from './models/database.ts';
 import type { SqliteDatabase } from './models/database.ts';
+import { registerCasa3dRoutes } from './routes/casa3d.ts';
+import { createCasa3dApiRouter } from './routes/casa3dApi.ts';
 import { registerFrontendRoutes } from './routes/frontend.ts';
 import {
   attachHomeAssistantWebSocketProxy,
@@ -30,6 +32,8 @@ export interface CreateAppOptions {
   appVersion?: string;
   /** Build del frontend; predefinita `frontend/dist` del monorepo. */
   distPath?: string;
+  /** Build della Casa 3D, servita sotto /casa3d/; predefinita `casa3d/dist` del monorepo. */
+  casa3dPath?: string;
   /** Serve la build del frontend; predefinito NODE_ENV === 'production'. */
   isProduction?: boolean;
   /** Database SQLite; predefinito `<DATA_DIR>/tunet.db`, aperto alla creazione dell'app. */
@@ -39,6 +43,7 @@ export interface CreateAppOptions {
 export const createApp = ({
   appVersion = resolveAppVersion(),
   distPath = DEFAULT_FRONTEND_DIST_PATH,
+  casa3dPath = DEFAULT_CASA3D_DIST_PATH,
   isProduction = isProductionEnvironment(),
   database = getDatabase(),
 }: CreateAppOptions = {}): Express => {
@@ -66,12 +71,15 @@ export const createApp = ({
   app.use('/api/profiles', homeAssistantAuth, createProfilesRouter(database));
   app.use('/api/icons', createIconsRouter());
   app.use('/api/settings', homeAssistantAuth, createSettingsRouter(database));
+  app.use('/api/casa3d', homeAssistantAuth, createCasa3dApiRouter(database));
 
   // Health check
   app.get('/api/health', createHealthController(appVersion));
 
   // Serve static frontend files in production
   if (isProduction) {
+    // Prima del frontend: sotto /casa3d/ un file mancante è un 404, non il ripiego SPA (ADR-0014, D16)
+    registerCasa3dRoutes(app, casa3dPath);
     registerFrontendRoutes(app, distPath, assetFallbackRateLimiter);
   }
 

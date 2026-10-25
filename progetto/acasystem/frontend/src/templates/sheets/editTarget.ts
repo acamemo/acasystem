@@ -39,7 +39,7 @@ export interface EditTarget {
   canEditStatus: boolean;
 }
 
-const CAR_KEYS = [
+export const CAR_KEYS = [
   'batteryId',
   'rangeId',
   'odometerId',
@@ -86,7 +86,7 @@ const textSetting = (settings: CardSettings, key: string): string | null => {
   return typeof value === 'string' && value ? value : null;
 };
 
-function kindOf(id: string, settings: CardSettings): EditKind {
+export function kindOf(id: string, settings: CardSettings): EditKind {
   const isSensor =
     id.startsWith('entity_card_') ||
     (settings.type === 'sensor' &&

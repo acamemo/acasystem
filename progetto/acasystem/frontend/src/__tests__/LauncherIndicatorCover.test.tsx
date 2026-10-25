@@ -76,26 +76,25 @@ describe('launcher cover', () => {
     expect(weeks[4]).toEqual([26, 27, 28, 29, 30, 31, null]);
   });
 
-  it('shows the calendar with today pressed and the ticking clock', () => {
+  it('shows the clock card and the calendar card, with the ticking time', () => {
     const { container } = render(<CoverPage />);
-    expect(screen.getByText('Ottobre')).toBeInTheDocument();
-    expect(screen.getByText('Martedì')).toBeInTheDocument();
-    expect(screen.getByText('2026')).toBeInTheDocument();
-    const today = container.querySelector('td[aria-current="date"]');
-    expect(today).toHaveTextContent('6');
-    expect(today?.querySelector('.aca-m--well')).not.toBeNull();
-    const headers = screen.getAllByRole('columnheader');
-    expect(headers).toHaveLength(7);
-    expect(headers[0]).toHaveAttribute('abbr', 'Lunedì');
-    expect(headers[0]).toHaveTextContent('L');
-    expect(headers[6]).toHaveAttribute('abbr', 'Domenica');
-    expect(container.querySelector('.aca-tear__time')).toHaveTextContent('14:05:09');
+    // Row of two cards (REP-20261007-010): analog clock + digital time, then the calendar.
+    const cards = container.querySelectorAll('.aca-cover-row > .aca-cover-card');
+    expect(cards).toHaveLength(2);
+    expect(cards[0]?.querySelector('.aca-cover-clock__face')).not.toBeNull();
+    expect(cards[0]?.querySelector('.aca-cover__time')).not.toBeNull();
+    const calendar = cards[1]?.querySelector('time.aca-cover-calendar');
+    expect(calendar).toHaveAttribute('dateTime', '2026-10-06');
+    expect(calendar).toHaveAccessibleName('martedì 6 ottobre 2026');
+    expect(calendar?.querySelector('.aca-cover-calendar__weekday')).toHaveTextContent('Martedì');
+    expect(calendar?.querySelector('.aca-cover-calendar__day')).toHaveTextContent('6');
+    expect(container.querySelector('.aca-cover__time')).toHaveTextContent('14:05:09');
 
     act(() => {
       // The clock ticks just after each second boundary.
       vi.advanceTimersByTime(2100);
     });
-    expect(container.querySelector('.aca-tear__time')).toHaveTextContent('14:05:11');
+    expect(container.querySelector('.aca-cover__time')).toHaveTextContent('14:05:11');
   });
 
   it('stops the cover clock off screen and refreshes immediately when shown', () => {
@@ -111,15 +110,15 @@ describe('launcher cover', () => {
       </PageVisibilityContext>
     );
     expect(vi.getTimerCount()).toBe(0);
-    const hiddenTime = container.querySelector('.aca-tear__time')?.textContent;
+    const hiddenTime = container.querySelector('.aca-cover__time')?.textContent;
     act(() => vi.advanceTimersByTime(5000));
-    expect(container.querySelector('.aca-tear__time')?.textContent).toBe(hiddenTime);
+    expect(container.querySelector('.aca-cover__time')?.textContent).toBe(hiddenTime);
     rerender(
       <PageVisibilityContext value={true}>
         <CoverPage />
       </PageVisibilityContext>
     );
-    expect(container.querySelector('.aca-tear__time')).toHaveTextContent('14:05:14');
+    expect(container.querySelector('.aca-cover__time')).toHaveTextContent('14:05:14');
     expect(vi.getTimerCount()).toBeGreaterThan(0);
   });
 
@@ -133,8 +132,8 @@ describe('launcher cover', () => {
 });
 
 describe('launcher status bar', () => {
-  it('shows clock, connection, chips and the two round buttons', () => {
-    const onToggleEdit = vi.fn();
+  it('shows clock, connection, chips, «Modifica» and Sistema in the two pills of the band', () => {
+    const onEdit = vi.fn();
     const onOpenSystem = vi.fn();
     const onChipPress = vi.fn();
     render(
@@ -167,35 +166,45 @@ describe('launcher status bar', () => {
         ]}
         isChipInteractive={(chip) => chip.kind === 'person'}
         onChipPress={onChipPress}
-        editMode={false}
-        onToggleEdit={onToggleEdit}
+        onEdit={onEdit}
         onOpenSystem={onOpenSystem}
         updateCount={2}
       />
     );
     expect(screen.getByText('07:04')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Collegato');
+    expect(screen.getByRole('status')).toHaveTextContent('Sincronizzato');
+    // REP-20261013-002, ADR-0013: Sistema with the clock and the connection, «Modifica» with
+    // the chips.
+    const start = document.querySelector<HTMLElement>('[data-band-group="start"]')!;
+    const end = document.querySelector<HTMLElement>('[data-band-group="end"]')!;
+    expect(start).toContainElement(screen.getByText('07:04'));
+    expect(start).toContainElement(screen.getByRole('status'));
+    expect(start).toContainElement(
+      screen.getByRole('button', { name: 'Sistema, 2 aggiornamenti disponibili' })
+    );
+    expect(end).toContainElement(screen.getByRole('button', { name: 'Modifica' }));
+    expect(end).toContainElement(screen.getByRole('button', { name: /Mario/ }));
     fireEvent.click(screen.getByRole('button', { name: /Mario/ }));
     expect(onChipPress).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: /Luci accese/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
-    expect(onToggleEdit).toHaveBeenCalled();
+    expect(onEdit).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Sistema, 2 aggiornamenti disponibili' }));
     expect(onOpenSystem).toHaveBeenCalled();
   });
 
-  it('shows «Fine» in edit mode and hides the clock on the cover, keeping its place', () => {
+  it('has no «Fine» (it is in the edit bar) and hides the clock on the cover, keeping its place', () => {
     const { container } = render(
       <StatusBar
         time={null}
         connection={{ phase: 'error', label: 'Non raggiungibile' }}
         chips={[]}
-        editMode
-        onToggleEdit={() => undefined}
+        onEdit={() => undefined}
         onOpenSystem={() => undefined}
       />
     );
-    expect(screen.getByRole('button', { name: 'Fine' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fine' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument();
     // REP-20261007-001 (L-14, K22): an invisible, silent placeholder instead of the clock.
     expect(container.querySelector('time')).toBeNull();
     expect(container.querySelector('.aca-status-bar__time--reserved')).toHaveAttribute(

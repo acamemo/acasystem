@@ -10,7 +10,7 @@ interface TableColumn {
   name: string;
 }
 
-/** Schema di Tunet, invariato: stesse tabelle, indici e colonne aggiunte nel tempo. */
+/** Schema di Tunet (tabelle, indici e colonne aggiunte nel tempo) più le tabelle `casa3d_*` di Acasystem. */
 const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS profiles (
     id TEXT PRIMARY KEY,
@@ -47,6 +47,46 @@ const SCHEMA_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_current_settings_history_lookup
     ON current_settings_history(ha_user_id, device_id, revision DESC);
+
+  -- Casa 3D (ADR-0014, T6): il piano della casa, le immagini e i punti di ripristino.
+  -- home_id è 'default': una casa per installazione (più case per condominio: REQ-17, non deciso).
+  CREATE TABLE IF NOT EXISTS casa3d_building (
+    home_id TEXT PRIMARY KEY,
+    revision INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    data_enc TEXT,
+    updated_by TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS casa3d_image (
+    home_id TEXT NOT NULL,
+    image_id TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    width INTEGER NOT NULL,
+    height INTEGER NOT NULL,
+    bytes BLOB NOT NULL,
+    size INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    updated_by TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (home_id, image_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS casa3d_history (
+    id TEXT PRIMARY KEY,
+    home_id TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    saved_at INTEGER NOT NULL,
+    floors INTEGER NOT NULL,
+    rooms INTEGER NOT NULL,
+    furniture INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    data_enc TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_casa3d_history_lookup
+    ON casa3d_history(home_id, saved_at DESC);
 `;
 
 /** Colonne aggiunte dopo la prima versione dello schema: tabella, colonna, definizione. */

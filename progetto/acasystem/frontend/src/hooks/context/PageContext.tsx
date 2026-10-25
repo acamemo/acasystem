@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type {
   CardSettingsMap,
   HeaderSettings,
@@ -8,8 +17,23 @@ import type {
   PageSettingsMap,
   SectionSpacing,
   StatusPillConfig,
+  WidgetMemoryNotice,
 } from '@/@types/dashboard';
 import type { LauncherLayout } from '@/@types/launcher';
+import {
+  WIDGET_MEMORY_STORAGE_KEY,
+  adoptDeviceConfig,
+  isBindingSetting,
+  isStructuralSetting,
+  pageWidgetIds,
+  propagateDeviceScoped,
+  rememberWidgets,
+  touchWidget,
+  widgetTypeOf,
+  type WidgetMemory,
+  type WidgetState,
+} from '@/utils/launcher/deviceMemory';
+import { loadWidgetMemory, migrateStoredWidgetState } from '@/utils/launcher/widgetStateStorage';
 import { DEFAULT_PAGES_CONFIG } from '@/utils/config/defaults';
 import {
   DEFAULT_STATUS_GROUP_PRESET,
@@ -27,7 +51,6 @@ import {
   sanitizePageSettingsMap,
   sanitizePagesConfig,
   sanitizeSectionSpacing,
-  sanitizeStringList,
   sanitizeStringMap,
 } from '@/validators/dashboardConfig';
 import { sanitizeLauncherLayout } from '@/validators/launcher';
@@ -305,11 +328,15 @@ export const usePages = (): PageContextValue => {
 };
 
 export const PageProvider = ({ children }: PageProviderProps) => {
+  // ADR-0019: the hidden widgets of an earlier version leave the pages and the settings of
+  // widgets that are gone are tidied, before anything below reads the stored state.
+  useState(() => migrateStoredWidgetState());
   const [pagesConfig, setPagesConfig] = useState<PagesConfig>(loadPagesConfig);
   const [cardSettings, setCardSettings] = useState<CardSettingsMap>(loadCardSettings);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [customIcons, setCustomIcons] = useState<Record<string, string>>({});
-  const [hiddenCards, setHiddenCards] = useState<string[]>([]);
+  const [widgetMemory, setWidgetMemory] = useState<WidgetMemory>(loadWidgetMemory);
+  const [widgetMemoryNotice, setWidgetMemoryNotice] = useState<WidgetMemoryNotice | null>(null);
   const [pageSettings, setPageSettings] = useState<PageSettingsMap>({});
   const [gridColumns, setGridColumns] = useState(4);
   const [dynamicGridColumns, setDynamicGridColumns] = useState(true);
@@ -327,11 +354,6 @@ export const PageProvider = ({ children }: PageProviderProps) => {
 
   // Load remaining configuration from localStorage
   useEffect(() => {
-    const hidden = sanitizeStringList(readJSON('tunet_hidden_cards', null));
-    if (hidden) {
-      setHiddenCards(hidden);
-    }
-
     const names = sanitizeStringMap(readJSON('tunet_custom_names', null));
     if (names) setCustomNames(names);
 
@@ -390,30 +412,69 @@ export const PageProvider = ({ children }: PageProviderProps) => {
     writeJSON('tunet_card_settings', cardSettings);
   }, [cardSettings]);
 
-  const saveCustomName = useCallback((id: string, name: string) => {
-    setCustomNames((prev) => {
-      const newNames = { ...prev, [id]: name };
-      writeJSON('tunet_custom_names', newNames);
-      return newNames;
-    });
+  // ── Memory of the widget configuration per device (ADR-0019) ──
+  /** The state the memory works on, as last committed (read by the callbacks below). */
+  const latest = useRef<WidgetState | null>(null);
+  /** Widgets just linked to a device, waiting for the committed state to copy a configuration. */
+  const pendingAdoptions = useRef(new Map<string, string | null>());
+  const [adoptionTick, setAdoptionTick] = useState(0);
+
+  /** The configuration of a widget was edited now: it decides which copy is the newest. */
+  const touchWidgetConfig = useCallback((widgetId: string) => {
+    setWidgetMemory((prev) => touchWidget(prev, widgetId, Date.now()));
   }, []);
 
-  const saveCustomIcon = useCallback((id: string, iconName: string) => {
-    setCustomIcons((prev) => {
-      const newIcons = { ...prev, [id]: iconName };
-      writeJSON('tunet_custom_icons', newIcons);
-      return newIcons;
-    });
+  /** A widget was linked to a device: once the state is committed it may take a configuration. */
+  const requestWidgetAdoption = useCallback((pageId: string | null, widgetId: string) => {
+    pendingAdoptions.current.set(widgetId, pageId);
+    setAdoptionTick((tick) => tick + 1);
   }, []);
 
-  const saveCardSetting = useCallback((id: string, setting: string, value: unknown) => {
-    setCardSettings((prev) => {
-      return {
-        ...prev,
-        [id]: { ...(prev[id] || {}), [setting]: value },
-      };
-    });
-  }, []);
+  const saveCustomName = useCallback(
+    (id: string, name: string) => {
+      setCustomNames((prev) => {
+        const newNames = { ...prev, [id]: name };
+        writeJSON('tunet_custom_names', newNames);
+        return newNames;
+      });
+      touchWidgetConfig(id);
+    },
+    [touchWidgetConfig]
+  );
+
+  const saveCustomIcon = useCallback(
+    (id: string, iconName: string) => {
+      setCustomIcons((prev) => {
+        const newIcons = { ...prev, [id]: iconName };
+        writeJSON('tunet_custom_icons', newIcons);
+        return newIcons;
+      });
+      touchWidgetConfig(id);
+    },
+    [touchWidgetConfig]
+  );
+
+  const saveCardSetting = useCallback(
+    (id: string, setting: string, value: unknown) => {
+      setCardSettings((prev) =>
+        propagateDeviceScoped(
+          { ...prev, [id]: { ...(prev[id] || {}), [setting]: value } },
+          id,
+          setting,
+          value
+        )
+      );
+      const at = id.indexOf('::');
+      const widgetId = at < 0 ? id : id.slice(at + 2);
+      const type = widgetTypeOf(widgetId, latest.current?.cardSettings[id] ?? {});
+      if (!isStructuralSetting(type, setting)) {
+        touchWidgetConfig(widgetId);
+      } else if (isBindingSetting(type, setting) && value) {
+        requestWidgetAdoption(at < 0 ? null : id.slice(0, at), widgetId);
+      }
+    },
+    [touchWidgetConfig, requestWidgetAdoption]
+  );
 
   const savePageSetting = useCallback((id: string, setting: string, value: unknown) => {
     setPageSettings((prev) => {
@@ -441,19 +502,9 @@ export const PageProvider = ({ children }: PageProviderProps) => {
     writeJSON('tunet_custom_icons', newIcons);
   }, []);
 
-  const persistHiddenCards = useCallback((newHidden: string[]) => {
-    setHiddenCards(newHidden);
-    writeJSON('tunet_hidden_cards', newHidden);
-  }, []);
-
-  const toggleCardVisibility = useCallback((cardId: string) => {
-    setHiddenCards((prev) => {
-      const newHidden = prev.includes(cardId)
-        ? prev.filter((id) => id !== cardId)
-        : [...prev, cardId];
-      writeJSON('tunet_hidden_cards', newHidden);
-      return newHidden;
-    });
+  const persistWidgetMemory = useCallback((next: WidgetMemory) => {
+    setWidgetMemory(next);
+    writeJSON(WIDGET_MEMORY_STORAGE_KEY, next);
   }, []);
 
   const updateHeaderScale = useCallback((newScale: number) => {
@@ -540,6 +591,69 @@ export const PageProvider = ({ children }: PageProviderProps) => {
     }
   }, []);
 
+  useLayoutEffect(() => {
+    latest.current = {
+      layout: launcherLayout,
+      pagesConfig,
+      cardSettings,
+      customNames,
+      customIcons,
+      memory: widgetMemory,
+    };
+  });
+
+  useEffect(() => {
+    writeJSON(WIDGET_MEMORY_STORAGE_KEY, widgetMemory);
+  }, [widgetMemory]);
+
+  // A widget linked to a device takes the newest configuration of that device (ADR-0019).
+  useEffect(() => {
+    const requests = [...pendingAdoptions.current];
+    pendingAdoptions.current.clear();
+    let state = latest.current;
+    if (requests.length === 0 || !state) return;
+    const before = state;
+    let source: WidgetMemoryNotice | null = null;
+    for (const [widgetId, pageId] of requests) {
+      const result = adoptDeviceConfig(state, pageId, widgetId, Date.now());
+      if (!result) continue;
+      const { source: from, ...rest } = result;
+      state = { ...state, ...rest };
+      if (from) source = { seq: 0, ...from };
+    }
+    if (state === before) return;
+    if (state.cardSettings !== before.cardSettings) persistCardSettings(state.cardSettings);
+    if (state.customNames !== before.customNames) persistCustomNames(state.customNames);
+    if (state.customIcons !== before.customIcons) persistCustomIcons(state.customIcons);
+    setWidgetMemory(state.memory);
+    if (source) {
+      const notice = source;
+      setWidgetMemoryNotice((previous) => ({ ...notice, seq: (previous?.seq ?? 0) + 1 }));
+    }
+  }, [adoptionTick, persistCardSettings, persistCustomNames, persistCustomIcons]);
+
+  /** A widget is about to be removed from a page: its configuration is kept for its device. */
+  const rememberRemovedWidget = useCallback(
+    (pageId: string, widgetId: string, label?: string | null) => {
+      const state = latest.current;
+      if (!state) return;
+      setWidgetMemory((prev) =>
+        rememberWidgets({ ...state, memory: prev }, pageId, [widgetId], Date.now(), (id) =>
+          id === widgetId ? (label ?? null) : null
+        )
+      );
+    },
+    []
+  );
+
+  /** A page is about to be removed: so are its widgets, whose configuration is kept. */
+  const rememberRemovedPage = useCallback((pageId: string) => {
+    const state = latest.current;
+    if (!state?.layout) return;
+    const ids = pageWidgetIds(state.layout, pageId);
+    setWidgetMemory((prev) => rememberWidgets({ ...state, memory: prev }, pageId, ids, Date.now()));
+  }, []);
+
   const setGridColumnsPersisted = useCallback((val: number) => {
     const next = normalizeGridColumns(val);
     setGridColumns(next);
@@ -599,14 +713,16 @@ export const PageProvider = ({ children }: PageProviderProps) => {
       saveCustomName,
       customIcons,
       saveCustomIcon,
-      hiddenCards,
-      toggleCardVisibility,
       pageSettings,
       setPageSettings,
       persistPageSettings,
       persistCustomNames,
       persistCustomIcons,
-      persistHiddenCards,
+      persistWidgetMemory,
+      rememberRemovedWidget,
+      rememberRemovedPage,
+      requestWidgetAdoption,
+      widgetMemoryNotice,
       savePageSetting,
       gridColumns,
       setGridColumns: setGridColumnsPersisted,
@@ -644,13 +760,15 @@ export const PageProvider = ({ children }: PageProviderProps) => {
       saveCustomName,
       customIcons,
       saveCustomIcon,
-      hiddenCards,
-      toggleCardVisibility,
       pageSettings,
       persistPageSettings,
       persistCustomNames,
       persistCustomIcons,
-      persistHiddenCards,
+      persistWidgetMemory,
+      rememberRemovedWidget,
+      rememberRemovedPage,
+      requestWidgetAdoption,
+      widgetMemoryNotice,
       savePageSetting,
       gridColumns,
       setGridColumnsPersisted,

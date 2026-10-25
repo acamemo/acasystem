@@ -1,5 +1,10 @@
 /** Rooms page (legacy RoomExplorerPage): areas, their entities, statistics, sorting and domains. */
-import type { EntityMap, HaAreaEntry, HaDeviceRegistryEntry, HaEntityRegistryEntry } from '@/@types/ha';
+import type {
+  EntityMap,
+  HaAreaEntry,
+  HaDeviceRegistryEntry,
+  HaEntityRegistryEntry,
+} from '@/@types/ha';
 import { stringAttr } from '../shared/entity';
 
 export type RoomSort = 'name-az' | 'name-za' | 'entity-count' | 'active-count';
@@ -50,9 +55,15 @@ export function entitiesByArea(
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   for (const area of areas) {
-    const devices = new Set(deviceRegistry.filter((device) => device.area_id === area.area_id).map((device) => device.id));
+    const devices = new Set(
+      deviceRegistry.filter((device) => device.area_id === area.area_id).map((device) => device.id)
+    );
     result[area.area_id] = entityRegistry
-      .filter((entry) => entry.area_id === area.area_id || (typeof entry.device_id === 'string' && devices.has(entry.device_id)))
+      .filter(
+        (entry) =>
+          entry.area_id === area.area_id ||
+          (typeof entry.device_id === 'string' && devices.has(entry.device_id))
+      )
       .filter((entry) => !entry.disabled_by && !entry.hidden_by)
       .map((entry) => entry.entity_id);
   }
@@ -113,16 +124,24 @@ export function areaStats(ids: string[], entities: EntityMap): AreaStats {
   return stats;
 }
 
-export function sortAreas(areas: HaAreaEntry[], sort: RoomSort, stats: Record<string, AreaStats>): HaAreaEntry[] {
+export function sortAreas(
+  areas: HaAreaEntry[],
+  sort: RoomSort,
+  stats: Record<string, AreaStats>
+): HaAreaEntry[] {
   const sorted = [...areas];
   const name = (area: HaAreaEntry) => area.name ?? '';
   switch (sort) {
     case 'name-za':
       return sorted.sort((a, b) => name(b).localeCompare(name(a), 'it'));
     case 'entity-count':
-      return sorted.sort((a, b) => (stats[b.area_id]?.totalCount ?? 0) - (stats[a.area_id]?.totalCount ?? 0));
+      return sorted.sort(
+        (a, b) => (stats[b.area_id]?.totalCount ?? 0) - (stats[a.area_id]?.totalCount ?? 0)
+      );
     case 'active-count':
-      return sorted.sort((a, b) => (stats[b.area_id]?.activeCount ?? 0) - (stats[a.area_id]?.activeCount ?? 0));
+      return sorted.sort(
+        (a, b) => (stats[b.area_id]?.activeCount ?? 0) - (stats[a.area_id]?.activeCount ?? 0)
+      );
     default:
       return sorted.sort((a, b) => name(a).localeCompare(name(b), 'it'));
   }

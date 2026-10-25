@@ -37,7 +37,11 @@ export function Transport({
   const repeatMode = repeat.value;
   return (
     <div
-      className={['aca-media-transport', align === 'start' && 'aca-media-transport--start', className]
+      className={[
+        'aca-media-transport',
+        align === 'start' && 'aca-media-transport--start',
+        className,
+      ]
         .filter(Boolean)
         .join(' ')}
       onClick={stop}
@@ -198,7 +202,10 @@ export function VolumeControl({
           disabled={disabled}
           onClick={controls.toggleMute}
         >
-          <MediaIcon name={muted.value ? 'mute' : percent < 50 ? 'volumeLow' : 'volume'} size="sm" />
+          <MediaIcon
+            name={muted.value ? 'mute' : percent < 50 ? 'volumeLow' : 'volume'}
+            size="sm"
+          />
         </Button>
       )}
       {caps.volumeSet && (

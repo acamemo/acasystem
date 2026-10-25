@@ -51,7 +51,10 @@ export function useSnapshotUrl(
   enabled = true
 ): string | null {
   const legacyUrl = resolveUrl(
-    appendCameraCacheBust(buildCameraProxyUrl('/api/camera_proxy', entityId, accessToken), refreshKey),
+    appendCameraCacheBust(
+      buildCameraProxyUrl('/api/camera_proxy', entityId, accessToken),
+      refreshKey
+    ),
     getEntityImageUrl
   );
   const key = `${entityId}:${refreshKey}:${accessToken}`;
@@ -64,7 +67,9 @@ export function useSnapshotUrl(
       .sendMessagePromise({ type: 'auth/sign_path', path: `/api/camera_proxy/${entityId}` })
       .then((response) => {
         const path = isRecord(response) && typeof response.path === 'string' ? response.path : '';
-        return path ? resolveUrl(appendCameraCacheBust(path, refreshKey), getEntityImageUrl) : legacyUrl;
+        return path
+          ? resolveUrl(appendCameraCacheBust(path, refreshKey), getEntityImageUrl)
+          : legacyUrl;
       })
       .catch(() => legacyUrl)
       .then((url) => {
@@ -159,7 +164,8 @@ const CustomPlayer = memo(function CustomPlayer({
   // Layout effect: listening before the browser can report the navigation of the new iframe.
   useLayoutEffect(() => {
     const onViolation = (event: SecurityPolicyViolationEvent) => {
-      if (event.disposition === 'report' || !event.effectiveDirective.startsWith('frame-src')) return;
+      if (event.disposition === 'report' || !event.effectiveDirective.startsWith('frame-src'))
+        return;
       if (!isBlockedSource(event.blockedURI, src)) return;
       blocked.current = true;
       onError();
@@ -198,8 +204,12 @@ const CustomPlayer = memo(function CustomPlayer({
         }
         // A blocked or failed same-origin frame holds an error page with an opaque origin.
         const playerDocument = frame.current?.contentDocument;
-        if (!playerDocument || playerDocument.URL === 'about:blank' ||
-          playerDocument.URL.startsWith('chrome-error:')) return;
+        if (
+          !playerDocument ||
+          playerDocument.URL === 'about:blank' ||
+          playerDocument.URL.startsWith('chrome-error:')
+        )
+          return;
         setLoaded(true);
         onReady();
       }}
@@ -393,7 +403,9 @@ const WebRtcPlayer = memo(function WebRtcPlayer({
         if (event.type === 'candidate' && isRecord(event.candidate)) {
           const candidate = event.candidate as RTCIceCandidateInit;
           await peer.addIceCandidate(
-            candidate.sdpMid || candidate.sdpMLineIndex != null ? candidate : { ...candidate, sdpMid: '0' }
+            candidate.sdpMid || candidate.sdpMLineIndex != null
+              ? candidate
+              : { ...candidate, sdpMid: '0' }
           );
           return;
         }
@@ -540,7 +552,9 @@ export function CameraStream({
           .sendMessagePromise({ type: 'camera/capabilities', entity_id: entityId })
           .then((response) =>
             isRecord(response) && Array.isArray(response.frontend_stream_types)
-              ? response.frontend_stream_types.filter((item): item is string => typeof item === 'string')
+              ? response.frontend_stream_types.filter(
+                  (item): item is string => typeof item === 'string'
+                )
               : []
           )
           .catch(() => null)
@@ -569,7 +583,12 @@ export function CameraStream({
   const source = preparing ? undefined : plan.sources[index];
 
   const handleReady = useCallback(
-    () => setAttempt((current) => ({ key: planKey, index: current.key === planKey ? current.index : 0, ready: true })),
+    () =>
+      setAttempt((current) => ({
+        key: planKey,
+        index: current.key === planKey ? current.index : 0,
+        ready: true,
+      })),
     [planKey]
   );
   const handleError = useCallback(
@@ -585,7 +604,15 @@ export function CameraStream({
 
   let media = null;
   if (source === 'custom' && playerUrl) {
-    media = <CustomPlayer key={playerUrl} src={playerUrl} title={alt} onReady={handleReady} onError={handleError} />;
+    media = (
+      <CustomPlayer
+        key={playerUrl}
+        src={playerUrl}
+        title={alt}
+        onReady={handleReady}
+        onError={handleError}
+      />
+    );
   } else if (source === 'webrtc') {
     media = (
       <WebRtcPlayer
@@ -614,17 +641,36 @@ export function CameraStream({
       />
     );
   } else if (source === 'mjpeg' && mjpegUrl) {
-    media = <CameraImage key={mjpegUrl} src={mjpegUrl} alt={alt} fit={fit} onReady={handleReady} onError={handleError} />;
+    media = (
+      <CameraImage
+        key={mjpegUrl}
+        src={mjpegUrl}
+        alt={alt}
+        fit={fit}
+        onReady={handleReady}
+        onError={handleError}
+      />
+    );
   } else if (source === 'snapshot' && snapshotUrl) {
     media = (
-      <CameraImage key={snapshotUrl} src={snapshotUrl} alt={alt} fit={fit} onReady={handleReady} onError={handleError} />
+      <CameraImage
+        key={snapshotUrl}
+        src={snapshotUrl}
+        alt={alt}
+        fit={fit}
+        onReady={handleReady}
+        onError={handleError}
+      />
     );
   }
   const waitingForSnapshot = source === 'snapshot' && !snapshotUrl;
   const exhausted = !preparing && !source;
 
   return (
-    <div className="aca-media-feed" data-camera-source={source ?? (preparing ? 'loading' : 'unavailable')}>
+    <div
+      className="aca-media-feed"
+      data-camera-source={source ?? (preparing ? 'loading' : 'unavailable')}
+    >
       {media}
       {(preparing || waitingForSnapshot || (source && !ready)) && !exhausted && (
         <div className="aca-media-feed__overlay aca-media-feed__overlay--loading" role="status">
@@ -676,7 +722,9 @@ export function SnapshotWindow({ url, alt, onLoaded, onRetry, className }: Snaps
       data-snapshot={shown ? 'image' : broken ? 'error' : 'loading'}
     >
       <MaterialLayers element="div" contentClassName="aca-media-art__content">
-        {shown && <img src={shown} alt={alt} className="aca-media-art__img" referrerPolicy="no-referrer" />}
+        {shown && (
+          <img src={shown} alt={alt} className="aca-media-art__img" referrerPolicy="no-referrer" />
+        )}
         {url && url !== shown && failed !== url && (
           <img
             key={url}

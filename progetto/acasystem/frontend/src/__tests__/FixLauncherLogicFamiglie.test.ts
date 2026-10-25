@@ -3,7 +3,7 @@
  * salvato dalla build precedente» una normale pagina di continuazione CON marcatore di famiglia.
  */
 import { describe, expect, it } from 'vitest';
-import type { DeviceClass, LauncherLayout } from '@/@types/launcher';
+import type { BaseDeviceClass, DeviceClass, LauncherLayout } from '@/@types/launcher';
 import { DEFAULT_GRIDS } from '@/utils/launcher/deviceClass';
 import { packItems } from '@/utils/launcher/grid';
 import {
@@ -18,7 +18,7 @@ const ctxFor = (deviceClass: DeviceClass): LayoutContext => ({
   grids: DEFAULT_GRIDS,
   sizesOf: () => sizes,
 });
-const full = (deviceClass: DeviceClass, prefix: string, count: number) =>
+const full = (deviceClass: BaseDeviceClass, prefix: string, count: number) =>
   packItems(
     Array.from({ length: count }, (_, index) => ({
       id: `${prefix}${index}`,

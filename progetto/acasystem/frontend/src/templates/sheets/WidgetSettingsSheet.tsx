@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { CategoryBindingSection } from './CategoryBindingSection';
+import { AdaptiveSettingsSection } from './sections/AdaptiveSettingsSection';
+import { isCategoryWidgetReady } from './categoryPages';
 import { Button, Field, Sheet } from '@/components/primitives';
 import type { CardSettings } from '@/@types/dashboard';
 import { findWidgetDefinition } from '@/components/widgets/registry';
@@ -9,7 +12,7 @@ import { cardSettingsKey } from './cardKeys';
 import { resolveEditTarget, type EditKind, type EditTarget } from './editTarget';
 import { ConditionEditor, createDefaultRule } from './parts/ConditionEditor';
 import { entityName } from './parts/EntityPicker';
-import { FormRow, SheetSection, ToggleRow } from './parts/Form';
+import { ChoiceGroup, FormRow, SheetSection, ToggleRow } from './parts/Form';
 import { usePresence } from './parts/hooks';
 import { IconPicker } from './parts/IconPicker';
 import { SensorSection } from './sections/SensorSection';
@@ -51,7 +54,7 @@ const KIND_LABELS: Record<EditKind, string> = {
 };
 
 /**
- * Settings of one widget: general (name, heading, icon, hidden), the sections of its type and
+ * Settings of one widget: general (name, heading, icon), the sections of its type and
  * conditional visibility. Every change is saved at once with the legacy keys: customNames and
  * customIcons by widget id, cardSettings by settingsKey through saveCardSetting.
  */
@@ -61,8 +64,10 @@ export function WidgetSettingsSheet({
   widgetId,
   settingsKey,
   pageId,
+  placement,
 }: WidgetSettingsSheetProps) {
   const runtime = useWidgetRuntime();
+  const { widgetMemoryNotice } = usePages();
   const mounted = usePresence(open);
   const key = settingsKey || cardSettingsKey(pageId, widgetId);
   const target = resolveEditTarget(widgetId, key, runtime.cardSettings, runtime.entities);
@@ -85,10 +90,12 @@ export function WidgetSettingsSheet({
     >
       {mounted && widgetId && (
         <SettingsBody
-          key={`${widgetId}:${String(open)}`}
+          // A configuration taken from the memory (ADR-0019) after the link starts the fields again.
+          key={`${widgetId}:${String(open)}:${widgetMemoryNotice?.seq ?? 0}`}
           widgetId={widgetId}
           settingsKey={key}
           target={target}
+          placement={placement}
         />
       )}
     </Sheet>
@@ -99,10 +106,12 @@ function SettingsBody({
   widgetId,
   settingsKey,
   target,
+  placement,
 }: {
   widgetId: string;
   settingsKey: string;
   target: EditTarget;
+  placement?: ReactNode;
 }) {
   const runtime = useWidgetRuntime();
   const pages = usePages();
@@ -114,7 +123,6 @@ function SettingsBody({
     typeof settings.heading === 'string' ? settings.heading : ''
   );
   const defaultName = entityName(runtime.entities, target.nameEntityId);
-  const hidden = pages.hiddenCards.includes(widgetId);
   const icon = runtime.customIcons[widgetId] ?? null;
 
   const clearIcon = () => {
@@ -125,61 +133,113 @@ function SettingsBody({
 
   return (
     <div className="aca-settings">
-      <SheetSection title="Generali">
-        {target.canEditName && (
-          <FormRow label="Nome" hint="Vuoto usa il nome di Home Assistant.">
-            {({ labelId, hintId }) => (
-              <Field
-                label="Nome"
-                aria-labelledby={labelId}
-                aria-describedby={hintId}
-                placeholder={defaultName || 'Nome del widget'}
-                value={name}
-                onChange={(event) => {
-                  setName(event.target.value);
-                  pages.saveCustomName(widgetId, event.target.value);
-                }}
+      {placement}
+      {Boolean(settings.categoryWidgetType) && (
+        <CategoryBindingSection settings={settings} save={save} />
+      )}
+      {isCategoryWidgetReady(settings) ? (
+        <>
+          {Boolean(settings.categoryWidgetType) && (
+            <AdaptiveSettingsSection settings={settings} save={save} />
+          )}
+          <SheetSection title="Generali">
+            {target.canEditName && (
+              <FormRow label="Nome" hint="Vuoto usa il nome di Home Assistant.">
+                {({ labelId, hintId }) => (
+                  <Field
+                    label="Nome"
+                    aria-labelledby={labelId}
+                    aria-describedby={hintId}
+                    placeholder={defaultName || 'Nome del widget'}
+                    value={name}
+                    onChange={(event) => {
+                      setName(event.target.value);
+                      pages.saveCustomName(widgetId, event.target.value);
+                    }}
+                  />
+                )}
+              </FormRow>
+            )}
+            <FormRow label="Intestazione" hint="Testo facoltativo mostrato sopra il widget.">
+              {({ labelId, hintId }) => (
+                <Field
+                  label="Intestazione"
+                  aria-labelledby={labelId}
+                  aria-describedby={hintId}
+                  value={heading}
+                  onChange={(event) => setHeading(event.target.value)}
+                  onBlur={() => save('heading', heading.trim() || null)}
+                />
+              )}
+            </FormRow>
+            {target.canEditIcon && (
+              <IconPicker
+                value={icon}
+                onSelect={(iconName) => pages.saveCustomIcon(widgetId, iconName)}
+                onClear={clearIcon}
               />
             )}
-          </FormRow>
-        )}
-        <FormRow label="Intestazione" hint="Testo facoltativo mostrato sopra il widget.">
-          {({ labelId, hintId }) => (
-            <Field
-              label="Intestazione"
-              aria-labelledby={labelId}
-              aria-describedby={hintId}
-              value={heading}
-              onChange={(event) => setHeading(event.target.value)}
-              onBlur={() => save('heading', heading.trim() || null)}
-            />
-          )}
-        </FormRow>
-        {target.canEditIcon && (
-          <IconPicker
-            value={icon}
-            onSelect={(iconName) => pages.saveCustomIcon(widgetId, iconName)}
-            onClear={clearIcon}
+          </SheetSection>
+
+          <AppearanceSettings settings={settings} save={save} />
+
+          <TypeSettings
+            kind={kind}
+            widgetId={widgetId}
+            settings={settings}
+            canEditStatus={target.canEditStatus}
+            save={save}
           />
-        )}
-        <ToggleRow
-          label="Nascondi il widget"
-          hint="Resta visibile in modalità modifica, per poterlo mostrare di nuovo."
-          checked={hidden}
-          onChange={() => pages.toggleCardVisibility(widgetId)}
-        />
-      </SheetSection>
 
-      <TypeSettings
-        kind={kind}
-        widgetId={widgetId}
-        settings={settings}
-        canEditStatus={target.canEditStatus}
-        save={save}
-      />
-
-      <VisibilitySection widgetId={widgetId} settings={settings} save={save} />
+          <VisibilitySection widgetId={widgetId} settings={settings} save={save} />
+        </>
+      ) : null}
     </div>
+  );
+}
+
+/** Background transparency of the widget, in percent (REP-20261007-036). */
+const OPACITIES = [
+  { value: '0', label: 'Opaco' },
+  { value: '25', label: 'Leggera' },
+  { value: '50', label: 'Media' },
+  { value: '75', label: 'Alta' },
+] as const;
+
+/**
+ * «Aspetto» (REP-20261007-036), as the widget settings of One UI: the frame of the kit on or
+ * off, and how much of the page shows through the background. Stored in the card settings
+ * (`appearanceFrame`, `appearanceOpacity`); absent means the frame and an opaque background.
+ */
+function AppearanceSettings({
+  settings,
+  save,
+}: {
+  settings: CardSettings;
+  save: (key: string, value: unknown) => void;
+}) {
+  const framed = settings.appearanceFrame !== false;
+  const opacity = String(
+    typeof settings.appearanceOpacity === 'number' ? settings.appearanceOpacity : 0
+  );
+  return (
+    <SheetSection title="Aspetto">
+      <ToggleRow
+        label="Cornice"
+        hint="Spenta, il widget non ha il riquadro in rilievo: solo il contenuto."
+        checked={framed}
+        onChange={(checked) => save('appearanceFrame', checked ? null : false)}
+      />
+      {framed && (
+        <ChoiceGroup<string>
+          label="Trasparenza dello sfondo"
+          hint="Quanto della pagina (o dello sfondo scelto in Sistema) si vede attraverso il widget."
+          options={OPACITIES}
+          value={OPACITIES.some((option) => option.value === opacity) ? opacity : '0'}
+          onChange={(value) => save('appearanceOpacity', value === '0' ? null : Number(value))}
+        />
+      )}
+    </SheetSection>
   );
 }
 

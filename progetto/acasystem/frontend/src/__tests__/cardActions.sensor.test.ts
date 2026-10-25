@@ -22,8 +22,6 @@ function makeCtx(overrides: CtxOverrides = {}) {
     selectedEntities: ['scene.night'],
     cardSettings: { 'home::scene.night': { type: 'sensor', size: 'small' } } as CardSettingsMap,
     persistCardSettings: vi.fn(),
-    hiddenCards: [],
-    persistHiddenCards: vi.fn(),
     getCardSettingsKey: (id: string, page?: string) => `${page}::${id}`,
     setSelectedEntities: vi.fn(),
     setShowAddCardModal: vi.fn(),

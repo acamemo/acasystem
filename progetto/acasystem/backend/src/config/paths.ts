@@ -10,5 +10,8 @@ export const PACKAGE_JSON_PATH = join(SOURCE_DIR, '..', 'package.json');
 /** Build del frontend: `progetto/acasystem/frontend/dist` (in Docker `/app/frontend/dist`). */
 export const DEFAULT_FRONTEND_DIST_PATH = join(SOURCE_DIR, '..', '..', 'frontend', 'dist');
 
+/** Build della Casa 3D: `progetto/acasystem/casa3d/dist` (in Docker `/app/casa3d/dist`), servita sotto `/casa3d/`. */
+export const DEFAULT_CASA3D_DIST_PATH = join(SOURCE_DIR, '..', '..', 'casa3d', 'dist');
+
 /** Nome del file SQLite: invariato, così il volume dati esistente resta valido. */
 export const DATABASE_FILE_NAME = 'tunet.db';

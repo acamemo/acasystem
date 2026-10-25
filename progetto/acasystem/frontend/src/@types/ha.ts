@@ -60,6 +60,8 @@ export interface HaMessage {
 
 /** Sottoinsieme della connessione HA usato dai client: basta `sendMessagePromise`. */
 export interface HaMessageConnection {
+  /** A retained HA connection may have a closed socket: never enqueue requests then. */
+  readonly connected?: boolean;
   sendMessagePromise: (message: HaMessage) => Promise<unknown>;
 }
 

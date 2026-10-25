@@ -60,7 +60,7 @@ function renderController(initial: LauncherLayout | null = layout, ready = true)
 }
 
 describe('current page that leaves the pager', () => {
-  it('stays on «Principale» when edit mode comes back after an empty page was left', () => {
+  it('keeps an empty page made by the user after edit mode ends (REP-20261007-028)', () => {
     const { result } = renderController();
     expect(result.current.currentPageId).toBe('home');
     expect(result.current.currentPage).toBe(1);
@@ -70,16 +70,13 @@ describe('current page that leaves the pager', () => {
     expect(result.current.currentPageId).toBe('studio');
     expect(result.current.currentPage).toBe(2);
 
-    // «Fine» on the empty page: it leaves the pager, «Principale» is shown.
+    // «Fine» on the empty page: it stays in the pager, still shown.
     act(() => result.current.setEditMode(false));
-    expect(result.current.entries.map((entry) => entry.key)).toEqual(['cover', 'home']);
-    expect(result.current.currentPageId).toBe('home');
-
-    // Edit mode again (long press on «Principale»): no jump to the empty page.
-    act(() => result.current.setEditMode(true));
     expect(result.current.entries.map((entry) => entry.key)).toEqual(['cover', 'home', 'studio']);
-    expect(result.current.currentPageId).toBe('home');
-    expect(result.current.currentPage).toBe(1);
+    expect(result.current.currentPageId).toBe('studio');
+
+    act(() => result.current.setEditMode(true));
+    expect(result.current.currentPageId).toBe('studio');
   });
 
   it('goes back to «Principale» for good when the page shown is removed or hidden', () => {

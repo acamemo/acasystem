@@ -421,8 +421,7 @@ describe('DES-7, stesso codice di connessione nella barra e in Sistema', () => {
           time={null}
           connection={connectionSummary(flags)}
           chips={[]}
-          editMode={false}
-          onToggleEdit={() => undefined}
+          onEdit={() => undefined}
           onOpenSystem={() => undefined}
         />
       );
@@ -439,7 +438,7 @@ describe('DES-7, stesso codice di connessione nella barra e in Sistema', () => {
     });
   }
 
-  it('la connessione attiva si chiama «Collegato» con il LED informativo', () => {
+  it('la connessione attiva si chiama «Sincronizzato» con il LED informativo', () => {
     installFakeServer();
     mocks.meta = connectedMeta();
     const { container } = render(
@@ -449,7 +448,10 @@ describe('DES-7, stesso codice di connessione nella barra e in Sistema', () => {
     );
     const status = container.querySelector('.aca-connection');
     expect(status).toHaveClass('aca-connection--connected');
-    expect(status).toHaveTextContent('Collegato');
+    // Shared with the bar: «Sincronizzato» since REP-20261007-016. Written in full here: the
+    // band squeezes it to assistive technology inside the status bar only (ADR-0013).
+    expect(status).toHaveTextContent('Sincronizzato');
+    expect(status?.closest('.aca-status-bar')).toBeNull();
     expect(screen.queryByText('Connesso')).toBeNull();
   });
 });
@@ -462,7 +464,7 @@ describe('SEC-5, testi sulle credenziali', () => {
         <ConnectPage />
       </ConfigProvider>
     );
-    expect(screen.getByText(CREDENTIALS_NOTE)).toBeVisible();
+    expect(screen.queryByText(CREDENTIALS_NOTE)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Altre opzioni' }));
     expect(
       screen.getByText(

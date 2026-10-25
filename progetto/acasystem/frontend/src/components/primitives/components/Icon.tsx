@@ -1,5 +1,6 @@
 import {
   AddLinear,
+  TrashLinear,
   Edit2Linear,
   Setting2Linear,
   Element3Linear,
@@ -10,7 +11,6 @@ import {
   TextLinear,
   DriverLinear,
   TickSquareLinear,
-  CloseSquareLinear,
   SearchNormalLinear,
   HomeLinear,
   MusicLinear,
@@ -65,13 +65,19 @@ import {
   MinusLinear,
   TickCircleLinear,
   CloseCircleLinear,
+  EyeLinear,
+  EyeSlashLinear,
+  ArrowLeftLinear,
+  ArrowRightLinear,
+  ElementPlusLinear,
   type IconProps as MxIconProps,
 } from 'mx-icons';
 import type { ComponentType } from 'react';
-import { BlindsGlyph, FanGlyph, PowerGlyph, ThermometerGlyph } from './glyphs';
+import { BlindsGlyph, CloseGlyph, FanGlyph, PowerGlyph, ThermometerGlyph } from './glyphs';
 
 const icons = {
   add: AddLinear,
+  trash: TrashLinear,
   edit: Edit2Linear,
   settings: Setting2Linear,
   grid: Element3Linear,
@@ -83,7 +89,7 @@ const icons = {
   text: TextLinear,
   server: DriverLinear,
   done: TickSquareLinear,
-  close: CloseSquareLinear,
+  close: CloseGlyph,
   search: SearchNormalLinear,
   home: HomeLinear,
   music: MusicLinear,
@@ -145,6 +151,13 @@ const icons = {
   // Launcher edit mode.
   resize: Maximize4Linear,
   move: ArrangeSquareLinear,
+  // Page editor: moving a page before or after, hiding and showing it (REP-20261008-001).
+  pageBefore: ArrowLeftLinear,
+  pageAfter: ArrowRightLinear,
+  eye: EyeLinear,
+  eyeSlash: EyeSlashLinear,
+  // Page editor: a widget added from the pages view (2026-10-23).
+  widgetAdd: ElementPlusLinear,
 } satisfies Record<string, ComponentType<MxIconProps>>;
 
 export type IconName = keyof typeof icons;
@@ -173,11 +186,19 @@ export function Icon({ name, color = 'currentColor', size, className, ...props }
   if (iconSizes.has(size)) {
     const classes = ['aca-icon', `aca-icon--${size}`, className].filter(Boolean).join(' ');
     return (
-      <SvgIcon color={color} aria-hidden="true" focusable="false" className={classes} {...props} />
+      <SvgIcon
+        data-icon={name}
+        color={color}
+        aria-hidden="true"
+        focusable="false"
+        className={classes}
+        {...props}
+      />
     );
   }
   return (
     <SvgIcon
+      data-icon={name}
       color={color}
       aria-hidden="true"
       focusable="false"

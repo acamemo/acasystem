@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PageProvider } from '@/hooks/context/PageContext';
 import { ToastProvider } from '@/hooks/context/ToastContext';
@@ -11,6 +11,14 @@ import { PreviewApp } from '@/pages/launcher/preview/PreviewApp';
  * (no scroll from «Principale» that a slow first frame could settle back on). The app itself
  * (LauncherPage) is not touched: it always opens on «Principale».
  */
+
+/** The page indicator waits above the screen in use (ADR-0016): the range is found as it is. */
+const waitForIndicator = () =>
+  waitFor(() => {
+    const slider = document.querySelector<HTMLElement>('.aca-indicator__input');
+    expect(slider).not.toBeNull();
+    return slider as HTMLElement;
+  });
 
 /** Pager positions written while the preview starts: instant ones and smooth scrolls. */
 interface Moves {
@@ -75,7 +83,7 @@ describe('preview start options', () => {
 
   it('opens the page of ?pagina= directly, with no scroll from «Principale»', async () => {
     renderPreview('?pagina=cover');
-    const slider = await screen.findByRole('slider', { name: 'Pagina' });
+    const slider = await waitForIndicator();
     expect(slider.getAttribute('aria-valuetext')).toMatch(/^Pagina 1 di \d+: Copertina$/);
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(slider.getAttribute('aria-valuetext')).toMatch(/^Pagina 1 di \d+: Copertina$/);
@@ -86,7 +94,7 @@ describe('preview start options', () => {
 
   it('without options opens on the base page, placed at once as in the app', async () => {
     renderPreview('');
-    const slider = await screen.findByRole('slider', { name: 'Pagina' });
+    const slider = await waitForIndicator();
     await waitFor(() => expect(slider.getAttribute('aria-valuetext')).toMatch(/^Pagina 2 di /));
     expect(moves.instant).toContain(1000);
     expect(moves.smooth).toEqual([]);

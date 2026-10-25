@@ -53,7 +53,8 @@ export function AutomationWidget({ id, size, editMode }: WidgetProps) {
   if (!runtime.entitiesLoaded) return <WidgetLoading size={size} />;
   if (!entity) return <WidgetMissing size={size} name={name} editMode={editMode} />;
 
-  const icon = aliasIcon(runtime.customIcons[id]) ?? aliasIcon(entity.attributes.icon) ?? 'automation';
+  const icon =
+    aliasIcon(runtime.customIcons[id]) ?? aliasIcon(entity.attributes.icon) ?? 'automation';
   const status = statusText(available, on);
   const glyph = (
     <ControlIcon
@@ -74,7 +75,10 @@ export function AutomationWidget({ id, size, editMode }: WidgetProps) {
   };
   const iconBadge = (
     <span
-      className={materialClass({ behavior: 'static', shape: 'circle', size: 'md' }, 'ctl-badge-icon')}
+      className={materialClass(
+        { behavior: 'static', shape: 'circle', size: 'md' },
+        'ctl-badge-icon'
+      )}
       aria-hidden="true"
     >
       <MaterialLayers>{glyph}</MaterialLayers>
@@ -126,7 +130,10 @@ export function AutomationWidget({ id, size, editMode }: WidgetProps) {
         <div className="ctl-row ctl-row--top">{knob}</div>
         {heading}
         {last}
-        <CommandFeedback message={request.message} pendingText={density === 'tall' ? pendingText : null} />
+        <CommandFeedback
+          message={request.message}
+          pendingText={density === 'tall' ? pendingText : null}
+        />
       </>
     );
   } else {

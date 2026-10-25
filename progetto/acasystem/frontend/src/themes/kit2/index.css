@@ -1,0 +1,8 @@
+/*
+ * Kit 2 for the app (ADR-0011): tokens, its own components (k2-*) and the skin of the Metallo
+ * material families. Imported by main.tsx after themes/acasystem/index.css.
+ */
+@import './tokens.css';
+@import './components.css';
+@import './skin.css';
+@import './wallpapers.css';

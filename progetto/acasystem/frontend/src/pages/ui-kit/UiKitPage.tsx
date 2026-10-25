@@ -4,7 +4,7 @@
  * by the user with the «Metallo» kit; the other tabs load the existing previews (kit gallery and
  * widget previews) with their simulated data. Nothing here sends a command.
  */
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Body,
@@ -25,6 +25,14 @@ import {
   materialClass,
   type IconName,
 } from '@/components/primitives';
+import { EditToolbar } from '@/components/system/edit/EditToolbar';
+import { PageIndicator } from '@/components/system/page-indicator/PageIndicator';
+import { StatusBar } from '@/components/system/status-bar/StatusBar';
+import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
+import { CoverPage } from '@/pages/cover/CoverPage';
+import { LocationSection } from '@/pages/system/sections/LocationSection';
+import { useFooterBand } from '@/templates/app-shell/footerBand';
+import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import './uiKit.css';
 
 /**
@@ -33,6 +41,10 @@ import './uiKit.css';
  * configuration in localStorage, which here is the real one of the bench.
  */
 const galleries = {
+  widgets: {
+    label: 'Widget',
+    Page: lazy(() => import('./WidgetDesignGallery')),
+  },
   kit2: {
     label: 'Kit 2',
     Page: lazy(() => import('@/pages/kit2/Kit2Page')),
@@ -214,23 +226,127 @@ function TemperaturePrototype() {
   );
 }
 
+const coverRuntime = createFixtureRuntime({
+  entities: fixtureEntities([
+    fixtureEntity('weather.home', 'partlycloudy', {
+      friendly_name: 'Casa',
+      temperature: 18.6,
+      temperature_unit: '°C',
+    }),
+  ]),
+});
+
+/**
+ * The real status bar of the launcher, in a band like the footer's, with the page indicator
+ * between its two pills (REP-20261013-002, ADR-0013): the clock, the connection and Sistema at
+ * the left, «Modifica» at the right.
+ */
+function StatusBarSpecimen() {
+  const footerRef = useRef<HTMLElement>(null);
+  const [page, setPage] = useState(0);
+  useFooterBand(footerRef);
+  return (
+    <div className="aca-shell uik-band-shell">
+      <footer ref={footerRef} className="aca-shell__footer">
+        <StatusBar
+          time={new Date()}
+          connection={{ phase: 'connected', label: 'Collegato' }}
+          chips={[]}
+          onEdit={() => undefined}
+          onOpenSystem={() => undefined}
+        />
+        <PageIndicator labels={['Casa', 'Luci', 'Clima']} index={page} onChange={setPage} />
+      </footer>
+    </div>
+  );
+}
+
+/** The real edit bars of the launcher footer: «+ Widget», «Pagine» and «Fine». */
+function EditToolbarSpecimen() {
+  const [editing, setEditing] = useState(true);
+  return (
+    <>
+      <Button variant="control" onClick={() => setEditing((value) => !value)}>
+        {editing ? 'Esci dalla modifica' : 'Entra in modifica'}
+      </Button>
+      <EditToolbar
+        hidden={!editing}
+        canAddWidget
+        onAddWidget={() => undefined}
+        onPages={() => undefined}
+        onDone={() => setEditing(false)}
+      />
+    </>
+  );
+}
+
 function Prototypes() {
   return (
-    <section className="uik-block" aria-labelledby="uik-schermate">
-      <Heading level={2} size="lg" id="uik-schermate">
-        Principale e Temperatura
-      </Heading>
-      <Body size="sm" tone="muted" className="uik-lead">
-        Il concept «Home» e «Temperature» condiviso il 2026-10-07, composto solo con le primitive
-        del kit Metallo (ADR-0010): Tile, AddTile, Button tondo e arrotondato, Slider orizzontale e
-        verticale a colonna. Il termometro si trascina e si usa da tastiera. Dati di esempio, nessun
-        comando inviato. Tutte le varianti sono nella scheda «Kit Metallo».
-      </Body>
-      <div className="uik-screens">
-        <HomePrototype />
-        <TemperaturePrototype />
-      </div>
-    </section>
+    <>
+      <section className="uik-block" aria-labelledby="uik-barra">
+        <Heading level={2} size="lg" id="uik-barra">
+          Barra di stato
+        </Heading>
+        <Body size="sm" tone="muted" className="uik-lead">
+          La barra vera del launcher, nella fascia in basso: «Modifica» entra in modifica,
+          l’ingranaggio apre Sistema.
+        </Body>
+        <div className="uik-bar-frame">
+          <StatusBarSpecimen />
+        </div>
+        <Body size="sm" tone="muted" className="uik-lead">
+          Le due barre di modifica in basso (REP-20261007-017): widget, pagine e «Fine».
+        </Body>
+        <div className="uik-bar-frame uik-edit-frame">
+          <EditToolbarSpecimen />
+        </div>
+      </section>
+      <section className="uik-block" aria-labelledby="uik-posizione">
+        <Heading level={2} size="lg" id="uik-posizione">
+          Posizione
+        </Heading>
+        <Body size="sm" tone="muted" className="uik-lead">
+          La sezione Posizione di Sistema (REP-20261007-025). Qui il salvataggio è simulato.
+        </Body>
+        <div className="uik-bar-frame">
+          <LocationSection
+            home={{ lat: 40.8518, lon: 14.2681 }}
+            canEdit
+            onSave={() => new Promise((resolve) => setTimeout(resolve, 600))}
+          />
+        </div>
+      </section>
+      <section className="uik-block" aria-labelledby="uik-copertina">
+        <Heading level={2} size="lg" id="uik-copertina">
+          Copertina
+        </Heading>
+        <Body size="sm" tone="muted" className="uik-lead">
+          La copertina vera dell'app (REP-20261007-010) in una cornice 16:9: orologio analogico con
+          l'ora sotto, e calendario con il giorno della settimana colorato e il numero scuro.
+        </Body>
+        <div className="uik-cover-frame">
+          {/* Sample weather source, so the weather card shows without Home Assistant. */}
+          <WidgetRuntimeProvider value={coverRuntime}>
+            <CoverPage />
+          </WidgetRuntimeProvider>
+        </div>
+      </section>
+      <section className="uik-block" aria-labelledby="uik-schermate">
+        <Heading level={2} size="lg" id="uik-schermate">
+          Principale e Temperatura
+        </Heading>
+        <Body size="sm" tone="muted" className="uik-lead">
+          Il concept «Home» e «Temperature» condiviso il 2026-10-07, composto solo con le primitive
+          del kit Metallo (ADR-0010): Tile, AddTile, Button tondo e arrotondato, Slider orizzontale
+          e verticale a colonna. Il termometro si trascina e si usa da tastiera. Dati di esempio,
+          nessun comando inviato. Tutte le varianti sono nella scheda «Kit Metallo».
+        </Body>
+        <div className="uik-screens">
+          <HomePrototype />
+          <TemperaturePrototype />
+        </div>
+      </section>
+    </>
   );
 }
 

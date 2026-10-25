@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+// The release written in progetto/.env (REP-20261012-004), passed by the compose build.
+const appVersion = process.env.ACASYSTEM_VERSION?.trim() || pkg.version;
 const analyze = process.env.ANALYZE === 'true';
 
 export default defineConfig({
@@ -23,7 +25,7 @@ export default defineConfig({
       }),
   ].filter(Boolean),
   define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
+    __APP_VERSION__: JSON.stringify(appVersion),
   },
   build: {
     rollupOptions: {

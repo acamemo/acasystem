@@ -23,7 +23,15 @@ import { useCommand } from '../shared/useCommand';
 import { haUnit } from '../shared/units';
 import { EntityRow, domainIcon, entityStateText } from './EntityRow';
 
-const GROUPED_OTHER = new Set(['binary_sensor', 'sensor', 'number', 'select', 'update', 'input_number', 'switch']);
+const GROUPED_OTHER = new Set([
+  'binary_sensor',
+  'sensor',
+  'number',
+  'select',
+  'update',
+  'input_number',
+  'switch',
+]);
 
 export const DOMAIN_LABEL: Record<string, string> = {
   light: 'Luci',
@@ -63,7 +71,9 @@ const HVAC_LABEL: Record<string, string> = {
 
 /** Legacy key of the collapsed sections, kept so existing preferences still apply. */
 function collapseKey(areaName: string | null, areaId: string | null): string {
-  return `tunet_room_collapsed_${String(areaName ?? areaId ?? 'default').toLowerCase().replace(/\s+/g, '_')}`;
+  return `tunet_room_collapsed_${String(areaName ?? areaId ?? 'default')
+    .toLowerCase()
+    .replace(/\s+/g, '_')}`;
 }
 
 function readCollapsed(key: string): Record<string, boolean> {
@@ -72,7 +82,11 @@ function readCollapsed(key: string): Record<string, boolean> {
     if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return {};
-    return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'));
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, boolean] => typeof entry[1] === 'boolean'
+      )
+    );
   } catch {
     return {};
   }
@@ -149,12 +163,20 @@ function ClimateControl({ climateId, entity }: { climateId: string; entity: Hass
           min={numberAttr(entity, 'min_temp') ?? 16}
           max={numberAttr(entity, 'max_temp') ?? 30}
           step={0.5}
-          disabled={unavailable}
+          disabled={unavailable || !((numberAttr(entity, 'supported_features') ?? 0) & 1)}
           format={(value) => `${formatCompact(value, 1)} ${unit}`}
-          toCall={(value) => ({ domain: 'climate', service: 'set_temperature', data: { entity_id: climateId, temperature: value } })}
+          toCall={(value) => ({
+            domain: 'climate',
+            service: 'set_temperature',
+            data: { entity_id: climateId, temperature: value },
+          })}
         />
       )}
-      {target !== null && <Caption>Desiderata {formatCompact(target, 1)} {unit}</Caption>}
+      {target !== null && (
+        <Caption>
+          Desiderata {formatCompact(target, 1)} {unit}
+        </Caption>
+      )}
       {modes.length > 0 && (
         <div className="utility-toolbar" role="group" aria-label="Modalità del clima">
           {modes.map((mode) => (
@@ -195,9 +217,16 @@ export function RoomDetails({ settings }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const { entities, callService } = runtime;
   const sectionId = `stanza-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const storageKey = collapseKey(settingString(settings, 'areaName'), settingString(settings, 'areaId'));
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => readCollapsed(storageKey));
-  const [selectedClimate, setSelectedClimate] = useState<string | null>(settingString(settings, 'climateEntityId'));
+  const storageKey = collapseKey(
+    settingString(settings, 'areaName'),
+    settingString(settings, 'areaId')
+  );
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
+    readCollapsed(storageKey)
+  );
+  const [selectedClimate, setSelectedClimate] = useState<string | null>(
+    settingString(settings, 'climateEntityId')
+  );
   const [lightsError, setLightsError] = useState(false);
 
   useEffect(() => {
@@ -228,7 +257,9 @@ export function RoomDetails({ settings }: WidgetDetailsProps) {
       ? [preferredVacuum, ...vacuums.filter((id) => id !== preferredVacuum)]
       : vacuums;
   const activeMedia = media.find((id) => entities[id]?.state === 'playing');
-  const orderedMedia = activeMedia ? [activeMedia, ...media.filter((id) => id !== activeMedia)] : media;
+  const orderedMedia = activeMedia
+    ? [activeMedia, ...media.filter((id) => id !== activeMedia)]
+    : media;
   const top = new Set([...lights, ...climates, ...media, ...vacuums, ...temperatures]);
   const others = present.filter((id) => !top.has(id));
   const groups = new Map<string, string[]>();
@@ -237,16 +268,26 @@ export function RoomDetails({ settings }: WidgetDetailsProps) {
     const key = GROUPED_OTHER.has(domain) ? 'other' : domain;
     groups.set(key, [...(groups.get(key) ?? []), id]);
   }
-  const groupList = [...groups.entries()].sort(([a], [b]) => (a === 'other' ? 1 : b === 'other' ? -1 : a.localeCompare(b)));
+  const groupList = [...groups.entries()].sort(([a], [b]) =>
+    a === 'other' ? 1 : b === 'other' ? -1 : a.localeCompare(b)
+  );
 
   const activeClimateId =
     selectedClimate && entities[selectedClimate]
       ? selectedClimate
-      : (climates.find((id) => id === settingString(settings, 'climateEntityId')) ?? climates[0] ?? null);
+      : (climates.find((id) => id === settingString(settings, 'climateEntityId')) ??
+        climates[0] ??
+        null);
   const lightsOn = lights.filter((id) => entities[id]?.state === 'on').length;
 
   const toggle = (key: string) => setCollapsed((current) => ({ ...current, [key]: !current[key] }));
-  const section = (key: string, title: string, icon: UtilityIconName, children: ReactNode, aside?: ReactNode) => (
+  const section = (
+    key: string,
+    title: string,
+    icon: UtilityIconName,
+    children: ReactNode,
+    aside?: ReactNode
+  ) => (
     <RoomSection
       key={key}
       id={`${sectionId}-${key}`}
@@ -263,15 +304,17 @@ export function RoomDetails({ settings }: WidgetDetailsProps) {
   const toggleAllLights = () => {
     const service = lightsOn > 0 ? 'turn_off' : 'turn_on';
     setLightsError(false);
-    Promise.allSettled(lights.map((id) => callAll(() => callService('light', service, { entity_id: id })))).then(
-      (results) => setLightsError(results.some((result) => result.status === 'rejected'))
-    );
+    Promise.allSettled(
+      lights.map((id) => callAll(() => callService('light', service, { entity_id: id })))
+    ).then((results) => setLightsError(results.some((result) => result.status === 'rejected')));
   };
 
   if (present.length === 0) {
     return (
       <DetailsBody>
-        <Notice icon="room">Nessun dispositivo di questa stanza è disponibile in Home Assistant.</Notice>
+        <Notice icon="room">
+          Nessun dispositivo di questa stanza è disponibile in Home Assistant.
+        </Notice>
       </DetailsBody>
     );
   }
@@ -285,7 +328,10 @@ export function RoomDetails({ settings }: WidgetDetailsProps) {
           'Clima',
           'thermostat',
           activeClimateId && entities[activeClimateId] ? (
-            <ClimateControl climateId={activeClimateId} entity={entities[activeClimateId] as HassEntity} />
+            <ClimateControl
+              climateId={activeClimateId}
+              entity={entities[activeClimateId] as HassEntity}
+            />
           ) : (
             <Caption>Nessun termostato disponibile.</Caption>
           ),
@@ -333,7 +379,12 @@ export function RoomDetails({ settings }: WidgetDetailsProps) {
           <>
             <ul className="utility-list">
               {lights.map((id) => (
-                <EntityRow key={id} entityId={id} entity={entities[id] as HassEntity} brightness="always" />
+                <EntityRow
+                  key={id}
+                  entityId={id}
+                  entity={entities[id] as HassEntity}
+                  brightness="always"
+                />
               ))}
             </ul>
             {lightsError && (

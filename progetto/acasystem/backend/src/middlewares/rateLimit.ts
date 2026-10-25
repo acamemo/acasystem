@@ -40,6 +40,17 @@ export const createProfilesRateLimiter = (): RateLimitRequestHandler =>
 export const createSettingsRateLimiter = (): RateLimitRequestHandler =>
   createRateLimiter('SETTINGS_RATE_LIMIT', 180);
 
+/** /api/casa3d: CASA3D_RATE_LIMIT_*, predefinito 120 al minuto. */
+export const createCasa3dRateLimiter = (): RateLimitRequestHandler =>
+  createRateLimiter('CASA3D_RATE_LIMIT', 120, {
+    // Pictures have their own limit: a backup moves them one by one (up to 200) and must not lose any.
+    skip: (req) => req.path.startsWith('/images/'),
+  });
+
+/** Immagini di /api/casa3d: CASA3D_IMAGE_RATE_LIMIT_*, predefinito 600 al minuto. */
+export const createCasa3dImageRateLimiter = (): RateLimitRequestHandler =>
+  createRateLimiter('CASA3D_IMAGE_RATE_LIMIT', 600);
+
 /**
  * Tentativi di accesso inoltrati a HA (POST /ha/auth/login_flow e /ha/auth/login_flow/<id>):
  * HA_LOGIN_RATE_LIMIT_*, predefinito 10 al minuto per indirizzo del client. HA vede solo

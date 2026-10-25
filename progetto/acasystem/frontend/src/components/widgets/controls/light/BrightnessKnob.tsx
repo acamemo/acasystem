@@ -1,10 +1,4 @@
-import {
-  useId,
-  useRef,
-  type CSSProperties,
-  type KeyboardEvent,
-  type PointerEvent,
-} from 'react';
+import { useId, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { MaterialLayers, materialClass } from '@/components/primitives';
 import { ControlIcon, type ControlIconName } from '../shared/ControlIcon';
 import type { LightControl } from './useLightControl';

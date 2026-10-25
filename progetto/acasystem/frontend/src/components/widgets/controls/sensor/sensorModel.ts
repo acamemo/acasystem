@@ -29,7 +29,14 @@ import { BINARY_STATE_LABELS, GENERIC_STATE_LABELS } from '../shared/labels';
 export type SensorVariant = 'default' | 'gauge' | 'donut' | 'bar' | 'number';
 export type ThresholdTone = 'danger' | 'active' | 'info';
 
-const TOGGLE_LABEL_DOMAINS = ['automation', 'input_boolean', 'switch', 'input_number', 'light', 'climate'];
+const TOGGLE_LABEL_DOMAINS = [
+  'automation',
+  'input_boolean',
+  'switch',
+  'input_number',
+  'light',
+  'climate',
+];
 const MANAGED_DOMAINS = ['scene', 'script', 'button', 'input_button', 'climate'];
 const TOGGLE_DOMAINS = ['input_boolean', 'switch', 'automation', 'light'];
 const DEFAULT_THRESHOLDS = [
@@ -38,7 +45,11 @@ const DEFAULT_THRESHOLDS = [
   { limit: 100, color: 'green' },
 ];
 /** Legacy threshold colours on the Metallo accents: red → danger, amber → orange, green → blue. */
-const THRESHOLD_TONES: Record<string, ThresholdTone> = { red: 'danger', amber: 'active', green: 'info' };
+const THRESHOLD_TONES: Record<string, ThresholdTone> = {
+  red: 'danger',
+  amber: 'active',
+  green: 'info',
+};
 
 export interface SensorModel {
   config: SensorCardConfig;
@@ -195,7 +206,9 @@ export function displayUnitMode(
   sourceUnit: string,
   haConfig: HaConfig | null
 ): EffectiveUnitMode {
-  return haConfig ? getEffectiveUnitMode('follow_ha', haConfig) : getUnitModeFromUnit(kind, sourceUnit);
+  return haConfig
+    ? getEffectiveUnitMode('follow_ha', haConfig)
+    : getUnitModeFromUnit(kind, sourceUnit);
 }
 
 function resolveRangeValue(
@@ -287,7 +300,11 @@ export function buildSensorModel(
         (state === 'on' ? 'Acceso' : 'Spento'))
       : null;
   const toggleText =
-    isOnOff && TOGGLE_LABEL_DOMAINS.includes(domain) ? (state === 'on' ? 'Acceso' : 'Spento') : null;
+    isOnOff && TOGGLE_LABEL_DOMAINS.includes(domain)
+      ? state === 'on'
+        ? 'Acceso'
+        : 'Spento'
+      : null;
   const sceneText = config.statusMode === 'auto' && domain === 'scene' ? 'Scena' : null;
   const buttonText =
     config.statusMode === 'auto' && ['button', 'input_button'].includes(domain) ? 'Pulsante' : null;
@@ -309,7 +326,10 @@ export function buildSensorModel(
 
   const variantRaw = readKey(settings, 'sensorVariant');
   const variant: SensorVariant =
-    variantRaw === 'gauge' || variantRaw === 'donut' || variantRaw === 'bar' || variantRaw === 'number'
+    variantRaw === 'gauge' ||
+    variantRaw === 'donut' ||
+    variantRaw === 'bar' ||
+    variantRaw === 'number'
       ? variantRaw
       : 'default';
   const isRangeVariant = variant === 'gauge' || variant === 'donut' || variant === 'bar';
@@ -367,7 +387,12 @@ export function buildSensorModel(
     .sort((a, b) => a.limit - b.limit);
   const thresholdInput = valueMode === 'percent' ? chartValue : normalized;
   let thresholdTone: ThresholdTone = 'active';
-  if (useThresholds && isRangeVariant && thresholdInput !== null && Number.isFinite(thresholdInput)) {
+  if (
+    useThresholds &&
+    isRangeVariant &&
+    thresholdInput !== null &&
+    Number.isFinite(thresholdInput)
+  ) {
     const match =
       thresholds.find((threshold) => thresholdInput <= threshold.limit) ??
       thresholds[thresholds.length - 1];

@@ -14,7 +14,13 @@
   }
   .aca-toast {
     pointer-events: auto;
-    animation: aca-toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    animation: aca-toast-in var(--aca-dur-toast-in, 200ms) var(--aca-motion-ease-out, ease-out);
+  }
+  /* The exit is shorter than the entrance, ease-in, and holds its last frame (D-M14). */
+  .aca-toast.is-leaving {
+    pointer-events: none;
+    animation: aca-toast-out var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in)
+      forwards;
   }
   .aca-toast > .aca-m.aca-m--card {
     --aca-pad: 0.75em 1.1em;
@@ -24,15 +30,30 @@
   .aca-toast__content {
     text-align: start;
   }
+  /* In and out by a small scale and a fade, no slide (the user's answer of 2026-10-23). */
   @keyframes aca-toast-in {
     from {
       opacity: 0;
-      transform: translateY(0.5rem);
+      scale: var(--aca-scale-enter, 0.92);
+    }
+  }
+  @keyframes aca-toast-out {
+    to {
+      opacity: 0;
+      scale: var(--aca-scale-enter, 0.92);
     }
   }
   @media (prefers-reduced-motion: reduce) {
     .aca-toast {
       animation: none;
+    }
+    .aca-toast.is-leaving {
+      animation: aca-toast-fade-out var(--aca-dur-reduced, 120ms) linear forwards;
+    }
+    @keyframes aca-toast-fade-out {
+      to {
+        opacity: 0;
+      }
     }
   }
 }

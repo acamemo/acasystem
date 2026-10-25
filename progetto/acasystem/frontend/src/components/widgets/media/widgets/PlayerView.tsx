@@ -17,6 +17,7 @@ import {
   resolveImage,
   widgetSubtitle,
 } from '../model/entity';
+import { isSonosMediaEntity } from '@/utils/mediaEntityClassification';
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
 import { PowerButton, ProgressView, Transport, VolumeControl } from '../parts/Controls';
@@ -71,8 +72,11 @@ export function PlayerView({
   const wide = size.w >= 3;
   const cover = settings.artworkMode === 'cover' && !compact;
   const picture = resolveImage(artworkPath(entity), getEntityImageUrl);
-  const icon = isChannel(entity) ? 'tv' : 'speaker';
-  const title = attrString(entity, 'media_title') || stateLabel(controls.playing.value ? 'playing' : entity?.state);
+  const isSonos = settings.categoryWidgetType === 'sonos' || isSonosMediaEntity(entity);
+  const icon = isChannel(entity) ? 'tv' : isSonos ? 'speaker' : 'music';
+  const title =
+    attrString(entity, 'media_title') ||
+    stateLabel(controls.playing.value ? 'playing' : entity?.state);
   const subtitle = widgetSubtitle(entity);
   const disabled = editMode;
 
@@ -89,7 +93,9 @@ export function PlayerView({
           {heading}
         </Text>{' '}
         {controls.error ? (
-          <Caption tone="danger" className={!compact ? 'aca-media-error-caption' : undefined}>{testi.comandoNonRiuscito}</Caption>
+          <Caption tone="danger" className={!compact ? 'aca-media-error-caption' : undefined}>
+            {testi.comandoNonRiuscito}
+          </Caption>
         ) : (
           line && (
             <Caption tone="ink" className={lineClassName}>
@@ -120,7 +126,7 @@ export function PlayerView({
         <div className="aca-media-widget__state">
           <Artwork
             src={null}
-            icon={unavailable ? 'warning' : icon}
+            icon={icon}
             variant={compact ? 'compact' : 'small'}
             className="aca-media-show-13"
           />

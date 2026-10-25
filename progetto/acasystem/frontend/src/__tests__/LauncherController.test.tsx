@@ -9,6 +9,7 @@ import { useLauncherController, type LauncherStore } from '@/hooks/launcher/useL
 import { EDIT_DONE_EVENT, LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
 import { isCellRect, isLauncherLayout, sanitizeLauncherLayout } from '@/validators/launcher';
 import { snapshotLauncherLayout } from '@/validators/snapshot';
+import { CATEGORY_PAGES, categoryPageSeeds } from '@/templates/sheets/categoryPages';
 
 const legacyConfig: PagesConfig = {
   header: [],
@@ -53,6 +54,149 @@ function renderController() {
 }
 
 describe('launcher controller', () => {
+  it('starts with every category automatically and never restores a removed category after reload/import', () => {
+    const { result, unmount } = renderHook(() => {
+      const store = useTestStore();
+      return {
+        store,
+        controller: useLauncherController({
+          store,
+          deviceClass: 'tablet',
+          initializeCategoryPages: true,
+        }),
+      };
+    });
+    expect(result.current.controller.layout.categoryDefaultsVersion).toBe(1);
+    expect(
+      Object.values(result.current.store.cardSettings).filter(
+        (settings) => settings.categoryWidgetType
+      )
+    ).toHaveLength(25);
+    expect(result.current.controller.currentPageId).toBe('home');
+    const removed = result.current.controller.layout.pages.find(
+      (page) => page.label === 'Sicurezza'
+    )!;
+    act(() => result.current.controller.removePage(removed.id));
+    const saved = snapshotLauncherLayout({ launcherLayout: result.current.store.layout })!;
+    expect(saved.categoryDefaultsVersion).toBe(1);
+    unmount();
+    const reload = renderHook(() => {
+      const store = useTestStore(saved);
+      return useLauncherController({ store, deviceClass: 'phone', initializeCategoryPages: true });
+    });
+    expect(reload.result.current.layout.pages.some((page) => page.label === 'Sicurezza')).toBe(
+      false
+    );
+    expect(reload.result.current.layout.categoryDefaultsVersion).toBe(1);
+  });
+
+  it('adds missing default categories once without duplicating an existing renamed category', () => {
+    const { result, rerender } = renderHook(
+      ({ initialize }) => {
+        const store = useTestStore();
+        return {
+          store,
+          controller: useLauncherController({
+            store,
+            deviceClass: 'tablet',
+            initializeCategoryPages: initialize,
+          }),
+        };
+      },
+      { initialProps: { initialize: false } }
+    );
+    let pageId = '';
+    act(() => {
+      pageId = result.current.controller.addPage({ label: 'I miei comandi', category: 'comandi' });
+    });
+    rerender({ initialize: true });
+    expect(
+      result.current.controller.layout.pages.filter((page) => page.id === pageId)
+    ).toHaveLength(1);
+    expect(
+      result.current.controller.layout.pages.some((page) => page.label === 'Luci e comandi')
+    ).toBe(false);
+    expect(
+      Object.values(result.current.store.cardSettings).filter(
+        (settings) => settings.categoryWidgetType
+      )
+    ).toHaveLength(25);
+  });
+  it('seeds all categories in one event on a small grid without losing bindings or duplicating widgets', () => {
+    const { result } = renderHook(() => {
+      const store = useTestStore();
+      return { store, controller: useLauncherController({ store, deviceClass: 'phoneLandscape' }) };
+    });
+    const roots: string[] = [];
+    act(() => {
+      for (const category of CATEGORY_PAGES)
+        roots.push(
+          result.current.controller.addPage({ label: category.label, category: category.id })
+        );
+    });
+    const pages = result.current.controller.layout.pages.filter((page) =>
+      roots.includes(page.continuationOf ?? page.id)
+    );
+    expect(pages.some((page) => page.continuationOf)).toBe(false);
+    const ids = pages.flatMap((page) =>
+      Object.keys(page.placements[result.current.controller.classFor(page.id)] ?? {})
+    );
+    expect(ids).toHaveLength(25);
+    expect(new Set(ids).size).toBe(25);
+    for (const page of pages)
+      for (const id of Object.keys(
+        page.placements[result.current.controller.classFor(page.id)] ?? {}
+      )) {
+        expect(result.current.controller.settingsFor(page.id, id).categoryWidgetType).toBeTruthy();
+      }
+  });
+  it('creates every category as ordinary editable pages, keeping settings on each continuation', () => {
+    const { result } = renderController();
+    const original = result.current.controller.layout.pages.filter(
+      (page) => page.id === 'home' || page.id === 'luci'
+    );
+    for (const category of CATEGORY_PAGES) {
+      let id = '';
+      act(() => {
+        id = result.current.controller.addPage({ label: category.label, category: category.id });
+      });
+      const family = result.current.controller.layout.pages.filter(
+        (page) => (page.continuationOf ?? page.id) === id
+      );
+      expect(family.every((page) => page.kind === 'widgets')).toBe(true);
+      const ids = family.flatMap((page) =>
+        Object.keys(page.placements[result.current.controller.classFor(page.id)] ?? {})
+      );
+      expect(ids.sort()).toEqual(
+        categoryPageSeeds(category.id, id)
+          .map((seed) => seed.id)
+          .sort()
+      );
+      for (const page of family)
+        for (const widgetId of Object.keys(
+          page.placements[result.current.controller.classFor(page.id)] ?? {}
+        )) {
+          expect(
+            result.current.controller.settingsFor(page.id, widgetId).categoryWidgetType
+          ).toBeTruthy();
+        }
+      const first = ids[0];
+      const owner = family.find(
+        (page) => page.placements[result.current.controller.classFor(page.id)]?.[first]
+      )!;
+      act(() => result.current.controller.removeWidget(owner.id, first));
+      expect(
+        result.current.controller.findPage(owner.id)?.placements[
+          result.current.controller.classFor(owner.id)
+        ]?.[first]
+      ).toBeUndefined();
+    }
+    expect(
+      result.current.controller.layout.pages.filter(
+        (page) => page.id === 'home' || page.id === 'luci'
+      )
+    ).toEqual(original);
+  });
   it('migrates the legacy layout once and mirrors it back', async () => {
     const { result } = renderController();
     await waitFor(() => expect(result.current.store.layout).not.toBeNull());

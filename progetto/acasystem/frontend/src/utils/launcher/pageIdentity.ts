@@ -17,6 +17,10 @@ export function legacyPageKind(
   if (type === 'lights' || pageId.startsWith('lights')) return 'lights';
   if (type === 'battery' || pageId.startsWith('battery')) return 'battery';
   if (type === 'room_explorer' || pageId.startsWith('room_explorer')) return 'rooms';
+  // Only the type: before the Casa 3D page the `casa3d` prefix was free, so an old widget page
+  // such as «Casa3D giardino» (id casa3d_giardino) must not become the Casa 3D page.
+  if (type === 'casa3d') return 'casa3d';
+  if (type === 'cover') return 'cover';
   return 'widgets';
 }
 
@@ -27,6 +31,8 @@ export const LEGACY_PAGE_TYPE: Record<Exclude<PageKind, 'widgets'>, string> = {
   lights: 'lights',
   battery: 'battery',
   rooms: 'room_explorer',
+  cover: 'cover',
+  casa3d: 'casa3d',
 };
 
 /** Italian default labels of the special pages. */
@@ -37,12 +43,14 @@ export const PAGE_KIND_LABEL: Record<PageKind, string> = {
   lights: 'Luci',
   battery: 'Batterie',
   rooms: 'Stanze',
+  cover: 'Copertina',
+  casa3d: 'Casa 3D',
 };
 
 /** Label of the legacy home page when the user never renamed it. */
 export const HOME_PAGE_LABEL = 'Principale';
 
-const RESERVED_PREFIX = /^(media|sonos|lights|battery|room_explorer)/;
+const RESERVED_PREFIX = /^(media|sonos|lights|battery|room_explorer|casa3d)/;
 
 /**
  * New unique page id. Widget pages never start with a special-page prefix, otherwise the

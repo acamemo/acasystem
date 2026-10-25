@@ -335,7 +335,6 @@ export function useProfiles({
       layout: {
         pagesConfig: { header: [], pages: ['home'], home: [] },
         cardSettings: {},
-        hiddenCards: [],
         customNames: {},
         customIcons: {},
         pageSettings: {},

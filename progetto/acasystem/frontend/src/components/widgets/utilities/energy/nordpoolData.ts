@@ -10,7 +10,13 @@
 import type { CardSettings } from '@/@types/dashboard';
 import type { HaConfig } from '@/@types/ha';
 import type { PricePoint } from '../shared/charts';
-import { attr, numericState, settingNumber, settingString, type MaybeEntity } from '../shared/entity';
+import {
+  attr,
+  numericState,
+  settingNumber,
+  settingString,
+  type MaybeEntity,
+} from '../shared/entity';
 import { parseNumber } from '../shared/format';
 import { currencyUnit } from '../shared/units';
 import { readKey, toDate } from '@/validators/guards';
