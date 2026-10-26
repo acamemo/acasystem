@@ -139,6 +139,26 @@ Con le decisioni prese (immagine pubblica, account `acamemo`) **sparisce tutta l
 
 ## Avanzamento e modifiche
 
+**2026-10-26, S4-S5: installazione automatica dall'app, provata sulla copia della VM.** Richiesta dell'utente: «procediamo a sviluppare s4-s5 sulla copia della vm allora»; RAM liberata dall'utente («Ho liberato la RAM: avvia la copia della VM e fai la prova completa.»).
+
+- **Nucleo (`progetto/client/core`):**
+  - `setup.ts`: riconoscimento del mini PC (Acasystem, HA da configurare, HA senza Acasystem), proprietario (`POST /api/onboarding/users` e token), accesso amministratore (login flow, senza MFA), dati della casa (`config/core/detect` → conferma → `config/core/update`), fine dell'onboarding (statistiche «no», Q-S5), repository, installazione, opzioni `boot: auto` e `watchdog`, avvio tramite `supervisor/api`, attesa di `/api/health`. Ogni passo controlla prima se è già fatto;
+  - `haSocket.ts` (WebSocket di HA), porte `HaHttp` e `WebSocketFactory`, `inspectAddress` in `wizard.ts` (l'indirizzo si salva se risponde Acasystem o HA), testi in `messages.ts`;
+  - password e token solo in memoria.
+- **Windows:** schermate locali «Crea l'account del proprietario», «Accedi come amministratore», «Dati della casa» e avanzamento con «Riprova» e «Cambia indirizzo»; all'avvio senza Acasystem riprende la configurazione se all'indirizzo risponde HA.
+- **Android:** stesse schermate e stesso flusso; `HaHttp` con CapacitorHttp e WebSocket del WebView. `allowMixedContent: true` solo per la pagina locale del guscio (serve `ws://` da `https://localhost`); la finestra dell'interfaccia resta `MIXED_CONTENT_NEVER_ALLOW`.
+- **Prova reale (2026-10-26, 16:25-17:20)** sulla copia collegata `acasystem-ha-s45` dall'istantanea «prima-del-primo-avvio» (`acasystem-ha` non toccata, spenta dall'utente), app Windows dai sorgenti con dati separati e release vere di GitHub:
+  1. account del proprietario creato dall'utente nelle schermate dell'app (credenziali mai viste dall'agente);
+  2. onboarding di HA completato (4 passi su 4), repository aggiunto, app `9960cdb4_acasystem` 0.9.30 installata da GHCR e avviata, interfaccia scaricata da GitHub e aperta dall'app;
+  3. accesso ad Acasystem dell'utente riuscito dopo il riavvio dell'app di HA OS (punto 4 dei problemi).
+- **Problemi trovati e correzioni:**
+  1. firmware della copia bloccato con 2 CPU (Hyper-V come motore): copia portata a 1 CPU;
+  2. nell'istantanea la scheda 1 aveva il cavo virtuale scollegato, quindi niente Internet e Core non scaricato («landingpage»): scheda 1 su NAT e cavo collegato. Con NAT il tablet non raggiunge la copia; la prova è stata fatta dal PC sulla rete host-only `192.168.56.102`;
+  3. **VM lenta (1 CPU, blocchi della CPU oltre 20 s):** la creazione del proprietario ha superato il limite di 10 s, ma HA aveva creato l'account; poi lo stesso per l'ultimo passo dell'onboarding e per l'apertura del WebSocket. Corretto nel nucleo: 30 s per le richieste brevi, 60 s per account, accesso, token, passi dell'onboarding e WebSocket; se la creazione scade ma l'account risulta creato, l'app passa all'accesso. Le prove reali sono state completate con «Riprova» prima della correzione; **la versione corretta non è ancora provata su HA reale**;
+  4. **app di HA OS:** all'avvio il Supervisor non ha risposto in 5 s, quindi `detect-ha-url.mjs` ha ripiegato su 8123 mentre HA ascolta sulla 80 (`ECONNREFUSED 172.30.32.1:8123`, accesso ad Acasystem «Home Assistant non risponde»). Un riavvio dell'app ha letto la porta 80. Corretto `progetto/ha-app/image/detect-ha-url.mjs`: 6 tentativi da 10 s con pausa di 5 s, poi sonda di `homeassistant:8123` e `:80` (`/api/` 200 o 401), infine 8123 con messaggio. **Arriva ai mini PC solo con una nuova immagine pubblicata** (la 0.9.30 su GHCR ha ancora il ripiego vecchio).
+- **Istantanea della copia:** «ha-pronto-senza-account» (HA scaricato, onboarding non iniziato), per ripetere la prova da Windows e dal tablet.
+- [P] Durante il download di Core, all'indirizzo risponde la pagina d'attesa di HA OS e l'app oggi dice «Home Assistant non risponde»: proposta di un messaggio «Home Assistant sta finendo l'installazione, riprova tra qualche minuto». Non applicata.
+
 **2026-10-26, S1: pacchetto pronto, non pubblicato.** Richiesta dell'utente durante il lavoro: «mi prepari tutto e poi mi dici che devo pubblicare su github?». La prova sulla VM si fa dopo la pubblicazione, installando dal negozio di HA OS (S3).
 
 - **Scelta esecutiva: nessuna modifica a `progetto/acasystem`** (codice condiviso con i flussi 0.9.31 e D1). Tutto sta nella cartella nuova `progetto/ha-app/`:
@@ -171,6 +191,9 @@ Con le decisioni prese (immagine pubblica, account `acamemo`) **sparisce tutta l
 |---|---|---|---|
 | Stato del Dell | `curl` in sola lettura (2026-10-26 12:30) | Osservato | HA sulla porta 80, `GET /api/onboarding` con tutti i passi `done: false`; `:3002` non risponde. |
 | Piano | — | Non eseguito | Nessuna prova; i fatti tecnici vengono da REP-20261026-001 e REP-20261026-004, con le loro fonti. |
+| S4-S5 test automatici (2026-10-26) | `npx vitest run` e `tsc --noEmit` in `core`, `windows`, `android`; `npm run check:smoke` in `windows` | Superato | Nucleo 61/61, Windows 21/21, Android web 7/7; e2e Windows 18/18 con finto HA OS (HTTP + WebSocket scritto nella prova, senza dipendenze nuove), password non salvata nei file dell'app. APK release ricompilato, non installato. |
+| S4-S5 prova reale (2026-10-26) | Copia `acasystem-ha-s45` (HAOS 18.3, Core 2026.10.4, 1 CPU, NAT + host-only), app Windows dai sorgenti | Superato con 2 «Riprova» e 1 riavvio dell'app di HA OS | Onboarding 4/4, app 0.9.30 installata e avviata, `/api/health` 0.9.30, interfaccia aperta, accesso dell'utente riuscito. Correzioni dei tempi e di `detect-ha-url.mjs` provate solo in locale. Tablet, Dell, interruzioni a ogni passo e percorso amministratore da HA già configurato senza account appena creato: non provati. |
+| `detect-ha-url.mjs` corretto | Script con finto Supervisor e finto HA su 127.0.0.x | Superato | Supervisor che risponde al 3° tentativo → porta 80; Supervisor spento con HA sulla 8123 → trovato dalla sonda; nessun HA → 8123 con messaggio. Immagine non ricostruita né pubblicata. |
 
 ## Pubblicazione della 0.9.30 come app di HA OS (da fare all'utente, con `acamemo`)
 
@@ -262,6 +285,57 @@ Con le decisioni prese (immagine pubblica, account `acamemo`) **sparisce tutta l
   - sul tablet la versione di rilascio aggiornata, collegata al banco `192.168.1.19`, alla pagina di accesso pulita (l'utente deve riaccedere);
   - zip Windows e APK rigenerati, non distribuiti.
 
+**Commit (2026-10-26).** Su richiesta dell'utente («fai un commit solo dei file di questo incarico […] Non fare push») è stato creato il commit `d543f16` su `master`: 150 file, senza push.
+- **Contiene:** app client (`progetto/client`), pacchetto HA OS (`progetto/ha-app`), «Cambia indirizzo» e pulizia C1 nel frontend, IP del banco, ADR-0023, REP-20261026-002/004/005 e le voci di questo incarico in `verification.md`, `project-status.md`, `infrastructure.md` e nell'indice dei report.
+- **Restano fuori, nella cartella di lavoro:** i lavori degli altri flussi (D1, 0.9.29-0.9.31, launcher; nel compose il segreto del servizio di D1; in `release.check.mjs` le versioni), REP-20261026-001 e REP-20261026-003. Per i file misti l'indice è stato costruito dalla versione di `4e198c5` più i soli blocchi di questo incarico.
+- **Remoto:** `origin/main` ha 3 commit dell'utente fatti dal sito (`5f9e7dc`, `37fb8bb`, `0d3fe27`, caricamento per errore e cancellazione, contenuto netto nullo). Prima di un push vanno uniti.
+
+## Pubblicazione della 0.9.30.1 come app di HA OS (correzione del rilevamento di HA)
+
+Richiesta dell'utente: «Sì: prepara la nuova immagine dell'app di HA OS con detect-ha-url corretto e dimmi cosa devo pubblicare.»
+
+- **Versione [scelta esecutiva]:** Acasystem resta 0.9.30 (`ACASYSTEM_VERSION`, `/api/health`, compatibilità delle app client, che accettano solo X.Y.Z); il pacchetto per HA OS diventa **0.9.30.1** (tag dell'immagine, `io.hass.version`, `version` in `config.yaml`), così il Supervisor lo propone come aggiornamento.
+- **Modifiche:**
+  - `prepare.mjs --version 0.9.30 --revision 1`;
+  - `Dockerfile` con `APP_VERSION`;
+  - `CHANGELOG.md` con la voce 0.9.30.1;
+  - lo zip dei sorgenti include anche lo strato per HA OS in `ha-app-image/`.
+- **Preparato** in `progetto/ha-app/out/0.9.30.1/`:
+  - immagine `ghcr.io/acamemo/acasystem:0.9.30.1`, `sha256:3f135031…1d66b`, sopra `aca-system:0.9.30`;
+  - `acasystem-src-0.9.30.1.zip`: 1383 file, SHA-256 `0cc4e2f5…efae7`.
+- **Prova locale del contenitore** (porta 127.0.0.1:3006, rimosso dopo la prova): Supervisor spento, 2 tentativi, poi «Home Assistant trovato su http://homeassistant:8123» (HA del PC). Risultati: `/api/health` 0.9.30; `/ha/auth/providers` risponde da un HA vero (400 «onboarding_required», l'HA del PC non è configurato).
+- **Docker Desktop** non partiva: c'era un file di collegamento rimasto da una chiusura precedente (`%LOCALAPPDATA%\docker-secrets-engine\engine.sock`, non cancellabile). La cartella è stata rinominata in `docker-secrets-engine.vecchio-20261026`, poi Docker è ripartito.
+- **Passi di pubblicazione (utente, con `acamemo`):**
+  1. ordine all'agente di eseguire `docker push ghcr.io/acamemo/acasystem:0.9.30.1`. Il login a `ghcr.io` risulta salvato; se scaduto, ripetere `docker login ghcr.io -u acamemo`. Il pacchetto è già pubblico e il nuovo tag lo eredita;
+  2. **dopo il push**, in `acamemo/acasystem-releases`: sostituire `acasystem/config.yaml` e `acasystem/CHANGELOG.md` con quelli di `out/0.9.30.1/repository/acasystem/`. Icona, logo, `DOCS.md` e `repository.yaml` restano;
+  3. allegare `acasystem-src-0.9.30.1.zip` alla release **esistente** `v0.9.30`. **Non creare una release nuova:** le app client leggono `manifest.json` dall'ultima release, e una release senza manifest le lascerebbe senza interfaccia da scaricare;
+  4. poi l'agente verifica il manifesto dell'immagine senza login, i file del repository e lo zip, e prova l'aggiornamento sulla copia della VM.
+- **Esito (2026-10-26, sera):**
+  - push dell'agente su ordine dell'utente: digest `sha256:3f135031…1d66b`, manifesto scaricabile senza login (200);
+  - `acasystem/config.yaml` caricato dall'utente, identico al file locale; `CHANGELOG.md` con lo stesso testo (cambiano solo i ritorni a capo);
+  - **zip dei sorgenti 0.9.30.1 non ancora allegato** alla release `v0.9.30`: all'ultimo controllo c'erano solo 3 file;
+  - sulla copia `acasystem-ha-s45`: `store reload`, poi `apps info` con `version_latest 0.9.30.1` e `update_available: true`, poi `apps update`;
+  - risultato: `version 0.9.30.1`, `state: started`, `watchdog: true`; registro «Home Assistant su http://homeassistant:80» senza ripieghi; `/api/health` 0.9.30; `/ha/auth/providers` 200. Durante l'aggiornamento Acasystem ha continuato a rispondere;
+  - il caso «Supervisor lento» non si è ripresentato sulla VM: è provato solo dalla prova locale.
+
+**Prova dal Tab M11 (2026-10-26, 19:14-19:29).** Ambiente:
+- copia `acasystem-ha-s45` riportata all'istantanea «ha-pronto-senza-account»; lo stato precedente è salvato in «dopo-prova-windows-0.9.30.1»;
+- APK di rilascio con S4-S5 e i tempi lunghi;
+- tablet collegato via USB: `adb reverse` 8123 e 3002 verso un inoltro temporaneo sul PC, che porta alle porte 80 e 3002 della VM. Indirizzo nell'app: `127.0.0.1`.
+
+Esito:
+- **19:17:39** proprietario creato dall'utente nelle schermate dell'app;
+- **19:18:04** onboarding 4/4, senza errori di tempo né «Riprova»;
+- negozio aggiunto; installazione della 0.9.30.1 da GHCR (al minuto 9 il Supervisor era al 69,5%);
+- **19:28:44** Acasystem risponde e il tablet apre da solo «Accedi ad Acasystem».
+- **Tempo totale dall'account all'interfaccia: circa 11 minuti, quasi tutti di download e installazione dell'immagine** (ISSUE-119).
+- Registro dell'app: «Home Assistant su http://homeassistant:80» senza ripieghi; `/ha/auth/providers` 200.
+- **Poi l'utente ha fatto l'accesso ad Acasystem dal tablet con l'account appena creato** («ho fatto accesso e sono in app!»): percorso completo confermato dall'installazione all'uso.
+- **Non provato:** la Wi-Fi diretta (il tablet passa dal cavo USB), le interruzioni a ogni passo e il Dell.
+- Esperienza delle schermate da rivedere in una chat dedicata (ISSUE-118).
+
 ## Chiusura e punto di ripresa
+
+**Annotazione 2026-10-26 (S4-S5).** S4-S5 fatte e provate sulla copia della VM (sezione «Avanzamento»). Ripresa: (1) nuova immagine dell'app di HA OS con `detect-ha-url.mjs` corretto, da pubblicare dall'utente; (2) ripetere la prova dall'istantanea «ha-pronto-senza-account» con l'app corretta, anche dal Tab M11 (serve una rete che il tablet raggiunga); (3) S6; (4) S7 sul Dell. *Aggiornamento in serata: (1) fatto (0.9.30.1 pubblicata, manca lo zip dei sorgenti nella release) e (2) fatto dal Tab M11 via USB; commit dei lavori S4-S5 su richiesta dell'utente.* Il testo seguente resta quello precedente.
 
 Ripresa: risposte a Q-S1…Q-S6 (e a Q-U di REP-20261026-004 per le schermate del proprietario), poi S1. Il Dell resta **non configurato**: non completare la configurazione iniziale dalla pagina di HA finché S7 non è pronta.

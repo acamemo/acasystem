@@ -54,7 +54,11 @@ h1 {
 body[data-view='loading'] .view-loading,
 body[data-view='wizard'] .view-wizard,
 body[data-view='error'] .view-error,
-body[data-view='fatal'] .view-fatal {
+body[data-view='fatal'] .view-fatal,
+body[data-view='setup-owner'] .view-setup-owner,
+body[data-view='setup-admin'] .view-setup-admin,
+body[data-view='setup-home'] .view-setup-home,
+body[data-view='setup-progress'] .view-setup-progress {
   display: block;
 }
 
@@ -79,7 +83,8 @@ label {
   font-weight: 600;
 }
 
-input {
+input,
+select {
   width: 100%;
   margin: 0 0 16px;
   padding: 12px 14px;
@@ -92,6 +97,7 @@ input {
 }
 
 input:focus-visible,
+select:focus-visible,
 button:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--blue);
@@ -176,4 +182,42 @@ button:disabled {
   margin: 20px 0 0;
   font-size: 12px;
   color: var(--ink-soft);
+}
+
+/* Avanzamento della configurazione del mini PC. */
+.steps {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.steps li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  color: var(--ink-soft);
+}
+
+.steps li[data-status='running'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.steps li[data-status='done'] {
+  color: var(--ink);
+}
+
+.steps .mark {
+  width: 1.2em;
+  text-align: center;
+}
+
+.steps li[data-status='done'] .mark {
+  color: var(--orange);
+}
+
+body:not([data-failed='true']) .failed-only {
+  display: none;
 }

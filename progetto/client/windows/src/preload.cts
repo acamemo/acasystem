@@ -1,4 +1,4 @@
-import type { ShellState, SubmitResult } from './shellState.ts';
+import type { HomeView, ShellState, SubmitResult } from './shellState.ts';
 
 // Preload in sandbox: CommonJS con il solo `require('electron')`.
 const { contextBridge, ipcRenderer } = require('electron') as typeof import('electron');
@@ -16,5 +16,11 @@ if (location.protocol === 'file:') {
     submit: (host: string, port: string): Promise<SubmitResult> => ipcRenderer.invoke('shell:submit', host, port),
     retry: (): Promise<void> => ipcRenderer.invoke('shell:retry'),
     changeAddress: (): Promise<void> => ipcRenderer.invoke('shell:change-address'),
+    setupOwner: (owner: { name: string; username: string; password: string }): Promise<SubmitResult> =>
+      ipcRenderer.invoke('shell:setup-owner', owner),
+    setupAdmin: (username: string, password: string): Promise<SubmitResult> =>
+      ipcRenderer.invoke('shell:setup-admin', username, password),
+    setupHome: (home: HomeView): Promise<void> => ipcRenderer.invoke('shell:setup-home', home),
+    setupRetry: (): Promise<void> => ipcRenderer.invoke('shell:setup-retry'),
   });
 }

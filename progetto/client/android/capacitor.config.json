@@ -3,7 +3,7 @@
   "appName": "Acasystem",
   "webDir": "www",
   "android": {
-    "allowMixedContent": false,
+    "allowMixedContent": true,
     "captureInput": false,
     "webContentsDebuggingEnabled": false
   }

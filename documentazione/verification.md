@@ -36,6 +36,11 @@ Un controllo è **Superato** soltanto con procedura realmente eseguita ed eviden
   - corretti `@capacitor/core` mancante nella pagina e la scorciatoia ad app aperta;
   - provati procedura guidata, IP pubblico, mini PC che non risponde, porta di HA, IP incollato dalla barra di HA, salvataggio, riavvio e «Cambia indirizzo»;
   - non provata l'interfaccia scaricata (manca il primo rilascio).
+- **S4-S5, installazione automatica dall'app (REP-20261026-005, 2026-10-26):**
+  - test superati: nucleo 61, Windows 21, Android web 7; end-to-end Windows 18/18 con finto HA OS;
+  - prova reale sulla copia della VM `acasystem-ha-s45`: account creato dall'utente nell'app, onboarding di HA 4/4, app Acasystem 0.9.30 installata e avviata, interfaccia aperta, accesso riuscito. Servite 2 «Riprova» (VM lenta) e un riavvio dell'app di HA OS (porta di HA non letta, ripiego su 8123);
+  - poi pubblicata l'app di HA OS 0.9.30.1 (rilevamento di HA corretto), aggiornamento da HA OS riuscito sulla copia della VM;
+  - Tab M11 via USB, dall'istantanea «HA senza account»: account, onboarding 4/4, installazione della 0.9.30.1 e apertura di «Accedi ad Acasystem» senza «Riprova», in circa 11 minuti; porta di HA trovata al primo colpo. Dell e Wi-Fi diretta non provati.
 - **App client, dati del browser al cambio di mini PC (REP-20261026-005):**
   - test superati: nucleo 51, Windows 21, Android web 6, JUnit 13;
   - prova end-to-end Windows 11/11, e fallisce se si toglie la pulizia;

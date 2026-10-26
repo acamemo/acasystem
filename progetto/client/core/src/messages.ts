@@ -1,3 +1,4 @@
+import type { SetupErrorKind, SetupStep } from './setup.ts';
 import type { Notice, StartupResult } from './startup.ts';
 import type { WizardError } from './wizard.ts';
 
@@ -48,4 +49,28 @@ export const noticeText = (notice: Notice): string => {
     case 'download-failed':
       return `Il download di Acasystem ${notice.version} non è riuscito: uso la versione già scaricata.`;
   }
+};
+
+/** Passi dell'installazione mostrati al sistemista (REP-20261026-005, S5). */
+export const SETUP_STEP_TEXT: Record<SetupStep, string> = {
+  home: 'Dati della casa',
+  onboarding: 'Configurazione di Home Assistant',
+  repository: 'Negozio delle app di Acasystem',
+  install: 'Installazione di Acasystem (alcuni minuti)',
+  start: 'Avvio di Acasystem',
+  wait: 'Attesa che Acasystem risponda',
+};
+
+export const SETUP_ERROR_TEXT: Record<SetupErrorKind, string> = {
+  unreachable: 'Home Assistant non risponde. Controlla che il mini PC sia acceso e sulla stessa rete, poi riprova.',
+  'owner-exists':
+    'Su questo Home Assistant il proprietario esiste già. Accedi con il suo account (o con un altro amministratore) per installare Acasystem.',
+  'invalid-username': 'Home Assistant non accetta questo nome utente. Usa solo lettere minuscole, numeri, punto o trattino.',
+  'invalid-auth': 'Utente o password non validi.',
+  'mfa-required': "Questo account usa l'accesso in due passaggi, non ancora gestito dall'installazione. Usa un altro amministratore.",
+  'not-admin': 'Questo account non è amministratore di Home Assistant: serve un amministratore per installare Acasystem.',
+  'session-expired': 'La richiesta è scaduta. Riprova.',
+  'install-failed': "L'installazione di Acasystem non è riuscita. Controlla la connessione a Internet del mini PC e riprova.",
+  'start-timeout': 'Acasystem è installato ma non risponde ancora. Aspetta qualche minuto e premi «Riprova».',
+  unexpected: 'Qualcosa non ha funzionato durante la configurazione. Riprova.',
 };

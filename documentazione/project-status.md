@@ -24,6 +24,7 @@
   - **Aggiunto «Cambia indirizzo»** in Sistema → Collegamento, visibile solo nell'app (frontend: `utils/clientShell.ts`, `ConnectionSection`, `SystemPage`; gusci Windows e Android). Arriverà con la prossima release di Acasystem.
   - Il primo «login» dell'utente era nella PWA di Chrome, non nell'app.
   - **Decisioni dell'utente** per Acasystem come app di HA OS: D-G1 immagine **pubblica**, D-C6 sorgenti **disponibili**, D-G2 si resta su **`acamemo`**.
+  - **S4-S5 fatte (2026-10-26):** l'app (Windows e Android) crea il proprietario di HA con le sue schermate, completa l'onboarding, installa e avvia l'app Acasystem dal Supervisor e apre l'interfaccia. Provata sulla copia della VM `acasystem-ha-s45`, poi dal Tab M11 fino all'accesso dell'utente (circa 11 minuti), con correzioni per i mini PC lenti e per il rilevamento della porta di HA (app di HA OS 0.9.30.1, pubblicata). Durata e schermate: ISSUE-119 e ISSUE-118. Ripresa in [REP-20261026-005](reports/REP-20261026-005-configurazione-automatica-mini-pc.md), «Chiusura e punto di ripresa».
   - **Piano unico** [REP-20261026-005](reports/REP-20261026-005-configurazione-automatica-mini-pc.md) per la configurazione automatica del mini PC dall'app client, in attesa delle risposte Q-S1…Q-S6.
   - Il Dell resta non configurato (onboarding da fare).
   - **S1 fatto:** pacchetto di Acasystem 0.9.30 come app di HA OS in `progetto/ha-app/` (nessuna modifica a `progetto/acasystem`), immagine e file in `progetto/ha-app/out/0.9.30/`, prove locali superate. Ripresa: pubblicazione dell'utente (REP-20261026-005, «Pubblicazione della 0.9.30»), poi S3 sulla VM.
@@ -1139,6 +1140,28 @@ Da REP-20261009-005, REP-20261009-006 e dal blocco C di REP-20261009-004 (aggiun
 - **Osservazione:** dopo aver spostato «Luce» sulla pagina successiva e «Annulla», la disposizione è identica ma resta la voce `clima_e_meteo::light.preset_luci_e_comandi` (3/3 sul tablet; confermata sul telefono). Effetto: dati di impostazione orfani, nessun effetto visibile.
 - **Proposta (non decisa):** far rimuovere a «Annulla» le impostazioni create dal trasferimento, o potarle all'uscita dalla modifica.
 - **Risolto, 2026-10-23 ([ADR-0019](decisions/ADR-0019-memoria-per-dispositivo.md), punto 7; non è la correzione proposta sopra).** All'avvio le impostazioni dei widget che non sono più su una pagina vengono sistemate: la copia lasciata da uno spostamento o dal suo «Annulla» si scarta se il widget è ancora su un'altra pagina; di un widget eliminato la configurazione va nella memoria per dispositivo (se era collegato) e la voce si scarta. Restano le voci senza dispositivo con impostazioni vere. Provato con dati costruiti (`DeviceMemory.test.ts`, `WidgetMemoryProvider.test.tsx`), non sul tablet. Lo stato «Aperto» sopra è quello storico.
+
+### ISSUE-118 — Schermate di installazione dell'app client: esperienza da rivedere
+
+**Aperto, 2026-10-26; media (proposta, non decisa).** Categoria: esperienza d'uso, app client (REP-20261026-005, S5). Richiesta dell'utente: «va rivisitato il frontend dopo per la user experience segnatelo, passerò ad una chat specifica per quella parte».
+- **Riguarda** le pagine locali dei gusci Windows e Android: procedura guidata, «Crea l'account del proprietario», «Accedi come amministratore», «Dati della casa», avanzamento, errori.
+- **Rilievi già noti:**
+  - il paese e la valuta si scrivono come codici;
+  - l'avanzamento non mostra percentuali né il tempo atteso;
+  - durante il download di Core la pagina d'attesa di HA OS è segnalata come «Home Assistant non risponde»;
+  - la grafica segue il guscio, non ancora il Kit 2.
+- Da trattare in una chat dedicata. Nessuna modifica autorizzata.
+
+### ISSUE-119 — Durata dell'installazione automatica per il sistemista
+
+**Aperto, 2026-10-26; alta (proposta, non decisa).** Categoria: installazione (REP-20261026-005, S4-S7). Obiettivo dell'utente: «che un sistemista non debba stare troppo tempo per l'installazione».
+- **Osservazione:** sulla copia della VM (1 CPU con Hyper-V come motore, NAT) il passo più lungo è il download e l'estrazione dell'immagine `ghcr.io/acamemo/acasystem` (circa 860 MB). Prova dal tablet del 2026-10-26: avanzamento del Supervisor al 69,5% dopo circa 9 minuti. Tempi su un mini PC reale (Dell) non misurati.
+- **Proposte [P]:**
+  1. ridurre l'immagine, togliendo dipendenze di sviluppo e strati inutili da `aca-system`;
+  2. mostrare nell'app la percentuale del lavoro `app_manager_install` del Supervisor e un tempo indicativo;
+  3. avviare il download dell'app subito dopo la creazione del proprietario, mentre il sistemista conferma i dati della casa;
+  4. misurare i tempi sul Dell prima di decidere.
+- Nessuna modifica autorizzata.
 
 ## Incarichi e punto di ripresa
 

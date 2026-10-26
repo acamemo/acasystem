@@ -43,6 +43,70 @@
         </div>
       </section>
 
+      <section class="view view-setup-owner">
+        <p class="lead">Home Assistant è da configurare. Crea l'account del proprietario: poi l'app installa Acasystem sul mini PC.</p>
+        <form id="owner-form" novalidate>
+          <label for="owner-name">Nome</label>
+          <input id="owner-name" name="name" autocomplete="name" required />
+          <label for="owner-username">Nome utente</label>
+          <input id="owner-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+          <label for="owner-password">Password</label>
+          <input id="owner-password" name="password" type="password" autocomplete="new-password" required />
+          <label for="owner-confirm">Conferma la password</label>
+          <input id="owner-confirm" name="confirm" type="password" autocomplete="new-password" required />
+          <p id="owner-message" class="message" role="alert"></p>
+          <div class="actions">
+            <button id="owner-submit" type="submit" class="primary">Crea account e installa</button>
+            <button id="owner-change-address" type="button">Cambia indirizzo</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="view view-setup-admin">
+        <p class="lead">Su questo mini PC Acasystem non è ancora installata. Accedi con un amministratore di Home Assistant per installarla.</p>
+        <form id="admin-form" novalidate>
+          <label for="admin-username">Nome utente</label>
+          <input id="admin-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+          <label for="admin-password">Password</label>
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" required />
+          <p id="admin-message" class="message" role="alert"></p>
+          <div class="actions">
+            <button id="admin-submit" type="submit" class="primary">Accedi e installa</button>
+            <button id="admin-change-address" type="button">Cambia indirizzo</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="view view-setup-home">
+        <p class="lead">Controlla i dati della casa rilevati da Home Assistant.</p>
+        <form id="home-form" novalidate>
+          <label for="home-name">Nome della casa</label>
+          <input id="home-name" name="location_name" autocomplete="off" required />
+          <label for="home-country">Paese (codice, per esempio IT)</label>
+          <input id="home-country" name="country" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="2" required />
+          <label for="home-time-zone">Fuso orario</label>
+          <input id="home-time-zone" name="time_zone" autocomplete="off" spellcheck="false" required />
+          <label for="home-currency">Valuta</label>
+          <input id="home-currency" name="currency" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="3" required />
+          <label for="home-units">Unità di misura</label>
+          <select id="home-units" name="unit_system">
+            <option value="metric">Metriche (°C, km)</option>
+            <option value="us_customary">Anglosassoni (°F, miglia)</option>
+          </select>
+          <button id="home-submit" type="submit" class="primary">Conferma</button>
+        </form>
+      </section>
+
+      <section class="view view-setup-progress" aria-live="polite">
+        <p class="lead">Configurazione del mini PC. Tieni l'app aperta finché non compare Acasystem.</p>
+        <ol id="setup-steps" class="steps"></ol>
+        <p id="progress-message" class="message" role="alert"></p>
+        <div class="actions failed-only">
+          <button id="setup-retry" type="button" class="primary">Riprova</button>
+          <button id="progress-change-address" type="button">Cambia indirizzo</button>
+        </div>
+      </section>
+
       <p id="version" class="version"></p>
     </main>
     <script src="../build/windows/src/renderer/shell.js"></script>

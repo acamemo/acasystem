@@ -6,6 +6,7 @@ import type { ReleaseManifest } from '../../../core/src/index.ts';
 import {
   base64ToBytes,
   bytesToBase64,
+  createCapacitorHaHttp,
   createCapacitorHttpClient,
   createPluginBundleCache,
   createPluginConfigStore,
@@ -19,6 +20,7 @@ const httpReturning = (respond: (url: string, responseType?: string) => Promise<
       calls.push(options);
       return respond(options.url, options.responseType);
     },
+    request: () => Promise.reject(new Error('non usato')),
   };
   return { plugin, calls };
 };
@@ -121,5 +123,40 @@ describe('porte sul plugin del guscio', () => {
     expect(await cache.list()).toEqual([manifest]);
     await cache.install(manifest, new Uint8Array([1, 2, 3]));
     expect(state.installed[0]).toEqual({ manifest: JSON.stringify(manifest), archive: 'AQID' });
+  });
+});
+
+describe('createCapacitorHaHttp', () => {
+  it('manda JSON o modulo con il token e restituisce stato, corpo e URL finale', async () => {
+    const calls: Parameters<CapacitorHttpPlugin['request']>[0][] = [];
+    const plugin: CapacitorHttpPlugin = {
+      get: () => Promise.reject(new Error('non usato')),
+      request: async (options) => {
+        calls.push(options);
+        if (options.url.endsWith('/auth/token')) return { status: 200, data: '{"access_token":"t"}' };
+        if (options.url.endsWith('/boom')) throw new Error('connect timed out');
+        return { status: 403, data: { message: 'già fatto' }, url: 'http://192.168.1.184/api/onboarding/users' };
+      },
+    };
+    const haHttp = createCapacitorHaHttp(plugin, 'prova');
+    expect(
+      await haHttp.request({ method: 'POST', url: 'http://192.168.1.184:8123/api/onboarding/users', json: { name: 'Mario' }, timeoutMs: 1000 })
+    ).toEqual({ status: 403, body: { message: 'già fatto' }, url: 'http://192.168.1.184/api/onboarding/users' });
+    expect(calls[0]?.headers?.['Content-Type']).toBe('application/json');
+    expect(calls[0]?.data).toEqual({ name: 'Mario' });
+
+    const token = await haHttp.request({
+      method: 'POST',
+      url: 'http://192.168.1.184/auth/token',
+      form: { grant_type: 'authorization_code', code: 'c' },
+      token: 'tok',
+      timeoutMs: 1000,
+    });
+    expect(token).toEqual({ status: 200, body: { access_token: 't' }, url: 'http://192.168.1.184/auth/token' });
+    expect(calls[1]?.headers).toMatchObject({ 'Content-Type': 'application/x-www-form-urlencoded', Authorization: 'Bearer tok' });
+
+    await expect(haHttp.request({ method: 'GET', url: 'http://192.168.1.184/boom', timeoutMs: 1000 })).rejects.toMatchObject({
+      kind: 'timeout',
+    });
   });
 });

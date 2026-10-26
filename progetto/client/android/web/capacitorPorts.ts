@@ -1,5 +1,5 @@
 import { HttpRequestError, parseManifest, parseStoredConfig } from '../../core/src/index.ts';
-import type { BundleCache, ConfigStore, HttpClient, ReleaseManifest } from '../../core/src/index.ts';
+import type { BundleCache, ConfigStore, HaHttp, HttpClient, ReleaseManifest } from '../../core/src/index.ts';
 
 /**
  * Porte del nucleo sul guscio Android (ADR-0023, C6). Senza bundler: Capacitor e i plugin
@@ -21,6 +21,8 @@ export interface AcaShellPlugin {
 interface HttpResponse {
   status: number;
   data: unknown;
+  /** URL finale, dopo i reindirizzamenti. */
+  url?: string;
 }
 
 export interface CapacitorHttpPlugin {
@@ -30,6 +32,15 @@ export interface CapacitorHttpPlugin {
     connectTimeout?: number;
     readTimeout?: number;
     responseType?: 'json' | 'arraybuffer' | 'text';
+  }): Promise<HttpResponse>;
+  request(options: {
+    method: string;
+    url: string;
+    headers?: Record<string, string>;
+    data?: unknown;
+    connectTimeout?: number;
+    readTimeout?: number;
+    responseType?: 'json' | 'text';
   }): Promise<HttpResponse>;
 }
 
@@ -120,4 +131,43 @@ export const createPluginBundleCache = (plugin: AcaShellPlugin): BundleCache => 
   },
   install: (manifest: ReleaseManifest, archive: Uint8Array) =>
     plugin.installBundle({ manifest: JSON.stringify(manifest), archive: bytesToBase64(archive) }),
+});
+
+/** HaHttp del nucleo per la configurazione del mini PC (REP-20261026-005, S5): JSON o modulo, token. */
+export const createCapacitorHaHttp = (http: CapacitorHttpPlugin, userAgent: string): HaHttp => ({
+  request: async ({ method, url, json, form, token, timeoutMs }) => {
+    const headers: Record<string, string> = { 'User-Agent': userAgent, Accept: 'application/json' };
+    let data: unknown;
+    if (json !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      data = json;
+    } else if (form) {
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      data = form;
+    }
+    if (token) headers.Authorization = `Bearer ${token}`;
+    let response: HttpResponse;
+    try {
+      response = await http.request({
+        method,
+        url,
+        headers,
+        ...(data === undefined ? {} : { data }),
+        connectTimeout: timeoutMs,
+        readTimeout: timeoutMs,
+        responseType: 'json',
+      });
+    } catch (error) {
+      throw toRequestError(url, error);
+    }
+    let body = response.data;
+    if (typeof body === 'string') {
+      try {
+        body = body ? (JSON.parse(body) as unknown) : null;
+      } catch {
+        // Testo semplice: resta com'è.
+      }
+    }
+    return { status: response.status, body, url: response.url || url };
+  },
 });

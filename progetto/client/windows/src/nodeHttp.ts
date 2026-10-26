@@ -1,5 +1,5 @@
 import { HttpRequestError, MAX_ARCHIVE_BYTES } from '../../core/src/index.ts';
-import type { HttpClient } from '../../core/src/index.ts';
+import type { HaHttp, HttpClient } from '../../core/src/index.ts';
 
 /**
  * HttpClient del nucleo con il `fetch` del processo principale: niente CORS e niente
@@ -47,5 +47,36 @@ export const createNodeHttpClient = (userAgent: string): HttpClient => ({
     } catch (error) {
       throw new HttpRequestError('network', `${url}: ${String(error)}`);
     }
+  },
+});
+
+/** HaHttp del nucleo per la configurazione del mini PC: JSON o modulo, token, URL finale. */
+export const createNodeHaHttp = (userAgent: string): HaHttp => ({
+  request: async ({ method, url, json, form, token, timeoutMs }) => {
+    const headers: Record<string, string> = { 'User-Agent': userAgent, Accept: 'application/json' };
+    let body: string | undefined;
+    if (json !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify(json);
+    } else if (form) {
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      body = new URLSearchParams(form).toString();
+    }
+    if (token) headers.Authorization = `Bearer ${token}`;
+    let response: Response;
+    try {
+      response = await fetch(url, { method, headers, body, redirect: 'follow', signal: AbortSignal.timeout(timeoutMs) });
+    } catch (error) {
+      const timedOut = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
+      throw new HttpRequestError(timedOut ? 'timeout' : 'network', `${url}: ${String(error)}`);
+    }
+    const text = await response.text().catch(() => '');
+    let parsed: unknown = null;
+    try {
+      parsed = text ? (JSON.parse(text) as unknown) : null;
+    } catch {
+      parsed = text;
+    }
+    return { status: response.status, body: parsed, url: response.url || url };
   },
 });

@@ -27,6 +27,43 @@ export interface HttpClient {
   getBytes(url: string, timeoutMs: number): Promise<Uint8Array>;
 }
 
+/**
+ * Richieste dirette a Home Assistant per la configurazione del mini PC (REP-20261026-005, S4):
+ * GET/POST con JSON o modulo, token facoltativo. Lancia HttpRequestError solo per errori di
+ * trasporto ('network', 'timeout'); uno stato HTTP qualsiasi è una risposta normale. `url` è
+ * l'indirizzo finale dopo i reindirizzamenti (HA OS può spostare 8123 sulla 80).
+ */
+export interface HaHttpRequest {
+  method: 'GET' | 'POST';
+  url: string;
+  json?: unknown;
+  form?: Record<string, string>;
+  token?: string;
+  timeoutMs: number;
+}
+
+export interface HaHttpResponse {
+  status: number;
+  body: unknown;
+  url: string;
+}
+
+export interface HaHttp {
+  request(request: HaHttpRequest): Promise<HaHttpResponse>;
+}
+
+/** Il sottoinsieme di WebSocket usato dal nucleo: uguale nel browser, in Node e in Electron. */
+export interface WebSocketLike {
+  send(data: string): void;
+  close(): void;
+  onopen: ((event: unknown) => void) | null;
+  onmessage: ((event: { data: unknown }) => void) | null;
+  onerror: ((event: unknown) => void) | null;
+  onclose: ((event: unknown) => void) | null;
+}
+
+export type WebSocketFactory = (url: string) => WebSocketLike;
+
 export interface ConfigStore {
   load(): Promise<ClientConfig | null>;
   save(config: ClientConfig): Promise<void>;
