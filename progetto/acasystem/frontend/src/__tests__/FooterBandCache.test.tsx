@@ -107,7 +107,7 @@ function mountBand(visible: 'status' | 'edit' = 'status') {
     '<div class="aca-status-bar" data-band-bar="status" data-band-key="ok">' +
     '<div data-band-group="start"><time data-band-clock>12:00</time>' +
     '<span class="connection">Sincronizzato</span></div>' +
-    '<div data-band-group="end"><div data-band-flex><span class="chip">Mattia</span></div>' +
+    '<div data-band-group="end"><div data-band-flex><span class="chip">Mario</span></div>' +
     '<button type="button">Modifica</button></div></div>' +
     '<div class="aca-edit-toolbar" data-band-bar="edit">' +
     '<div class="aca-edit-toolbar__group" data-band-group="start"><button type="button">Widget</button></div>' +

@@ -6,7 +6,8 @@ import { chromium } from 'playwright';
 
 // Run after the unit suites and Compose deployment. The real bench is read only;
 // browser interaction uses only the isolated mock with the same production assets.
-const evidence = resolve('../../../backup/rep003/release');
+// Evidenze fuori da Git: ACA_EVIDENCE_DIR (sul banco, ../../../backup/rep003/release) o .tmp/e2e.
+const evidence = resolve(process.env.ACA_EVIDENCE_DIR ?? '.tmp/e2e/release');
 const isolated = process.argv.includes('--isolated');
 const bench = isolated ? 'http://localhost:3003' : 'http://127.0.0.1:3002';
 await mkdir(evidence, { recursive: true });

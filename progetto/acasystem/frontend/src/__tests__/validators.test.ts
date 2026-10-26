@@ -273,9 +273,9 @@ describe('Home Assistant payload validators', () => {
     expect(
       sanitizeEntityMap({ 'light.a': hassEntity('light.a'), broken: { state: 'on' } })
     ).toEqual({ 'light.a': hassEntity('light.a') });
-    expect(toHaUser({ id: 'u1', name: 'Mattia', is_admin: true, extra: 1 })).toEqual({
+    expect(toHaUser({ id: 'u1', name: 'Mario', is_admin: true, extra: 1 })).toEqual({
       id: 'u1',
-      name: 'Mattia',
+      name: 'Mario',
       is_owner: undefined,
       is_admin: true,
     });

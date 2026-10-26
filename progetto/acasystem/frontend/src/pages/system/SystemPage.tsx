@@ -18,6 +18,7 @@ import { AppearanceSection } from './sections/AppearanceSection';
 import { Casa3dSection } from './sections/Casa3dSection';
 import { LocationSection } from './sections/LocationSection';
 import { ConnectionSection } from './sections/ConnectionSection';
+import { isClientShell, openChangeAddress } from '@/utils/clientShell';
 import { ProfilesSection } from './sections/ProfilesSection';
 import { StatusBarSection } from './sections/StatusBarSection';
 import { SystemLayout } from './SystemLayout';
@@ -104,6 +105,7 @@ export function SystemPage({ onClose }: SystemPageProps) {
                 onClose();
                 void setup.logout();
               }}
+              onChangeAddress={isClientShell() ? openChangeAddress : null}
             />
           ),
         },

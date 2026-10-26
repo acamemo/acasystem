@@ -1,0 +1,56 @@
+{
+  "name": "acasystem-client-windows",
+  "productName": "Acasystem",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Acasystem per Windows",
+  "author": "MeMo Srl",
+  "license": "GPL-3.0",
+  "type": "module",
+  "main": "build/windows/src/main.js",
+  "scripts": {
+    "build": "node scripts/clean-build.mjs && tsc -p tsconfig.build.json && tsc -p tsconfig.renderer.json",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check:smoke": "npm run build && node e2e/smoke.check.mjs",
+    "dist": "npm run build && electron-builder --win nsis --x64 --publish never",
+    "dist:zip": "npm run build && electron-builder --win zip --x64 --publish never"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0",
+    "playwright-core": "1.63.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  },
+  "build": {
+    "appId": "it.acasystem.client",
+    "productName": "Acasystem",
+    "copyright": "MeMo Srl — GPL-3.0",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "build/**/*",
+      "shell/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "shell/icon.png",
+      "artifactName": "Acasystem-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Acasystem",
+      "artifactName": "Acasystem-Setup-${version}.${ext}"
+    },
+    "publish": null
+  }
+}

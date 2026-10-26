@@ -19,7 +19,7 @@ import {
 
 const HASS_URL = 'http://acasystem.test:3002/ha';
 const CLIENT_ID = 'http://acasystem.test:3002/';
-const USER = 'mattia';
+const USER = 'mario';
 const PASSWORD = 'password-di-prova-9';
 const MFA_CODE = '123456';
 

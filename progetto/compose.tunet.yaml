@@ -15,7 +15,8 @@ services:
       # (REP-20261007-011; it follows the PC's network: 172.20.10.6, 10.165.121.134, 192.168.1.11, 192.168.1.42, 192.168.1.7, 192.168.1.17, 192.168.1.7
       # on 2026-10-08/14). If the PC gets another address, update it here.
       # 2026-10-15: Wi-Fi observed at 192.168.1.19 (REP-20261015-003); 2026-10-19: back to 192.168.1.7, then 192.168.1.27 (REP-20261019-003). 2026-10-21: Wi-Fi at 172.20.10.6 (phase "banco" of T5, REP-20261020-002), then back to 192.168.1.7 (phase "banco" of T6). 2026-10-21: Wi-Fi at 192.168.1.27 (phase "banco" of 0.9.23). 2026-10-23: Wi-Fi at 192.168.1.7 (phase "banco" of 0.9.27, REP-20261022-002, step Z).
-      - "192.168.1.7:3002:3002"
+      # 2026-10-26 (afternoon): Wi-Fi at 192.168.1.19, "MeMo Repeater 5 Ghz" (REP-20261026-005).
+      - "192.168.1.19:3002:3002"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

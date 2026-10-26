@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; form-action 'none'; base-uri 'none'"
+    />
+    <title>Acasystem</title>
+    <link rel="stylesheet" href="shell.css" />
+  </head>
+  <body data-view="loading">
+    <main class="card">
+      <img class="logo" src="icon.png" alt="" width="72" height="72" />
+      <h1>Acasystem</h1>
+
+      <section class="view view-loading" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Avvio in corso…</p>
+      </section>
+
+      <section class="view view-wizard">
+        <p class="lead">Scrivi l'indirizzo IP del mini PC con Home Assistant.</p>
+        <form id="wizard-form" novalidate>
+          <label for="host">Indirizzo IP</label>
+          <input id="host" name="host" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="192.168.1.184" required />
+          <details>
+            <summary>Impostazioni avanzate</summary>
+            <label for="port">Porta di Acasystem</label>
+            <input id="port" name="port" inputmode="numeric" autocomplete="off" placeholder="3002" />
+          </details>
+          <p id="wizard-message" class="message" role="alert"></p>
+          <button id="submit" type="submit" class="primary">Collega</button>
+        </form>
+      </section>
+
+      <section class="view view-error view-fatal">
+        <p id="error-message" class="message" role="alert"></p>
+        <div class="actions">
+          <button id="retry" type="button" class="primary">Riprova</button>
+          <button id="change-address" type="button">Cambia indirizzo</button>
+        </div>
+      </section>
+
+      <p id="version" class="version"></p>
+    </main>
+    <script src="../build/windows/src/renderer/shell.js"></script>
+  </body>
+</html>

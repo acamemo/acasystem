@@ -127,7 +127,7 @@ function FixtureSystem({ launcher }: { launcher: LauncherApi }) {
               })}
               oauthExpired={false}
               method="oauth"
-              user={{ id: 'u1', name: 'Mattia', is_owner: true }}
+              user={{ id: 'u1', name: 'Mario', is_owner: true }}
               onReconnect={() => undefined}
               onLogout={() => undefined}
             />

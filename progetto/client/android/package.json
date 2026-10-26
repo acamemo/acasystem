@@ -1,0 +1,27 @@
+{
+  "name": "acasystem-client-android",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Acasystem per Android (Capacitor)",
+  "license": "GPL-3.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "sync": "npm run build && cap sync android",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "apk:debug": "npm run sync && node scripts/gradle.mjs assembleDebug",
+    "apk:release": "npm run sync && node scripts/gradle.mjs assembleRelease",
+    "test:native": "node scripts/gradle.mjs testDebugUnitTest"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "@types/node": "26.6.4",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  }
+}

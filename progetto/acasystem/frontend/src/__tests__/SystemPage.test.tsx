@@ -173,7 +173,7 @@ beforeEach(() => {
     haUnavailable: false,
     oauthExpired: false,
     activeUrl: getHassUrl(),
-    haUser: { id: 'u1', name: 'Mattia', is_owner: true },
+    haUser: { id: 'u1', name: 'Mario', is_owner: true },
   };
   mocks.fetchProfiles.mockResolvedValue([
     {
@@ -248,7 +248,7 @@ describe('SystemPage', () => {
     expect(screen.getByText('Sincronizzato').closest('.aca-status-bar')).toBeNull();
     expect(screen.getByText('Collegato a Home Assistant tramite Acasystem')).toBeVisible();
     expect(screen.getByText('Utente e password')).toBeVisible();
-    expect(screen.getByText('Mattia · Proprietario')).toBeVisible();
+    expect(screen.getByText('Mario · Proprietario')).toBeVisible();
     expect(screen.queryByText(/indirizzo/i)).toBeNull();
     expect(screen.queryByText(/OAuth/)).toBeNull();
     expect(screen.queryByRole('textbox', { name: /indirizzo/i })).toBeNull();
@@ -277,7 +277,7 @@ describe('SystemPage', () => {
   });
 
   it('«Esci», dopo la conferma, revoca il token di rinnovo e apre la pagina di accesso', async () => {
-    saveSession('rinnovo-mattia');
+    saveSession('rinnovo-mario');
     localStorage.setItem('ha_auth_method', 'oauth');
     const { control, onClose } = renderSystem();
     fireEvent.click(screen.getByRole('button', { name: 'Esci' }));
@@ -291,7 +291,7 @@ describe('SystemPage', () => {
     expect(control.open).toHaveBeenCalledOnce();
     // F2: Sistema closes, so the next access opens the launcher.
     expect(onClose).toHaveBeenCalledOnce();
-    await waitFor(() => expect(revokeCalls()).toEqual(['rinnovo-mattia']));
+    await waitFor(() => expect(revokeCalls()).toEqual(['rinnovo-mario']));
     expect(localStorage.getItem('tunet_auth_cache_v1')).toBeNull();
     expect(sessionStorage.getItem('tunet_auth_cache_v1')).toBeNull();
   });

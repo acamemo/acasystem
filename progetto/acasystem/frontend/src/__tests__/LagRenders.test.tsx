@@ -210,7 +210,7 @@ describe('the footer band measures what can change its widths (REP-20261012-003)
       '<div class="aca-status-bar" data-band-bar="status">' +
       '<div data-band-group="start"><time data-band-clock>12:00</time>' +
       '<span class="connection">Sincronizzato</span></div>' +
-      '<div data-band-group="end"><div data-band-flex><span class="chip">Mattia</span></div>' +
+      '<div data-band-group="end"><div data-band-flex><span class="chip">Mario</span></div>' +
       '<button type="button">Modifica</button></div></div>' +
       '<div class="aca-edit-toolbar aca-edit-toolbar--hidden" data-band-bar="edit" inert>' +
       '<div data-band-group="start"></div><div data-band-group="end"></div></div>' +

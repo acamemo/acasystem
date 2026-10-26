@@ -7,7 +7,8 @@ import { adaptiveFixtureSettings } from '../src/utils/fixtures/adaptiveData.ts';
 // Run only after the unit suites. One browser, one page, GPU disabled on the PC.
 const tablet = process.argv.includes('--tablet');
 const base = 'http://localhost:3003';
-const evidence = resolve(process.env.ACA_EVIDENCE_DIR ?? '../../../backup/rep003/browser');
+// Evidenze fuori da Git: ACA_EVIDENCE_DIR (sul banco, ../../../backup/rep003/browser) o .tmp/e2e.
+const evidence = resolve(process.env.ACA_EVIDENCE_DIR ?? '.tmp/e2e/browser');
 await mkdir(evidence, { recursive: true });
 const browser = tablet
   ? await chromium.connectOverCDP('http://127.0.0.1:9225')

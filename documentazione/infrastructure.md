@@ -2,6 +2,31 @@
 
 Aggiornato: 2026-10-23 (banco **0.9.27** su 192.168.1.7:3002, vedi la voce «banco 0.9.27» sotto; precedente: banco **0.9.26** su 192.168.1.27:3002, vedi la voce «banco 0.9.26» sotto; precedenti: Pressione lunga e trascinamento: banco **0.9.24** su 192.168.1.27:3002, vedi la voce «REP-20261021-003 — banco 0.9.24» sotto; Ripristino D-2/D-8 e widget: banco **0.9.23** su 192.168.1.27:3002, vedi la voce «REP-20261021-003 — Ripristino, banco 0.9.23» sotto; Interazioni G3-G5 e C1-C3: banco **0.9.22** su 192.168.1.7:3002, vedi la voce «REP-20261021-003 — G3-G5 e C1-C3, banco 0.9.22» sotto; Casa 3D R1: banco **0.9.21** su 192.168.1.7:3002, vedi la voce «REP-20261021-002 — Casa 3D, R1, banco 0.9.21» sotto; Interazioni G1-G2: banco **0.9.20** su 192.168.1.7:3002, vedi la voce «REP-20261021-003 — G1-G2, banco 0.9.20» sotto; Casa 3D T6: banco **0.9.19** su 192.168.1.7:3002, vedi la voce «REP-20261020-002 — Casa 3D, T6, banco 0.9.19» sotto; la voce «T6, persistenza» descrive le novità di infrastruttura; banco **0.9.18** su 172.20.10.6:3002, vedi la voce «REP-20261020-002 — Casa 3D, T5, banco 0.9.18» sotto; la 0.9.17 su 192.168.1.27:3002 è nella voce «REP-20261020-002 — Casa 3D, T3, banco 0.9.17»; la 0.9.16 è nella voce «REP-20261020-001 — banco 0.9.16»; la 0.9.15 è nella voce successiva; il resto è storico: banco 0.9.14 su 192.168.1.27:3002, vedi la voce «REP-20261019-003 — banco 0.9.14» sotto; la 0.9.13 è nella voce successiva e anche gli indirizzi 192.168.1.7 delle voci 0.9.11-0.9.13 sono storici; la 0.9.12 è nella voce successiva; il resto di questa riga è storico, 2026-10-15). Banco locale **Acasystem 0.9.10**, healthy su `http://192.168.1.19:3002`, con backup/ripristino verificati e venti tipi collaudati in isolamento. Fonte corrente: [REP-20261015-003](reports/REP-20261015-003-widget-operativi.md). M11/ISSUE-062 e prove manuali restano aperti; HA non aggiornato. Le voci successive conservano lo storico datato.
 
+## Banco 0.9.30 spostato su 192.168.1.19, 2026-10-26 (pomeriggio)
+
+Richiesta dell'utente: «Chiudi l'inoltro, rimetti l'app del tablet sul banco e sistema il banco sul nuovo IP del PC (192.168.1.19) in compose.tunet.yaml.»
+- **Causa:** il Wi-Fi del PC è passato a `192.168.1.19` («MeMo Repeater 5 Ghz»), quindi il binding su 192.168.1.7 non era più raggiungibile dalla rete.
+- **Copia prima:** `backup/banco/compose.tunet-pre-ip19-20261026.yaml`.
+- **Modifica:** in `progetto/compose.tunet.yaml` da `192.168.1.7:3002:3002` a `192.168.1.19:3002:3002`, con il commento datato.
+- **Comando:** `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d`, senza build. Stessa immagine `aca-system:0.9.30` (`.env` invariato), volume invariato; non ho fatto una copia a freddo, perché versione e dati non sono cambiati.
+- **Esiti:** container ricreato e healthy; `/api/health` 0.9.30 su `127.0.0.1:3002` e su `192.168.1.19:3002`; dal Tab M11 (192.168.1.20) `nc -z 192.168.1.19 3002` aperta; app client sul tablet ricollegata a `192.168.1.19` (porta predefinita).
+- **D1 (3003):** non toccato.
+- **Ritorno indietro:** rimettere la copia e rieseguire lo stesso comando.
+
+## Acasystem come app di HA OS sulla VM, 2026-10-26 (S3)
+
+Dettagli in [REP-20261026-005](reports/REP-20261026-005-configurazione-automatica-mini-pc.md).
+- **VM `acasystem-ha`:**
+  - snapshot «prima-app-acasystem»;
+  - repository `https://github.com/acamemo/acasystem-releases` aggiunto;
+  - app `9960cdb4_acasystem` 0.9.30 installata e avviata (porta 3002, dati in `/data/app`, HA su `http://homeassistant:80`).
+- **Incidente:** durante l'installazione la VM si è riavviata da sola, con poca RAM libera sul PC.
+- **Raggiungibilità:**
+  - dal PC `http://192.168.56.10:3002`;
+  - l'IP a ponte `192.168.1.183` non risponde né dal PC né dal Tab M11 (dal tablet anche il Dell non risponde);
+  - la prova dal tablet è stata fatta via `adb reverse` più un inoltro temporaneo sul PC, ora chiusi.
+- **Per togliere l'app:** dalla console `ha apps uninstall 9960cdb4_acasystem` e `ha store delete 9960cdb4`, oppure snapshot «prima-app-acasystem».
+
 ## Segreto del servizio di D1 e copie a freddo, 2026-10-23 (solo procedura)
 
 Nessun cambio al banco, al compose o ai volumi. Riguarda il codice del server di D1 ancora nella copia di lavoro (`backup/d1/patch/`, [REP-20261023-003](reports/REP-20261023-003-piano-aggiungi-dispositivi.md), «Annotazione del 2026-10-23: correzioni dopo la revisione del codice del server di D1»), [ADR-0022](decisions/ADR-0022-identita-di-servizio-dispositivi.md) punto 3 e C-16 di [compliance.md](compliance.md). **Non realizzato e non provato su un volume vero.**

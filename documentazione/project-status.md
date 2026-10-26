@@ -1,5 +1,48 @@
 # Stato effettivo del progetto
 
+**Aggiornamento 2026-10-26 (app client, [REP-20261026-002](reports/REP-20261026-002-app-client-pc-android.md)):**
+- L'utente ha accettato [ADR-0023](decisions/ADR-0023-app-client-a-ibrida.md), l'app client «A-ibrida»: guscio Electron/Capacitor, interfaccia scaricata da un repository pubblico nuovo, server sul mini PC.
+- **C1:** verifica in sola lettura dei file da pubblicare. Nessun rilievo bloccante; cinque punti da decidere.
+- **C4:** il nucleo del guscio è in `progetto/client/core`, con 47/47 test e typecheck strict verdi.
+- Poi, sulle decisioni dell'utente, **C1 è stata applicata** in `progetto/acasystem`:
+  - tolti 2 link a `documentazione/`;
+  - «Mattia» sostituito con «Mario» nelle fixture;
+  - **gli e2e `isolated-browser`, `m11-overview` e `release.check.mjs` salvano ora in `.tmp/e2e` se `ACA_EVIDENCE_DIR` non è impostata.** Chi li usa sul banco deve impostarla, per esempio con `../../../backup/rep003/release`.
+- **C5:** il guscio Windows (Electron) è in `progetto/client/windows`, con 69 test ed end-to-end 8/8. L'installatore NSIS è bloccato da Smart App Control su questo PC.
+- Nessun repository creato, nessun commit.
+- Punto di ripresa: le decisioni in [REP-20261026-002](reports/REP-20261026-002-app-client-pc-android.md), «Chiusura e punto di ripresa» (distribuzione Windows, server locale, icona).
+- **Aggiornamento dello stesso giorno:**
+  - zip Windows per il pilota pronto; server locale confermato e annotato in ADR-0023;
+  - **C6 Android** (Capacitor) in `progetto/client/android`: test verdi, APK firmato con la chiave in `backup/android-signing/` (fuori da Git, da mettere in custodia), nessuna prova su un dispositivo;
+  - ripresa: custodia della chiave, prova sul Tab M11 da coordinare, poi C3 (primo rilascio).
+- **C3:**
+  - le app puntano a `acamemo/acasystem-releases`, creato dall'utente;
+  - la release v0.9.30 è pronta in `progetto/client/release-out/` e provata con il banco vero;
+  - la pubblica l'utente dal sito (README, poi release con i 2 file), così Claude non compare tra gli autori;
+  - poi l'agente verifica.
+  - **Fatto:** release `v0.9.30` pubblicata da `acamemo` e verificata (SHA-256). Sul Tab M11 l'app scarica l'interfaccia e mostra la pagina di accesso di Acasystem.
+  - **Aggiunto «Cambia indirizzo»** in Sistema → Collegamento, visibile solo nell'app (frontend: `utils/clientShell.ts`, `ConnectionSection`, `SystemPage`; gusci Windows e Android). Arriverà con la prossima release di Acasystem.
+  - Il primo «login» dell'utente era nella PWA di Chrome, non nell'app.
+  - **Decisioni dell'utente** per Acasystem come app di HA OS: D-G1 immagine **pubblica**, D-C6 sorgenti **disponibili**, D-G2 si resta su **`acamemo`**.
+  - **Piano unico** [REP-20261026-005](reports/REP-20261026-005-configurazione-automatica-mini-pc.md) per la configurazione automatica del mini PC dall'app client, in attesa delle risposte Q-S1…Q-S6.
+  - Il Dell resta non configurato (onboarding da fare).
+  - **S1 fatto:** pacchetto di Acasystem 0.9.30 come app di HA OS in `progetto/ha-app/` (nessuna modifica a `progetto/acasystem`), immagine e file in `progetto/ha-app/out/0.9.30/`, prove locali superate. Ripresa: pubblicazione dell'utente (REP-20261026-005, «Pubblicazione della 0.9.30»), poi S3 sulla VM.
+  - **S2-S3 fatti:**
+    - pubblicati da `acamemo` immagine `ghcr.io/acamemo/acasystem:0.9.30` (pubblica), file in `acasystem-releases` e zip dei sorgenti;
+    - sulla VM `acasystem-ha` l'app è installata dal negozio di HA OS e legge la porta 80 di HA;
+    - dal Tab M11 (via USB, perché la Wi-Fi non collega il tablet alla VM) accesso, WebSocket e Casa 3D funzionano.
+  - **Aperti:**
+    - il PC è passato a `192.168.1.19`: il banco, legato a 192.168.1.7, non è raggiungibile dalla rete;
+    - durante l'installazione la VM si è riavviata per poca RAM;
+    - l'app sul tablet ha salvato `127.0.0.1:3006`, che funziona solo con l'inoltro USB attivo.
+  - **Poi:**
+    - inoltro chiuso;
+    - banco spostato su `192.168.1.19`;
+    - app client corretta: al cambio di mini PC cancella sessione e dati del browser (Windows e Android, con test). Tablet sulla versione di rilascio aggiornata, collegato al banco.
+    - Zip e APK aggiornati non sono ancora distribuiti.
+  - Ripresa: login dell'utente sul tablet, custodia della chiave Android, icona, sorgenti GPL (D-C6), prova dello zip Windows sui PC del pilota.
+- **Prova sul Tab M11 fatta lo stesso giorno:** 2 difetti trovati e corretti. Sul tablet resta l'APK di rilascio 0.1.0 con l'indirizzo del banco salvato. Ripresa: custodia della chiave, icona, C3.
+
 **Aggiornamento 2026-10-25 (0.9.28, ottimizzazione della coreografia, opzione B; [REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md), «Ottimizzazione della coreografia (opzione B, 2026-10-24/25)»):** sulla scelta dell'utente «B» (continuare a ottimizzare, non ridurre) sono stati fatti tre giri di correzioni nel working tree e tre misure sul Tab M11 contro la 0.9.27. Decisioni dell'utente: «Risposta più rapida» su «Fine» e «Dissolvenza più breve» su Sistema (2026-10-24); «Un tempo solo» all'apertura della vista pagine, «Sistema al rilascio» per il rilascio del widget e «Accettala così» per l'entrata in Sistema (2026-10-25). **Versione sul banco: ancora `aca-system:0.9.27`**; la 0.9.28 (build `backup/v0928/dist-g3`, Vitest completo 203 file e 3064 test verdi, tipi, lint e build verdi) non è sul banco. **Obiettivo non raggiunto:** restano peggiori della 0.9.27 JUMP (somma 262 contro 195 ms, numero 3 contro 2), il task singolo prima della scena all'apertura della vista pagine (+7-11 ms), la somma dei task all'uscita da Sistema (290 contro 264 ms) e il rilascio nel volo in S3cD (90 contro 0 ms); la dissolvenza di entrata in Sistema è peggiore ma accettata. Scorrimento, «Fine», «Annulla», ridimensionamento e il rilascio prima del volo sono nd o migliori, e i miglioramenti da mantenere restano. **Punto di ripresa:** (1) scelta dell'utente fra un altro giro sui residui (prima una traccia CDP su JUMP -6, uscita da Sistema e S3cD) e l'accettazione dei residui con portata della 0.9.28 sul banco; (2) il primo invio su GitHub si fa con l'utente presente (nessun commit né push finora); (3) poi D1 (server, copia di lavoro `backup/d1/sandbox/`, VM spenta). Nessun commit.
 
 **Aggiornamento 2026-10-24 (0.9.28, parte 3: diagnosi, correzioni e seconda misura sul Tab M11; utente assente, «procedi da solo sulla 0.9.28»; [REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md), «Parte 3: regressioni e correzioni (2026-10-23/24)»):** diagnosi delle regressioni della sera sulle serie già raccolte (nessuna traccia CDP: la sessione dei fixture non c'era e rimetterla richiedeva un valore di accesso nell'origine, non approvato), poi 5 correzioni su 6 nel codice del working tree (finestra dello scorrimento allargata al primo `scroll`, secondo tempo della coreografia senza render di `LauncherScreen`, `will-change` di Sistema, launcher memorizzato in `LauncherPage`, tetto del foglio contato dal `transitionrun`); aspetto approvato invariato. Suite frontend 201 file e 3016 test verdi, tipi, lint, tipografia, colori e build verdi (backend non rieseguito). **Seconda misura sul Tab M11** (build `backup/v0928/dist-parte3`, 5 giri alternati, gesti sintetici): **migliorano** la chiusura del foglio «Impostazioni del widget» (layout-shift 0 contro 0,014), il riscontro del «+» e il tocco breve; il blocco massimo dello scorrimento non è più peggiore della 0.9.27 ma somma e numero dei task lunghi sì (SW1 348 contro 144 ms, SW2 275 contro 118) e JUMP è peggiore su tutto; restano peggiori apertura della vista pagine (3 task prima della scena, 290 contro 65 ms), «Fine» (894 contro 748 ms), Sistema, «Annulla» della pillola e della barra, commit dentro il volo della copia e ridimensionamento. **Il banco non è stato aggiornato: resta `aca-system:0.9.27`.** Nessun commit, nessuna prova col dito; VM `acasystem-ha` spenta; `backup/d1/sandbox/` non toccato; informativa AI preservata. ISSUE-105, ISSUE-109 e ISSUE-110 restano aperte.

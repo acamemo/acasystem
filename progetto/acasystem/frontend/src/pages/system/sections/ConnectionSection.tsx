@@ -16,6 +16,8 @@ export interface ConnectionSectionProps {
   onReconnect: (() => void) | null;
   /** Signs out: revokes the session and forgets the credentials of this browser. */
   onLogout: () => void;
+  /** Back to the address of the mini PC; only inside the Windows/Android app (ADR-0023). */
+  onChangeAddress?: (() => void) | null;
 }
 
 function roleOf(user: HaUser): string {
@@ -35,6 +37,7 @@ export function ConnectionSection({
   user,
   onReconnect,
   onLogout,
+  onChangeAddress = null,
 }: ConnectionSectionProps) {
   const [confirmLogout, setConfirmLogout] = useState(false);
 
@@ -107,6 +110,11 @@ export function ConnectionSection({
           <Button variant="control" size="sm" onClick={() => setConfirmLogout(true)}>
             <IconText icon="close">Esci</IconText>
           </Button>
+          {onChangeAddress && (
+            <Button variant="control" size="sm" onClick={onChangeAddress}>
+              <IconText icon="server">Cambia indirizzo</IconText>
+            </Button>
+          )}
         </div>
       )}
     </div>

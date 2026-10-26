@@ -1,6 +1,6 @@
 # Primitive ACA
 
-Primo livello della gerarchia `primitives → system → widgets → templates → pages` ([ADR-0004](../../../../../../documentazione/decisions/ADR-0004-principi-frontend.md), [ADR-0008](../../../../../../documentazione/decisions/ADR-0008-struttura-frontend-backend.md)). Le primitive non conoscono Home Assistant e non importano da `system`, `widgets`, `templates`, `pages`, servizi, contesti o hook dell'app: lo verificano la regola ESLint `no-restricted-imports` e `MetalMaterial.test.jsx`. Stile in `src/themes/acasystem` (kit «Metallo», [ADR-0006](../../../../../../documentazione/decisions/ADR-0006-sistema-metallo.md) e [ADR-0007](../../../../../../documentazione/decisions/ADR-0007-acasystem-os.md)).
+Primo livello della gerarchia `primitives → system → widgets → templates → pages` (ADR-0004, ADR-0008). Le primitive non conoscono Home Assistant e non importano da `system`, `widgets`, `templates`, `pages`, servizi, contesti o hook dell'app: lo verificano la regola ESLint `no-restricted-imports` e `MetalMaterial.test.jsx`. Stile in `src/themes/acasystem` (kit «Metallo», ADR-0006 e ADR-0007).
 
 | Gruppo     | Primitive                                                                                                                                                              |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -24,7 +24,7 @@ vi.mock('home-assistant-js-websocket', async (importOriginal) => ({
   createConnection: mocks.createConnection,
 }));
 
-const USER = 'mattia';
+const USER = 'mario';
 const PASSWORD = 'password-di-prova-9';
 const MFA_CODE = '123456';
 const KIOSK_TOKEN = 'token-kiosk-di-prova';

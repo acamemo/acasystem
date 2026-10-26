@@ -1,0 +1,10 @@
+{
+  "appId": "it.acasystem.client",
+  "appName": "Acasystem",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  }
+}

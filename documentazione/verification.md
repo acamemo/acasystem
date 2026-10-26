@@ -12,6 +12,49 @@ Aggiornato: 2026-10-14. Questo documento distingue controlli documentali, verifi
 
 Un controllo è **Superato** soltanto con procedura realmente eseguita ed evidenza; **Fallito** quando l'esito non soddisfa il criterio; **Non eseguito** quando è soltanto previsto. Ogni evidenza identifica data, versione/commit o ambiente osservato, comando/procedura e limiti. Un test documentale non collauda l'applicazione.
 
+**2026-10-26 — app client, C1 e C4 ([REP-20261026-002](reports/REP-20261026-002-app-client-pc-android.md), [ADR-0023](decisions/ADR-0023-app-client-a-ibrida.md)):**
+- **C4, nucleo del guscio in `progetto/client/core`:** `npm test` con Vitest 5.0.0 dà 47/47 test superati (3 file). `npm run typecheck` con tsc 7.0.2 strict è superato. Ambiente: Node 24.14.0, Windows 11.
+  - Coperti: indirizzo e porta, versioni, manifesto, SHA-256, `/api/health`, scelta dell'ultima versione o dell'ultima compatibile (`minServer`, `minShell`), cache senza rete, archivio alterato, procedura guidata.
+  - Rete, disco e GitHub sono simulati: nessuna prova con GitHub reale, Electron, Android o il banco.
+- **C1, verifica in sola lettura dei file da pubblicare (`progetto/acasystem`, 1316 file tracciati più 4 non tracciati di altri flussi):** nessun segreto reale né dato sensibile; le credenziali dei test sono fittizie.
+  - Da decidere: 2 link a `../../documentazione`, circa 1033 rimandi ADR/REP/ISSUE nei commenti, 3 percorsi `../../../backup` negli e2e, il nome «Mattia» nelle fixture, 5 immagini da guardare.
+  - Limiti: ricerca per schemi, non uno scanner dedicato; immagini non aperte; insieme dei file da ricontrollare prima dell'istantanea.
+- **C1 applicata:** 120/120 test nei 7 file toccati; typecheck strict, lint e `node --check` sui 3 e2e superati. Gli e2e non sono stati eseguiti.
+- **C5, guscio Windows (Electron 44.7.0):**
+  - test unitari: nucleo 49/49, Windows 20/20, typecheck strict superato;
+  - `npm run check:smoke`: 8/8 passi con finto GitHub e finto mini PC su 127.0.0.1;
+  - **`npm run dist` fallito:** Smart App Control blocca lo stub NSIS non firmato (Code Integrity, eventi 3033 e 3077); `--win dir` è riuscito e `Acasystem.exe` si avvia;
+  - non provati: GitHub reale, Acasystem vera, banco, un PC pulito.
+- **Zip per il pilota Windows:** `npm run dist:zip` superato.
+- **C6, guscio Android (Capacitor 8.5.3):**
+  - test web 6/6 e typecheck superati;
+  - JUnit 12/12 (`BundleStoreTest`, `LocalServerTest`);
+  - `assembleRelease` superato con APK firmato `CN=MeMo Srl` e verificato con `apksigner`;
+  - lint senza errori;
+  - **nessuna prova su un dispositivo** (al momento del build).
+- **C6 sul Tab M11, superato dopo 2 correzioni:**
+  - corretti `@capacitor/core` mancante nella pagina e la scorciatoia ad app aperta;
+  - provati procedura guidata, IP pubblico, mini PC che non risponde, porta di HA, IP incollato dalla barra di HA, salvataggio, riavvio e «Cambia indirizzo»;
+  - non provata l'interfaccia scaricata (manca il primo rilascio).
+- **App client, dati del browser al cambio di mini PC (REP-20261026-005):**
+  - test superati: nucleo 51, Windows 21, Android web 6, JUnit 13;
+  - prova end-to-end Windows 11/11, e fallisce se si toglie la pulizia;
+  - Tab M11: dato conservato con lo stesso impianto e cancellato con un impianto diverso.
+- **S2-S3, pubblicazione e installazione da HA OS (REP-20261026-005):**
+  - immagine pubblica su GHCR, file del repository e zip dei sorgenti verificati;
+  - sulla VM `acasystem-ha`, dalla console: repository aggiunto, app `9960cdb4_acasystem` 0.9.30 installata e avviata, porta di HA letta dal Supervisor (80), `/api/health` e `/ha/auth/providers` 200 dal PC sulla rete host-only;
+  - incidente: la VM si è riavviata da sola durante l'installazione (poca RAM sul PC);
+  - prova dal Tab M11 non eseguita: il tablet era su un altro ripetitore Wi-Fi.
+  - **Poi superata via USB** (la Wi-Fi non lascia arrivare il tablet alla VM): l'app di rilascio scarica la release da GitHub, apre l'accesso servito dall'app di HA OS; dopo il login dell'utente WebSocket persistente, «Sincronizzato», versione 0.9.30, Casa 3D aperta (database nuovo, vuoto).
+- **S1, app di HA OS 0.9.30 (REP-20261026-005):** immagine `ghcr.io/acamemo/acasystem:0.9.30` costruita sopra `aca-system:0.9.30`. Superate le prove locali in 3 modalità (app di HA OS con finto Supervisor e HA del PC, senza Supervisor, come il banco) e il rilevamento della porta (80, 401, Supervisor spento). Non pubblicata; installazione reale da HA OS non provata.
+- **«Cambia indirizzo» in Sistema → Collegamento, solo nell'app:**
+  - frontend: 38/38 test, typecheck, lint, formato, tipografia e colori superati;
+  - prova end-to-end Windows 9/9;
+  - Tab M11 (build di debug): user agent e intercettazione verificati;
+  - il pulsante arriverà con la prossima release di Acasystem.
+- **C3 pubblicata dall'utente e verificata:** release `v0.9.30` su `acamemo/acasystem-releases`, SHA-256 coincidente. Sul Tab M11 l'APK di rilascio scarica la release e apre la pagina di accesso con il banco 0.9.30. Login non provato.
+- **C3, release v0.9.30 preparata** dall'immagine del banco (117 file, 3,2 MB). Con il guscio Windows, un finto GitHub e il banco vero: pagina di accesso, `/api/health` 0.9.30 e WebSocket HA `auth_required`. Non pubblicata; login non provato.
+
 **2026-10-25 — ottimizzazione della coreografia 0.9.28, opzione B ([REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md)):** tre giri di correzioni (K1-K5, K6a, D1, D2, W1-W3, J1) e tre misure sul Tab M11 con gesti sintetici CDP, 5 giri alternati più il giro 0, contro la 0.9.27 (`dist-banco-0.9.27`); build `backup/v0928/dist-g3`. Controlli statici superati: typecheck strict, `eslint src`, `lint:typography` (0 violazioni, 522 file), `lint:theme-colors` (0 violazioni, 343 file); Vitest `--maxWorkers=4`, suite completa 203 file e 3064 test superati; build Vite riuscita. **Esito della misura: obiettivo non raggiunto**; dopo il giro 3 restano peggiori della 0.9.27 JUMP (somma 262 contro 195 ms, numero 3 contro 2), il task singolo prima della scena all'apertura (+7-11 ms), la somma dei task all'uscita da Sistema (290 contro 264 ms) e il rilascio nel volo in S3cD (blocco 90 contro 0 ms); la dissolvenza di entrata in Sistema è peggiore ma accettata dall'utente il 2026-10-25. Non eseguiti: prova col dito dell'utente, TalkBack, nuovo banco, e2e; le misure sintetiche non sostituiscono la prova a video. Nessun commit.
 
 ## Controlli documentali

@@ -27,6 +27,20 @@ secrets/
 /progetto/acasystem/backend/data/
 /progetto/acasystem/frontend/playwright-report/
 /progetto/acasystem/frontend/test-results/
+/progetto/client/node_modules/
+/progetto/client/*/node_modules/
 
 # Istantanee di versione al posto dei commit (ADR-0008): restano solo sulla macchina.
 /usa-come-git/**
+
+# Guscio Windows: compilato e installatori, mai in Git (ADR-0023).
+/progetto/client/windows/build/
+/progetto/client/windows/release/
+/progetto/client/windows/.tmp/
+
+# Guscio Android: pagina compilata (le altre esclusioni sono in android/.gitignore).
+/progetto/client/android/www/
+/progetto/client/release-out/
+
+# App di HA OS: file preparati per la pubblicazione (REP-20261026-005).
+/progetto/ha-app/out/

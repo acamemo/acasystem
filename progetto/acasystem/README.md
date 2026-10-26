@@ -1,6 +1,6 @@
 # Acasystem
 
-Home Assistant con un frontend migliorato. Deriva da [Tunet](https://github.com/oyvhov/Tunet) 1.22.1 (GPL-3.0, revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`, baseline in [tunet-origin.json](../tunet-origin.json)). La [licenza](LICENSE) resta GPL-3.0. Decisioni: [ADR-0007](../../documentazione/decisions/ADR-0007-acasystem-os.md) e [ADR-0008](../../documentazione/decisions/ADR-0008-struttura-frontend-backend.md).
+Home Assistant con un frontend migliorato. Deriva da [Tunet](https://github.com/oyvhov/Tunet) 1.22.1 (GPL-3.0, revisione `5dec99587b4fcc2fb1f831a0a0002c9b90e6958e`, baseline in [tunet-origin.json](../tunet-origin.json)). La [licenza](LICENSE) resta GPL-3.0. Decisioni: ADR-0007 e ADR-0008.
 
 ## Struttura
 
@@ -45,7 +45,7 @@ npm run lint           ESLint
 
 Pagina di prova del kit, solo in sviluppo: `http://127.0.0.1:5173/kit.html`.
 
-Home Assistant sta dietro Acasystem ([ADR-0009](../../documentazione/decisions/ADR-0009-home-assistant-dietro-acasystem.md)). Il browser parla solo con il server Acasystem, che inoltra a Home Assistant le richieste sotto `/ha`: HTTP in streaming e WebSocket, solo i percorsi usati dal frontend. L'accesso avviene con la pagina Acasystem (utente e password di Home Assistant).
+Home Assistant sta dietro Acasystem (ADR-0009). Il browser parla solo con il server Acasystem, che inoltra a Home Assistant le richieste sotto `/ha`: HTTP in streaming e WebSocket, solo i percorsi usati dal frontend. L'accesso avviene con la pagina Acasystem (utente e password di Home Assistant).
 
 `TUNET_INTERNAL_HA_URL` (più `TUNET_INTERNAL_HA_FALLBACK_URL`, facoltativo, solo per la verifica dell'identità) è obbligatorio. Senza, il proxy e le API sincronizzate rispondono 503 `HA_URL_NOT_CONFIGURED`. In sviluppo avvia il backend con la variabile, per esempio `TUNET_INTERNAL_HA_URL=http://127.0.0.1:8123`; Vite inoltra `/api` e `/ha` al backend sulla porta 3002. Gli indirizzi inviati dal browser non vengono mai usati (SEC-1).
 

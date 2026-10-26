@@ -4,7 +4,8 @@ import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 // Read-only UI measurement on the real bench: edit/overview controls only, no HA commands.
-const output = resolve(process.env.ACA_EVIDENCE_DIR ?? '../../../backup/rep003/performance');
+// Evidenze fuori da Git: ACA_EVIDENCE_DIR (sul banco, ../../../backup/rep003/performance) o .tmp/e2e.
+const output = resolve(process.env.ACA_EVIDENCE_DIR ?? '.tmp/e2e/performance');
 await mkdir(output, { recursive: true });
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9225');
 const page = browser

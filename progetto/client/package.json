@@ -1,0 +1,21 @@
+{
+  "name": "acasystem-client",
+  "private": true,
+  "version": "0.1.0",
+  "description": "App client di Acasystem per Windows e Android: guscio che scarica l'interfaccia e la collega al server sul mini PC (ADR-0023)",
+  "license": "GPL-3.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "workspaces": [
+    "core",
+    "windows",
+    "android"
+  ],
+  "scripts": {
+    "release:make": "node scripts/make-release.ts",
+    "test": "npm run test -w core && npm run test -w windows && npm run test -w android",
+    "typecheck": "npm run typecheck -w core && npm run typecheck -w windows && npm run typecheck -w android"
+  }
+}

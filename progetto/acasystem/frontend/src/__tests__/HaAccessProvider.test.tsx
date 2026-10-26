@@ -36,7 +36,7 @@ interface ConnectionArgs {
 function fakeConnection() {
   return {
     sendMessagePromise: vi.fn(async (message: { type: string }) =>
-      message.type === 'auth/current_user' ? { id: 'u1', name: 'Mattia' } : {}
+      message.type === 'auth/current_user' ? { id: 'u1', name: 'Mario' } : {}
     ),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),

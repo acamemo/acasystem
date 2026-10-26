@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": "..",
+    "outDir": "build",
+    "sourceMap": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.cts", "../core/src/**/*.ts"],
+  "exclude": ["src/**/__tests__/**", "src/renderer/**", "../core/src/**/__tests__/**"]
+}

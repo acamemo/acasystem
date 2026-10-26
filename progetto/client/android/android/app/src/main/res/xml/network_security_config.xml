@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Acasystem parla con il mini PC solo in rete locale e in HTTP (Q-A10, ADR-0023): il controllo
+  /api/health passa da CapacitorHttp e Android non ammette eccezioni per intervalli di IP,
+  quindi HTTP in chiaro è consentito. GitHub resta in HTTPS; l'interfaccia vede solo 127.0.0.1.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
