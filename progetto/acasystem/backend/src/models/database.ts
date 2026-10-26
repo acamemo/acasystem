@@ -87,6 +87,50 @@ const SCHEMA_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_casa3d_history_lookup
     ON casa3d_history(home_id, saved_at DESC);
+
+  -- Device configuration facade (/api/dispositivi, ADR-0021 and ADR-0022).
+  -- Open Home Assistant configuration flows: cancelled at expiry and at start-up. No field
+  -- values are stored (no address, MAC or token).
+  CREATE TABLE IF NOT EXISTS device_flows (
+    flow_id TEXT PRIMARY KEY,
+    ha_user_id TEXT NOT NULL,
+    handler TEXT NOT NULL,
+    step_id TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_device_flows_user ON device_flows(ha_user_id);
+  CREATE INDEX IF NOT EXISTS idx_device_flows_expiry ON device_flows(expires_at);
+
+  -- Registry of the actions of the facade: who, what, domain, entry id, outcome. No secrets.
+  CREATE TABLE IF NOT EXISTS device_actions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    at INTEGER NOT NULL,
+    ha_user_id TEXT,
+    ha_user_name TEXT,
+    source TEXT NOT NULL,
+    action TEXT NOT NULL,
+    domain TEXT,
+    entry_id TEXT,
+    outcome TEXT NOT NULL,
+    code TEXT
+  );
+
+  -- Links of the power-on recipe (D1b): what Acasystem created in HA for one TV. No MAC, and no
+  -- entity id of the Wake on LAN button either: HA names it after the MAC, so it is looked up.
+  CREATE TABLE IF NOT EXISTS device_power_links (
+    webostv_entry_id TEXT PRIMARY KEY,
+    wol_entry_id TEXT NOT NULL,
+    automation_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    media_player_entity_id TEXT NOT NULL,
+    trigger_form TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
 `;
 
 /** Colonne aggiunte dopo la prima versione dello schema: tabella, colonna, definizione. */

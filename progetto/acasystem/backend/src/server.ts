@@ -20,8 +20,11 @@ import {
   createHomeAssistantProxyRouter,
 } from './routes/homeAssistantProxy.ts';
 import { createIconsRouter } from './routes/icons.ts';
+import { createDevicesRouter } from './routes/devices.ts';
 import { createProfilesRouter } from './routes/profiles.ts';
 import { createSettingsRouter } from './routes/settings.ts';
+import { createDeviceModule } from './services/devices/index.ts';
+import type { DeviceModule, DeviceModuleOptions } from './services/devices/index.ts';
 
 /**
  * Backend Acasystem (ex server Express di Tunet 1.22.1). Node lo esegue direttamente
@@ -38,6 +41,8 @@ export interface CreateAppOptions {
   isProduction?: boolean;
   /** Database SQLite; predefinito `<DATA_DIR>/tunet.db`, aperto alla creazione dell'app. */
   database?: SqliteDatabase;
+  /** Device facade (/api/dispositivi): server configuration by default, replaceable in tests. */
+  devices?: DeviceModuleOptions;
 }
 
 export const createApp = ({
@@ -46,6 +51,7 @@ export const createApp = ({
   casa3dPath = DEFAULT_CASA3D_DIST_PATH,
   isProduction = isProductionEnvironment(),
   database = getDatabase(),
+  devices: deviceOptions = {},
 }: CreateAppOptions = {}): Express => {
   const app = express();
   const homeAssistantAuth = createHomeAssistantAuthMiddleware();
@@ -73,6 +79,11 @@ export const createApp = ({
   app.use('/api/settings', homeAssistantAuth, createSettingsRouter(database));
   app.use('/api/casa3d', homeAssistantAuth, createCasa3dApiRouter(database));
 
+  // Device configuration facade (ADR-0021, ADR-0022). Timers start in main(), not here.
+  const devices = createDeviceModule(database, deviceOptions);
+  app.locals.devices = devices;
+  app.use('/api/dispositivi', homeAssistantAuth, createDevicesRouter(devices));
+
   // Health check
   app.get('/api/health', createHealthController(appVersion));
 
@@ -99,4 +110,9 @@ if (isMainModule) {
     );
   });
   attachHomeAssistantWebSocketProxy(server);
+
+  // Cancel the flows left open by the previous run and check the Home Assistant version.
+  const devices = app.locals.devices as DeviceModule;
+  void devices.start();
+  server.on('close', () => devices.stop());
 }

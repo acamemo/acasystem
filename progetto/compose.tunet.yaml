@@ -26,8 +26,12 @@ services:
       DATA_DIR: /app/data
       TUNET_INTERNAL_HA_URL: http://host.docker.internal:8123
       TUNET_ENCRYPTION_MODE: "off"
+      # D1 (ADR-0022, point 3): the service-user secret lives in its own volume, not in tunet-data,
+      # so cold copies of tunet-data never contain it. `activate` refuses to save it inside DATA_DIR.
+      TUNET_SERVICE_SECRET_FILE: /app/service-secret/service-identity.json
     volumes:
       - tunet-data:/app/data
+      - tunet-service-secret:/app/service-secret
     healthcheck:
       test:
         [
@@ -45,3 +49,5 @@ services:
 
 volumes:
   tunet-data:
+  # Only the service-user token of the device facade (D1s). Do not include it in data backups.
+  tunet-service-secret:

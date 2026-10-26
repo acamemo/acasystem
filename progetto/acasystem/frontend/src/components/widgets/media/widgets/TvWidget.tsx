@@ -5,7 +5,7 @@ import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useConfirmedCommand } from '../hooks/commands';
 import { MediaIcon } from '../icons';
 import { readString, resolveImage, stringList } from '../model/entity';
-import { resolveTv, widgetPlayTarget, type TvKind, type TvView } from '../model/tv';
+import { resolveTv, tvCanPower, widgetPlayTarget, type TvKind, type TvView } from '../model/tv';
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
 import { PowerButton } from '../parts/Controls';
@@ -40,7 +40,8 @@ export function tvStatus(view: TvView): string {
 
 /**
  * Android TV (`androidtv_card_*`) and Apple TV (`appletv_card_*`) widgets: device, app and title,
- * play/pause while on, and for Apple TV the power button and the optional tap-to-toggle.
+ * play/pause while on, the power button (Apple TV always; Android TV when the entity declares
+ * TURN_ON or TURN_OFF) and, for Apple TV, the optional tap-to-toggle.
  */
 export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & { kind: TvKind }) {
   const runtime = useWidgetRuntime();
@@ -127,16 +128,15 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
     </IconText>
   );
 
-  const powerButton =
-    kind === 'apple' ? (
-      <PowerButton
-        on={power.value}
-        action={power.value ? 'turn_off' : 'turn_on'}
-        pending={power.pending}
-        disabled={editMode || view.unavailable}
-        onClick={togglePower}
-      />
-    ) : null;
+  const powerButton = tvCanPower(kind, view) ? (
+    <PowerButton
+      on={power.value}
+      action={power.value ? 'turn_off' : 'turn_on'}
+      pending={power.pending}
+      disabled={editMode || view.unavailable}
+      onClick={togglePower}
+    />
+  ) : null;
 
   const playButton =
     view.isOn && !compact ? (

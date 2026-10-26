@@ -12,6 +12,8 @@ import {
   type AddWidgetType,
 } from './catalog';
 import { cardSettingsKey } from './cardKeys';
+import { AddDeviceEntry } from '../devices/AddDeviceEntry';
+import { AddDeviceFlow } from '../devices/AddDeviceFlow';
 import { EntityPicker, PickRow, entityName } from './parts/EntityPicker';
 import { ChoiceGroup, Notice } from './parts/Form';
 import { usePresence } from './parts/hooks';
@@ -20,7 +22,7 @@ import { buildRoomCards } from './roomCards';
 import type { AddWidgetSheetProps } from './types';
 import './sheets.css';
 
-type Step = 'type' | 'details';
+type Step = 'type' | 'details' | 'device';
 
 const EMPTY_ROOMS: RoomSelection = { areas: [], entitiesById: {} };
 
@@ -207,8 +209,9 @@ export function AddWidgetSheet({
     addCard.onAddSelected();
   };
 
+  // «Aggiungi un dispositivo» has its own buttons inside the flow: no footer.
   const footer =
-    step === 'type' ? (
+    step === 'device' ? undefined : step === 'type' ? (
       <Button variant="secondary" size="md" onClick={onClose}>
         Annulla
       </Button>
@@ -241,7 +244,9 @@ export function AddWidgetSheet({
       description={
         step === 'type'
           ? 'Scegli che cosa mostrare nella pagina.'
-          : 'Scegli che cosa mostra il widget.'
+          : step === 'device'
+            ? 'Aggiungi il dispositivo a Home Assistant, poi collegalo al widget.'
+            : 'Scegli che cosa mostra il widget.'
       }
       footer={footer}
       className="aca-add-widget"
@@ -266,6 +271,18 @@ export function AddWidgetSheet({
             </Button>
           ))}
         </div>
+      )}
+
+      {mounted && step === 'device' && (
+        <AddDeviceFlow
+          kind="tv"
+          onExit={() => setStep('details')}
+          onDone={(id) => {
+            // The new TV is the one to link: «Aggiungi il widget» is then ready.
+            if (id) addCard.setSelectedAndroidTVMediaId(id);
+            setStep('details');
+          }}
+        />
       )}
 
       {mounted && step === 'details' && entry && (
@@ -303,6 +320,7 @@ export function AddWidgetSheet({
             addCard={addCard}
             rooms={rooms}
             onRooms={setRooms}
+            onAddDevice={() => setStep('device')}
           />
         </div>
       )}
@@ -318,12 +336,15 @@ function DetailsBody({
   addCard,
   rooms,
   onRooms,
+  onAddDevice,
 }: {
   entry: AddWidgetType;
   pageId: string;
   addCard: AddCardState;
   rooms: RoomSelection;
   onRooms: (next: RoomSelection | ((previous: RoomSelection) => RoomSelection)) => void;
+  /** Opens «Aggiungi un dispositivo»; offered to the Android TV widget only (REQ-18). */
+  onAddDevice: () => void;
 }) {
   const { entities, entitiesLoaded, conn } = useWidgetRuntime();
   const { pagesConfig } = usePages();
@@ -426,6 +447,7 @@ function DetailsBody({
             loading={loading}
             emptyText="Nessun lettore multimediale trovato."
           />
+          {entry.type === 'androidtv' && <AddDeviceEntry onClick={onAddDevice} />}
           <EntityPicker
             label="Telecomando, facoltativo"
             entities={entities}

@@ -5,6 +5,9 @@ import { useState } from 'react';
 import { RoomPicker, type RoomSelection } from './RoomPicker';
 import { BINDING_KEYS } from './categoryPages';
 import { candidateEntityIds } from './catalog';
+import { AddDeviceEntry } from '../devices/AddDeviceEntry';
+import { AddDeviceFlow } from '../devices/AddDeviceFlow';
+import { deviceTexts } from '../devices/deviceTexts';
 import { EntitySelect } from './parts/EntityPicker';
 import { SheetSection } from './parts/Form';
 
@@ -16,6 +19,7 @@ export function CategoryBindingSection({
   save: (key: string, value: unknown) => void;
 }) {
   const { entities, entitiesLoaded } = useWidgetRuntime();
+  const [adding, setAdding] = useState(false);
   const type = String(settings.categoryWidgetType);
   const key = BINDING_KEYS[type];
   if (!key) return null;
@@ -39,6 +43,23 @@ export function CategoryBindingSection({
       : typeof settings[key] === 'string'
         ? (settings[key] as string)
         : null;
+  // A new TV can be added from here (REQ-18, D-D2): the way in is the Android TV widget.
+  const canAddDevice = type === 'androidtv';
+  const link = (id: string | null) => save(key, multiple ? (id ? [id] : []) : id);
+  if (canAddDevice && adding) {
+    return (
+      <SheetSection title="Dispositivo">
+        <AddDeviceFlow
+          kind="tv"
+          onExit={() => setAdding(false)}
+          onDone={(id) => {
+            if (id) link(id);
+            setAdding(false);
+          }}
+        />
+      </SheetSection>
+    );
+  }
   return (
     <SheetSection title="Dispositivo">
       {!entitiesLoaded && (
@@ -46,14 +67,21 @@ export function CategoryBindingSection({
           Attendo i dispositivi di Home Assistant.
         </Body>
       )}
-      <EntitySelect
-        label={type === 'car' ? 'Sensore batteria dell’auto' : 'Dispositivo da collegare'}
-        entities={entities}
-        ids={ids}
-        value={value}
-        onChange={(id) => save(key, multiple ? (id ? [id] : []) : id)}
-        noneLabel="Non collegato"
-      />
+      {canAddDevice && entitiesLoaded && ids.length === 0 ? (
+        <Body size="sm" tone="muted">
+          {deviceTexts.noTv}
+        </Body>
+      ) : (
+        <EntitySelect
+          label={type === 'car' ? 'Sensore batteria dell’auto' : 'Dispositivo da collegare'}
+          entities={entities}
+          ids={ids}
+          value={value}
+          onChange={link}
+          noneLabel="Non collegato"
+        />
+      )}
+      {canAddDevice && <AddDeviceEntry onClick={() => setAdding(true)} />}
     </SheetSection>
   );
 }

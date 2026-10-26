@@ -5,7 +5,9 @@
  */
 import type { EntityMap } from '@/@types/ha';
 import { getMediaLogoUrl } from '@/utils/mediaLogos';
+import { getMediaPlayerPowerAction } from '@/utils/mediaPlayerFeatures';
 import { attrString, isUnavailable, type Entity } from './entity';
+import { MEDIA_FEATURE } from './features';
 
 export type TvKind = 'android' | 'apple';
 
@@ -103,6 +105,29 @@ export function resolveTv(
       : [],
     muted: entity?.attributes?.is_volume_muted === true,
   };
+}
+
+/**
+ * The power button of the Android TV widget: only when the entity itself declares that it can be
+ * turned on (while off) or off (while on). An Android TV without a remote used to show none; a
+ * TV that declares the feature, like an LG TV added from Acasystem with the power-on recipe,
+ * shows it (REQ-18). Apple TV always shows it.
+ */
+export function tvCanPower(kind: TvKind, view: TvView): boolean {
+  return kind === 'apple' || getMediaPlayerPowerAction(view.entity) !== null;
+}
+
+/**
+ * The «App» list of the details: Apple TV when the entity lists sources; Android TV only when
+ * the entity declares that it can select a source (SELECT_SOURCE), as the LG TV does, so the apps
+ * of the list (Netflix, YouTube…) open from the widget (REQ-18).
+ */
+export function tvShowsApps(kind: TvKind, view: TvView): boolean {
+  if (view.sources.length === 0) return false;
+  if (kind === 'apple') return true;
+  const raw = view.entity?.attributes?.supported_features;
+  const bits = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(bits) && (bits & MEDIA_FEATURE.SELECT_SOURCE) !== 0;
 }
 
 /** Target of the play/pause button on the widget: Android follows the playing display entity. */

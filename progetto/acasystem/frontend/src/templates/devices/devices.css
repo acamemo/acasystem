@@ -1,0 +1,34 @@
+/*
+ * «Aggiungi un dispositivo» (D1): layout only. Colours, materials and type come from the --aca-*
+ * tokens and the primitives; the rows reuse the ones of the sheets (aca-pick-row).
+ */
+@layer components {
+  .aca-device-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+  .aca-device-flow__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  /* The buttons of a step stay together at the end, wrapping on a narrow phone. */
+  .aca-device-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+  .aca-device-actions > * {
+    flex: 0 1 auto;
+  }
+  .aca-device-pairing {
+    align-items: center;
+    text-align: center;
+  }
+  .aca-device-pairing__text {
+    max-width: 28rem;
+  }
+}

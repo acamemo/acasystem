@@ -4,7 +4,7 @@ import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useConfirmedCommand, useServiceActions } from '../hooks/commands';
 import { MediaIcon, type MediaIconName } from '../icons';
 import { resolveImage } from '../model/entity';
-import { detailsTarget, resolveTv, type TvKind } from '../model/tv';
+import { detailsTarget, resolveTv, tvCanPower, tvShowsApps, type TvKind } from '../model/tv';
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
 import { CommandStatus, PowerButton } from '../parts/Controls';
@@ -173,7 +173,7 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
           >
             {power.pending ? testi.inAttesa : testi.stato(tvStatus(view))}
           </IconText>
-          {(kind === 'apple' || config.remoteId) && powerControl}
+          {(tvCanPower(kind, view) || config.remoteId) && powerControl}
         </div>
         {(picture ?? logo) && (
           <Artwork
@@ -229,7 +229,7 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
         </div>
       </section>
 
-      {kind === 'apple' && view.sources.length > 0 && (
+      {tvShowsApps(kind, view) && (
         <section className="aca-media-section" aria-labelledby={`${id}-app`}>
           <Heading level={3} size="sm" id={`${id}-app`}>
             {testi.app}

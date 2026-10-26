@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 import rateLimit, { ipKeyGenerator, MemoryStore } from 'express-rate-limit';
 import type { Options, RateLimitRequestHandler } from 'express-rate-limit';
+import { DEVICES_RATE_LIMIT_DEFAULT_MAX, DEVICES_RATE_LIMIT_PREFIX } from '../config/devices.ts';
 import { readRateLimitSettings } from '../config/env.ts';
 import { sendJsonError } from './errors.ts';
 
@@ -45,6 +46,14 @@ export const createCasa3dRateLimiter = (): RateLimitRequestHandler =>
   createRateLimiter('CASA3D_RATE_LIMIT', 120, {
     // Pictures have their own limit: a backup moves them one by one (up to 200) and must not lose any.
     skip: (req) => req.path.startsWith('/images/'),
+  });
+
+/** /api/dispositivi (device facade): DEVICES_RATE_LIMIT_*, default 90 per minute per client. */
+export const createDevicesRateLimiter = (): RateLimitRequestHandler =>
+  createRateLimiter(DEVICES_RATE_LIMIT_PREFIX, DEVICES_RATE_LIMIT_DEFAULT_MAX, {
+    handler: (_req, res) => {
+      sendJsonError(res, 429, 'Troppi tentativi. Riprova tra qualche minuto.', 'RATE_LIMITED');
+    },
   });
 
 /** Immagini di /api/casa3d: CASA3D_IMAGE_RATE_LIMIT_*, predefinito 600 al minuto. */

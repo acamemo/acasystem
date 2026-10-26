@@ -1360,3 +1360,189 @@ Applicazione della patch a `progetto/acasystem`, costruzione dell'immagine, esec
 2. Chi ha l'autorità sul compose decide il volume del segreto (`TUNET_SERVICE_SECRET_FILE`) e porta `TUNET_INTERNAL_HA_URL` alla porta della VM; poi si ricostruisce l'immagine.
 3. Core a 2026.9.4 nella VM (D-D23); l'utente lancia `activate` nel proprio terminale; poi D1c-D1g.
 4. Annotazioni su `compliance.md` (C-16 e C-17) alla chiusura di D1 (D1z): non fatte qui.
+
+## Annotazione del 2026-10-26: parte frontend di D1 (D1c-D1g) realizzata in una copia di lavoro
+
+Stato: **realizzata e verificata nella copia di lavoro, non applicata all'albero principale.** Autore: Claude Code (Sonnet 5.5, `claude-sonnet-5-5`), su incarico del flusso di D1 autorizzato dall'utente il 2026-10-26 («Sì, in parallelo» alla 0.9.29; «No, usiamo la VM»). Nessun commit, nessuna credenziale, nessun browser, tablet, televisore, rete o Docker; l'albero principale non è stato toccato (solo letto). Un altro flusso fa la 0.9.29 in quell'albero.
+
+### File
+
+- Copia di lavoro: `backup/d1/sandbox/acasystem/frontend`. Copie «prima» dei file modificati, con SHA-256: `backup/d1/pre/d1-frontend/` (`SHA256.txt`).
+- **24 file nella patch: 19 nuovi e 5 modificati.** Nuovi: `src/@types/devices.ts`, `src/api/devicesApi.ts`, 11 file in `src/templates/devices/` (`AddDeviceFlow`, `useDeviceFlow`, `CatalogStep`, `FlowFormStep`, `PairingStep`, `NameRoomStep`, `PowerStep`, `AddDeviceEntry`, `useEntityPresence`, `deviceTexts`, `devices.css`) e 6 file di test (`DevicesApi`, `AddDeviceFlow`, `AddDeviceEntries`, `AddDevicePower`, `TvPowerApps`, `devicesFakeServer`). Modificati: `CategoryBindingSection.tsx`, `AddWidgetSheet.tsx`, `TvWidget.tsx`, `TvDetails.tsx`, `model/tv.ts`.
+- Patch: `backup/d1/patch/d1-frontend.diff` (da `progetto/acasystem` con `git apply -p1`; i file nuovi sono diff da `/dev/null`); elenco in `backup/d1/patch/d1-frontend-files.txt`. Il diff è calcolato rispetto a `pre/d1-frontend/`, non all'intera cartella: non riporta indietro la 0.9.28.
+
+### Che cosa fa [realizzato]
+
+- Il widget Android TV ha la riga «Aggiungi un dispositivo» in «Collega» (al posto della lista, senza elementi d'esempio, se Home Assistant non ha lettori) e in «Aggiungi un widget» → Android TV. Non c'è per gli altri tipi. Il percorso vive **nello stesso foglio**, con i suoi pulsanti, senza un secondo dialogo (ISSUE-112) e senza toccare `LauncherScreen`.
+- Passi: controllo del servizio (messaggio del server se spento o HA non raggiungibile) → flusso già aperto («Riprendi»/«Annulla», anche per il 409) → scelta (consigliato `webostv`; ricerca con attesa di 250 ms; le altre integrazioni disabilitate con «Richiede l'installatore») → indirizzo (modulo disegnato dai campi del server; i facoltativi vuoti non si inviano) → abbinamento (una chiamata tenuta aperta: conto alla rovescia da 10, nessun pulsante attivo, poi «Sto aspettando la risposta del televisore…»; «Riprova» rimanda lo stesso flusso) → nome e stanza → accensione da spento → fine («Fine» collega l'entità appena compare nei dati vivi, o dopo 15 s con «Comparirà tra pochi secondi.»).
+- Errori: 403, 422, 503, 504, 404/410, 409, 429 e 400 con campo hanno ciascuno il proprio messaggio italiano (quello del server; senza, «Qualcosa non ha funzionato. Riprova.»); mai un testo del browser. «Esci» e la chiusura del foglio annullano il flusso aperto (il 404 si tollera), ma non mentre una chiamata è aperta: lo fa il server dopo 10 minuti.
+- Accensione (D1e): il cliente manda un corpo vuoto; se HA non ha il MAC mostra il messaggio del server («Lo inserisce l'installatore») e «Salta». L'amministratore scrive il MAC (controllato prima dell'invio, con le stesse regole del server) e, sotto «Avanzate», broadcast (proposto `x.y.z.255` dall'indirizzo appena scritto, solo in memoria) e porta. «Prova ad accendere» chiede conferma e manda `media_player.turn_on`.
+- Widget (necessario per accendere e aprire Netflix): sull'Android TV compare il pulsante di accensione quando l'entità dichiara TURN_ON (da spenta) o TURN_OFF (da accesa), e la sezione «App» quando dichiara SELECT_SOURCE e ha una lista di sorgenti. Senza funzioni dichiarate non cambia nulla; l'Apple TV è invariata.
+- Nulla nel browser: niente `localStorage`, niente console, nessun indirizzo salvato (verificato da test).
+
+### Scelte esecutive e scostamenti dal piano
+
+1. «Prova ad accendere» usa `InlineConfirm` (come le altre conferme dei fogli) e non `ConfirmSheet`: un `ConfirmSheet` dentro il foglio sarebbe un dialogo annidato.
+2. Le righe non avviabili mostrano «Richiede l'installatore» come testo (`Caption`); `Badge` nel kit è solo un punto di notifica.
+3. L'attesa dell'entità è nel pannello finale del flusso (un solo posto, vale per «Collega» e per «Aggiungi un widget»): «Fine» resta in attesa fino a 15 s, poi collega comunque. Il piano la metteva in `CategoryBindingSection`; l'effetto è lo stesso.
+4. Il broadcast si invia solo se «Avanzate» è aperta: chiusa, HA usa il suo predefinito.
+5. **Cambia il comportamento degli altri Android TV che dichiarano TURN_ON/TURN_OFF o SELECT_SOURCE** (pulsante e «App» compaiono): è coperto dall'obiettivo di D1 (accendere e aprire Netflix dal widget), ma va detto all'utente. D-D18 (dove si filtrano le app: oggi compaiono tutte le sorgenti, anche HDMI) resta aperta.
+
+### Verifiche (copia di lavoro; nessun browser né tablet)
+
+| Controllo | Esito |
+|---|---|
+| `npm run typecheck` (tsc strict su tutto `src`) | superato |
+| `npx eslint src` | superato (nessun avviso) |
+| `node scripts/lint-typography.mjs` / `node scripts/lint-theme-colors.mjs` | 0 violazioni (532 / 352 file) |
+| Vitest dei 5 file di test nuovi (`--maxWorkers=2`) | **87 test superati** (`DevicesApi` 11, `AddDeviceFlow` 37, `AddDeviceEntries` 12, `AddDevicePower` 14, `TvPowerApps` 13) |
+| Regressioni: `AvTv`, `AvWidgetOpen`, `CategoryPages`, `FixSheetsReview`, `SystemSheets`, `WidgetMemoryAddSheet` | 115 superati |
+| Regressioni: `ShellLauncher`, `AvMediaDetails`, `AvMediaPage`, `AvMediaPlayer`, `PolishLauncherScreen`, `Polish2LauncherScreen` | 78 superati |
+| Prova di unione (`backup/d1/prova-unione/`: copia di `frontend/src` e della configurazione dell'albero principale del 2026-10-26 10:03, senza `node_modules`) | `git apply --check -p1` **senza conflitti**; applicata davvero: i 24 file risultano identici byte per byte a quelli della copia di lavoro; `tsc` strict sulla copia con la patch: superato |
+
+Il test `DevicesApi` confronta le chiavi dei DTO del frontend con le interfacce del server (`backend/src/services/devices/`); si salta se il server non è accanto. Prima di ogni corsa di Vitest si è controllato che non girasse un Vitest dell'albero principale; si è aspettato più volte.
+
+### Conflitti e rischi dell'unione
+
+- Nessun conflitto oggi: i 5 file modificati sono ancora identici (SHA-256) a quelli di partenza nell'albero principale e i 19 nuovi non esistono là; la 0.9.29 in corso non li tocca (stato letto alle 10:03). Va **ricontrollato** a 0.9.29 chiusa, prima di applicare.
+- I DTO sono copiati a mano dal server: se `d1-server.diff` cambia ancora, il test delle chiavi lo segnala solo se il server è presente.
+- La copia di lavoro ha ancora il foglio (`Sheet.tsx`) di prima della 0.9.28: il comportamento del flusso dentro il foglio (focus, altezza, animazione) va riprovato dopo l'unione, sul banco e sul Tab M11.
+- Nota sul metodo: dentro il repository `git apply` su una cartella ignorata (`backup/`) non scrive nulla ma risponde «ok»; la prova vera è stata fatta con `GIT_CEILING_DIRECTORIES` e `core.autocrlf=false`. Sull'albero principale (`progetto/acasystem/** -text`) i file restano con i loro fine riga.
+
+### Non eseguito
+
+Applicazione all'albero principale, ricostruzione dell'immagine, prova nel browser o sul Tab M11, controllo visivo (spaziature, focus, layout su telefono), prova col televisore e con la VM (abbinamento, accensione, Netflix, persistenza), fixture di contratto CT-01…CT-14, commit.
+
+### Limiti rimasti [non risolti]
+
+- D-D6: nessuna proposta del MAC da parte di Acasystem; un cliente non attiva l'accensione da spento se HA non ha il MAC (di norma per `webostv` manca). Il broadcast non è ricavato dal server.
+- L'automazione `acasystem_accensione_*` non è esclusa dal widget Automazioni. «Accendi + app» (D-D7, D9), menu/progress/`next_flow` (D2), catalogo con marche (D3), pagina «Sistema > Dispositivi», rimozione (D6): fuori da questa parte.
+- Prerequisiti fuori dal frontend (invariati): scheda a ponte della VM, porta di HA nella VM, volume del segreto, `activate` e utente «cliente» a cura dell'utente.
+
+### Punto di ripresa
+
+1. A 0.9.29 chiusa: confrontare gli SHA-256 dei 5 file modificati con `backup/d1/pre/d1-frontend/SHA256.txt`; poi, da `progetto/acasystem`: `git apply --check -p1 ../../backup/d1/patch/d1-server.diff` e `d1-frontend.diff`, applicare, `npm run typecheck`, i 5 test nuovi e le regressioni sopra, ricostruire l'immagine. Solo su istruzione esplicita (albero principale, Docker, banco e tablet).
+2. Prova reale con l'utente presente (D1g): aggiunta del televisore 192.168.1.26, abbinamento, accensione, Netflix, persistenza (D1p).
+
+
+## V2 — preparazione per D1 (2026-10-26)
+
+Eseguita da Claude Code (Sonnet 5.5, `claude-sonnet-5-5`), subagente di un flusso, tra le 10:27 e le 11:40, su richiesta dell'utente del 2026-10-26 («entro oggi riusciamo a mettere acasystem sulla macchina virtuale e testare il collegamento con dispositivi veri?», poi «No, usiamo la VM»). Acasystem resta nel container del PC e userà l'HA della VM; il pacchetto dentro HA OS è un lavoro futuro. Nessun commit; nessuna credenziale usata o vista; nessun utente creato; nessuna integrazione aggiunta; Docker, banco, tablet e working tree principale non toccati.
+
+### Ripresa e attesa
+
+- **Stato di partenza [verificato con `showvminfo` e `snapshot list`]:** VM spenta, RAM 4096 MB, snapshot «prima-di-D1-oggi» già presente (descrizione ancora «RAM 3072, Core 2026.10.2», scritta prima della modifica della memoria). Non rifatti.
+- **Attesa:** il diario indicato dall'incarico (`2d52377b…/journal.jsonl`) era fermo alle 09:27 e non conteneva l'agente «verifica». Si è usato il diario della sessione corrente (`d84f0a80…/journal.jsonl`), come dice la nota dell'incarico: l'agente «verifica» è terminato con `all_green` (4 shard di Vitest: 737, 1006, 749, 617 test passati; typecheck, lint, build verdi). Alle 10:27 non c'erano processi `vitest` né Playwright; memoria libera circa 3,9 GB. Era già partito l'agente «tablet» (non usa la VM). L'attesa è durata da 09:38 a 10:27.
+
+### Passi eseguiti
+
+| Passo | Esito |
+|---|---|
+| Avvio senza finestra (`startvm --type headless`, vmsvga, paravirt hyperv) | Console di HA OS pronta dopo circa 20 minuti (misura approssimata; la VM gira sopra l'hypervisor di Windows). Memoria libera del PC scesa a circa 1,8-2,3 GB durante l'avvio |
+| Core | `ha core info`: 2026.10.2 (ultima disponibile 2026.10.4). Dalla console `core update --version 2026.9.4`: «Command completed successfully» in meno di 5 minuti. `ha core info`: **2026.9.4**; il Core è ripartito alle 10:50 e `/auth/providers` risponde 200 (proprietario già creato dall'utente il 2026-10-23, nessun `onboarding_required`). **Il ritorno da 2026.10.2 a 2026.9.4 su HAOS 18.3 funziona**: il punto di stop di D-D23 non è scattato. Nel registro del Core compare solo l'avviso del Recorder «could not validate that the sqlite3 database was shutdown cleanly» (riferito all'arresto precedente) |
+| IP fisso Host-Only (D-I3) | `network update enp0s8 --ipv4-method static --ipv4-address 192.168.56.10/24`, senza gateway. L'intervallo DHCP di VirtualBox è 192.168.56.101-254, quindi `.10` è fuori. Dal PC: ping e `http://192.168.56.10/` 200; il vecchio `.101` non risponde più |
+| Ascolto limitato (D-I8) | Vedi sotto: **la porta di HA è la 80**, e `configuration.yaml` non basta |
+| Scheda a ponte | `controlvm setlinkstate1 on`: `enp0s3` ha **192.168.1.183/24** (DHCP), gateway e DNS 192.168.1.1. Dalla shell della VM: ping 192.168.1.1 ok; ping **192.168.1.26** 3/3 (prima risposta 2165 ms, poi 1165 e 164 ms) e dopo il riavvio 2/2 (media 20,8 ms). Il PC era a 192.168.1.7 |
+| NAT temporanea | Con la scheda a ponte la VM ha Internet (`curl https://version.home-assistant.io/stable.json` → 200; Supervisor `healthy: true`, `supported: true`), quindi la NAT è stata staccata: `setlinkstate3 off`, poi a VM spenta `modifyvm --nic3 none`. Le schede sono ora: 1 a ponte sul «Realtek RTL8852BE WiFi 6», cavo connesso; 2 Host-Only; 3 e 4 nessuna |
+| Snapshot | «**dopo-preparazione-D1**» (UUID `1fa216bf-dcf8-4591-a2f0-9ae28791887c`), presa a VM spenta dopo lo spegnimento ACPI (15 s) |
+| Riavvio e controllo | VM riavviata: HTTP 200 su `192.168.56.10` dopo circa 30 minuti dall'avvio (alle 11:37; più lento del primo avvio). Dopo il riavvio, dalla shell: Core 2026.9.4, Supervisor sano, `192.168.56.10:80`, `172.30.32.1:80` e `127.0.0.1:80` 200, l'indirizzo del ponte (192.168.1.183:80) rifiuta la connessione, il ping al TV risponde. Il file `.storage/http` conserva `server_host` |
+
+### D-I8: come è stato fatto e perché in modo diverso dall'incarico
+
+- **Fatto osservato nel codice in esecuzione (Core 2026.9.4, `components/http/config.py`, righe 195-245 lette dalla VM):** quando `yaml_migration_done` è `true` nello `.storage/http` (qui lo è dal 2026-10-23), la configurazione YAML `http:` viene **ignorata** e HA crea solo l'avviso «yaml_still_present_after_migration». Quindi `http: server_host` in `configuration.yaml` (come scritto nell'incarico) **non avrebbe avuto effetto**; è coerente con la riga «Porta di HA e D-I8» del piano operativo, che già indicava lo storage come fonte. `configuration.yaml` non è stato modificato.
+- **Mezzo usato:** con il Core fermato (`ha core stop`), dalla shell di HA OS (`login`), copia dello `.storage/http` in `/mnt/data/http.storage.bak-20261026` (dentro la VM, 496 byte, data originale 2026-10-23 17:24) e aggiunta nel blocco `stable` di `"server_host": ["192.168.56.10", "172.30.32.1", "127.0.0.1"]` (558 byte), poi `ha core start`. Non si è usato il comando WebSocket `http/config/configure` perché richiede un token (nessuna credenziale in questo flusso).
+- **Perché tre indirizzi:** `172.30.32.1` è l'indirizzo con cui il Supervisor e le app raggiungono il Core (`ha core info`, `ip_address`) e `127.0.0.1` l'anello locale: limitare al solo Host-Only avrebbe rischiato di rompere il Supervisor (rischio elencato tra i punti di stop). Non è stato verificato che Impostazioni > Sistema > Rete mostri questa lista.
+- **Prove prima di collegare il ponte:** dalla shell della VM `192.168.56.10:80`, `172.30.32.1:80`, `127.0.0.1:80` → 200; `10.0.4.15:80` (NAT) → nessuna connessione; la 8123 non ha ascoltatori né su `192.168.56.10` né su `10.0.4.15`. Il ponte è stato collegato solo dopo.
+- **Prove con il ponte collegato:** dal PC (Wi-Fi 192.168.1.7) `http://192.168.1.183:80` e `:8123` → connessione rifiutata; `http://192.168.56.10:80` → 200. **Limite:** la prova «dalla rete dell'ufficio» è fatta dal PC che ospita la VM, non da un secondo apparecchio (il tablet era riservato alla 0.9.29): [non verificato da un altro dispositivo].
+- **Ritorno indietro:** a VM accesa, nella shell di HA OS: `ha core stop`, `cp /mnt/data/http.storage.bak-20261026 /mnt/data/supervisor/homeassistant/.storage/http`, `ha core start`; oppure ripristinare lo snapshot «prima-di-D1-oggi».
+
+### Cose da sapere
+
+- **Il Core ascolta sulla porta 80.** `TUNET_INTERNAL_HA_URL` per il container di Acasystem sarà `http://192.168.56.10` (porta 80, nessun `:8123`) quando si passerà alla tappa I4 (non eseguita).
+- **L'indirizzo del ponte è DHCP** (192.168.1.183 oggi) e cambierà con la rete: Acasystem non lo usa. La prenotazione sul router (D-I4/D-D21) resta aperta; con il Wi-Fi VirtualBox sostituisce il MAC della VM con quello del PC (dal manuale; non verificato cosa veda il router).
+- **Avvio lento e memoria:** 20-30 minuti dall'avvio alla risposta HTTP, con il PC a 16 GB e circa 4-4,6 GB liberi a VM accesa. Conviene lasciare la VM accesa durante la giornata e non fare carichi pesanti (Vitest, Playwright) durante il suo riavvio.
+- **Televisore:** nessun comando. Solo ping ICMP dalla VM a 192.168.1.26 e, per una mia scelta non richiesta, una connessione TCP di prova dal PC alla porta 3001 del TV, riuscita e chiusa senza inviare dati.
+
+### Non eseguito
+
+Utente «cliente», comando `activate` (D1s), integrazioni `webostv` e `wake_on_lan`, prova che il container di Acasystem raggiunga `192.168.56.10:80` (Docker non toccato), `TUNET_INTERNAL_HA_URL`, arresto del container `homeassistant` di Docker, avvio automatico della VM (D-I7, resta spento), firewall di Windows, prova dalla rete dell'ufficio con un secondo apparecchio, aggiornamento di `verification.md`.
+
+### Stato finale e punto di ripresa
+
+VM `acasystem-ha` **accesa e stabile** (HAOS 18.3, Core 2026.9.4, 4096 MB, Host-Only 192.168.56.10, ponte 192.168.1.183, NAT assente). Prossimi passi: (1) l'utente crea il cliente di prova e lancia `activate` (D1s); (2) I4: puntare Acasystem a `http://192.168.56.10` e provare la raggiungibilità dal container; (3) prova reale D1g con l'utente davanti al TV.
+
+
+## Unione di D1 nel progetto (2026-10-26)
+
+Eseguita da Claude Code (Sonnet 5.5, `claude-sonnet-5-5`), subagente di un flusso, tra le 12:10 e le 12:35, su incarico del flusso di D1 autorizzato dall'utente il 2026-10-26 («Sì, in parallelo» alla 0.9.29; «No, usiamo la VM»). Nessun commit, nessuna credenziale, nessun comando a impianti reali; **Docker, banco, tablet, VM e televisore non toccati**; nessuna dipendenza nuova. L'immagine non è stata ricostruita e nessun container è stato avviato o ricreato.
+
+### Attesa e stato di partenza
+
+- **Attesa:** il diario `d84f0a80…/journal.jsonl` mostrava 0.9.29 e poi 0.9.30 (agenti «pila», «verifica3», «banco:0.9.30», secondo «documenti», terminato alle 12:07). Alle 12:10 non c'erano processi `vitest` né `docker build` per `progetto/acasystem`. Girava soltanto un Vitest di `progetto/client` (altro flusso, app client): non toccato; alle 12:12 era già finito. La versione del banco è ora **0.9.30**.
+- **Confronto prima di applicare [verificato]:** i 5 file frontend modificati dalla patch erano ancora identici (SHA-256) a `backup/d1/pre/d1-frontend/SHA256.txt` e i 4 file server a `backup/d1/pre/d1-server/`: la 0.9.29 e la 0.9.30 non li hanno toccati. Nessun conflitto.
+- **Copie «prima»:** `backup/d1/pre/unione/` (con `SHA256.txt`): i 4 file server, i 5 file frontend, `progetto/compose.tunet.yaml` e questo report, come erano alle 12:12.
+
+### Applicazione delle patch [verificato]
+
+- `d1-server.diff`: 41 file (37 nuovi, 4 modificati); `d1-frontend.diff`: 24 file (19 nuovi, 5 modificati). Dopo l'applicazione i **66 file** dei due elenchi sono identici byte per byte (SHA-256) a quelli di `backup/d1/sandbox/acasystem`.
+- **Nota di metodo (due insidie).** (1) `git apply -p1` lanciato **dentro** `progetto/acasystem` risponde «ok» ma **non scrive nulla**: in una sottocartella applica soltanto i percorsi sotto la cartella corrente, e le patch hanno percorsi dalla radice dell'albero (`backend/…`, `frontend/…`). Il `--check` del flusso precedente su questo albero sarebbe stato vuoto. Si applica dalla radice del repository con `git -c core.autocrlf=false apply -p1 --directory=progetto/acasystem <patch>`. (2) `backend/src/middlewares/rateLimit.ts` è l'unico file toccato con fine riga CRLF (tutti gli altri LF): la patch LF non si applica a quel file. Si è applicata la patch LF con `--exclude` di quel file e, per quel solo file, una copia della patch con CR sulle righe dei hunk (`--include`): il file è rimasto interamente CRLF e il suo diff è di 9 righe.
+
+### Segnalazione 1: volume separato per il segreto [realizzato]
+
+- `progetto/compose.tunet.yaml`: nuovo volume nominato `tunet-service-secret` (diventa `aca-tunet_tunet-service-secret`), montato in `/app/service-secret`, e `TUNET_SERVICE_SECRET_FILE: /app/service-secret/service-identity.json`. Il volume dei dati è invariato, quindi le copie a freddo di `aca-tunet_tunet-data` non lo contengono. Non è impostato `TUNET_SERVICE_SECRET_ALLOW_DATA_DIR`.
+- **Codice:** nessuna modifica necessaria. `readDeviceServiceSecretPath()` e `isSecretInsideDataDir()` leggono già la variabile; `activate` rifiuta di salvare il segreto dentro `DATA_DIR` senza un volume separato (messaggio «Monta un volume separato…»), quindi **senza questa modifica il comando non partirebbe sul banco**. Il container gira come root: il volume nominato è scrivibile e il file resta `0600`. La cartella di montaggio ha il modo del volume (di norma 0755), non 0700 [limite: il codice imposta 0700 solo se crea la cartella; non l'ho forzato, per non cambiare i permessi di cartelle arbitrarie].
+- **Test nuovo:** `backend/src/__tests__/devicesComposeSecret.test.ts` (3 test): il compose dichiara `tunet-data` e `tunet-service-secret`; il montaggio è fuori da `DATA_DIR`, la variabile punta dentro il montaggio e `isSecretInsideDataDir` lo accetta; nessun `ALLOW_DATA_DIR` fisso. Si salta se il compose non è accanto ai sorgenti (immagine).
+- **Non toccato:** `TUNET_INTERNAL_HA_URL` (resta `http://host.docker.internal:8123`, cioè l'HA di Docker del banco) e il binding LAN, che altri flussi hanno modificato.
+- **Da sapere:** ripristinare una copia a freddo di `tunet-data` non ripristina il segreto: in quel caso va rilanciato `activate`. Una copia del nuovo volume va trattata come un segreto.
+
+### Verifiche (albero principale, dopo l'unione)
+
+| Comando | Esito |
+|---|---|
+| `npm run typecheck` e `npm run lint` nel backend | superati (nessun errore, nessun avviso) |
+| `npx vitest run --maxWorkers=4` nel backend | **30 file, 428 test superati, 1 saltato** (il test dei permessi `0600`, solo POSIX), 12 s |
+| Frontend `npm run typecheck` (tsc strict) | superato |
+| Frontend `npm run lint` (eslint) | superato |
+| `npm run lint:typography` / `npm run lint:theme-colors` | 0 violazioni (537 / 355 file) |
+| Frontend suite completa in quattro parti, `--maxWorkers=4 --shard=k/4`, in primo piano | 1/4: 53 file, 783 test; 2/4: 53 file, 1033; 3/4: 52 file, 759; 4/4: 52 file, 628. **210 file, 3203 test, tutti superati** |
+| `npm run i18n:check` | 4 test superati |
+| `npm run build` (frontend) | costruito in 2,1 s; avviso sui chunk oltre 500 kB (già presente) |
+| `node scripts/check-bundle-size.mjs` | tutti entro i limiti; `index` 870,0 kB su 900 [margine di 30 kB] |
+
+Prima di ogni corsa si è controllato che non girasse un Vitest di `progetto/acasystem`. Non eseguito: Playwright, controllo visivo e prova nel browser, immagine Docker, banco, tablet, TV, VM, fixture di contratto CT-01…CT-14.
+
+### Passi del banco D1 per l'agente principale (preparati, non eseguiti)
+
+Ordine consigliato. I passi con credenziali o col televisore li fa l'utente.
+
+1. **Prima di costruire.** Versione nuova (per prassi): `ACASYSTEM_VERSION` in `progetto/.env`, `frontend/e2e/isolated-server.mjs` e `frontend/e2e/release.check.mjs` (da 0.9.30 a, per esempio, 0.9.31). Copie di `.env`, `compose.tunet.yaml` e dei due file e2e in `backup/`; copia a freddo come per le versioni precedenti: `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml stop tunet`, poi `tar czf` del volume `aca-tunet_tunet-data` (montato in sola lettura) in `backup/banco/tunet-data-pre-D1-freddo.tgz`.
+2. **Punta Acasystem all'HA della VM.** In `progetto/compose.tunet.yaml` sostituisci `TUNET_INTERNAL_HA_URL: http://host.docker.internal:8123` con **`TUNET_INTERNAL_HA_URL: http://192.168.56.10`** (porta 80, **nessun `:8123`**: D-I8; nessun `TUNET_INTERNAL_HA_FALLBACK_URL`). **Conseguenza:** gli accessi e gli utenti diventano quelli dell'HA della VM (proprietario creato il 2026-10-23, più «cliente»), non più quelli dell'HA di Docker; i dati del profilo in `tunet.db` sono associati agli utenti dell'HA precedente e potrebbero non riapparire per un utente diverso [non verificato]. Ritorno indietro: rimettere la riga di prima.
+3. **Costruisci e avvia** (dalla radice del repository, come nelle tappe precedenti): `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d --build`. Crea il volume `aca-tunet_tunet-service-secret` e monta il segreto fuori dai dati. Controlli: `GET /api/health` con la versione nuova; `docker volume ls` mostra i due volumi; `docker exec aca-tunet-tunet-1 node src/cli/deviceServiceIdentity.ts status` risponde che il servizio non è stato attivato (uscita 1) **senza** l'avvertimento sul volume dei dati.
+4. **Raggiungibilità dal container (tappa I4).** `docker exec aca-tunet-tunet-1 wget -qO- -T 5 http://192.168.56.10/auth/providers` deve stampare un JSON con `providers`. Se non risponde, **fermarsi e riferirlo**: significa che Docker Desktop non instrada verso la rete Host-Only (192.168.56.0/24, il PC è 192.168.56.1) [non verificato]; l'indirizzo del ponte (192.168.1.183) è chiuso apposta (D-I8), quindi non è un ripiego. Con il servizio non attivo `GET /api/dispositivi/stato` risponde «Servizio non attivo» o che Home Assistant non è raggiungibile.
+5. **L'utente in HA (VM), nel suo browser** su `http://192.168.56.10`, entrando come proprietario: Impostazioni > Persone > Utenti > Aggiungi utente: nome «Cliente», nome utente **`cliente`**, una password a sua scelta, **«Amministratore» spento** (facoltativo «Può accedere solo dalla rete locale»). Serve a provare il percorso del cliente (non vede il MAC; vede «Richiede l'installatore» per le altre integrazioni). L'agente non crea l'utente e non vede la password.
+6. **`activate` (D1s), lanciato dall'utente nel proprio terminale** (serve un terminale interattivo: senza `-it` risponde con un rifiuto, uscita 2):
+
+   ```
+   docker exec -it aca-tunet-tunet-1 node src/cli/deviceServiceIdentity.ts activate
+   ```
+
+   Il comando chiede «Utente proprietario:» (visibile), «Password:» (nascosta) e, solo se HA lo chiede, «Codice di verifica:» (nascosto). Non salva le credenziali: crea l'utente «Acasystem (servizio)» (amministratore, `local_only`), ottiene il token a lunga durata, prova una scrittura (apre e annulla un flusso `webostv`), salva solo il token in `/app/service-secret/service-identity.json` e revoca le sessioni della corsa. Poi `docker exec aca-tunet-tunet-1 node src/cli/deviceServiceIdentity.ts status` stampa che il servizio è attivo e la scadenza del token (uscita 0, nessun segreto). Un secondo `activate` non chiede nulla («già attivo»). Opzioni: `--reactivate` (riattiva l'utente se sospeso), `--rotate` (nuovo token); `forget` cancella solo il file sul server. Per spegnere il servizio: sospendere l'utente «Acasystem (servizio)» in Persone > Utenti (spento entro 15 s, senza riavvio). **Punto di stop se `activate` fallisce:** riferire il messaggio italiano, senza ripetere credenziali.
+7. **Prova col televisore (192.168.1.26), solo con l'utente presente al televisore.** Prerequisiti sul televisore: acceso, «LG Connect Apps» (o «Accensione mobile») abilitato, accensione tramite Wi-Fi/LAN abilitata, MAC annotato (Impostazioni > Generali > Rete), Netflix installato; l'utente deve poter accettare il messaggio di abbinamento. Ordine:
+   1. Tablet, accesso come **proprietario** (amministratore): widget Android TV > «Collega» > «Aggiungi un dispositivo» (o «Aggiungi un widget» > Android TV > «Aggiungi un dispositivo») > LG webOS TV (`webostv`) > indirizzo 192.168.1.26 > conto alla rovescia di 10 s: accettare il messaggio sul televisore > nome e stanza > passo «Accensione»: scrivere il MAC e, sotto «Avanzate», il broadcast **192.168.1.255** (porta predefinita) > «Fine»: il widget mostra lo stato reale.
+   2. Spegnere dal widget e aspettare che lo stato diventi «spento» (la voce può passare a `setup_retry`: limite noto). Poi **accendere dal widget**: il pacchetto lo manda HA della VM (automazione `acasystem_accensione_<id>` in Impostazioni > Automazioni della VM). È la prova più incerta (broadcast dal ponte Wi-Fi di VirtualBox, MAC sostituito: non verificato). In caso di insuccesso usare «Prova ad accendere» del passo di accensione e riferire il messaggio.
+   3. **Aprire Netflix** dalla sezione «App» del widget (oggi compaiono tutte le sorgenti, anche HDMI: D-D18).
+   4. Persistenza (D1p): `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml restart tunet`, ricaricare la pagina sul tablet: widget ancora collegato e funzionante; la voce e l'automazione restano in HA; dopo il riavvio `status` resta «attivo» (il segreto è nel volume separato).
+   5. Accesso come **«cliente»** (non amministratore): il widget funziona; «Aggiungi un dispositivo» elenca `webostv` e `wake_on_lan` come avviabili e le altre con «Richiede l'installatore»; il passo di accensione non mostra il campo del MAC.
+8. **Ritorno indietro** (in ordine): riportare `TUNET_INTERNAL_HA_URL` all'HA di Docker e `ACASYSTEM_VERSION` alla versione precedente, poi `up -d --build`; per i dati, `stop tunet` e ripristino di `tunet-data` dalla copia a freddo; il volume `aca-tunet_tunet-service-secret` non contiene dati dell'app e si può lasciare. In HA: sospendere l'utente «Acasystem (servizio)», rimuovere la voce `webostv` e la ricetta di accensione; oppure ripristinare la snapshot «dopo-preparazione-D1» della VM.
+
+### Limiti e rischi rimasti [non risolti]
+
+- Il comportamento del flusso dentro il foglio (`Sheet.tsx` della 0.9.28), il focus, l'altezza e il layout (anche su telefono) non sono provati nel browser né sul Tab M11.
+- Gli altri Android TV che dichiarano TURN_ON/TURN_OFF o SELECT_SOURCE mostrano ora il pulsante di accensione e la sezione «App»: va detto all'utente.
+- D-D6 (MAC proposto da Acasystem): oggi lo scrive l'amministratore; D-D18 (filtro delle app) e l'esclusione dell'automazione `acasystem_accensione_*` dal widget Automazioni restano aperte.
+- Le fixture di contratto CT-01…CT-14 non esistono: la facciata non è mai stata provata contro un HA vero. La prova col televisore è la prima.
+- `index` a 870 kB su 900 kB del controllo di dimensione.
+
+### Punto di ripresa
+
+L'albero principale contiene D1 (server, frontend, volume del segreto) con controlli verdi, senza commit e senza immagine ricostruita. Prossimi passi: i punti 1-4 (agente principale, Docker), 5-6 (utente), poi la prova del punto 7 con l'utente presente. Aggiornare `verification.md`, `project-status.md` e `compliance.md` (C-16, C-17) alla chiusura di D1z; non fatto qui perché i file sono modificati da altri flussi.
