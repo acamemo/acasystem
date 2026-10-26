@@ -1,0 +1,29 @@
+# Acasystem come app di HA OS (REP-20261026-005). `version` è il tag dell'immagine:
+# si alza solo DOPO aver pubblicato ghcr.io/acamemo/acasystem:<versione>.
+name: Acasystem
+version: "0.9.30"
+slug: acasystem
+description: Interfaccia Acasystem per Home Assistant, per le app Acasystem di Windows e Android.
+url: https://github.com/acamemo/acasystem-releases
+arch:
+  - amd64
+image: ghcr.io/acamemo/acasystem
+init: true
+startup: application
+boot: auto
+# Solo la lettura della porta di HA (GET /core/info); nessun token di HA all'app (ADR-0022).
+hassio_api: true
+homeassistant_api: false
+ingress: false
+ports:
+  3002/tcp: 3002
+ports_description:
+  3002/tcp: Acasystem (app per Windows e Android)
+watchdog: "http://[HOST]:[PORT:3002]/api/health"
+backup: cold
+# Il file dell'utente di servizio (ADR-0022) non entra nei backup.
+backup_exclude:
+  - "service-secret"
+  - "service-secret/*"
+options: {}
+schema: {}
