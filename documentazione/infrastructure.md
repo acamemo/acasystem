@@ -27,6 +27,34 @@ Dettagli in [REP-20261026-005](reports/REP-20261026-005-configurazione-automatic
   - la prova dal tablet è stata fatta via `adb reverse` più un inoltro temporaneo sul PC, ora chiusi.
 - **Per togliere l'app:** dalla console `ha apps uninstall 9960cdb4_acasystem` e `ha store delete 9960cdb4`, oppure snapshot «prima-app-acasystem».
 
+## Messaggi dei commit riscritti senza menzioni di Claude, 2026-10-26
+
+Richiesta dell'utente: «Riscrivi i messaggi dei 4 commit su GitHub senza Co-Authored-By, unisci i miei 3 commit dal sito e fai il push forzato su main con un backup prima.» Regola dal 2026-10-26: nei messaggi dei commit nessuna riga «Co-Authored-By» e nessuna menzione di Claude.
+
+- **Backup prima della riscrittura** (solo locale, non su GitHub):
+  - rami `backup/origin-main-prima-riscrittura-20261026` (`0d3fe27`) e `backup/master-prima-riscrittura-20261026` (`67b1282`);
+  - `backup/git/acasystem-prima-riscrittura-20261026.bundle` (escluso da Git, verificato con `git bundle verify`).
+- **Procedura** in una copia separata del repository, senza toccare la copia di lavoro con le modifiche degli altri flussi:
+  1. i due commit locali messi dopo i 3 commit fatti dall'utente sul sito (il loro effetto netto è nullo: stesso albero di `4e198c5`);
+  2. `git filter-branch --msg-filter` da `13e5537` in poi, che toglie solo la riga «Co-Authored-By: Claude …».
+- **Controlli:** per ogni commit stesso albero (stessi file), stesso autore e stessa data; nei messaggi cambia solo quella riga; il primo commit riscritto ha lo stesso padre `e192121`.
+- **Invio:** `git push --force-with-lease=main:0d3fe27… origin <riscritta>:main`, esito `0d3fe27...c87139d (forced update)`. Su `origin/main` nessun messaggio contiene «Claude» o «Anthropic». Il `master` locale è stato spostato su `c87139d` con `git reset --soft`, ad albero identico; le modifiche non salvate degli altri flussi sono intatte.
+- **Corrispondenza dei codici.** I documenti scritti prima di oggi citano i codici vecchi, che restano leggibili solo nei rami e nel bundle di backup:
+
+| Vecchio | Nuovo | Commit |
+|---|---|---|
+| `13e5537` | `4465e96` | feat: rebuild the Tunet frontend as the Acasystem Metallo OS |
+| `64010e9` | `953b059` | fix: finalize the Home Assistant proxy behind Acasystem |
+| `7298d4d` | `cad8092` | feat: composable Metallo kit, derived colours and Kit 2 soft UI |
+| `4e198c5` | `bba3639` | feat: launcher interactions, motion choreography and device plans (0.9.22-0.9.28) |
+| `5f9e7dc` | `77cd74a` | Add files via upload (dal sito) |
+| `37fb8bb` | `620b855` | Delete acasystem directory (dal sito) |
+| `0d3fe27` | `5953f36` | Delete repository.yaml (dal sito) |
+| `d543f16` (poi `864eaf8`) | `9090412` | feat: Acasystem client app for Windows and Android, HA OS app package |
+| `67b1282` | `c87139d` | feat: automatic mini PC setup from the client app, HA OS app 0.9.30.1 |
+
+- **Effetto per altre copie del repository:** chi aveva scaricato la storia vecchia deve riallinearsi (per esempio `git fetch` e poi `git reset --hard origin/main` su una copia senza lavori propri), non fare `git pull`.
+
 ## Segreto del servizio di D1 e copie a freddo, 2026-10-23 (solo procedura)
 
 Nessun cambio al banco, al compose o ai volumi. Riguarda il codice del server di D1 ancora nella copia di lavoro (`backup/d1/patch/`, [REP-20261023-003](reports/REP-20261023-003-piano-aggiungi-dispositivi.md), «Annotazione del 2026-10-23: correzioni dopo la revisione del codice del server di D1»), [ADR-0022](decisions/ADR-0022-identita-di-servizio-dispositivi.md) punto 3 e C-16 di [compliance.md](compliance.md). **Non realizzato e non provato su un volume vero.**

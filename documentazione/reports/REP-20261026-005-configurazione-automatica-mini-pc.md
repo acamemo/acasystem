@@ -336,6 +336,8 @@ Esito:
 
 ## Chiusura e punto di ripresa
 
+**Annotazione 2026-10-26 (riscrittura dei messaggi dei commit).** I codici dei commit citati in questo report (`d543f16`, `4e198c5`, `5f9e7dc`, `37fb8bb`, `0d3fe27`) sono cambiati con la riscrittura dei messaggi senza menzioni di Claude: corrispondenza in [infrastructure.md](../infrastructure.md), «Messaggi dei commit riscritti senza menzioni di Claude». I lavori S4-S5 e la 0.9.30.1 sono nel commit `c87139d`, l'app client in `9090412`.
+
 **Annotazione 2026-10-26 (S4-S5).** S4-S5 fatte e provate sulla copia della VM (sezione «Avanzamento»). Ripresa: (1) nuova immagine dell'app di HA OS con `detect-ha-url.mjs` corretto, da pubblicare dall'utente; (2) ripetere la prova dall'istantanea «ha-pronto-senza-account» con l'app corretta, anche dal Tab M11 (serve una rete che il tablet raggiunga); (3) S6; (4) S7 sul Dell. *Aggiornamento in serata: (1) fatto (0.9.30.1 pubblicata, manca lo zip dei sorgenti nella release) e (2) fatto dal Tab M11 via USB; commit dei lavori S4-S5 su richiesta dell'utente.* Il testo seguente resta quello precedente.
 
 Ripresa: risposte a Q-S1…Q-S6 (e a Q-U di REP-20261026-004 per le schermate del proprietario), poi S1. Il Dell resta **non configurato**: non completare la configurazione iniziale dalla pagina di HA finché S7 non è pronta.
