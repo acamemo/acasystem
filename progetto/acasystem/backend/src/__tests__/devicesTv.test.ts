@@ -27,7 +27,7 @@ afterEach(async () => {
   while (open.length) await open.pop()?.close();
 });
 
-const SAMSUNG_DHCP = { mac_address: '14:BB:6E:1F:23:84', hostname: 'localhost', ip_address: '192.168.1.10' };
+const SAMSUNG_DHCP = { mac_address: '14:BB:6E:00:00:10', hostname: 'localhost', ip_address: '192.168.1.10' };
 const PHONE_DHCP = { mac_address: '14:BB:6E:00:00:01', hostname: 'Galaxy-S21', ip_address: '192.168.1.55' };
 const LG_SSDP = {
   name: 'LG',
@@ -122,8 +122,8 @@ const byBrand = (tvs: TvRow[], brandKey: string): TvRow => {
 
 describe('the television makers table', () => {
   it('knows the Samsung from the real DHCP list, by the prefix of its MAC', () => {
-    expect(brandForMac('14:bb:6e:1f:23:84')).toBe('samsung');
-    expect(brandForMac('14-BB-6E-1F-23-84')).toBe('samsung');
+    expect(brandForMac('14:bb:6e:00:00:10')).toBe('samsung');
+    expect(brandForMac('14-BB-6E-00-00-10')).toBe('samsung');
     expect(brandForMac('08:05:81:11:22:33')).toBe('roku');
     expect(brandForMac('02:00:00:00:00:01')).toBeNull();
   });
@@ -192,7 +192,7 @@ describe('the classification of what HA saw', () => {
       domains: [],
     };
     const [one, ...rest] = classifyTvs([
-      { ...base, source: 'dhcp', host: '192.168.1.10', mac: '14:bb:6e:1f:23:84', hostname: 'localhost' },
+      { ...base, source: 'dhcp', host: '192.168.1.10', mac: '14:bb:6e:00:00:10', hostname: 'localhost' },
       {
         ...base,
         source: 'ssdp',
@@ -208,10 +208,10 @@ describe('the classification of what HA saw', () => {
     expect(one).toMatchObject({
       brandKey: 'samsung',
       model: 'UE50J6200',
-      mac: '14:bb:6e:1f:23:84',
+      mac: '14:bb:6e:00:00:10',
       host: '192.168.1.10',
     });
-    expect(one?.id).toBe(tvIdFor('14:bb:6e:1f:23:84'));
+    expect(one?.id).toBe(tvIdFor('14:bb:6e:00:00:10'));
   });
 
   it('hides what is configured and as many candidates as there are discoveries of the handler', () => {
@@ -336,7 +336,7 @@ describe('GET /tv-in-rete', () => {
   it('hides a television already in Home Assistant by its MAC, and a discovery HA already offers', async () => {
     const harness = await harnessFor({});
     seedNetwork(harness);
-    harness.fake.seedTv({ host: '192.168.1.99', mac: '14:bb:6e:1f:23:84' });
+    harness.fake.seedTv({ host: '192.168.1.99', mac: '14:bb:6e:00:00:10' });
     harness.fake.seedDiscovery({
       handler: 'cast',
       source: 'zeroconf',

@@ -137,7 +137,7 @@ Proposta dell'agente:
 
 *Prova reale con la TV Samsung UE50J6200:*
 1. **Flusso `samsungtv` sull'HA reale.** `user` (`host`) → `encrypted_pairing` (`pin`, segreto, `description_placeholders.device` = «UE50J6200 (UE50J6200)»). Il PIN appare sulla TV per tutta la durata del flusso.
-2. **Abbinamento.** Il flusso è stato completato dall'agente con il PIN letto dalla TV e scritto in chat dall'utente («3759»), su richiesta dell'utente. Esito `create_entry` «UE50J6200 (UE50J6200)».
+2. **Abbinamento.** Il flusso è stato completato dall'agente con il PIN letto dalla TV e scritto in chat dall'utente (valore tolto il 2026-10-27 su richiesta dell'utente: vale una sola volta e non serve alla documentazione), su richiesta dell'utente. Esito `create_entry` «UE50J6200 (UE50J6200)».
    - **Limite:** il PIN non è stato inserito dalle schermate F4. L'aggiunta dall'app per indirizzo resta da provare, dopo aver rimosso la TV con «Rimuovi dispositivo».
 3. **«Rileva dispositivi».** La TV è comparsa in «Pronti da aggiungere» e l'utente ha creato il widget TV collegato con il «+».
 4. **Comandi.** Lo spegnimento dal widget non funzionava.
