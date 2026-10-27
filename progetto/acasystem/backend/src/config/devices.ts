@@ -19,17 +19,63 @@ export const DEVICE_SERVICE_TOKEN_NAME = 'Acasystem (servizio)';
 export const DEVICE_SERVICE_TOKEN_LIFESPAN_DAYS = 3650;
 
 /**
- * Integrations a customer may start (D-D22 b1). In D1 only the LG TV. The Wake on LAN entry
- * that turns the TV on is created by the server recipe (D1b) with the MAC read from HA or
- * given by the installer; a customer never starts it, because its flow takes a MAC, a
- * broadcast address and a port. Every other integration is visible in the catalogue but
- * answers "Richiede l'installatore".
+ * Integrations and domains that belong to Home Assistant itself (F4, ADR-0024 annotation of
+ * 2026-10-27): the facade never lists, starts, shows, renames or removes anything of them. This
+ * is the only list left: it protects the system, it does not limit what a customer can add.
+ * Every other handler of the catalogue can be started by a customer, with the same steps the
+ * installer follows.
  */
-export const CUSTOMER_STARTABLE_HANDLERS: readonly string[] = ['webostv'];
+export const SYSTEM_DOMAINS: readonly string[] = [
+  'homeassistant',
+  'hassio',
+  'backup',
+  'sun',
+  'met',
+  'go2rtc',
+  'google_translate',
+  'shopping_list',
+  'radio_browser',
+  'analytics',
+  'person',
+  'zone',
+  'cloud',
+  'onboarding',
+  'mobile_app',
+  'auth',
+  'frontend',
+  'history',
+  'logbook',
+  'energy',
+  'tag',
+  'webhook',
+  'assist_pipeline',
+  'conversation',
+  'stt',
+  'tts',
+  'wake_word',
+  'system_health',
+  'default_config',
+  'application_credentials',
+  'dhcp',
+  'ssdp',
+  'zeroconf',
+  'usb',
+  'bluetooth',
+  'network',
+  'file_upload',
+  'api',
+  'websocket_api',
+  'http',
+  'config',
+  'automation',
+  'script',
+  'scene',
+];
 
 /**
- * Integrations whose entries and devices the facade shows and lets a customer rename: the
- * TV and the Wake on LAN entry created by the recipe. Not a list of what can be started.
+ * Integrations whose entries and devices the facade always shows and lets a customer rename:
+ * the TV and the Wake on LAN entry created by the recipe. The entries created from Acasystem
+ * (any other domain) are recognised by the registry of actions, not by this list.
  */
 export const FACADE_DOMAINS: readonly string[] = ['webostv', 'wake_on_lan'];
 
@@ -56,6 +102,12 @@ export const DEVICE_OPERATIONS = [
   'power.setup',
   'power.remove',
   'action.list',
+  // Removal of a device the facade can see (F4): the entry goes away from Home Assistant.
+  'voci.rimuovi',
+  // Devices that HA found on the network (ADR-0024): any customer may read, take and ignore them.
+  'scoperti.leggi',
+  'scoperti.aggiungi',
+  'scoperti.ignora',
 ] as const;
 
 export type DeviceOperation = (typeof DEVICE_OPERATIONS)[number];

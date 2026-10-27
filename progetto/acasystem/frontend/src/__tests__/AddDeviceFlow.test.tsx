@@ -135,13 +135,13 @@ describe('the service is not there', () => {
 });
 
 describe('the catalogue', () => {
-  it('puts the recommended TV first and lists the others, which need the installer', async () => {
+  it('puts the recommended TV first and lists the others, which can all be started (F4)', async () => {
     mount();
     const recommended = await screen.findByRole('button', { name: ADD_TV });
     expect(screen.getByText('Consigliati per questo widget')).toBeInTheDocument();
     const other = await screen.findByRole('button', { name: /hue/ });
-    expect(other).toBeDisabled();
-    expect(other).toHaveTextContent('Richiede l’installatore');
+    expect(other).toBeEnabled();
+    expect(other).not.toHaveTextContent('Richiede l’installatore');
     // The recommended row comes before the list, and appears once.
     expect(
       recommended.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -151,7 +151,8 @@ describe('the catalogue', () => {
       screen.getByText(/L’elenco completo delle marche non è ancora disponibile/)
     ).toBeInTheDocument();
     fireEvent.click(other);
-    expect(fake.callsTo('POST /flussi')).toHaveLength(0);
+    await waitFor(() => expect(fake.callsTo('POST /flussi')).toHaveLength(1));
+    expect(fake.callsTo('POST /flussi')[0]?.body).toEqual({ handler: 'hue' });
     expectNoEnglish();
   });
 
@@ -362,15 +363,14 @@ describe('what the server can refuse', () => {
     expect(fake.callsTo('DELETE')).toHaveLength(0);
   });
 
-  it('a menu or a progress step is not drawn: the flow is cancelled with a plain message', async () => {
+  it('a step type this version does not know is not drawn: the flow is cancelled with a plain message', async () => {
     fake.on('POST /flussi/:id', () => ({
       body: {
-        type: 'menu',
+        type: 'shiny_new_type',
         flowId: 'flow1',
         handler: 'webostv',
         stepId: 'x',
-        title: 'Menu',
-        options: [],
+        title: 'Novità',
       },
     }));
     mount();

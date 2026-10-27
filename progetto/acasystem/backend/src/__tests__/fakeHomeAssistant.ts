@@ -55,6 +55,8 @@ interface FakeEntry {
   mac: string | null;
   /** State reported instead of the computed one (a TV that is off shows `setup_retry`). */
   forcedState?: string;
+  /** Origin of the entry: `user` by default, the discovery when it was added from one. */
+  source?: string;
 }
 
 interface FakeDevice {
@@ -78,11 +80,63 @@ interface FakeEntity {
   disabled_by: string | null;
 }
 
+/** One step of a scripted flow, as a discovered integration would show it. */
+export interface ScriptedStep {
+  stepId: string;
+  /** `data_schema` as HA sends it; fields with `required: true` must be in the answer. */
+  schema?: unknown[];
+  /** `form` by default. */
+  type?: 'form' | 'menu' | 'external' | 'progress';
+  /** An error key to show on the same step (a wrong PIN), or null to go on. */
+  check?: (body: Record<string, unknown>) => string | null;
+  /** An abort reason: the flow ends with it when the answer fits. */
+  abort?: (body: Record<string, unknown>) => string | null;
+  /** `menu`: the ids of the options (the next step ids), or a map id -> label. */
+  menuOptions?: string[] | Record<string, string>;
+  /** `external`: the page of the maker. Default `https://login.example.test/authorize`. */
+  url?: string;
+  /** `progress`: the task key HA sends as `progress_action`. */
+  progressAction?: string;
+  /** `description_placeholders` HA sends with the step. */
+  placeholders?: Record<string, string>;
+  /** `external` and `progress`: the read of the flow that moves it on (default: never, until the test says). */
+  readsBeforeNext?: number;
+  /** `external` and `progress`: the type HA answers once, before the next step. */
+  doneType?: 'external_done' | 'progress_done';
+}
+
+export interface ScriptedEntry {
+  title: string;
+  manufacturer: string;
+  model: string;
+  entityId: string;
+}
+
+export interface DiscoveryOptions {
+  handler: string;
+  /** Origin of the flow: `zeroconf` by default. */
+  source?: string;
+  name?: string;
+  model?: string;
+  /** `null` leaves the flow without a unique id (HA cannot ignore it). */
+  uniqueId?: string | null;
+  steps: ScriptedStep[];
+  entry: ScriptedEntry;
+}
+
 interface FakeFlow {
   id: string;
   handler: string;
-  step: 'user' | 'pairing';
+  step: string;
   host: string | null;
+  /** `user` for a flow a person started; HA leaves those out of the list in progress. */
+  source?: string;
+  placeholders?: Record<string, string>;
+  uniqueId?: string | null;
+  script?: { steps: ScriptedStep[]; index: number; entry: ScriptedEntry };
+  /** Reads of the flow while it waits at an `external` or `progress` step. */
+  reads?: number;
+  doneSent?: boolean;
 }
 
 export interface FakeKnobs {
@@ -122,6 +176,10 @@ export interface FakeKnobs {
   omitUsernamesInList: boolean;
   /** Returned once instead of the next flow result (a type or field the facade must refuse). */
   overrideNextResult: Record<string, unknown> | null;
+  /** `frontend/get_translations` answers `unknown_command` (an HA without it). */
+  translationsMissing: boolean;
+  /** `result.resources` of `frontend/get_translations`, per integration. */
+  translations: Record<string, Record<string, string>>;
 }
 
 const BASE_FEATURES = 1028;
@@ -159,6 +217,8 @@ export class FakeHomeAssistant {
     automationRouteChanged: false,
     omitUsernamesInList: false,
     overrideNextResult: null,
+    translationsMissing: false,
+    translations: {},
   };
 
   users = new Map<string, FakeUser>();
@@ -174,6 +234,12 @@ export class FakeHomeAssistant {
   areas: { area_id: string; name: string }[] = [];
   automations = new Map<string, Record<string, unknown>>();
   flows = new Map<string, FakeFlow>();
+  /** Integrations a person can start from the catalogue, with the steps of their flow. */
+  scriptedHandlers = new Map<string, { steps: ScriptedStep[]; entry: ScriptedEntry }>();
+  /** Answers received by the scripted flows (what Acasystem sent to HA, step by step). */
+  received: { flowId: string; stepId: string; body: Record<string, unknown> }[] = [];
+  /** Discoveries ignored through `config_entries/ignore_flow`. */
+  ignored: { flowId: string; title: string }[] = [];
 
   url = '';
   port = 0;
@@ -227,6 +293,33 @@ export class FakeHomeAssistant {
   /** Home Assistant restarts: flows (kept in memory) are lost, everything else stays. */
   forgetFlows(): void {
     this.flows.clear();
+  }
+
+  /** A device that HA found by itself: a flow in progress with a discovery as origin. */
+  seedDiscovery(options: DiscoveryOptions): string {
+    const first = options.steps[0];
+    if (!first) throw new Error('a discovery needs at least one step');
+    const flow: FakeFlow = {
+      id: randomUUID().replaceAll('-', ''),
+      handler: options.handler,
+      step: first.stepId,
+      host: null,
+      source: options.source ?? 'zeroconf',
+      placeholders: {
+        ...(options.name ? { name: options.name } : {}),
+        ...(options.model ? { model: options.model } : {}),
+      },
+      uniqueId: options.uniqueId === undefined ? `uid-${options.handler}` : options.uniqueId,
+      script: { steps: options.steps, index: 0, entry: options.entry },
+    };
+    this.flows.set(flow.id, flow);
+    return flow.id;
+  }
+
+  /** An integration in the catalogue whose flow (started by a person) follows these steps. */
+  scriptHandler(handler: string, options: { steps: ScriptedStep[]; entry: ScriptedEntry }): void {
+    if (!options.steps[0]) throw new Error('a flow needs at least one step');
+    this.scriptedHandlers.set(handler, options);
   }
 
   /** A TV that was already added, as it would be after the flow. */
@@ -427,29 +520,45 @@ export class FakeHomeAssistant {
       if (!requireUser()) return;
       return send(
         200,
-        ['webostv', 'wake_on_lan', 'hue', 'esphome'].filter(
-          (domain) => !this.knobs.hiddenHandlers.includes(domain)
-        )
+        [
+          'webostv',
+          'wake_on_lan',
+          'hue',
+          'esphome',
+          'hassio',
+          'backup',
+          ...this.scriptedHandlers.keys(),
+        ].filter((domain) => !this.knobs.hiddenHandlers.includes(domain))
       );
     }
 
     if (method === 'POST' && path === '/api/config/config_entries/flow') {
       if (!requireAdmin()) return;
       const handler = parsedBody.handler;
+      const scripted = typeof handler === 'string' ? this.scriptedHandlers.get(handler) : undefined;
       if (
         typeof handler !== 'string' ||
-        !['webostv', 'wake_on_lan', 'hue', 'esphome'].includes(handler)
+        (!scripted && !['webostv', 'wake_on_lan', 'hue', 'esphome'].includes(handler))
       ) {
         return send(404, { message: 'Invalid handler specified' });
       }
       const flow: FakeFlow = {
         id: randomUUID().replaceAll('-', ''),
         handler,
-        step: 'user',
+        step: scripted?.steps[0]?.stepId ?? 'user',
         host: null,
+        ...(scripted
+          ? { source: 'user', script: { steps: scripted.steps, index: 0, entry: scripted.entry } }
+          : {}),
       };
       this.flows.set(flow.id, flow);
       return send(200, this.takeOverride(flow) ?? this.flowForm(flow, null));
+    }
+
+    if (method === 'GET' && path === '/api/config/config_entries/flow') {
+      // As HA 2026.10.4: the list of the flows is not a REST call (405); it is the WS
+      // command `config_entries/flow/progress`.
+      return send(405, { message: 'Method not allowed' });
     }
 
     const flowMatch = /^\/api\/config\/config_entries\/flow\/([A-Za-z0-9_-]+)$/.exec(path);
@@ -474,7 +583,7 @@ export class FakeHomeAssistant {
 
       if (!requireAdmin()) return;
       if (!flow) return send(404, { message: 'Invalid flow specified' });
-      if (method === 'GET') return send(200, this.flowForm(flow, null));
+      if (method === 'GET') return send(200, this.readFlow(flow));
       if (method === 'POST') {
         const outcome = await this.advanceFlow(flow, parsedBody);
         return send(outcome.status, outcome.body);
@@ -609,7 +718,47 @@ export class FakeHomeAssistant {
 
   // --- Configuration flows -----------------------------------------------------------------
 
+  private scriptedForm(flow: FakeFlow, error: string | null): Record<string, unknown> {
+    const step = flow.script?.steps[flow.script.index];
+    const base = { flow_id: flow.id, handler: flow.handler, step_id: flow.step };
+    const placeholders = step?.placeholders ?? null;
+    if (step?.type === 'external') {
+      return {
+        type: 'external',
+        ...base,
+        url: step.url ?? 'https://login.example.test/authorize',
+        description_placeholders: placeholders,
+      };
+    }
+    if (step?.type === 'menu') {
+      return {
+        type: 'menu',
+        ...base,
+        menu_options: step.menuOptions ?? ['first', 'second'],
+        description_placeholders: placeholders,
+      };
+    }
+    if (step?.type === 'progress') {
+      return {
+        type: 'progress',
+        ...base,
+        progress_action: step.progressAction ?? 'task',
+        description_placeholders: placeholders,
+      };
+    }
+    return {
+      type: 'form',
+      ...base,
+      data_schema: step?.schema ?? [],
+      errors: error ? { base: error } : null,
+      description_placeholders: placeholders,
+      last_step: null,
+      preview: null,
+    };
+  }
+
   private flowForm(flow: FakeFlow, error: string | null): Record<string, unknown> {
+    if (flow.script) return this.scriptedForm(flow, error);
     const schemas: Record<string, unknown[]> = {
       'webostv:user': [{ type: 'string', name: 'host', required: true }],
       'webostv:pairing': [],
@@ -666,6 +815,8 @@ export class FakeHomeAssistant {
     const override = this.takeOverride(flow);
     if (override) return { status: 200, body: override };
 
+    if (flow.script) return this.advanceScripted(flow, body);
+
     if (flow.handler === 'webostv' && flow.step === 'user') {
       const host = body.host;
       if (typeof host !== 'string')
@@ -711,6 +862,79 @@ export class FakeHomeAssistant {
     return { status: 400, body: { message: 'Unsupported step' } };
   }
 
+  private advanceScripted(
+    flow: FakeFlow,
+    body: Record<string, unknown>
+  ): { status: number; body: unknown } {
+    const script = flow.script;
+    const step = script?.steps[script.index];
+    if (!script || !step) return { status: 400, body: { message: 'Unsupported step' } };
+    this.received.push({ flowId: flow.id, stepId: step.stepId, body });
+
+    if (step.type === 'menu') {
+      const target = body.next_step_id;
+      const index = script.steps.findIndex((candidate) => candidate.stepId === target);
+      if (typeof target !== 'string' || index < 0) {
+        return { status: 400, body: { message: 'Invalid next step' } };
+      }
+      script.index = index;
+      flow.step = target;
+      return { status: 200, body: this.flowForm(flow, null) };
+    }
+
+    for (const field of step.schema ?? []) {
+      const record = field as { name?: string; required?: boolean };
+      if (record.required && record.name && !(record.name in body)) {
+        return { status: 400, body: { errors: { [record.name]: 'required key not provided' } } };
+      }
+    }
+    const reason = step.abort?.(body) ?? null;
+    if (reason) return this.abort(flow, reason);
+    const error = step.check?.(body) ?? null;
+    if (error) return { status: 200, body: this.flowForm(flow, error) };
+
+    return this.nextScripted(flow);
+  }
+
+  /** The step after the current one of a scripted flow, or the new entry when it was the last. */
+  private nextScripted(flow: FakeFlow): { status: number; body: unknown } {
+    const script = flow.script;
+    if (!script) return { status: 400, body: { message: 'Unsupported step' } };
+    script.index += 1;
+    flow.reads = 0;
+    flow.doneSent = false;
+    const next = script.steps[script.index];
+    if (next) {
+      flow.step = next.stepId;
+      return { status: 200, body: this.flowForm(flow, null) };
+    }
+    this.flows.delete(flow.id);
+    const entry = this.createScriptedEntry(flow, script.entry);
+    return { status: 200, body: this.createdBody(flow, entry) };
+  }
+
+  /** What `GET flow/{id}` answers: HA runs the step again; waiting steps move on after some reads. */
+  private readFlow(flow: FakeFlow): unknown {
+    const script = flow.script;
+    const step = script?.steps[script.index];
+    if (script && step && (step.type === 'progress' || step.type === 'external')) {
+      flow.reads = (flow.reads ?? 0) + 1;
+      if (flow.reads >= (step.readsBeforeNext ?? Number.POSITIVE_INFINITY)) {
+        if (step.doneType && !flow.doneSent) {
+          flow.doneSent = true;
+          return {
+            type: step.doneType,
+            flow_id: flow.id,
+            handler: flow.handler,
+            step_id: flow.step,
+          };
+        }
+        return this.nextScripted(flow).body;
+      }
+    }
+    return this.flowForm(flow, null);
+  }
+
   private createdBody(flow: FakeFlow, entry: FakeEntry): Record<string, unknown> {
     return {
       type: 'create_entry',
@@ -730,7 +954,7 @@ export class FakeHomeAssistant {
       entry_id: entry.entry_id,
       domain: entry.domain,
       title: entry.title,
-      source: 'user',
+      source: entry.source ?? 'user',
       state: entry.forcedState ?? (Date.now() >= entry.loadedAt ? 'loaded' : 'setup_in_progress'),
       supports_options: true,
       supports_remove_device: false,
@@ -770,6 +994,41 @@ export class FakeHomeAssistant {
     this.entities.push({
       entity_id: 'media_player.lg_webos_tv_ua751c0la',
       platform: 'webostv',
+      device_id: device.id,
+      config_entry_id: entry.entry_id,
+      hidden_by: null,
+      disabled_by: null,
+    });
+    return entry;
+  }
+
+  /** The entry, device and entity a discovered integration creates when its flow ends. */
+  private createScriptedEntry(flow: FakeFlow, spec: ScriptedEntry): FakeEntry {
+    const entry: FakeEntry = {
+      entry_id: entryId(),
+      domain: flow.handler,
+      title: spec.title,
+      loadedAt: Date.now() + this.knobs.loadDelayMs,
+      host: null,
+      mac: null,
+      ...(flow.source ? { source: flow.source } : {}),
+    };
+    this.entries.push(entry);
+    const device: FakeDevice = {
+      id: randomUUID().replaceAll('-', ''),
+      name: spec.title,
+      name_by_user: null,
+      manufacturer: spec.manufacturer,
+      model: spec.model,
+      area_id: null,
+      primary_config_entry: entry.entry_id,
+      connections: [],
+      serial_number: '',
+    };
+    this.devices.push(device);
+    this.entities.push({
+      entity_id: spec.entityId,
+      platform: flow.handler,
       device_id: device.id,
       config_entry_id: entry.entry_id,
       hidden_by: null,
@@ -1058,6 +1317,44 @@ export class FakeHomeAssistant {
           },
           custom: { integration: {}, helper: {} },
         };
+
+      case 'config_entries/flow/progress':
+        admin();
+        // HA leaves out the flows a person started (`source: user`); reauth and the rest stay in.
+        return [...this.flows.values()]
+          .filter((flow) => (flow.source ?? 'user') !== 'user')
+          .map((flow) => ({
+            flow_id: flow.id,
+            handler: flow.handler,
+            step_id: flow.step,
+            context: {
+              source: flow.source ?? 'user',
+              confirm_only: true,
+              ...(flow.placeholders ? { title_placeholders: flow.placeholders } : {}),
+              ...(flow.uniqueId ? { unique_id: flow.uniqueId } : {}),
+            },
+          }));
+
+      case 'frontend/get_translations': {
+        if (this.knobs.translationsMissing) throw new Error('unknown_command');
+        const wanted = Array.isArray(message.integration) ? message.integration : [];
+        const resources: Record<string, string> = {};
+        for (const integration of wanted) {
+          Object.assign(resources, this.knobs.translations[String(integration)] ?? {});
+        }
+        return { resources };
+      }
+
+      case 'config_entries/ignore_flow': {
+        admin();
+        const flow = this.flows.get(text('flow_id'));
+        const title = text('title');
+        if (!flow) throw new Error('not_found');
+        if (!flow.uniqueId) throw new Error('no_unique_id');
+        this.flows.delete(flow.id);
+        this.ignored.push({ flowId: flow.id, title });
+        return null;
+      }
 
       case 'config_entries/get': {
         const domain = typeof message.domain === 'string' ? message.domain : null;

@@ -130,6 +130,47 @@ export function tvShowsApps(kind: TvKind, view: TvView): boolean {
   return Number.isFinite(bits) && (bits & MEDIA_FEATURE.SELECT_SOURCE) !== 0;
 }
 
+/**
+ * Volume and mute of the details: Apple TV always (as before); any other TV when the entity
+ * declares volume steps or a level (VOLUME_STEP/VOLUME_SET) and mute (VOLUME_MUTE), as a Samsung
+ * TV added from «Rileva dispositivi» does (REP-20261026-006).
+ */
+export function tvShowsVolume(kind: TvKind, view: TvView): boolean {
+  return kind === 'apple' || declares(view, MEDIA_FEATURE.VOLUME_STEP | MEDIA_FEATURE.VOLUME_SET);
+}
+
+export function tvShowsMute(kind: TvKind, view: TvView): boolean {
+  return kind === 'apple' || declares(view, MEDIA_FEATURE.VOLUME_MUTE);
+}
+
+const declares = (view: TvView, mask: number): boolean => {
+  const raw = view.entity?.attributes?.supported_features;
+  const bits = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(bits) && (bits & mask) !== 0;
+};
+
+/**
+ * Service call that switches the TV off. A Samsung TV with its remote gets the single key
+ * KEY_POWER: on the 2015 models (encrypted protocol, e.g. UE50J6200) HA's `turn_off` sends
+ * KEY_POWEROFF then KEY_POWER and the TV stays on, while KEY_POWER alone switches it off
+ * (tried on 2026-10-27, REP-20261026-006). It is sent only while the TV is on, where the key
+ * switches off on the newer models too.
+ */
+export function tvPowerOffCall(
+  view: TvView,
+  mediaPlayerId: string,
+  remoteId: string
+): { domain: string; service: string; data: Record<string, unknown> } {
+  if (remoteId && view.entity?.attributes?.platform === 'samsungtv') {
+    return {
+      domain: 'remote',
+      service: 'send_command',
+      data: { entity_id: remoteId, command: 'KEY_POWER' },
+    };
+  }
+  return { domain: 'media_player', service: 'turn_off', data: { entity_id: mediaPlayerId } };
+}
+
 /** Target of the play/pause button on the widget: Android follows the playing display entity. */
 export function widgetPlayTarget(kind: TvKind, view: TvView, mediaPlayerId: string): string {
   if (kind === 'apple') return view.linkedActive ? view.displayId : mediaPlayerId;

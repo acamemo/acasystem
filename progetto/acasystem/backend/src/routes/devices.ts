@@ -15,7 +15,11 @@ import type { DeviceModule } from '../services/devices/index.ts';
  * - GET    /flussi/:flowId           current step of an own flow (resume)
  * - POST   /flussi/:flowId           answer the step         {input}
  * - DELETE /flussi/:flowId           cancel an own flow
+ * - GET    /scoperti                 devices that HA found on the network (ADR-0024)
+ * - POST   /scoperti/:flowId/aggiungi  take a discovered flow over, answers with its step
+ * - POST   /scoperti/:flowId/ignora    «Non mi interessa»
  * - GET    /voci/:entryId            entry with its device and entities
+ * - DELETE /voci/:entryId            «Rimuovi dispositivo»: the entry leaves HA (not system ones)
  * - PATCH  /dispositivi/:deviceId    name and room           {name?, areaId?}
  * - GET    /stanze, POST /stanze     rooms (areas)           {name}
  * - GET    /accensione/:entryId      power-on recipe state of a TV
@@ -38,7 +42,12 @@ export const createDevicesRouter = (devices: Pick<DeviceModule, 'service' | 'pow
   router.post('/flussi/:flowId', controller.stepFlow);
   router.delete('/flussi/:flowId', controller.cancelFlow);
 
+  router.get('/scoperti', controller.listDiscovered);
+  router.post('/scoperti/:flowId/aggiungi', controller.addDiscovered);
+  router.post('/scoperti/:flowId/ignora', controller.ignoreDiscovered);
+
   router.get('/voci/:entryId', controller.getEntry);
+  router.delete('/voci/:entryId', controller.removeEntry);
   router.patch('/dispositivi/:deviceId', controller.updateDevice);
 
   router.get('/stanze', controller.listAreas);

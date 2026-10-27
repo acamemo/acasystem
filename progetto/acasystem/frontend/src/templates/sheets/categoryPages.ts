@@ -35,8 +35,9 @@ export function categoryPageSeeds(categoryId: string, pageId: string): PageSeed[
 
 export function isCategoryWidgetReady(settings: CardSettings): boolean {
   const type = String(settings.categoryWidgetType ?? '');
-  if (!type || ['spacer', 'cover_clock', 'cover_calendar', 'cover_weather'].includes(type))
-    return true;
+  // These types are linked to no device: they are ready as soon as they are on the page.
+  const unlinked = ['spacer', 'rileva', 'cover_clock', 'cover_calendar', 'cover_weather'];
+  if (!type || unlinked.includes(type)) return true;
   const key = BINDING_KEYS[type];
   const value = settings[key];
   return Array.isArray(value)

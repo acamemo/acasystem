@@ -36,6 +36,15 @@ Un controllo è **Superato** soltanto con procedura realmente eseguita ed eviden
   - corretti `@capacitor/core` mancante nella pagina e la scorciatoia ad app aperta;
   - provati procedura guidata, IP pubblico, mini PC che non risponde, porta di HA, IP incollato dalla barra di HA, salvataggio, riavvio e «Cambia indirizzo»;
   - non provata l'interfaccia scaricata (manca il primo rilascio).
+- **REQ-19, widget «Rileva dispositivi» (REP-20261026-006, 2026-10-27):**
+  - test superati: server 32 file, 505 test (1 saltato); frontend 216 file, 3294 test, più 4 test della Samsung (`TvSamsung.test.tsx`); typecheck, lint, tipografia e colori superati;
+  - prova reale sulla copia della VM a ponte sulla rete di casa (HA 2026.10.4):
+    - il widget elenca i dispositivi di HA non collegati e apre il widget TV già collegato;
+    - il comando WS `config_entries/flow/progress` sostituisce il GET REST, che risponde 405;
+    - la Samsung UE50J6200 non si fa scoprire: la sua scheda SSDP sulla porta 7676 non risponde;
+    - la TV è stata aggiunta per indirizzo con il PIN, scritto in chat dall'utente e inviato dall'agente; poi widget TV dal «+»;
+    - spegnimento (`KEY_POWER`), volume e muto funzionano; l'accensione no (TV in Wi-Fi);
+  - non provati: PIN inserito dalle schermate F4, «Rimuovi dispositivo», passi `external`/`menu`/`progress` su HA reale, Dell.
 - **S4-S5, installazione automatica dall'app (REP-20261026-005, 2026-10-26):**
   - test superati: nucleo 61, Windows 21, Android web 7; end-to-end Windows 18/18 con finto HA OS;
   - prova reale sulla copia della VM `acasystem-ha-s45`: account creato dall'utente nell'app, onboarding di HA 4/4, app Acasystem 0.9.30 installata e avviata, interfaccia aperta, accesso riuscito. Servite 2 «Riprova» (VM lenta) e un riavvio dell'app di HA OS (porta di HA non letta, ripiego su 8123);

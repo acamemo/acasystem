@@ -71,7 +71,7 @@ describe('launcher controller', () => {
       Object.values(result.current.store.cardSettings).filter(
         (settings) => settings.categoryWidgetType
       )
-    ).toHaveLength(25);
+    ).toHaveLength(26);
     expect(result.current.controller.currentPageId).toBe('home');
     const removed = result.current.controller.layout.pages.find(
       (page) => page.label === 'Sicurezza'
@@ -120,7 +120,7 @@ describe('launcher controller', () => {
       Object.values(result.current.store.cardSettings).filter(
         (settings) => settings.categoryWidgetType
       )
-    ).toHaveLength(25);
+    ).toHaveLength(26);
   });
   it('seeds all categories in one event on a small grid without losing bindings or duplicating widgets', () => {
     const { result } = renderHook(() => {
@@ -141,8 +141,8 @@ describe('launcher controller', () => {
     const ids = pages.flatMap((page) =>
       Object.keys(page.placements[result.current.controller.classFor(page.id)] ?? {})
     );
-    expect(ids).toHaveLength(25);
-    expect(new Set(ids).size).toBe(25);
+    expect(ids).toHaveLength(26);
+    expect(new Set(ids).size).toBe(26);
     for (const page of pages)
       for (const id of Object.keys(
         page.placements[result.current.controller.classFor(page.id)] ?? {}

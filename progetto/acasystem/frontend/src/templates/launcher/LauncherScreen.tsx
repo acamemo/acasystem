@@ -21,9 +21,11 @@ import { pageValueText } from '@/components/system/page-indicator/PageIndicator'
 import { SystemGear } from '@/components/system/status-bar/SystemGear';
 import type { ConnectionState } from '@/components/system/status-bar/ConnectionStatus';
 import { findWidgetDefinition } from '@/components/widgets/registry';
-import type { CellRect, LauncherLayout, WidgetRuntime } from '@/@types/launcher';
+import type { AddWidgetSelection, CellRect, LauncherLayout, WidgetRuntime } from '@/@types/launcher';
 import { usePages } from '@/hooks/context';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
+import { AddWidgetRequestProvider } from '@/hooks/launcher/AddWidgetRequestContext';
+import { DiscoveredFlowProvider } from '@/hooks/launcher/DiscoveredFlowContext';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import type { LauncherController } from '@/hooks/launcher/useLauncherController';
 import { useWidgetController } from '@/hooks/launcher/useWidgetController';
@@ -60,6 +62,7 @@ import { describeRect, widgetDisplayName } from '@/utils/launcher/names';
 import { PAGE_KIND_LABEL, displayLabel } from '@/utils/launcher/pageIdentity';
 import type { StatusChip } from '@/utils/launcher/statusChips';
 import { AppShell } from '../app-shell/AppShell';
+import { DiscoveredAddFlow } from '../devices/DiscoveredAddFlow';
 import { AddWidgetSheet, WidgetSettingsSheet } from '../sheets';
 import { CategoryPageSheet } from '../sheets/CategoryPageSheet';
 import { isCategoryWidgetUnbound } from '../sheets/categoryPages';
@@ -113,6 +116,8 @@ type SheetState =
       pageId: string;
       at?: Pick<CellRect, 'x' | 'y'>;
       initialType?: string;
+      /** A device chosen in «Rileva dispositivi»: its type and entities, already selected. */
+      initialSelection?: AddWidgetSelection;
       rect?: CellRect;
       auto?: boolean;
       /**
@@ -1006,11 +1011,24 @@ export function LauncherScreen({
     setSheet((open) => (open?.type === 'add' ? null : open));
     if (!lastAdded.current?.settings) focusAdded(false);
   }, [focusAdded]);
-  const openAddWidget = useCallback((pageId: string, at?: Pick<CellRect, 'x' | 'y'>) => {
-    addDestination.current = pageId;
-    lastAdded.current = null;
-    setSheet(at ? { type: 'add', pageId, at } : { type: 'add', pageId });
-  }, []);
+  const openAddWidget = useCallback(
+    (pageId: string, at?: Pick<CellRect, 'x' | 'y'>, selection?: AddWidgetSelection) => {
+      addDestination.current = pageId;
+      lastAdded.current = null;
+      setSheet({
+        type: 'add',
+        pageId,
+        ...(at ? { at } : {}),
+        ...(selection ? { initialSelection: selection } : {}),
+      });
+    },
+    []
+  );
+  /** «Rileva dispositivi»: the add sheet on the type of a device, with the device selected. */
+  const requestAddWidget = useCallback(
+    (pageId: string, selection: AddWidgetSelection) => openAddWidget(pageId, undefined, selection),
+    [openAddWidget]
+  );
   /** «Aggiungi widget» of the pages view: the same sheet as a free cell, with no cell chosen. */
   const openAddWidgetAhead = useCallback((pageId: string) => {
     addDestination.current = pageId;
@@ -1993,6 +2011,8 @@ export function LauncherScreen({
   return (
     <LauncherProvider value={live}>
       <WidgetRuntimeProvider value={runtime}>
+        <AddWidgetRequestProvider value={requestAddWidget}>
+        <DiscoveredFlowProvider value={DiscoveredAddFlow}>
         <LauncherUiContext.Provider value={ui}>
           <LauncherDragContext.Provider value={drag.session}>
             <LauncherEdgePageContext.Provider value={edgePageId}>
@@ -2218,6 +2238,7 @@ export function LauncherScreen({
               onClose={closeAddSheet}
               pageId={sheetPageId || addTargetPageId || firstWidgetPageId || 'home'}
               initialType={sheet?.type === 'add' ? sheet.initialType : undefined}
+              initialSelection={sheet?.type === 'add' ? sheet.initialSelection : undefined}
               autoAdd={sheet?.type === 'add' && sheet.auto === true}
               onAdded={(widgetId, size) => {
                 const pageId =
@@ -2308,6 +2329,8 @@ export function LauncherScreen({
             }
           />
         </LauncherUiContext.Provider>
+        </DiscoveredFlowProvider>
+        </AddWidgetRequestProvider>
       </WidgetRuntimeProvider>
     </LauncherProvider>
   );

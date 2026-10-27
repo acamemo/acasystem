@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Body, Button, Caption, Numeric, ProgressRing } from '@/components/primitives';
 import type { FlowFormDto } from '@/@types/devices';
 import { Notice } from '../sheets/parts/Form';
-import { deviceTexts } from './deviceTexts';
+import { deviceTexts, pairingHint } from './deviceTexts';
 
 /** Seconds left of `total` while `running`: counts down once a second and stops at 0. */
 function useCountdown(total: number, running: boolean): number {
@@ -39,6 +39,7 @@ export function PairingStep({
   onExit: () => void;
 }) {
   const seconds = form.waitSeconds ?? 10;
+  const hint = pairingHint(form.handler);
   const left = useCountdown(seconds, busy);
   const errors = [...form.errors, ...(extraError ? [extraError] : [])];
   const failed = errors.length > 0;
@@ -52,7 +53,7 @@ export function PairingStep({
           </Body>
         </ProgressRing>
         <Body role="status" aria-live="polite" className="aca-device-pairing__text">
-          {left > 0 ? deviceTexts.pairingLook : deviceTexts.pairingWaiting}
+          {left > 0 ? hint.look : deviceTexts.pairingWaiting}
         </Body>
         <div className="aca-device-actions">
           <Button variant="secondary" size="md" disabled aria-disabled>
@@ -73,8 +74,8 @@ export function PairingStep({
           {error.message}
         </Notice>
       ))}
-      <Caption as="p">{deviceTexts.pairingNeeds}</Caption>
-      <Body>{deviceTexts.pairingIntro(seconds)}</Body>
+      {hint.needs && <Caption as="p">{hint.needs}</Caption>}
+      <Body>{hint.intro(seconds)}</Body>
       <div className="aca-device-actions">
         <Button variant="secondary" size="md" onClick={onExit}>
           {deviceTexts.exit}

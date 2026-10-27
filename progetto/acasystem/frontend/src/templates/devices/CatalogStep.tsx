@@ -53,18 +53,16 @@ function CatalogRow({
 
 /**
  * First step: the integration. The ones recommended for the widget come first and need no
- * search; below them a search over the names the server lists. Only the integrations in
- * `startableHandlers` can be started; the others are shown, disabled, with the reason.
+ * search; below them a search over the names the server lists. Every integration the server
+ * lists can be started (F4); only a row the server marks as not startable is shown disabled.
  */
 export function CatalogStep({
   kind,
-  startableHandlers,
   busy,
   onStart,
   onExit,
 }: {
   kind: DeviceKind;
-  startableHandlers: readonly string[];
   busy: boolean;
   onStart: (handler: string) => void;
   onExit: () => void;
@@ -96,29 +94,33 @@ export function CatalogStep({
     };
   }, [query]);
 
-  const recommended = RECOMMENDED_HANDLERS[kind];
+  const recommended = RECOMMENDED_HANDLERS[kind] ?? [];
   const rows: CatalogEntryDto[] = (catalog?.items ?? []).filter(
     (item) => !recommended.includes(item.domain)
   );
 
   return (
     <div className="aca-device-flow">
-      <SheetSection title={deviceTexts.recommended}>
-        <ul className="aca-pick__list">
-          {recommended.map((domain) => (
-            <li key={domain}>
-              <CatalogRow
-                title={integrationName(domain, domain)}
-                startable={startableHandlers.includes(domain)}
-                disabled={busy}
-                onStart={() => onStart(domain)}
-              />
-            </li>
-          ))}
-        </ul>
-      </SheetSection>
+      {recommended.length > 0 && (
+        <SheetSection title={deviceTexts.recommended}>
+          <ul className="aca-pick__list">
+            {recommended.map((domain) => (
+              <li key={domain}>
+                <CatalogRow
+                  title={integrationName(domain, domain)}
+                  startable
+                  disabled={busy}
+                  onStart={() => onStart(domain)}
+                />
+              </li>
+            ))}
+          </ul>
+        </SheetSection>
+      )}
 
-      <SheetSection title={deviceTexts.otherIntegrations}>
+      <SheetSection
+        title={recommended.length > 0 ? deviceTexts.otherIntegrations : deviceTexts.catalogByBrand}
+      >
         <Field
           label={deviceTexts.searchLabel}
           icon="search"
@@ -136,7 +138,7 @@ export function CatalogStep({
             ) : (
               <ul className="aca-pick__list">
                 {rows.map((item) => {
-                  const startable = item.startable && startableHandlers.includes(item.startDomain);
+                  const { startable } = item;
                   return (
                     <li key={item.domain}>
                       <CatalogRow

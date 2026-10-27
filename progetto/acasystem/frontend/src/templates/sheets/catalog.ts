@@ -189,6 +189,14 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
     hint: 'Ogni stanza nasce da un’area di Home Assistant con le sue entità.',
   },
   {
+    type: 'rileva',
+    label: 'Rileva dispositivi',
+    icon: 'wifi',
+    flow: 'simple',
+    sample: { id: 'rileva_card_esempio', settings: {} },
+    hint: 'Elenca i dispositivi di Home Assistant che non sono ancora in un widget: un tocco e li aggiungi.',
+  },
+  {
     type: 'cover_clock',
     label: 'Orologio',
     icon: 'clock',
@@ -351,7 +359,7 @@ export const WIDGET_CATEGORIES = [
     types: ['cover_clock', 'cover_calendar', 'calendar', 'todo', 'car', 'vacuum', 'mower'],
   },
   { id: 'energia', label: 'Energia', types: ['cost', 'nordpool'] },
-  { id: 'utilita', label: 'Utilità', types: ['spacer'] },
+  { id: 'utilita', label: 'Utilità', types: ['rileva', 'spacer'] },
 ] as const;
 
 export type WidgetCategoryId = (typeof WIDGET_CATEGORIES)[number]['id'];

@@ -8,11 +8,15 @@
 import { vi } from 'vitest';
 import type {
   CatalogDto,
+  DiscoveredDeviceDto,
   EntryDto,
   FlowAbortDto,
   FlowCreatedDto,
   FlowErrorDto,
+  FlowExternalDto,
   FlowFormDto,
+  FlowMenuDto,
+  FlowProgressDto,
   StatusDto,
 } from '@/@types/devices';
 
@@ -44,7 +48,6 @@ export const statusDto = (overrides: Partial<StatusDto> = {}): StatusDto => ({
   service: { state: 'active', active: true, message: null },
   homeAssistant: { reachable: true, onboarded: true },
   features: { catalog: true, flows: true, power: true },
-  startableHandlers: ['webostv'],
   ...overrides,
 });
 
@@ -67,8 +70,8 @@ export const catalogDto = (): CatalogDto => ({
       integrationType: null,
       iotClass: null,
       startDomain: 'hue',
-      startable: false,
-      requiresInstaller: true,
+      startable: true,
+      requiresInstaller: false,
     },
   ],
   total: 2,
@@ -167,6 +170,146 @@ export const createdDto = (
   pending,
 });
 
+// --- Devices Home Assistant found on the network (F2) -----------------------------------------
+
+export const SAMSUNG_FLOW = 'found-samsung';
+export const SAMSUNG_ENTITY = 'media_player.samsung_7_series';
+
+export const discoveredDto = (
+  overrides: Partial<DiscoveredDeviceDto> = {}
+): DiscoveredDeviceDto => ({
+  flowId: SAMSUNG_FLOW,
+  handler: 'samsungtv',
+  source: 'zeroconf',
+  name: 'Samsung 7 Series (49)',
+  model: 'UE49NU7100',
+  family: 'tv',
+  addable: true,
+  ...overrides,
+});
+
+/** The first step of the Samsung flow: «Consenti» on the TV, a call held open. */
+export const samsungConfirmForm = (errors: FlowErrorDto[] = []): FlowFormDto => ({
+  type: 'form',
+  flowId: SAMSUNG_FLOW,
+  handler: 'samsungtv',
+  stepId: 'confirm',
+  title: 'Accetta sul televisore',
+  description: 'Accendi il televisore. Premi Avanti e scegli Consenti con il telecomando.',
+  waitSeconds: 30,
+  fields: [],
+  errors,
+});
+
+export const samsungEntry = (overrides: Partial<EntryDto> = {}): EntryDto =>
+  entryDto({
+    entryId: 'entry-samsung',
+    domain: 'samsungtv',
+    title: 'Samsung 7 Series (49)',
+    device: {
+      id: 'dev-samsung',
+      name: 'Samsung 7 Series (49)',
+      manufacturer: 'Samsung',
+      model: 'UE49NU7100',
+      areaId: null,
+      areaName: null,
+    },
+    entities: [SAMSUNG_ENTITY],
+    mediaPlayerEntityId: SAMSUNG_ENTITY,
+    power: null,
+    ...overrides,
+  });
+
+export const samsungCreated = (entry: EntryDto = samsungEntry()): FlowCreatedDto => ({
+  type: 'create_entry',
+  handler: 'samsungtv',
+  entryId: 'entry-samsung',
+  domain: 'samsungtv',
+  title: 'Samsung 7 Series (49)',
+  entry,
+  pending: false,
+});
+
+// --- Steps that are not forms, and generic forms (F4) -----------------------------------------
+
+export const menuDto = (flowId = 'flow-brand'): FlowMenuDto => ({
+  type: 'menu',
+  flowId,
+  handler: 'acme',
+  stepId: 'menu',
+  title: 'Scegli come continuare',
+  description: 'Puoi usare il cloud oppure la rete di casa.',
+  options: [
+    { id: 'cloud', label: 'Usa il cloud' },
+    { id: 'local_setup', label: 'Usa la rete di casa' },
+  ],
+});
+
+export const progressDto = (flowId = 'flow-brand'): FlowProgressDto => ({
+  type: 'progress',
+  flowId,
+  handler: 'acme',
+  stepId: 'scan',
+  title: 'Un momento',
+  description: 'Cerco il dispositivo sulla rete.',
+  progressAction: 'scan',
+});
+
+export const externalDto = (flowId = 'flow-brand'): FlowExternalDto => ({
+  type: 'external',
+  flowId,
+  handler: 'acme',
+  stepId: 'auth',
+  title: 'Accedi sul sito del produttore',
+  description: 'Accedi al tuo account Acme: si apre in una nuova pagina.',
+  url: 'https://accounts.acme.test/oauth?state=abc',
+});
+
+/** A generic form: every kind of field the server can draw from the schema of Home Assistant. */
+export const genericForm = (flowId = 'flow-brand', errors: FlowErrorDto[] = []): FlowFormDto => ({
+  type: 'form',
+  flowId,
+  handler: 'acme',
+  stepId: 'user',
+  title: 'Collega Acme',
+  description: 'Scrivi i dati del tuo account.',
+  waitSeconds: null,
+  fields: [
+    {
+      name: 'host',
+      kind: 'text',
+      required: true,
+      label: 'Indirizzo IP o nome',
+      hint: 'Lo trovi sull’etichetta.',
+    },
+    { name: 'password', kind: 'password', required: true, label: 'Password' },
+    { name: 'retries', kind: 'integer', required: false, label: 'Tentativi', min: 1, max: 5 },
+    { name: 'ssl', kind: 'boolean', required: false, label: 'Usa SSL', default: true },
+    {
+      name: 'mode',
+      kind: 'select',
+      required: false,
+      label: 'Modo',
+      options: [
+        { value: 'fast', label: 'Veloce' },
+        { value: 'slow', label: 'Lento' },
+      ],
+      default: 'fast',
+    },
+    {
+      name: 'rooms',
+      kind: 'multiselect',
+      required: false,
+      label: 'Stanze',
+      options: [
+        { value: 'kitchen', label: 'Cucina' },
+        { value: 'bath', label: 'Bagno' },
+      ],
+    },
+  ],
+  errors,
+});
+
 export const errorReply = (
   status: number,
   code: string,
@@ -212,6 +355,7 @@ export function installFakeDevices(
       }),
     ],
     ['GET /flussi', () => ({ body: { flows: [] } })],
+    ['GET /scoperti', () => ({ body: { devices: [] } })],
     ['GET /catalogo', () => ({ body: catalogDto() })],
     ['POST /flussi', () => ({ status: 201, body: userForm() })],
     ['GET /flussi/:id', () => ({ body: userForm() })],

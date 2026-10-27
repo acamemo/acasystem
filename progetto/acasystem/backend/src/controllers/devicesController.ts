@@ -31,7 +31,11 @@ export interface DevicesController {
   getFlow: RequestHandler;
   stepFlow: RequestHandler;
   cancelFlow: RequestHandler;
+  listDiscovered: RequestHandler;
+  addDiscovered: RequestHandler;
+  ignoreDiscovered: RequestHandler;
   getEntry: RequestHandler;
+  removeEntry: RequestHandler;
   updateDevice: RequestHandler;
   listAreas: RequestHandler;
   createArea: RequestHandler;
@@ -105,7 +109,21 @@ export const createDevicesController = (
 
   cancelFlow: route((req, user) => service.cancelFlow(user, validateFlowId(req.params.flowId))),
 
+  listDiscovered: route((_req, user) => service.listDiscovered(user)),
+
+  addDiscovered: route((req, user) =>
+    service.addDiscovered(user, validateFlowId(req.params.flowId))
+  ),
+
+  ignoreDiscovered: route((req, user) =>
+    service.ignoreDiscovered(user, validateFlowId(req.params.flowId))
+  ),
+
   getEntry: route((req, user) => service.getEntry(user, validateEntryId(req.params.entryId))),
+
+  removeEntry: route((req, user) =>
+    service.removeEntry(user, validateEntryId(req.params.entryId))
+  ),
 
   updateDevice: route((req, user) =>
     service.updateDevice(

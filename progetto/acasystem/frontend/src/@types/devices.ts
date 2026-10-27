@@ -5,6 +5,8 @@
  * that the screens read (DevicesApi.test.ts).
  */
 
+import type { DeviceFamily } from '@/utils/devices/classify';
+
 export type FlowFieldKind =
   'text' | 'password' | 'integer' | 'number' | 'boolean' | 'select' | 'multiselect';
 
@@ -15,6 +17,8 @@ export interface FlowFieldDto {
   label: string;
   hint?: string;
   default?: string | number | boolean;
+  /** A text field that takes several lines. */
+  multiline?: boolean;
   min?: number;
   max?: number;
   options?: { value: string; label: string }[];
@@ -46,6 +50,7 @@ export interface FlowMenuDto {
   handler: string;
   stepId: string;
   title: string;
+  description: string | null;
   options: { id: string; label: string }[];
 }
 
@@ -55,7 +60,21 @@ export interface FlowProgressDto {
   handler: string;
   stepId: string;
   title: string;
+  /** Italian sentence for the wait. */
+  description: string;
   progressAction: string | null;
+}
+
+/** A step that continues on another site (the login of the maker's cloud, OAuth). */
+export interface FlowExternalDto {
+  type: 'external';
+  flowId: string;
+  handler: string;
+  stepId: string;
+  title: string;
+  description: string;
+  /** Page to open in a new window; the server only sends http and https. */
+  url: string;
 }
 
 export interface FlowAbortDto {
@@ -100,8 +119,24 @@ export interface FlowCreatedDto {
   pending: boolean;
 }
 
-export type FlowOpenStepDto = FlowFormDto | FlowMenuDto | FlowProgressDto;
+export type FlowOpenStepDto = FlowFormDto | FlowMenuDto | FlowProgressDto | FlowExternalDto;
 export type FlowResponseDto = FlowOpenStepDto | FlowAbortDto | FlowCreatedDto;
+
+/** A device that Home Assistant found on the network and nobody added yet (`GET /scoperti`). */
+export interface DiscoveredDeviceDto {
+  flowId: string;
+  handler: string;
+  /** `zeroconf`, `ssdp`, `dhcp`... */
+  source: string;
+  name: string;
+  model: string | null;
+  /** Family of the integration, when the server knows it. */
+  family: DeviceFamily | null;
+  /** False when Acasystem cannot carry the flow to the end for a customer. */
+  addable: boolean;
+  /** Why not, in Italian; only when `addable` is false. */
+  reason?: string;
+}
 
 export interface FlowSummaryDto {
   flowId: string;
@@ -145,7 +180,6 @@ export interface StatusDto {
     verified?: boolean;
   };
   features: { catalog: boolean; flows: boolean; power: boolean };
-  startableHandlers: string[];
   warnings?: string[];
 }
 

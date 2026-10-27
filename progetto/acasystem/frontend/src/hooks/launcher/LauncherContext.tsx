@@ -13,3 +13,8 @@ export function useLauncher(): LauncherApi {
   if (!launcher) throw new Error('useLauncher must be used inside LauncherProvider');
   return launcher;
 }
+
+/** The launcher when one is provided, null otherwise (previews, tests of a single widget). */
+export function useOptionalLauncher(): LauncherApi | null {
+  return useContext(LauncherContext);
+}

@@ -4,11 +4,15 @@ import type {
   EntryDto,
   FlowAbortDto,
   FlowCreatedDto,
+  FlowExternalDto,
   FlowFormDto,
+  FlowMenuDto,
+  FlowProgressDto,
   FlowResponseDto,
   StatusDto,
 } from '@/@types/devices';
 import {
+  addDiscovered,
   cancelFlow,
   getEntry,
   getFlow,
@@ -19,6 +23,7 @@ import {
   stepFlow,
   toDeviceError,
 } from '@/api/devicesApi';
+import type { DeviceFamily } from '@/utils/devices/classify';
 import { deviceTexts, RECOMMENDED_HANDLERS } from './deviceTexts';
 
 /**
@@ -27,12 +32,15 @@ import { deviceTexts, RECOMMENDED_HANDLERS } from './deviceTexts';
  * a flow that is left (Esci, the sheet closing) is cancelled, unless a call is still open, in
  * which case the server expires it after ten minutes.
  *
- * Only the types the server lists are drawn; a menu or a progress step is not (they are not
- * allowed for the TV): the flow is cancelled with a plain message. Nothing is stored in the
- * browser; the address the person types stays in memory (`typedHost`) for the power-on step.
+ * The steps the server describes are drawn: form, menu, progress (the flow is read every few
+ * seconds until it moves) and external (a page of the maker opens, the flow is read until the
+ * person is back). A type this version does not know cancels the flow with a plain message.
+ * Nothing is stored in the browser; the address the person types stays in memory (`typedHost`)
+ * for the power-on step.
  */
 
-export type DeviceKind = 'tv';
+/** What the person is adding: the TV of the catalogue (D1), or the family of a discovered device. */
+export type DeviceKind = DeviceFamily;
 
 export type FlowPhase =
   | 'checking'
@@ -40,6 +48,9 @@ export type FlowPhase =
   | 'resume'
   | 'catalog'
   | 'form'
+  | 'menu'
+  | 'progress'
+  | 'external'
   | 'blocked'
   | 'aborted'
   | 'created'
@@ -63,6 +74,8 @@ export interface DeviceFlowState {
   /** Text for `unavailable` and `blocked`. */
   message: string | null;
   form: FlowFormDto | null;
+  /** The step of phases `menu`, `progress` and `external`. */
+  step: FlowMenuDto | FlowProgressDto | FlowExternalDto | null;
   /** The last answer was refused but the flow is still open: shown on the form. */
   formError: DeviceErrorInfo | null;
   /** The flow found open: `conflict` when it was the start that found it. */
@@ -78,12 +91,18 @@ const INITIAL: DeviceFlowState = {
   busy: false,
   message: null,
   form: null,
+  step: null,
   formError: null,
   openFlow: null,
   abort: null,
   created: null,
   failure: null,
 };
+
+/** How often the flow is read while a progress or an external step waits. */
+export const FLOW_POLL_MS = 2500;
+/** Failed reads in a row after which the wait is given up. */
+const POLL_FAILURES = 3;
 
 /** Errors of an answer that leave the flow open and the form on screen. */
 const STAYS_ON_FORM = new Set(['INVALID_INPUT', 'FLOW_BUSY', 'RATE_LIMITED']);
@@ -105,7 +124,12 @@ export interface DeviceFlow {
   refreshEntry: () => void;
 }
 
-export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow {
+export function useDeviceFlow(
+  kind: DeviceKind,
+  onExit: () => void,
+  /** A flow Home Assistant opened by itself: taken over instead of starting from the catalogue. */
+  discoveredFlowId: string | null = null
+): DeviceFlow {
   const [state, setState] = useState<DeviceFlowState>(INITIAL);
   const flowIdRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
@@ -132,18 +156,24 @@ export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow 
       switch (response.type) {
         case 'form':
           flowIdRef.current = response.flowId;
-          patch({ ...none, phase: 'form', form: response });
+          patch({ ...none, phase: 'form', form: response, step: null });
+          return;
+        case 'menu':
+        case 'progress':
+        case 'external':
+          flowIdRef.current = response.flowId;
+          patch({ ...none, phase: response.type, step: response, form: null });
           return;
         case 'abort':
           flowIdRef.current = null;
-          patch({ ...none, phase: 'aborted', abort: response, form: null });
+          patch({ ...none, phase: 'aborted', abort: response, form: null, step: null });
           return;
         case 'create_entry':
           flowIdRef.current = null;
-          patch({ ...none, phase: 'created', created: response, form: null });
+          patch({ ...none, phase: 'created', created: response, form: null, step: null });
           return;
         default: {
-          // A menu, a progress step or a type this version does not know: not guessed.
+          // A type this version does not know: not guessed.
           const unknown = response as { flowId?: unknown };
           const flowId = typeof unknown.flowId === 'string' ? unknown.flowId : flowIdRef.current;
           flowIdRef.current = null;
@@ -153,6 +183,7 @@ export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow 
             phase: 'blocked',
             message: deviceTexts.unsupportedStep,
             form: null,
+            step: null,
           });
         }
       }
@@ -227,7 +258,7 @@ export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow 
   useEffect(() => {
     mountedRef.current = true;
     let cancelled = false;
-    const handlers = RECOMMENDED_HANDLERS[kind];
+    const handlers = RECOMMENDED_HANDLERS[kind] ?? [];
     void (async () => {
       try {
         const status = await getStatus();
@@ -239,6 +270,11 @@ export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow 
               ? deviceTexts.featureUnavailable
               : deviceTexts.haUnreachable);
           setState((previous) => ({ ...previous, status, phase: 'unavailable', message }));
+          return;
+        }
+        // A discovered device goes straight to its flow: no catalogue, no resume.
+        if (discoveredFlowId) {
+          setState((previous) => ({ ...previous, status }));
           return;
         }
         let open: { flowId: string } | null = null;
@@ -273,7 +309,7 @@ export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow 
       if (flowId && !inFlightRef.current) void cancelFlow(flowId).catch(() => undefined);
       abortRef.current?.abort();
     };
-  }, [kind]);
+  }, [kind, discoveredFlowId]);
 
   const start = useCallback(
     (handler: string) =>
@@ -306,19 +342,25 @@ export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow 
   }, [run, state.openFlow]);
 
   const restart = useCallback(() => {
+    // A discovered device has no catalogue to go back to: starting again means leaving.
+    if (discoveredFlowId) {
+      onExitRef.current();
+      return;
+    }
     lastAttemptRef.current = null;
     setState((previous) => ({
       ...previous,
       phase: 'catalog',
       busy: false,
       form: null,
+      step: null,
       formError: null,
       failure: null,
       abort: null,
       message: null,
       openFlow: null,
     }));
-  }, []);
+  }, [discoveredFlowId]);
 
   const discardOpen = useCallback(() => {
     const open = state.openFlow;
@@ -381,6 +423,69 @@ export function useDeviceFlow(kind: DeviceKind, onExit: () => void): DeviceFlow 
         inFlightRef.current = false;
       });
   }, [patch, state.created]);
+
+  // The service answered: take the discovered flow over (one call; «Riprova» repeats it).
+  const takeOver = useCallback(() => {
+    if (!discoveredFlowId) return;
+    run('start', (signal) => addDiscovered(discoveredFlowId, signal), takeOver);
+  }, [discoveredFlowId, run]);
+  const takenRef = useRef(false);
+  useEffect(() => {
+    if (!discoveredFlowId || !state.status || takenRef.current) return;
+    takenRef.current = true;
+    takeOver();
+  }, [discoveredFlowId, state.status, takeOver]);
+
+  // A progress or an external step: the flow is read every few seconds until HA moves on (the
+  // task ended, or the person finished on the page of the maker). The same step again changes
+  // nothing on screen; a few failed reads in a row end the wait.
+  const waitingStepId = state.phase === 'progress' || state.phase === 'external' ? state.step?.stepId : null;
+  useEffect(() => {
+    if (!waitingStepId) return undefined;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
+
+    const schedule = () => {
+      if (!cancelled) timer = setTimeout(() => void tick(), FLOW_POLL_MS);
+    };
+    const tick = async () => {
+      const flowId = flowIdRef.current;
+      if (cancelled || !flowId) return;
+      // An answer or a cancellation is in flight: wait for the next round.
+      if (inFlightRef.current) {
+        schedule();
+        return;
+      }
+      try {
+        const response = await getFlow(flowId);
+        if (cancelled || !mountedRef.current) return;
+        failures = 0;
+        const unchanged =
+          (response.type === 'progress' || response.type === 'external') &&
+          response.stepId === waitingStepId;
+        if (!unchanged) {
+          settle(response);
+          return;
+        }
+      } catch (error) {
+        if (cancelled || !mountedRef.current || isAbortError(error)) return;
+        failures += 1;
+        const info = toDeviceError(error);
+        if (failures >= POLL_FAILURES || FLOW_GONE.has(info.code ?? '')) {
+          fail(info, 'read');
+          return;
+        }
+      }
+      schedule();
+    };
+
+    schedule();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [fail, settle, waitingStepId]);
 
   const typedHost = useCallback(() => hostRef.current, []);
 

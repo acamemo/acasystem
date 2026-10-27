@@ -1,18 +1,25 @@
 import { isRecord } from '../../helpers/objects.ts';
+import { italianText } from './haTexts.ts';
+import type { HandlerTranslations, StepTranslations } from './haTexts.ts';
 import {
+  FLOW_STEP_FALLBACKS,
   STEP_TEXTS,
+  genericFieldLabel,
+  humanizeName,
   publicEntryTitle,
-  translateAbortReason,
-  translateFormError,
+  resolveAbortReason,
+  resolveFormError,
 } from './messagesIt.ts';
 
 /**
  * Turns the answer of a Home Assistant configuration flow into what the browser may see.
  *
- * Rules (ADR-0021, point 4): only the result types and field kinds listed here are drawn; a
- * type or a field that is not known is not guessed, the flow is cancelled instead (RD-10).
- * Nothing from HA is passed through as it is: no `data`, no `context`, no
- * `description_placeholders` (they can carry an address) and no raw error text.
+ * Rules (ADR-0021, point 4, and F4): only the result types and field kinds listed here are
+ * drawn; a type or a field that is not known is not guessed, the flow is cancelled instead
+ * (RD-10). Nothing from HA is passed through as it is: no `data`, no `context`, no raw error
+ * text, and the `description_placeholders` only inside the Italian texts, cleaned of addresses.
+ * The texts come from our own dictionary first, then from the Italian translation of HA (when it
+ * is not English), then from a generic Italian label.
  */
 
 export type FlowFieldKind =
@@ -25,6 +32,8 @@ export interface FlowFieldDto {
   label: string;
   hint?: string;
   default?: string | number | boolean;
+  /** A text field that takes several lines. */
+  multiline?: boolean;
   min?: number;
   max?: number;
   options?: { value: string; label: string }[];
@@ -55,6 +64,7 @@ export interface FlowMenuDto {
   handler: string;
   stepId: string;
   title: string;
+  description: string | null;
   options: { id: string; label: string }[];
 }
 
@@ -64,7 +74,22 @@ export interface FlowProgressDto {
   handler: string;
   stepId: string;
   title: string;
+  /** Italian sentence for the wait. */
+  description: string;
+  /** Machine key of the task (`progress_action`), for the registry and the tests. */
   progressAction: string | null;
+}
+
+/** A step that continues on another site (the login of the maker's cloud, OAuth). */
+export interface FlowExternalDto {
+  type: 'external';
+  flowId: string;
+  handler: string;
+  stepId: string;
+  title: string;
+  description: string;
+  /** Page to open in a new window; always http or https. */
+  url: string;
 }
 
 export interface FlowAbortDto {
@@ -82,11 +107,22 @@ export interface FlowCreatedDto {
   title: string;
 }
 
-export type FlowOpenStepDto = FlowFormDto | FlowMenuDto | FlowProgressDto;
+export type FlowOpenStepDto = FlowFormDto | FlowMenuDto | FlowProgressDto | FlowExternalDto;
 export type FlowTerminalDto = FlowAbortDto | FlowCreatedDto;
 
+/** Values HA wants in every answer of a step (`constant` fields): kept here, never drawn. */
+export type FlowConstants = Record<string, string | number | boolean>;
+
 export type NormalizedFlow =
-  | { outcome: 'step'; flowId: string; stepId: string; dto: FlowOpenStepDto }
+  | {
+      outcome: 'step';
+      flowId: string;
+      stepId: string;
+      dto: FlowOpenStepDto;
+      constants: FlowConstants;
+    }
+  /** `external_done` and `progress_done`: HA has the next step ready; read the flow again. */
+  | { outcome: 'continue'; flowId: string }
   | { outcome: 'terminal'; dto: FlowTerminalDto; nextFlowId: string | null }
   | { outcome: 'unsupported'; flowId: string | null; reason: string };
 
@@ -129,23 +165,44 @@ const optionList = (value: unknown): { value: string; label: string }[] | null =
 const finiteNumber = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 
+interface TextContext {
+  /** Our own texts for this handler and step. */
+  own: (typeof STEP_TEXTS)[string][string] | undefined;
+  /** HA's Italian translations for this step, when it gave any. */
+  ha: StepTranslations | undefined;
+  placeholders: unknown;
+}
+
+type FieldResult =
+  | { kind: 'field'; field: FlowFieldDto }
+  | { kind: 'constant'; name: string; value: string | number | boolean }
+  | null;
+
+const MAX_FIELDS = 40;
+
 /** One entry of `data_schema`, or null when its type is not one Acasystem can draw. */
-const normalizeField = (
-  field: unknown,
-  texts: Readonly<Record<string, { label: string; hint?: string }>> | undefined
-): FlowFieldDto | null => {
+const normalizeField = (field: unknown, texts: TextContext): FieldResult => {
   if (!isRecord(field)) return null;
   const name = asString(field.name);
-  if (!name) return null;
+  if (!name || !/^[A-Za-z0-9_.-]{1,64}$/.test(name)) return null;
 
-  const dictionary = texts?.[name];
+  if (field.type === 'constant') {
+    const value = primitive(field.value);
+    return value === undefined ? null : { kind: 'constant', name, value };
+  }
+
+  const own = texts.own?.fields?.[name];
   const result: FlowFieldDto = {
     name,
     kind: 'text',
     required: field.required === true,
-    label: dictionary?.label ?? name,
+    label:
+      own?.label ??
+      italianText(texts.ha?.data[name], texts.placeholders) ??
+      genericFieldLabel(name),
   };
-  if (dictionary?.hint) result.hint = dictionary.hint;
+  const hint = own?.hint ?? italianText(texts.ha?.dataDescription[name], texts.placeholders);
+  if (hint) result.hint = hint;
   const fallback = primitive(field.default);
   if (fallback !== undefined) result.default = fallback;
 
@@ -156,24 +213,25 @@ const normalizeField = (
     switch (selectorType) {
       case 'text':
         result.kind = isRecord(config) && config.type === 'password' ? 'password' : 'text';
-        return result;
+        if (isRecord(config) && config.multiline === true) result.multiline = true;
+        return { kind: 'field', field: result };
       case 'number': {
         result.kind = 'number';
         const min = isRecord(config) ? finiteNumber(config.min) : undefined;
         const max = isRecord(config) ? finiteNumber(config.max) : undefined;
         if (min !== undefined) result.min = min;
         if (max !== undefined) result.max = max;
-        return result;
+        return { kind: 'field', field: result };
       }
       case 'boolean':
         result.kind = 'boolean';
-        return result;
+        return { kind: 'field', field: result };
       case 'select': {
         const options = isRecord(config) ? optionList(config.options) : null;
         if (!options) return null;
         result.kind = isRecord(config) && config.multiple === true ? 'multiselect' : 'select';
         result.options = options;
-        return result;
+        return { kind: 'field', field: result };
       }
       default:
         return null;
@@ -183,7 +241,7 @@ const normalizeField = (
   switch (field.type) {
     case 'string':
       result.kind = 'text';
-      return result;
+      return { kind: 'field', field: result };
     case 'integer':
     case 'float': {
       result.kind = field.type === 'integer' ? 'integer' : 'number';
@@ -191,25 +249,30 @@ const normalizeField = (
       const max = finiteNumber(field.valueMax);
       if (min !== undefined) result.min = min;
       if (max !== undefined) result.max = max;
-      return result;
+      return { kind: 'field', field: result };
     }
     case 'boolean':
       result.kind = 'boolean';
-      return result;
+      return { kind: 'field', field: result };
     case 'select':
     case 'multi_select': {
       const options = optionList(field.options);
       if (!options) return null;
       result.kind = field.type === 'select' ? 'select' : 'multiselect';
       result.options = options;
-      return result;
+      return { kind: 'field', field: result };
     }
     default:
       return null;
   }
 };
 
-const normalizeErrors = (errors: unknown): FlowErrorDto[] => {
+const normalizeErrors = (
+  errors: unknown,
+  handler: string,
+  translations: HandlerTranslations | null,
+  placeholders: unknown
+): FlowErrorDto[] => {
   if (!isRecord(errors)) return [];
 
   const list: FlowErrorDto[] = [];
@@ -219,92 +282,173 @@ const normalizeErrors = (errors: unknown): FlowErrorDto[] => {
     list.push({
       field: field === 'base' ? null : field,
       code,
-      message: translateFormError(code),
+      message: resolveFormError(
+        code,
+        handler,
+        italianText(translations?.errors[code], placeholders)
+      ),
     });
   }
   return list.slice(0, 10);
 };
 
-const titleFor = (handler: string, stepId: string): string =>
-  STEP_TEXTS[handler]?.[stepId]?.title ?? 'Aggiungi un dispositivo';
+const MAX_URL = 2048;
+
+/** The page of an `external` step: http or https only, no credentials in it. */
+const externalUrl = (value: unknown): string | null => {
+  if (typeof value !== 'string' || value.length > MAX_URL) return null;
+  try {
+    const url = new URL(value);
+    if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.username || url.password) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
 
 /**
  * `handler` is the one the flow was started for (a trusted value kept by the facade), not the
- * one HA reports back.
+ * one HA reports back. `translations` are the Italian ones of HA for that handler (F4), or null.
  */
-export const normalizeFlowResult = (raw: unknown, handler: string): NormalizedFlow => {
+export const normalizeFlowResult = (
+  raw: unknown,
+  handler: string,
+  translations: HandlerTranslations | null = null
+): NormalizedFlow => {
   if (!isRecord(raw)) return unsupported(null, 'not_an_object');
 
   const flowId = asString(raw.flow_id);
   const type = raw.type;
+  const placeholders = raw.description_placeholders;
+  const stepIdOf = asString(raw.step_id);
+  const textsFor = (stepId: string | null): TextContext => ({
+    own: stepId ? STEP_TEXTS[handler]?.[stepId] : undefined,
+    ha: stepId ? translations?.steps[stepId] : undefined,
+    placeholders,
+  });
+  const titleOf = (texts: TextContext, fallback: string): string =>
+    texts.own?.title ?? italianText(texts.ha?.title, placeholders) ?? fallback;
+  const descriptionOf = (texts: TextContext): string | null =>
+    texts.own?.description ?? italianText(texts.ha?.description, placeholders);
 
   if (type === 'form') {
-    const stepId = asString(raw.step_id);
+    const stepId = stepIdOf;
     if (!flowId || !stepId) return unsupported(flowId, 'missing_step');
 
-    const texts = STEP_TEXTS[handler]?.[stepId];
+    const texts = textsFor(stepId);
     const schema = Array.isArray(raw.data_schema) ? raw.data_schema : [];
+    if (schema.length > MAX_FIELDS) return unsupported(flowId, 'too_many_fields');
     const fields: FlowFieldDto[] = [];
+    const constants: FlowConstants = {};
     for (const entry of schema) {
-      const field = normalizeField(entry, texts?.fields);
+      const field = normalizeField(entry, texts);
       if (!field) return unsupported(flowId, 'unsupported_field');
-      fields.push(field);
+      if (field.kind === 'constant') constants[field.name] = field.value;
+      else fields.push(field.field);
     }
 
     return {
       outcome: 'step',
       flowId,
       stepId,
+      constants,
       dto: {
         type: 'form',
         flowId,
         handler,
         stepId,
-        title: titleFor(handler, stepId),
-        description: texts?.description ?? null,
-        waitSeconds: texts?.waitSeconds ?? null,
+        title: titleOf(texts, 'Aggiungi un dispositivo'),
+        description: descriptionOf(texts),
+        waitSeconds: texts.own?.waitSeconds ?? null,
         fields,
-        errors: normalizeErrors(raw.errors),
+        errors: normalizeErrors(raw.errors, handler, translations, placeholders),
       },
     };
   }
 
   if (type === 'menu') {
-    const stepId = asString(raw.step_id);
+    const stepId = stepIdOf;
     if (!flowId || !stepId) return unsupported(flowId, 'missing_step');
     const options = optionList(raw.menu_options);
-    if (!options) return unsupported(flowId, 'unsupported_menu');
+    if (!options || options.length === 0) return unsupported(flowId, 'unsupported_menu');
+    const texts = textsFor(stepId);
     return {
       outcome: 'step',
       flowId,
       stepId,
+      constants: {},
       dto: {
         type: 'menu',
         flowId,
         handler,
         stepId,
-        title: titleFor(handler, stepId),
-        options: options.map((option) => ({ id: option.value, label: option.label })),
+        title: titleOf(texts, FLOW_STEP_FALLBACKS.menuTitle),
+        description: descriptionOf(texts),
+        options: options.map((option) => ({
+          id: option.value,
+          // Our wording is not defined for menus: HA's Italian text, then the label HA sent when
+          // it is Italian too, then the id made readable.
+          label:
+            italianText(texts.ha?.menuOptions[option.value], placeholders) ??
+            (option.label !== option.value ? italianText(option.label, placeholders) : null) ??
+            humanizeName(option.value),
+        })),
       },
     };
   }
 
   if (type === 'progress') {
-    const stepId = asString(raw.step_id);
+    const stepId = stepIdOf;
     if (!flowId || !stepId) return unsupported(flowId, 'missing_step');
+    const texts = textsFor(stepId);
+    const action = asString(raw.progress_action);
     return {
       outcome: 'step',
       flowId,
       stepId,
+      constants: {},
       dto: {
         type: 'progress',
         flowId,
         handler,
         stepId,
-        title: titleFor(handler, stepId),
-        progressAction: asString(raw.progress_action),
+        title: titleOf(texts, FLOW_STEP_FALLBACKS.progressTitle),
+        description:
+          (action ? italianText(translations?.progress[action], placeholders) : null) ??
+          descriptionOf(texts) ??
+          FLOW_STEP_FALLBACKS.progressWaiting,
+        progressAction: action,
       },
     };
+  }
+
+  if (type === 'external') {
+    const stepId = stepIdOf;
+    if (!flowId || !stepId) return unsupported(flowId, 'missing_step');
+    const url = externalUrl(raw.url);
+    if (!url) return unsupported(flowId, 'bad_external_url');
+    const texts = textsFor(stepId);
+    return {
+      outcome: 'step',
+      flowId,
+      stepId,
+      constants: {},
+      dto: {
+        type: 'external',
+        flowId,
+        handler,
+        stepId,
+        title: titleOf(texts, FLOW_STEP_FALLBACKS.externalTitle),
+        description: descriptionOf(texts) ?? FLOW_STEP_FALLBACKS.externalDescription,
+        url,
+      },
+    };
+  }
+
+  if (type === 'external_done' || type === 'progress_done') {
+    return flowId ? { outcome: 'continue', flowId } : unsupported(null, 'missing_step');
   }
 
   if (type === 'abort') {
@@ -312,7 +456,15 @@ export const normalizeFlowResult = (raw: unknown, handler: string): NormalizedFl
     return {
       outcome: 'terminal',
       nextFlowId: null,
-      dto: { type: 'abort', handler, reason, message: translateAbortReason(reason) },
+      dto: {
+        type: 'abort',
+        handler,
+        reason,
+        message: resolveAbortReason(
+          reason,
+          italianText(translations?.aborts[reason], placeholders)
+        ),
+      },
     };
   }
 
@@ -340,7 +492,7 @@ export const normalizeFlowResult = (raw: unknown, handler: string): NormalizedFl
     };
   }
 
-  // `external` (login on another site), `external_done` and any type added by a later HA.
+  // Any type added by a later HA.
   return unsupported(
     flowId,
     typeof type === 'string' ? `unsupported_type_${type}` : 'unknown_type'
@@ -348,7 +500,11 @@ export const normalizeFlowResult = (raw: unknown, handler: string): NormalizedFl
 };
 
 /** Errors of a rejected step (HTTP 400 with `{errors: {...}}`), translated. */
-export const flowErrorsFromBadRequest = (body: unknown): FlowErrorDto[] => {
+export const flowErrorsFromBadRequest = (
+  body: unknown,
+  handler = '',
+  translations: HandlerTranslations | null = null
+): FlowErrorDto[] => {
   if (!isRecord(body)) return [];
   const errors = body.errors;
   if (!isRecord(errors)) return [];
@@ -361,7 +517,11 @@ export const flowErrorsFromBadRequest = (body: unknown): FlowErrorDto[] => {
         : Array.isArray(value) && typeof value[0] === 'string'
           ? value[0]
           : 'unknown';
-    list.push({ field: field === 'base' ? null : field, code, message: translateFormError(code) });
+    list.push({
+      field: field === 'base' ? null : field,
+      code,
+      message: resolveFormError(code, handler, italianText(translations?.errors[code])),
+    });
   }
   return list.slice(0, 10);
 };

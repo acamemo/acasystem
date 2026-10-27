@@ -641,3 +641,60 @@
     }
   }
 }
+
+@layer components {
+  /* ── «Rileva dispositivi»: a device of the list, one tap away from its widget ─────── */
+  .aca-m.utility-device-row {
+    --aca-pad: 0.55em 1.1em;
+    display: block;
+    width: 100%;
+    text-align: start;
+  }
+  .aca-m.utility-device-row > .aca-m__outer > .aca-m__face > .utility-device-row__content {
+    justify-content: space-between;
+    gap: 0.75em;
+    min-height: 2.4em;
+  }
+  .utility-device-row__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.1em;
+    min-width: 0;
+    text-align: start;
+  }
+}
+
+@layer components {
+  /* ── «Rileva dispositivi»: a device found on the network, with its two answers ──────── */
+  .utility-found-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em 0.75em;
+  }
+  .utility-found-row__text {
+    display: flex;
+    flex: 1 1 10em;
+    flex-direction: column;
+    gap: 0.1em;
+    min-width: 0;
+  }
+  .utility-found-row__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+
+  /* A device ready to add: the row that opens the add sheet, and «Fai lampeggiare» beside it. */
+  .utility-device-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .utility-device-line > :first-child {
+    flex: 1 1 12em;
+    min-width: 0;
+  }
+}

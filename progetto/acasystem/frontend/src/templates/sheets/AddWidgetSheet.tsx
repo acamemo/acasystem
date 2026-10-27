@@ -19,7 +19,7 @@ import { ChoiceGroup, Notice } from './parts/Form';
 import { usePresence } from './parts/hooks';
 import { RoomPicker, type RoomSelection } from './RoomPicker';
 import { buildRoomCards } from './roomCards';
-import type { AddWidgetSheetProps } from './types';
+import type { AddWidgetSelection, AddWidgetSheetProps } from './types';
 import './sheets.css';
 
 type Step = 'type' | 'details' | 'device';
@@ -43,6 +43,7 @@ export function AddWidgetSheet({
   onAdded,
   initialType,
   autoAdd = false,
+  initialSelection,
 }: AddWidgetSheetProps) {
   const runtime = useWidgetRuntime();
   const pages = usePages();
@@ -127,6 +128,40 @@ export function AddWidgetSheet({
     // Only on opening: the type is the one of the tile.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialType]);
+
+  // Opened with a device chosen («Rileva dispositivi»): the details of its type, then the
+  // selection once the type is the current one (the hook clears the selections when it changes).
+  const [selectionPending, setSelectionPending] = useState<AddWidgetSelection | null>(null);
+  useEffect(() => {
+    if (!open || !initialSelection) return;
+    const item = ADD_WIDGET_TYPES.find((candidate) => candidate.type === initialSelection.type);
+    if (!item) return;
+    chooseType(item);
+    setSelectionPending(initialSelection);
+    // Only on opening: the selection is the one the sheet was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialSelection]);
+  useEffect(() => {
+    if (!selectionPending || !open || addCard.addCardType !== selectionPending.type) return;
+    const { type, entityIds, remoteId } = selectionPending;
+    const first = entityIds[0] ?? null;
+    if (type === 'androidtv') {
+      addCard.setSelectedAndroidTVMediaId(first);
+      addCard.setSelectedAndroidTVRemoteId(remoteId ?? null);
+    } else if (type === 'appletv') {
+      addCard.setSelectedAppleTVMediaId(first);
+      addCard.setSelectedAppleTVRemoteId(remoteId ?? null);
+    } else if (type === 'weather') {
+      addCard.setSelectedWeatherId(first);
+    } else if (type === 'nordpool') {
+      addCard.setSelectedNordpoolId(first);
+    } else {
+      addCard.setSelectedEntities(entityIds);
+    }
+    setSelectionPending(null);
+    // The setters of the hook are stable; only the type and the pending selection matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectionPending, open, addCard.addCardType]);
 
   const addRooms = () => {
     const payload = buildRoomCards({

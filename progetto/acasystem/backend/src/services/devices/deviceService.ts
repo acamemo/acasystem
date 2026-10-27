@@ -1,6 +1,6 @@
-import { CUSTOMER_STARTABLE_HANDLERS } from '../../config/devices.ts';
+import { isRecord } from '../../helpers/objects.ts';
 import type { DeviceFlowRow } from '../../models/deviceModel.ts';
-import { isFacadeDomain, isStartableHandler, searchCatalog } from './catalog.ts';
+import { isFacadeEntry, isStartableHandler, isSystemDomain, searchCatalog } from './catalog.ts';
 import type { CatalogEntryDto, CatalogItem } from './catalog.ts';
 import { DEVICE_ERROR_DEFINITIONS, DeviceError, describeForLog } from './deviceErrors.ts';
 import { authorizeOperation, runGuarded } from './deviceContext.ts';
@@ -11,9 +11,22 @@ import {
   firstEntityOfDomain,
   waitForEntry,
 } from './entryTools.ts';
-import { buildFlowInput, hasInputRules } from './flowInput.ts';
+import { HANDLER_NAMES, isAddableHandler } from '../../config/deviceFamilies.ts';
+import { pickDiscovered, toDiscoveredDto } from './discovered.ts';
+import type { DiscoveredDeviceDto } from './discovered.ts';
+import { buildFlowInput, buildGenericInput, buildMenuInput, hasInputRules } from './flowInput.ts';
 import { flowErrorsFromBadRequest, normalizeFlowResult } from './flowModel.ts';
-import type { FlowAbortDto, FlowCreatedDto, FlowErrorDto, FlowOpenStepDto } from './flowModel.ts';
+import type {
+  FlowAbortDto,
+  FlowConstants,
+  FlowCreatedDto,
+  FlowErrorDto,
+  FlowFieldDto,
+  FlowOpenStepDto,
+  NormalizedFlow,
+} from './flowModel.ts';
+import { createTranslationCache } from './haTexts.ts';
+import type { HandlerTranslations } from './haTexts.ts';
 import type { HaArea, HaDevice, HaEntry } from './haAdapter.ts';
 import { isHaError } from './haTransport.ts';
 import { describeIdentityState } from './serviceIdentity.ts';
@@ -66,6 +79,10 @@ export interface FlowSummaryDto {
   expiresAt: string;
 }
 
+export interface DiscoveredListDto {
+  devices: DiscoveredDeviceDto[];
+}
+
 export interface CatalogDto {
   items: CatalogEntryDto[];
   total: number;
@@ -92,7 +109,6 @@ export interface StatusDto {
     verified?: boolean;
   };
   features: { catalog: boolean; flows: boolean; power: boolean };
-  startableHandlers: string[];
   /** Installer only. */
   warnings?: string[];
 }
@@ -118,7 +134,15 @@ export interface DeviceService {
   getFlow(user: DeviceUser, flowId: string): Promise<FlowResponseDto>;
   stepFlow(user: DeviceUser, flowId: string, input: unknown): Promise<FlowResponseDto>;
   cancelFlow(user: DeviceUser, flowId: string): Promise<{ cancelled: true; pending: boolean }>;
+  /** Devices that HA found on the network and nobody added yet (ADR-0024). */
+  listDiscovered(user: DeviceUser): Promise<DiscoveredListDto>;
+  /** Takes a discovered flow over as the user's own and returns its current step. */
+  addDiscovered(user: DeviceUser, flowId: string): Promise<FlowResponseDto>;
+  /** «Non mi interessa»: HA ignores this discovery. */
+  ignoreDiscovered(user: DeviceUser, flowId: string): Promise<{ ignored: true }>;
   getEntry(user: DeviceUser, entryId: string): Promise<EntryDto>;
+  /** «Rimuovi dispositivo»: the entry goes away from HA (F4). System integrations never. */
+  removeEntry(user: DeviceUser, entryId: string): Promise<{ removed: true }>;
   updateDevice(
     user: DeviceUser,
     deviceId: string,
@@ -134,6 +158,23 @@ export interface DeviceService {
 }
 
 const CATALOG_CACHE_MS = 600_000;
+/** `external_done` and `progress_done` are read through at most this many times in a row. */
+const MAX_CONTINUE_HOPS = 3;
+/** Reasons for which the step needs the installer (a field Acasystem cannot draw). */
+const INSTALLER_REASONS: ReadonlySet<string> = new Set(['unsupported_field', 'too_many_fields']);
+
+/**
+ * What the facade remembers of the step a flow is at, to validate the answer: the fields HA
+ * declared (and the constants it wants back), or the ids of a menu. In memory only: flows are
+ * cancelled when the backend starts, so nothing needs to survive a restart.
+ */
+interface FlowSpec {
+  stepId: string;
+  kind: 'form' | 'menu' | 'progress' | 'external';
+  fields: FlowFieldDto[];
+  constants: FlowConstants;
+  menuIds: string[];
+}
 /** A cancellation that never reached HA (HA down, identity not active) is retried this long. */
 const CANCEL_RETRY_LIMIT_MS = 3_600_000;
 
@@ -174,14 +215,55 @@ export const toDeviceDto = (
 
 export const createDeviceService = (ctx: DeviceContext): DeviceService => {
   let catalogCache: { items: CatalogItem[]; at: number } | null = null;
+  const translationCache = createTranslationCache({ now: ctx.now });
+  const flowSpecs = new Map<string, FlowSpec>();
+
+  /** Italian texts of HA for the handler of a result that is not the end of the flow; or null. */
+  const translationsFor = async (
+    token: string,
+    handler: string,
+    raw: unknown
+  ): Promise<HandlerTranslations | null> => {
+    if (!isRecord(raw) || raw.type === 'create_entry') return null;
+    return translationCache.get(handler, () => ctx.adapter.ws(token).translations(handler));
+  };
+
+  /** Forgets the steps of flows that no longer have a row (finished, cancelled, expired). */
+  const pruneSpecs = (): void => {
+    for (const flowId of flowSpecs.keys()) {
+      if (!ctx.model.flows.get(flowId)) flowSpecs.delete(flowId);
+    }
+  };
+
+  const specOf = (step: Extract<NormalizedFlow, { outcome: 'step' }>): FlowSpec => ({
+    stepId: step.stepId,
+    kind: step.dto.type === 'form' ? 'form' : step.dto.type,
+    fields: step.dto.type === 'form' ? step.dto.fields : [],
+    constants: step.constants,
+    menuIds: step.dto.type === 'menu' ? step.dto.options.map((option) => option.id) : [],
+  });
 
   // --- Entries -----------------------------------------------------------------------------
 
-  /** Description of a config entry of the closed list; `wait` waits for the `loaded` state. */
+  /**
+   * True for an entry the facade may show, rename and remove: not a system integration, and
+   * either one of the facade's own domains, a discovered device that was added, or an entry the
+   * registry of actions records as created from Acasystem (F4: any domain). An entry an
+   * installer made by hand in HA with the source `user` stays out.
+   */
+  const canTouchEntry = (entry: HaEntry): boolean =>
+    !isSystemDomain(entry.domain) &&
+    (isFacadeEntry(entry) || ctx.model.actions.createdEntry(entry.entryId));
+
+  /**
+   * Description of a config entry the facade may show; `wait` waits for the `loaded` state.
+   * `justCreated` is for the entry a flow of this call has just made: the registry of actions is
+   * written after the call, so the ownership is known already.
+   */
   const describeEntry = async (
     token: string,
     entryId: string,
-    options: { wait: boolean; domain?: string }
+    options: { wait: boolean; domain?: string; justCreated?: boolean }
   ): Promise<EntryDto> =>
     ctx.adapter.withWs(token, async (api) => {
       let entry: HaEntry | null;
@@ -199,8 +281,10 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           null;
       }
       if (!entry) throw new DeviceError('ENTRY_NOT_FOUND');
-      // Entries of other integrations are not exposed by the facade.
-      if (!isFacadeDomain(entry.domain)) throw new DeviceError('REQUIRES_INSTALLER');
+      // Entries of system integrations, and the ones made by hand in HA, are not exposed.
+      if (isSystemDomain(entry.domain) || (!options.justCreated && !canTouchEntry(entry))) {
+        throw new DeviceError('REQUIRES_INSTALLER');
+      }
 
       const dto: EntryDto = {
         entryId: entry.entryId,
@@ -301,6 +385,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
       ctx.model.flows.setStatus(row.flow_id, 'cancelling');
     }
     await cancelPending(ctx.model.flows.listCancelling(), 'flow.expire');
+    pruneSpecs();
   };
 
   /** The row of a flow that belongs to this user and is still open. */
@@ -348,12 +433,33 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
         }
       | undefined
   ): Promise<FlowResponseDto> => {
-    const normalized = normalizeFlowResult(raw, handler);
+    let current = raw;
+    let normalized = normalizeFlowResult(
+      current,
+      handler,
+      await translationsFor(token, handler, current)
+    );
+    // `external_done` and `progress_done`: HA has the next step ready, a read of the flow shows it.
+    for (let hop = 0; normalized.outcome === 'continue' && hop < MAX_CONTINUE_HOPS; hop += 1) {
+      current = await ctx.adapter.flowRead(token, normalized.flowId);
+      normalized = normalizeFlowResult(
+        current,
+        handler,
+        await translationsFor(token, handler, current)
+      );
+    }
+    if (normalized.outcome === 'continue') {
+      normalized = { outcome: 'unsupported', flowId: normalized.flowId, reason: 'too_many_hops' };
+    }
 
     if (normalized.outcome === 'unsupported') {
       await cancelUnsupported(token, normalized.flowId, row);
+      if (row) flowSpecs.delete(row.flow_id);
       if (audit) audit.code = normalized.reason;
-      throw new DeviceError('UNSUPPORTED_STEP');
+      // A field Acasystem cannot draw is for the installer; anything else is a step it cannot read.
+      throw new DeviceError(
+        INSTALLER_REASONS.has(normalized.reason) ? 'REQUIRES_INSTALLER' : 'UNSUPPORTED_STEP'
+      );
     }
 
     if (normalized.outcome === 'step') {
@@ -377,6 +483,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           expires_at: now + ctx.settings.flowTtlMs,
         });
       }
+      flowSpecs.set(normalized.flowId, specOf(normalized));
       if (audit && normalized.dto.type === 'form' && normalized.dto.errors.length) {
         audit.code = normalized.dto.errors[0]?.code;
         audit.outcome = 'error';
@@ -385,7 +492,10 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     }
 
     // Terminal result: HA has already dropped the flow.
-    if (row) ctx.model.flows.remove(row.flow_id);
+    if (row) {
+      ctx.model.flows.remove(row.flow_id);
+      flowSpecs.delete(row.flow_id);
+    }
     if (normalized.nextFlowId) {
       await ctx.adapter.flowCancel(token, normalized.nextFlowId).catch(() => false);
     }
@@ -401,12 +511,24 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     if (audit) {
       audit.domain = normalized.dto.domain;
       audit.entryId = normalized.dto.entryId;
+    } else {
+      // A flow that ended while it was being read (the login on the maker's site finished): the
+      // registry must still say that this person created the entry.
+      ctx.actions.record({
+        user: { id: user.id, name: user.name },
+        source: 'api',
+        action: 'flow.read',
+        domain: normalized.dto.domain,
+        entryId: normalized.dto.entryId,
+        outcome: 'ok',
+      });
     }
     let entry: EntryDto | null = null;
     try {
       entry = await describeEntry(token, normalized.dto.entryId, {
         wait: true,
         domain: normalized.dto.domain,
+        justCreated: true,
       });
     } catch (error) {
       if (!isHaError(error) && !(error instanceof DeviceError)) throw error;
@@ -417,18 +539,23 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     return { ...normalized.dto, entry, pending: entry === null || !entry.loaded };
   };
 
-  const rethrowStepError = (
+  const rethrowStepError = async (
     error: unknown,
     row: DeviceFlowRow,
+    token: string,
     flowErrors: (errors: FlowErrorDto[]) => never
-  ): never => {
+  ): Promise<never> => {
     if (isHaError(error) && error.kind === 'not_found') {
       // HA no longer has the flow (it restarted): nothing left to cancel.
       ctx.model.flows.remove(row.flow_id);
+      flowSpecs.delete(row.flow_id);
       throw new DeviceError('FLOW_NOT_FOUND');
     }
     if (isHaError(error) && error.kind === 'bad_request') {
-      const errors = flowErrorsFromBadRequest(error.body);
+      const translations = await translationCache
+        .get(row.handler, () => ctx.adapter.ws(token).translations(row.handler))
+        .catch(() => null);
+      const errors = flowErrorsFromBadRequest(error.body, row.handler, translations);
       if (errors.length) return flowErrors(errors);
       throw new DeviceError('INVALID_INPUT');
     }
@@ -461,7 +588,6 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           flows: open && report.features.flows,
           power: open && report.features.power,
         },
-        startableHandlers: [...CUSTOMER_STARTABLE_HANDLERS],
       };
       if (user.isAdmin) {
         dto.service.detail = describeIdentityState(identity.state);
@@ -481,7 +607,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           const handlers = await ctx.adapter.flowHandlers(token);
           catalogCache = {
             items: handlers
-              .filter((domain) => /^[a-z0-9_]{1,64}$/.test(domain))
+              .filter((domain) => isStartableHandler(domain))
               .map((domain) => ({
                 domain,
                 name: domain,
@@ -517,8 +643,8 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     },
 
     async startFlow(user, handler) {
-      // The closed list comes first and needs no call to HA: an integration outside it is
-      // refused whatever the state of the service (negato per difetto).
+      // The system integrations of HA come first and need no call to HA: they are refused
+      // whatever the state of the service. Every other handler can be started (F4).
       if (!isStartableHandler(handler)) {
         ctx.actions.record({
           user: { id: user.id, name: user.name },
@@ -570,7 +696,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           try {
             raw = await ctx.adapter.flowRead(token, flowId);
           } catch (error) {
-            return rethrowStepError(error, row, () => {
+            return await rethrowStepError(error, row, token, () => {
               throw new DeviceError('INVALID_INPUT');
             });
           }
@@ -591,13 +717,31 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           if (ctx.busyFlows.has(flowId)) throw new DeviceError('FLOW_BUSY');
 
           const stepId = row.step_id ?? '';
-          if (!hasInputRules(row.handler, stepId)) {
+          const spec = flowSpecs.get(flowId);
+          const known = spec !== undefined && spec.stepId === stepId ? spec : undefined;
+          if (known && (known.kind === 'progress' || known.kind === 'external')) {
+            // These steps are waited for (the flow is read until it moves), never answered.
+            throw new DeviceError('INVALID_INPUT');
+          }
+
+          let built:
+            | { ok: true; input: Record<string, unknown> }
+            | { ok: false; field: string | null };
+          if (known?.kind === 'menu') {
+            built = buildMenuInput(known.menuIds, input);
+          } else if (hasInputRules(row.handler, stepId)) {
+            // Hand-written rules first: they refine the values; the constants HA asked for join.
+            const hand = buildFlowInput(row.handler, stepId, input);
+            built = hand.ok ? { ok: true, input: { ...known?.constants, ...hand.input } } : hand;
+          } else if (known?.kind === 'form') {
+            built = buildGenericInput(known.fields, known.constants, input);
+          } else {
             // A step this server does not know how to answer is never improvised.
             await cancelUnsupported(token, flowId, row);
+            flowSpecs.delete(flowId);
             if (audit) audit.code = 'unsupported_step';
             throw new DeviceError('UNSUPPORTED_STEP');
           }
-          const built = buildFlowInput(row.handler, stepId, input);
           if (!built.ok)
             throw new DeviceError('INVALID_INPUT', built.field ? { field: built.field } : {});
 
@@ -610,7 +754,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
             try {
               raw = await ctx.adapter.flowStep(token, flowId, built.input);
             } catch (error) {
-              return rethrowStepError(error, row, (errors) => {
+              return await rethrowStepError(error, row, token, (errors) => {
                 const first = errors[0];
                 throw new DeviceError(
                   'INVALID_INPUT',
@@ -651,7 +795,122 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
             throw error;
           }
           ctx.model.flows.remove(flowId);
+          flowSpecs.delete(flowId);
           return { cancelled: true as const, pending: false };
+        }
+      );
+    },
+
+    async listDiscovered(user) {
+      return runGuarded(ctx, user, 'scoperti.leggi', { feature: 'flows' }, async (token) => {
+        const found = pickDiscovered(await ctx.adapter.ws(token).flowsInProgress());
+        return {
+          devices: found.map((flow) => {
+            const row = ctx.model.flows.get(flow.flowId);
+            const takenByOther = row?.status === 'open' && row.ha_user_id !== user.id;
+            return toDiscoveredDto(flow, takenByOther);
+          }),
+        };
+      });
+    },
+
+    async addDiscovered(user, flowId) {
+      return runGuarded(
+        ctx,
+        user,
+        'scoperti.aggiungi',
+        {
+          feature: 'flows',
+          mutation: true,
+          audit: { action: 'scoperti.aggiungi' },
+        },
+        async (token, audit) => {
+          await expireFlows();
+          // Only what HA lists as a discovery can be taken: a flow id of somebody else's flow
+          // (a login, a TV added by hand) is "not found", whatever the person sends.
+          const found = pickDiscovered(await ctx.adapter.ws(token).flowsInProgress()).find(
+            (flow) => flow.flowId === flowId
+          );
+          if (!found) throw new DeviceError('FLOW_NOT_FOUND');
+          if (audit) audit.domain = found.handler;
+          if (!isAddableHandler(found.handler)) throw new DeviceError('REQUIRES_INSTALLER');
+
+          const existing = ctx.model.flows.get(flowId) ?? null;
+          if (existing) {
+            if (existing.status !== 'open') throw new DeviceError('FLOW_NOT_FOUND');
+            if (existing.ha_user_id !== user.id) throw new DeviceError('FORBIDDEN');
+          } else {
+            if (
+              ctx.model.flows.countOpen(ctx.now(), user.id) >= ctx.settings.maxOpenFlowsPerUser ||
+              ctx.model.flows.countOpen(ctx.now()) >= ctx.settings.maxOpenFlowsTotal
+            ) {
+              throw new DeviceError('TOO_MANY_FLOWS');
+            }
+            const turn = ctx.limiters.flowStart.take(user.id);
+            if (!turn.allowed)
+              throw new DeviceError('RATE_LIMITED', {
+                retryAfterSeconds: turn.retryAfterSeconds,
+              });
+          }
+
+          let raw: unknown;
+          try {
+            raw = await ctx.adapter.flowRead(token, flowId);
+          } catch (error) {
+            if (isHaError(error) && error.kind === 'not_found') {
+              if (existing) ctx.model.flows.remove(flowId);
+              throw new DeviceError('FLOW_NOT_FOUND');
+            }
+            throw error;
+          }
+
+          // The flow is HA's own discovery: a step Acasystem cannot show is left in HA, not
+          // cancelled (the installer can still finish it), and the person is told so.
+          const normalized = normalizeFlowResult(raw, found.handler);
+          if (normalized.outcome === 'unsupported') {
+            if (audit) audit.code = normalized.reason;
+            throw new DeviceError('REQUIRES_INSTALLER');
+          }
+
+          return settleFlowResult(token, user, found.handler, raw, existing, audit);
+        }
+      );
+    },
+
+    async ignoreDiscovered(user, flowId) {
+      return runGuarded(
+        ctx,
+        user,
+        'scoperti.ignora',
+        {
+          feature: 'flows',
+          mutation: true,
+          audit: { action: 'scoperti.ignora' },
+        },
+        async (token, audit) => {
+          const found = pickDiscovered(await ctx.adapter.ws(token).flowsInProgress()).find(
+            (flow) => flow.flowId === flowId
+          );
+          if (!found) throw new DeviceError('FLOW_NOT_FOUND');
+          if (audit) audit.domain = found.handler;
+          const row = ctx.model.flows.get(flowId);
+          if (row?.status === 'open' && row.ha_user_id !== user.id) {
+            throw new DeviceError('FORBIDDEN');
+          }
+
+          try {
+            await ctx.adapter
+              .ws(token)
+              // The title is what HA shows in its list of ignored devices; it never comes back.
+              .ignoreFlow(flowId, found.name ?? HANDLER_NAMES[found.handler] ?? found.handler);
+          } catch (error) {
+            if (isHaError(error) && error.kind === 'not_found') {
+              throw new DeviceError('FLOW_NOT_FOUND');
+            }
+            throw error;
+          }
+          if (row) ctx.model.flows.remove(flowId);
+          return { ignored: true as const };
         }
       );
     },
@@ -659,6 +918,40 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     async getEntry(user, entryId) {
       return runGuarded(ctx, user, 'entry.read', {}, (token) =>
         describeEntry(token, entryId, { wait: false })
+      );
+    },
+
+    async removeEntry(user, entryId) {
+      return runGuarded(
+        ctx,
+        user,
+        'voci.rimuovi',
+        { feature: 'flows', mutation: true, audit: { action: 'entry.remove', entryId } },
+        async (token, audit) => {
+          const entry = (await ctx.adapter.ws(token).entries()).find(
+            (candidate) => candidate.entryId === entryId
+          );
+          if (!entry) throw new DeviceError('ENTRY_NOT_FOUND');
+          if (audit) audit.domain = entry.domain;
+          // System integrations, entries made by hand in HA, and the Wake on LAN entry that a TV
+          // recipe needs (the recipe goes first, through the TV) are not removed from here.
+          if (!canTouchEntry(entry)) throw new DeviceError('REQUIRES_INSTALLER');
+          if (ctx.model.links.list().some((link) => link.wol_entry_id === entryId)) {
+            throw new DeviceError('REQUIRES_INSTALLER');
+          }
+
+          // A TV with a power-on recipe: the automation and the Wake on LAN entry go with it.
+          const link = ctx.model.links.get(entryId);
+          if (link) {
+            await ctx.adapter.automationDelete(token, link.automation_id);
+            await ctx.adapter.removeEntry(token, link.wol_entry_id);
+            ctx.model.links.remove(entryId);
+          }
+          if (!(await ctx.adapter.removeEntry(token, entryId))) {
+            throw new DeviceError('ENTRY_NOT_FOUND');
+          }
+          return { removed: true as const };
+        }
       );
     },
 
@@ -679,12 +972,13 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
             if (!device || !device.entryIds.length) throw new DeviceError('DEVICE_NOT_FOUND');
 
             // Only devices whose every entry is in the closed list: never a shared device.
-            const domains = device.entryIds.map(
-              (entryId) => entries.find((entry) => entry.entryId === entryId)?.domain
+            const owners = device.entryIds.map((entryId) =>
+              entries.find((entry) => entry.entryId === entryId)
             );
-            if (domains.some((domain) => domain === undefined || !isFacadeDomain(domain))) {
+            if (owners.some((entry) => entry === undefined || !canTouchEntry(entry))) {
               throw new DeviceError('REQUIRES_INSTALLER');
             }
+            const domains = owners.map((entry) => entry?.domain);
             if (audit) {
               audit.domain = domains[0];
               audit.entryId = device.entryIds[0];

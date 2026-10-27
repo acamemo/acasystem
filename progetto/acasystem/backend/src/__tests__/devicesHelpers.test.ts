@@ -413,8 +413,12 @@ describe('normalizeFlowResult', () => {
 
   it.each([
     [
-      'an external step',
-      { type: 'external', flow_id: 'f', step_id: 'auth', url: 'https://example.org' },
+      'an external step with a link that is not http',
+      { type: 'external', flow_id: 'f', step_id: 'auth', url: 'javascript:alert(1)' },
+    ],
+    [
+      'an external step with a password in the link',
+      { type: 'external', flow_id: 'f', step_id: 'auth', url: 'https://user:pass@example.org' },
     ],
     ['a type from a later HA', { type: 'shiny_new_type', flow_id: 'f' }],
     ['a created entry without its id', { type: 'create_entry', flow_id: 'f', result: {} }],
@@ -426,9 +430,10 @@ describe('normalizeFlowResult', () => {
 
   it('translates the errors of a rejected step', () => {
     expect(
-      flowErrorsFromBadRequest({
-        errors: { host: 'required key not provided', base: ['cannot_connect'] },
-      })
+      flowErrorsFromBadRequest(
+        { errors: { host: 'required key not provided', base: ['cannot_connect'] } },
+        'webostv'
+      )
     ).toEqual([
       {
         field: 'host',
@@ -486,17 +491,16 @@ describe('catalogue', () => {
     });
   });
 
-  it('marks only the listed integrations as startable and sorts them first', () => {
+  it('marks every integration as startable, sorted by name (F4: no list for the customer)', () => {
     const entries = searchCatalog(parseIntegrationDescriptions(descriptions), '');
     expect(entries.map((entry) => [entry.domain, entry.startable])).toEqual([
+      ['hue_friend', true],
+      ['lg_thinq', true],
       ['webostv', true],
-      ['hue_friend', false],
-      ['lg_thinq', false],
-      ['hue', false],
-      // Its flow takes a MAC and a broadcast address: only the server recipe starts it.
-      ['wake_on_lan', false],
+      ['hue', true],
+      ['wake_on_lan', true],
     ]);
-    expect(entries.find((entry) => entry.domain === 'hue')?.requiresInstaller).toBe(true);
+    expect(entries.find((entry) => entry.domain === 'hue')?.requiresInstaller).toBe(false);
   });
 
   it('searches by words in name, brand or domain, ignoring case and accents', () => {
@@ -519,7 +523,18 @@ describe('catalogue', () => {
         iotClass: null,
         startDomain: 'a',
       }).startable
-    ).toBe(false);
+    ).toBe(true);
+    // The integrations of Home Assistant itself are the only ones that are never started.
+    expect(
+      toCatalogEntry({
+        domain: 'hassio',
+        name: 'Supervisor',
+        brand: null,
+        integrationType: null,
+        iotClass: null,
+        startDomain: 'hassio',
+      })
+    ).toMatchObject({ startable: false, requiresInstaller: true });
   });
 });
 

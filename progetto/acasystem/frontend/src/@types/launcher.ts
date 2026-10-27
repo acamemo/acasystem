@@ -112,6 +112,17 @@ export type LayoutOptions = Partial<Pick<LauncherLayout, 'locked' | 'homePageId'
 /** Grid of each screen class at normal density; the other densities follow (gridFor). */
 export type LauncherGrids = Record<BaseDeviceClass, CellSize>;
 
+/**
+ * A device already chosen when «Aggiungi un widget» opens («Rileva dispositivi»): the type and
+ * the entities to preselect, so that only the confirmation is left.
+ */
+export interface AddWidgetSelection {
+  type: string;
+  entityIds: string[];
+  /** Remote of a television, linked next to its player. */
+  remoteId?: string;
+}
+
 /** Data and actions available to every widget, provided by the launcher (or by fixtures). */
 export interface WidgetRuntime {
   entities: EntityMap;

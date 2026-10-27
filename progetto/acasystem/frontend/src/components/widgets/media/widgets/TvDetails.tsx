@@ -4,7 +4,16 @@ import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useConfirmedCommand, useServiceActions } from '../hooks/commands';
 import { MediaIcon, type MediaIconName } from '../icons';
 import { resolveImage } from '../model/entity';
-import { detailsTarget, resolveTv, tvCanPower, tvShowsApps, type TvKind } from '../model/tv';
+import {
+  detailsTarget,
+  resolveTv,
+  tvCanPower,
+  tvPowerOffCall,
+  tvShowsApps,
+  tvShowsMute,
+  tvShowsVolume,
+  type TvKind,
+} from '../model/tv';
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
 import { CommandStatus, PowerButton } from '../parts/Controls';
@@ -16,11 +25,17 @@ interface RemoteKey {
   icon: MediaIconName;
 }
 
+interface RemoteKeys {
+  up: string;
+  down: string;
+  left: string;
+  right: string;
+  ok: string;
+  keys: RemoteKey[];
+}
+
 /** Remote commands of the legacy modals: Android TV (adb keys) and Apple TV (pyatv). */
-const REMOTE: Record<
-  TvKind,
-  { up: string; down: string; left: string; right: string; ok: string; keys: RemoteKey[] }
-> = {
+const REMOTE: Record<TvKind, RemoteKeys> = {
   android: {
     up: 'DPAD_UP',
     down: 'DPAD_DOWN',
@@ -44,6 +59,23 @@ const REMOTE: Record<
       { command: 'home', label: testi.home, icon: 'home' },
     ],
   },
+};
+
+/**
+ * Keys of a Samsung TV remote (`samsungtv`), which does not understand the adb keys of the
+ * Android TV remote (REP-20261026-006).
+ */
+const SAMSUNG_REMOTE: RemoteKeys = {
+  up: 'KEY_UP',
+  down: 'KEY_DOWN',
+  left: 'KEY_LEFT',
+  right: 'KEY_RIGHT',
+  ok: 'KEY_ENTER',
+  keys: [
+    { command: 'KEY_RETURN', label: testi.indietro, icon: 'back' },
+    { command: 'KEY_HOME', label: testi.home, icon: 'home' },
+    { command: 'KEY_MENU', label: testi.menu, icon: 'menu' },
+  ],
 };
 
 /**
@@ -89,9 +121,11 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
     );
   };
   const togglePower = () => {
-    const service = power.value ? 'turn_off' : 'turn_on';
+    const off = tvPowerOffCall(view, mediaPlayerId, config.remoteId);
     power.request(!power.value, () =>
-      runtime.callService('media_player', service, { entity_id: mediaPlayerId })
+      power.value
+        ? runtime.callService(off.domain, off.service, off.data)
+        : runtime.callService('media_player', 'turn_on', { entity_id: mediaPlayerId })
     );
   };
   const toggleMute = () => {
@@ -106,7 +140,8 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
 
   const picture = resolveImage(view.picture, runtime.getEntityImageUrl);
   const logo = resolveImage(view.logo, runtime.getEntityImageUrl);
-  const remote = REMOTE[kind];
+  const remote =
+    view.entity.attributes?.platform === 'samsungtv' ? SAMSUNG_REMOTE : REMOTE[kind];
   const failed = actions.failed !== null || playing.error || power.error || muted.error;
   const keyButton = (
     key: string,
@@ -258,7 +293,7 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
         </section>
       )}
 
-      {(config.remoteId || kind === 'apple') && (
+      {(config.remoteId || tvShowsVolume(kind, view) || tvShowsMute(kind, view)) && (
         <section className="aca-media-section" aria-labelledby={`${id}-telecomando`}>
           <Heading level={3} size="sm" id={`${id}-telecomando`}>
             {testi.telecomando}
@@ -298,10 +333,10 @@ export function TvDetails({ kind, id, settings }: WidgetDetailsProps & { kind: T
               </div>
             </>
           )}
-          {(config.remoteId || kind === 'apple') && (
+          {(config.remoteId || tvShowsVolume(kind, view)) && (
             <div className="aca-media-keys">{volumeButtons}</div>
           )}
-          {kind === 'apple' && (
+          {tvShowsMute(kind, view) && (
             <div className="aca-media-wrap">
               <Button
                 variant="control"

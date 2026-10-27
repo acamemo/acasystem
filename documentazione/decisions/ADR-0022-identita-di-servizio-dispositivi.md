@@ -152,3 +152,15 @@ Nessun risultato esiste ancora. Verifiche previste dall'incarico D1 di REP-20261
 - **ADR-0021.** Il punto 2 («Inoltra a HA con il token dell'utente: non esiste un token di servizio») e il punto 7 (la «variante minima») sono superati solo per le operazioni della lista; ADR-0021 va annotata con il collegamento a questo ADR (annotazione da fare con la parte server di D1).
 - **Ordine di lavoro.** La parte server di D1 si prova solo con un HA finto nei test; la parte app e la VM con HA nuovo (D-D23 a-9.4) seguono la 0.9.28. Nessun risultato su HA reale esiste ancora: le verifiche elencate in «Verifiche e revisione» restano da eseguire.
 - **Stato di REQ-06/AC-06.** Il debito dichiarato su AC-06 resta fino alla sessione dell'installatore; vedi `product.md`.
+
+**Annotazione 2026-10-26 (Claude Code, `claude-opus-5-5`):** il punto b1 (lista chiusa dei gestori avviabili dal cliente) è superato **per i soli flussi scoperti da HA** da [ADR-0024](ADR-0024-aggiunta-libera-dispositivi-scoperti.md), su decisione dell'utente («Tutti, aggiunta libera»). Per l'avvio dal catalogo b1 resta valido. Identità di servizio, registro e revoca restano quelli di questo ADR.
+
+**Annotazione 2026-10-27 (Claude Code, `claude-opus-5-5`):** con l'approvazione di F4 ([REP-20261026-006](../reports/REP-20261026-006-rileva-dispositivi.md); utente: «Approvo F4: niente liste per il cliente, moduli generici dallo schema di HA, passi esterni (accesso al cloud)…») il punto **b1 è superato per intero**: il cliente avvia qualunque gestore del catalogo, non solo quelli in lista. Restano validi:
+- l'identità di servizio dichiarata;
+- l'elenco chiuso delle **operazioni** della facciata (cosa si può fare, non con quali integrazioni);
+- il registro;
+- la revoca;
+- il divieto di ripiegare sul token dell'utente.
+
+Le integrazioni di sistema (Supervisor, backup, Sole, Meteo…) restano escluse dalla rimozione. Dettaglio in [ADR-0024](ADR-0024-aggiunta-libera-dispositivi-scoperti.md).
+

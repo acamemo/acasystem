@@ -3,7 +3,9 @@
  * The launcher (B1) renders the sheets; index.tsx re-exports these interfaces unchanged.
  */
 import type { ReactNode } from 'react';
-import type { CellSize } from '@/@types/launcher';
+import type { AddWidgetSelection, CellSize } from '@/@types/launcher';
+
+export type { AddWidgetSelection };
 
 export interface AddWidgetSheetProps {
   open: boolean;
@@ -22,6 +24,11 @@ export interface AddWidgetSheetProps {
    * without showing the sheet.
    */
   autoAdd?: boolean;
+  /**
+   * With a device chosen (a row of «Rileva dispositivi»): the sheet opens on the details of the
+   * type with the device selected. It takes the place of `initialType`.
+   */
+  initialSelection?: AddWidgetSelection;
 }
 
 export interface WidgetSettingsSheetProps {

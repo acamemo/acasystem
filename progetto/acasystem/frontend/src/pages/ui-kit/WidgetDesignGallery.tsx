@@ -11,7 +11,10 @@ const COVER_DESIGNS = new Set([
   'weather',
   'cover_weather',
 ]);
-export const DESIGN_WIDGET_TYPES = ADD_WIDGET_TYPES.filter((item) => !COVER_DESIGNS.has(item.type));
+// «Rileva dispositivi» lists real devices of Home Assistant: it has no simulated device to draw.
+export const DESIGN_WIDGET_TYPES = ADD_WIDGET_TYPES.filter(
+  (item) => !COVER_DESIGNS.has(item.type) && item.type !== 'rileva'
+);
 
 export default function WidgetDesignGallery() {
   const session = useRef(new Map<string, SpecimenSnapshot>());

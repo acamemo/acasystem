@@ -1546,3 +1546,5 @@ Ordine consigliato. I passi con credenziali o col televisore li fa l'utente.
 ### Punto di ripresa
 
 L'albero principale contiene D1 (server, frontend, volume del segreto) con controlli verdi, senza commit e senza immagine ricostruita. Prossimi passi: i punti 1-4 (agente principale, Docker), 5-6 (utente), poi la prova del punto 7 con l'utente presente. Aggiornare `verification.md`, `project-status.md` e `compliance.md` (C-16, C-17) alla chiusura di D1z; non fatto qui perché i file sono modificati da altri flussi.
+
+**Annotazione 2026-10-26 (Claude Code, `claude-opus-5-5`), senza modificare quanto sopra:** la tappa **D4 («Trovati»)** confluisce nel widget «Rileva dispositivi» ([REP-20261026-006](REP-20261026-006-rileva-dispositivi.md), fasi F2-F3), che mostra i dispositivi scoperti dentro il widget e nel foglio «Aggiungi un widget», come previsto dal criterio 2. Con [ADR-0024](../decisions/ADR-0024-aggiunta-libera-dispositivi-scoperti.md) il cliente può confermare qualunque flusso scoperto, non solo quelli in lista. D3 (catalogo con ricerca) resta com'è.

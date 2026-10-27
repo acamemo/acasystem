@@ -6,6 +6,6 @@
  * Mount them inside PageProvider (saved layout and card settings) and WidgetRuntimeProvider
  * (entities, connection, card settings).
  */
-export type { AddWidgetSheetProps, WidgetSettingsSheetProps } from './types';
+export type { AddWidgetSelection, AddWidgetSheetProps, WidgetSettingsSheetProps } from './types';
 export { AddWidgetSheet } from './AddWidgetSheet';
 export { WidgetSettingsSheet } from './WidgetSettingsSheet';

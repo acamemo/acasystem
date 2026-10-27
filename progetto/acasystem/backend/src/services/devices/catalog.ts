@@ -1,12 +1,13 @@
-import { CUSTOMER_STARTABLE_HANDLERS, FACADE_DOMAINS } from '../../config/devices.ts';
+import { FACADE_DOMAINS, SYSTEM_DOMAINS } from '../../config/devices.ts';
+import { DISCOVERY_SOURCES } from '../../config/deviceFamilies.ts';
 import { isRecord } from '../../helpers/objects.ts';
 
 /**
  * Catalogue of the integrations. In D1 it is built from the flow handlers of HA only
  * (REP-20261023-003, section 3, row 9); `parseIntegrationDescriptions` reads the full
  * `integration/descriptions` index and is NOT used until D3 (brands, translations, search),
- * which needs its own probe and contract record. Anything outside the closed list of
- * CUSTOMER_STARTABLE_HANDLERS is listed but answers "Richiede l'installatore" when started.
+ * which needs its own probe and contract record. Since F4 every handler is startable by a
+ * customer, except the domains of Home Assistant itself (SYSTEM_DOMAINS), which are not listed.
  * Custom integrations (`custom_components`) are not listed in D1.
  */
 
@@ -64,11 +65,26 @@ export const parseIntegrationDescriptions = (raw: unknown): CatalogItem[] => {
   return items;
 };
 
-export const isStartableHandler = (domain: string): boolean =>
-  CUSTOMER_STARTABLE_HANDLERS.includes(domain);
+/** True for a domain that belongs to Home Assistant itself: never listed, started or touched. */
+export const isSystemDomain = (domain: string): boolean => SYSTEM_DOMAINS.includes(domain);
 
-/** True for the integrations whose entries and devices the facade shows (TV, Wake on LAN). */
+/** Every handler of the catalogue can be started by a customer, except the system ones. */
+export const isStartableHandler = (domain: string): boolean =>
+  /^[a-z0-9_]{1,64}$/.test(domain) && !isSystemDomain(domain);
+
+/** True for the integrations whose entries and devices the facade always shows (TV, Wake on LAN). */
 export const isFacadeDomain = (domain: string): boolean => FACADE_DOMAINS.includes(domain);
+
+/**
+ * True for an entry the facade shows and lets a customer rename without looking at the registry
+ * of actions: the integrations of FACADE_DOMAINS, and the ones of a device that HA discovered and
+ * a person added from Acasystem (F2: the entry keeps the discovery as its `source`). System
+ * integrations never. An entry created from the catalogue has the source `user`, like one made
+ * by hand in HA: the service tells them apart with the registry of actions (`createdByFacade`).
+ */
+export const isFacadeEntry = (entry: { domain: string; source: string }): boolean =>
+  !isSystemDomain(entry.domain) &&
+  (isFacadeDomain(entry.domain) || DISCOVERY_SOURCES.includes(entry.source));
 
 export const toCatalogEntry = (item: CatalogItem): CatalogEntryDto => {
   const startable = isStartableHandler(item.startDomain);

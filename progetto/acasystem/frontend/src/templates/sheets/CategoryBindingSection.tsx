@@ -7,6 +7,7 @@ import { BINDING_KEYS } from './categoryPages';
 import { candidateEntityIds } from './catalog';
 import { AddDeviceEntry } from '../devices/AddDeviceEntry';
 import { AddDeviceFlow } from '../devices/AddDeviceFlow';
+import { RemoveDevice } from '../devices/RemoveDevice';
 import { deviceTexts } from '../devices/deviceTexts';
 import { EntitySelect } from './parts/EntityPicker';
 import { SheetSection } from './parts/Form';
@@ -82,6 +83,7 @@ export function CategoryBindingSection({
         />
       )}
       {canAddDevice && <AddDeviceEntry onClick={() => setAdding(true)} />}
+      {value && <RemoveDevice entityId={value} onRemoved={() => link(null)} />}
     </SheetSection>
   );
 }

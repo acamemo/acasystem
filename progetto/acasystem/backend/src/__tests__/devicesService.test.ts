@@ -269,7 +269,7 @@ describe('the service identity: no identity, no function', () => {
 });
 
 describe('the closed list', () => {
-  it('lists the flow handlers of HA but starts only the TV: the others need the installer', async () => {
+  it('lists the flow handlers of HA, all startable but the ones of Home Assistant itself', async () => {
     const harness = await harnessFor({});
 
     const catalogue = await harness.request('/catalogo');
@@ -281,6 +281,7 @@ describe('the closed list', () => {
       brand: string | null;
     }[];
     // D1 lists the flow handlers only: no brands, no integrations without a flow.
+    // `hassio` and `backup` are in the fake's list of handlers and are not offered (F4).
     expect(items.map((item) => item.domain).sort()).toEqual([
       'esphome',
       'hue',
@@ -288,23 +289,14 @@ describe('the closed list', () => {
       'webostv',
     ]);
     expect(items.every((item) => item.brand === null)).toBe(true);
-    expect(items.filter((item) => item.startable).map((item) => item.domain)).toEqual(['webostv']);
-    // The Wake on LAN entry is created by the server recipe, never started by a person.
-    expect(items.find((item) => item.domain === 'wake_on_lan')).toMatchObject({
-      startable: false,
-      requiresInstaller: true,
-    });
-    expect(items.find((item) => item.domain === 'hue')).toMatchObject({
-      startable: false,
-      requiresInstaller: true,
-    });
+    expect(items.every((item) => item.startable && !item.requiresInstaller)).toBe(true);
     expect(catalogue.body).toMatchObject({ degraded: true });
     // The full index (internal admin command) is not used in D1.
     expect(harness.fake.callsFor('integration/descriptions')).toHaveLength(0);
 
     harness.fake.resetCalls();
     for (const user of ['customer', 'installer'] as const) {
-      for (const handler of ['hue', 'wake_on_lan']) {
+      for (const handler of ['hassio', 'backup', 'sun', 'person']) {
         const refused = await harness.request('/flussi', {
           method: 'POST',
           user,
@@ -324,7 +316,7 @@ describe('the closed list', () => {
       expect.arrayContaining([
         expect.objectContaining({
           action: 'flow.start',
-          domain: 'hue',
+          domain: 'hassio',
           outcome: 'denied',
           code: 'REQUIRES_INSTALLER',
         }),
@@ -332,9 +324,27 @@ describe('the closed list', () => {
     );
   });
 
-  it('refuses a handler outside the list even when the service is not active', async () => {
+  it('starts any other handler for a customer, with the same steps the installer follows', async () => {
+    const harness = await harnessFor({});
+    for (const user of ['customer', 'installer'] as const) {
+      for (const handler of ['hue', 'esphome', 'wake_on_lan']) {
+        const started = await harness.request('/flussi', { method: 'POST', user, body: { handler } });
+        expect(started.status, `${user} ${handler}`).toBe(201);
+        expect(started.body).toMatchObject({ type: 'form', handler });
+        await harness.request(`/flussi/${started.body.flowId as string}`, {
+          method: 'DELETE',
+          user,
+        });
+      }
+    }
+  });
+
+  it('refuses a system integration even when the service is not active', async () => {
     const harness = await harnessFor({ activeService: false });
-    const refused = await harness.request('/flussi', { method: 'POST', body: { handler: 'hue' } });
+    const refused = await harness.request('/flussi', {
+      method: 'POST',
+      body: { handler: 'hassio' },
+    });
     expect(refused.status).toBe(403);
     expect(refused.body.code).toBe('REQUIRES_INSTALLER');
   });
@@ -389,23 +399,11 @@ describe('the closed list', () => {
     expect(String(renamed.body.error)).toContain('Home Assistant ha rifiutato');
   });
 
-  it('gives a customer no way to start Wake on LAN or to pass its MAC, port or broadcast address', async () => {
+  it('keeps the MAC, port and broadcast address of Wake on LAN out of the TV flow', async () => {
     const harness = await harnessFor({});
     harness.fake.resetCalls();
 
-    // The flow of Wake on LAN cannot be started by anybody through the facade...
-    for (const user of ['customer', 'installer'] as const) {
-      const refused = await harness.request('/flussi', {
-        method: 'POST',
-        user,
-        body: { handler: 'wake_on_lan' },
-      });
-      expect(refused.status).toBe(403);
-      expect(refused.body.code).toBe('REQUIRES_INSTALLER');
-    }
-    expect(harness.fake.callsFor(FLOW_START)).toHaveLength(0);
-
-    // ...and the fields of its flow are refused on the one flow a customer can run.
+    // The fields of the Wake on LAN flow are refused on the flow of the TV.
     const started = await harness.request('/flussi', {
       method: 'POST',
       body: { handler: 'webostv' },
@@ -626,19 +624,19 @@ describe('compatibility check with the Home Assistant in use', () => {
       homeAssistant: { reachable: true, version: '2026.9.4', verified: true, onboarded: true },
       features: { catalog: true, flows: true, power: true },
       warnings: [],
-      startableHandlers: ['webostv'],
     });
+    expect(status.body).not.toHaveProperty('startableHandlers');
   });
 
   it('warns the installer, and only the installer, about a version that was not verified', async () => {
     const harness = await harnessFor({});
-    harness.fake.knobs.version = '2026.10.2';
+    harness.fake.knobs.version = '2026.11.0';
     await harness.module.start();
 
     expect(harness.logs.some((line) => line.includes('unverified version'))).toBe(true);
     const installer = await harness.request('/stato', { user: 'installer' });
     expect(installer.body).toMatchObject({
-      homeAssistant: { version: '2026.10.2', verified: false },
+      homeAssistant: { version: '2026.11.0', verified: false },
     });
     expect(String((installer.body.warnings as string[])[0])).toContain(
       'non è stata ancora provata'
@@ -647,8 +645,8 @@ describe('compatibility check with the Home Assistant in use', () => {
     const customer = await harness.request('/stato');
     expect(customer.body.warnings).toBeUndefined();
     expect((customer.body.homeAssistant as { version?: string }).version).toBeUndefined();
-    // The function itself stays on: the probes are the real test.
-    expect(customer.body).toMatchObject({ features: { flows: true } });
+    // A series nobody tried is not trusted: adding is off for the customer too.
+    expect(customer.body).toMatchObject({ features: { flows: false } });
   });
 
   it('switches adding off, with a message, when the flow handlers lack the listed integrations (RD-02)', async () => {

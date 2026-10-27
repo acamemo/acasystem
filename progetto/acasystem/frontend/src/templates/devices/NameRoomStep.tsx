@@ -2,21 +2,30 @@ import { useEffect, useState } from 'react';
 import { Button, Field, Skeleton } from '@/components/primitives';
 import type { AreaDto, DeviceDto } from '@/@types/devices';
 import { createArea, listAreas, toDeviceError, updateDevice } from '@/api/devicesApi';
+import { IdentifyButton } from '@/components/system/identify/IdentifyButton';
+import type { IdentifyAction } from '@/utils/devices/identify';
 import { ChoiceGroup, FormRow, Notice, SheetSection } from '../sheets/parts/Form';
 import { deviceTexts } from './deviceTexts';
 
 /**
  * Name and room of the new device (D1d). Both are optional: «Salta» leaves what Home Assistant
- * chose. The name is proposed as «Televisore»; the room is one that exists or a new one.
+ * chose. The name is proposed as «Televisore»; the room is one that exists or a new one. When the
+ * device can show which one it is, «Fai lampeggiare» helps the person name the right one (F4).
  */
 export function NameRoomStep({
   device,
+  proposal = deviceTexts.nameProposal,
+  identify = null,
   onFinished,
 }: {
   device: DeviceDto;
+  /** How the device can blink, when it can. */
+  identify?: IdentifyAction | null;
+  /** The name offered first: «Televisore» for a TV, the name Home Assistant gave for the rest. */
+  proposal?: string;
   onFinished: () => void;
 }) {
-  const [name, setName] = useState<string>(deviceTexts.nameProposal);
+  const [name, setName] = useState<string>(proposal);
   const [areas, setAreas] = useState<AreaDto[] | null>(null);
   const [areaId, setAreaId] = useState('');
   const [adding, setAdding] = useState(false);
@@ -93,6 +102,7 @@ export function NameRoomStep({
       {error && <Notice tone="danger">{error}</Notice>}
 
       <SheetSection title={deviceTexts.nameTitle}>
+        <IdentifyButton action={identify} name={device.name} />
         <FormRow label={deviceTexts.nameLabel}>
           {({ labelId }) => (
             <Field

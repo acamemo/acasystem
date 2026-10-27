@@ -11,6 +11,7 @@ import type {
   CatalogDto,
   DeviceDto,
   DeviceErrorInfo,
+  DiscoveredDeviceDto,
   EntryDto,
   FlowResponseDto,
   FlowSummaryDto,
@@ -75,8 +76,39 @@ export async function cancelFlow(flowId: string): Promise<void> {
   await backendRequest(`${BASE}/flussi/${segment(flowId)}`, { method: 'DELETE' });
 }
 
+/** Devices that Home Assistant found on the network (zeroconf, SSDP, DHCP...) and nobody added. */
+export async function listDiscovered(signal?: AbortSignal): Promise<DiscoveredDeviceDto[]> {
+  const body = await backendRequest(`${BASE}/scoperti`, signal ? { signal } : {});
+  return isObject(body) && Array.isArray(body.devices)
+    ? as<DiscoveredDeviceDto[]>(body.devices)
+    : [];
+}
+
+/** Takes a discovered device over as the person's own flow; answers with its current step. */
+export async function addDiscovered(
+  flowId: string,
+  signal?: AbortSignal
+): Promise<FlowResponseDto> {
+  return as<FlowResponseDto>(
+    await backendRequest(`${BASE}/scoperti/${segment(flowId)}/aggiungi`, {
+      method: 'POST',
+      ...(signal ? { signal } : {}),
+    })
+  );
+}
+
+/** «Non mi interessa»: Home Assistant ignores this discovery. */
+export async function ignoreDiscovered(flowId: string): Promise<void> {
+  await backendRequest(`${BASE}/scoperti/${segment(flowId)}/ignora`, { method: 'POST' });
+}
+
 export async function getEntry(entryId: string): Promise<EntryDto> {
   return as<EntryDto>(await backendRequest(`${BASE}/voci/${segment(entryId)}`));
+}
+
+/** «Rimuovi dispositivo»: the entry leaves Home Assistant (never a system integration). */
+export async function removeEntry(entryId: string): Promise<void> {
+  await backendRequest(`${BASE}/voci/${segment(entryId)}`, { method: 'DELETE' });
 }
 
 export async function updateDevice(

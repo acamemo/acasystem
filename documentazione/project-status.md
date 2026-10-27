@@ -193,6 +193,7 @@ Criteri nel [PRD](funzionalita/product.md#11-criteri-di-accettazione-proposti); 
 | REQ-16 | Valutazione piantina 3D | Proposto | Non iniziato | V-16 | Futuro/R&D; ISSUE-012. |
 | REQ-17 | Amministratore condominiale per dispositivi comuni | Approvato | Non iniziato | V-17 | Obiettivo successivo; progetto dei permessi aperto, ISSUE-008/015. |
 | REQ-18 | Aggiungere e configurare dispositivi da Acasystem, anche da parte del cliente, con identità di servizio dichiarata ed elenco chiuso | Approvato (D-D22, 2026-10-23) | In corso (solo la parte server di D1, in un passo parallelo; nulla verificato su HA reale) | Da definire in `verification.md` (non ancora aggiunta); criteri AC-18 | [ADR-0021](decisions/ADR-0021-configurazione-dispositivi-da-acasystem.md), [ADR-0022](decisions/ADR-0022-identita-di-servizio-dispositivi.md); debito su AC-06; D-D22 (c) aperta; ISSUE-006/008. |
+| REQ-19 | Rilevare i dispositivi e proporre il widget adatto (widget «Rileva dispositivi») | Approvato (2026-10-26) | In corso (F0 documenti) | AC-19 | [REP-20261026-006](reports/REP-20261026-006-rileva-dispositivi.md), [ADR-0024](decisions/ADR-0024-aggiunta-libera-dispositivi-scoperti.md); dipende dal commit di D1 per F2. |
 
 Le decisioni accettate sono [ADR-0001](decisions/ADR-0001-documentazione-e-storico.md) e [ADR-0002](decisions/ADR-0002-organizzazione-cartelle.md) per processo/struttura, e [ADR-0003](decisions/ADR-0003-home-assistant-locale-fase1.md) per la direzione di prodotto. Le evidenze applicative sono circoscritte alle interfacce e al banco locale documentati nei report di migrazione; non provano il prodotto completo.
 
@@ -1162,6 +1163,25 @@ Da REP-20261009-005, REP-20261009-006 e dal blocco C di REP-20261009-004 (aggiun
   3. avviare il download dell'app subito dopo la creazione del proprietario, mentre il sistemista conferma i dati della casa;
   4. misurare i tempi sul Dell prima di decidere.
 - Nessuna modifica autorizzata.
+
+### ISSUE-120 — «Aggiungi un widget» mostra TV non presenti sulla rete del mini PC
+
+**Aperto, 2026-10-26; media (osservazione con causa trovata; proposta non decisa).** Categoria: dispositivi, ricerca. Segnalazione dell'utente da casa: nel widget TV comparivano le due TV LG dell'ufficio, non quella di casa; «dovremmo cercare i dispositivi in base alla rete e ai dispositivi che sono effettivamente presenti».
+- **Da dove arriva l'elenco:** `AddWidgetSheet` prende le entità in diretta dall'HA collegato (`useWidgetRuntime`), senza elenchi propri.
+- **Causa nella prova:**
+  - l'HA della copia `acasystem-ha-s45` ha creato `media_player.lg_webos_tv_nano81t6a` e `…_ua751c0la` con l'integrazione Google Cast (configurata in automatico all'onboarding), pochi minuti dopo il ripristino;
+  - l'istantanea «ha-pronto-senza-account» è **a caldo**: conserva la memoria della VM presa in ufficio, compresa la cache mDNS con le due TV (che hanno Chromecast integrato) [valutazione].
+  - È un effetto della prova, non del prodotto: un mini PC vero vede solo la propria rete.
+- **Perché manca la TV di casa:**
+  - la VM è in NAT, che non fa passare la ricerca dei dispositivi sulla rete di casa;
+  - inoltre l'HA vede in automatico solo i dispositivi con un'integrazione che si scopre da sola (per esempio Cast). Una TV LG webOS «classica» va aggiunta con la sua integrazione (D1/D3, REP-20261023-003). [non verificato quale TV ci sia a casa]
+- **Rilievo di prodotto [P]:** l'elenco mostra anche le entità che HA ricorda ma che ora non rispondono (`unavailable`). Proposta: indicarle come «non raggiungibile» o metterle in fondo. La ricerca dei dispositivi della rete resta affidata a HA (vincolo «nessuna scansione propria») e alle tappe D3/D4. Nessuna modifica autorizzata.
+- **Per le prove dei dispositivi** serve una VM in rete con i dispositivi (scheda a ponte, o il Dell), non in NAT.
+- **Seguito, 2026-10-26:** la TV di casa è una Samsung (`samsungtv`), che HA non aggiunge da sola. L'utente ha chiesto il widget «Rileva dispositivi» (REQ-19, [REP-20261026-006](reports/REP-20261026-006-rileva-dispositivi.md)), che comprende la proposta «non raggiungibile» di questo punto.
+- **Prova con la VM sulla rete di casa (2026-10-26, 19:58-20:10).** Su richiesta dell'utente: scheda 1 della copia a ponte sulla Wi-Fi del PC; HA OS con `192.168.1.38` per DHCP; HA riavviato perché usasse la nuova rete. Dopo circa 10 minuti, dai registri salvati di HA (letti dalla console della VM):
+  - integrazioni e dispositivi invariati: nessun dispositivo nuovo;
+  - i due dispositivi LG sono le TV dell'ufficio, `LGE 65UA751C0LA` e `LGE 86NANO81T6A`.
+  - Quindi **la TV di casa non è stata aggiunta in automatico**. Solo i dispositivi Cast si aggiungono da soli; gli altri restano «scoperti» in attesa di conferma. Quell'elenco è solo in memoria: dalla console non si legge (l'API di HA chiede un token, 401 dal Supervisor). Marca e modello della TV di casa: da chiedere all'utente.
 
 ## Incarichi e punto di ripresa
 

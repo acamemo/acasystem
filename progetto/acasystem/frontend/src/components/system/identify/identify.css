@@ -1,0 +1,9 @@
+/* «Fai lampeggiare»: the button and its short answer, stacked. Colours come from the primitives. */
+@layer components {
+  .aca-identify {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25em;
+  }
+}

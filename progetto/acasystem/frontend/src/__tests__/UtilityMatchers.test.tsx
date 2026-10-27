@@ -77,6 +77,7 @@ describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
       vacuum: 'vacuum',
       mower: 'mower',
       room: 'room',
+      rileva: 'wifi',
       spacer: 'grid',
     });
     for (const definition of utilityWidgets) {

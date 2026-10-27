@@ -339,6 +339,12 @@ export const handleAddSelected = (ctx: AddSelectedContext): void => {
       return;
     }
 
+    // Lists the devices of Home Assistant no widget shows yet: nothing to choose.
+    case 'rileva': {
+      commitSingleCard(`rileva_card_${Date.now()}`, {});
+      return;
+    }
+
     case 'spacer': {
       const cardId = `spacer_card_${Date.now()}`;
       const variant = selectedSpacerVariant || 'spacer';

@@ -9,6 +9,7 @@ import {
   COMPARED_HA_VERSIONS,
   HA_CALLS,
   SUPPORTED_HA_VERSION,
+  VERIFIED_HA_SERIES,
   VERIFIED_HA_VERSIONS,
   isVerifiedHaVersion,
   powerTriggerFormsFor,
@@ -94,9 +95,16 @@ describe('the catalogue of Home Assistant calls', () => {
   it('declares one supported version, verified by reading the source, and the one only compared', () => {
     expect(SUPPORTED_HA_VERSION).toBe('2026.9.4');
     expect(VERIFIED_HA_VERSIONS).toEqual(['2026.9.4']);
-    expect(COMPARED_HA_VERSIONS).toEqual(['2026.10.2']);
+    expect(COMPARED_HA_VERSIONS).toEqual([]);
+    // 2026.10.x was tried on a running HA on 2026-10-27 (REP-20261026-006).
+    expect(VERIFIED_HA_SERIES).toEqual(['2026.10']);
     expect(isVerifiedHaVersion('2026.9.4')).toBe(true);
-    expect(isVerifiedHaVersion('2026.10.2')).toBe(false);
+    expect(isVerifiedHaVersion('2026.10.2')).toBe(true);
+    expect(isVerifiedHaVersion('2026.10.4')).toBe(true);
+    expect(isVerifiedHaVersion('2026.10')).toBe(false);
+    expect(isVerifiedHaVersion('2026.10.x')).toBe(false);
+    expect(isVerifiedHaVersion('2026.100.1')).toBe(false);
+    expect(isVerifiedHaVersion('2026.11.0')).toBe(false);
     expect(isVerifiedHaVersion(null)).toBe(false);
     expect(powerTriggerFormsFor('2026.9.4')[0]).toBe('device');
     expect(powerTriggerFormsFor('2099.1.0')).toEqual(['device', 'platform']);
@@ -177,6 +185,10 @@ describe('the closed list of operations', () => {
       '/flussi/:flowId',
       '/flussi/:flowId',
       '/flussi/:flowId',
+      '/scoperti',
+      '/scoperti/:flowId/aggiungi',
+      '/scoperti/:flowId/ignora',
+      '/voci/:entryId',
       '/voci/:entryId',
       '/dispositivi/:deviceId',
       '/stanze',

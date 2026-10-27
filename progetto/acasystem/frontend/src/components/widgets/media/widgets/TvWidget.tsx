@@ -5,7 +5,14 @@ import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useConfirmedCommand } from '../hooks/commands';
 import { MediaIcon } from '../icons';
 import { readString, resolveImage, stringList } from '../model/entity';
-import { resolveTv, tvCanPower, widgetPlayTarget, type TvKind, type TvView } from '../model/tv';
+import {
+  resolveTv,
+  tvCanPower,
+  tvPowerOffCall,
+  widgetPlayTarget,
+  type TvKind,
+  type TvView,
+} from '../model/tv';
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
 import { PowerButton } from '../parts/Controls';
@@ -68,9 +75,11 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
   const openDetails = () => runtime.openDetails(id);
   const togglePower = () => {
     if (editMode || view.unavailable) return;
-    const service = power.value ? 'turn_off' : 'turn_on';
+    const off = tvPowerOffCall(view, config.mediaPlayerId, config.remoteId);
     power.request(!power.value, () =>
-      runtime.callService('media_player', service, { entity_id: config.mediaPlayerId })
+      power.value
+        ? runtime.callService(off.domain, off.service, off.data)
+        : runtime.callService('media_player', 'turn_on', { entity_id: config.mediaPlayerId })
     );
   };
   const togglePlay = () => {

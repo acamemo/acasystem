@@ -19,9 +19,13 @@ import {
   getEntry,
   getFlow,
   getPower,
+  addDiscovered,
   getStatus,
+  ignoreDiscovered,
   listAreas,
+  listDiscovered,
   listFlows,
+  removeEntry,
   searchCatalog,
   setupPower,
   startFlow,
@@ -33,10 +37,16 @@ import {
   abortDto,
   catalogDto,
   createdDto,
+  discoveredDto,
   entryDto,
   errorReply,
+  externalDto,
+  genericForm,
   installFakeDevices,
+  menuDto,
   pairingForm,
+  progressDto,
+  samsungConfirmForm,
   statusDto,
   userForm,
   type FakeDevices,
@@ -126,6 +136,39 @@ describe('devices API: routes, methods and bodies', () => {
         { mac: '02:00:00:00:00:01', broadcastAddress: '192.168.1.255', broadcastPort: 9 },
       ],
     ]);
+  });
+
+  it('reads the discoveries, takes one over and ignores one, on the paths of the server', async () => {
+    fake.on('GET /scoperti', () => ({ body: { devices: [discoveredDto()] } }));
+    fake.on('POST /scoperti/:id/aggiungi', () => ({ body: samsungConfirmForm() }));
+    fake.on('POST /scoperti/:id/ignora', () => ({ body: { ignored: true } }));
+    expect(await listDiscovered()).toEqual([discoveredDto()]);
+    expect(await addDiscovered('found/1')).toMatchObject({ type: 'form', stepId: 'confirm' });
+    await ignoreDiscovered('found 2');
+    expect(fake.calls.map((call) => `${call.method} ${call.path}`)).toEqual([
+      'GET /scoperti',
+      'POST /scoperti/found%2F1/aggiungi',
+      'POST /scoperti/found%202/ignora',
+    ]);
+    // A malformed list is an empty one.
+    fake.on('GET /scoperti', () => ({ body: 'no' }));
+    expect(await listDiscovered()).toEqual([]);
+  });
+
+  it('removes an entry on its own path', async () => {
+    fake.on('DELETE /voci/:id', () => ({ body: { removed: true } }));
+    await removeEntry('entry 1');
+    expect(fake.calls.map((call) => `${call.method} ${call.path}`)).toEqual([
+      'DELETE /voci/entry%201',
+    ]);
+  });
+
+  it('passes the abort signal of taking a discovery over to fetch', async () => {
+    const controller = new AbortController();
+    fake.on('POST /scoperti/:id/aggiungi', () => ({ body: samsungConfirmForm() }));
+    await addDiscovered('found1', controller.signal);
+    const [, init] = fake.fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBe(controller.signal);
   });
 
   it('writes the search text in the query, encoded, with the limit', async () => {
@@ -303,6 +346,13 @@ describe('devices API: the keys of the DTOs match the server', () => {
     await matches(form.errors[0] ?? {}, 'flowModel.ts', 'FlowErrorDto');
     await matches(form.fields[0] ?? {}, 'flowModel.ts', 'FlowFieldDto');
     await matches(abortDto(), 'flowModel.ts', 'FlowAbortDto');
+    // The steps that are not forms, and a generic form with every kind of field (F4).
+    await matches(menuDto(), 'flowModel.ts', 'FlowMenuDto');
+    await matches(progressDto(), 'flowModel.ts', 'FlowProgressDto');
+    await matches(externalDto(), 'flowModel.ts', 'FlowExternalDto');
+    const generic = genericForm();
+    await matches(generic, 'flowModel.ts', 'FlowFormDto');
+    for (const field of generic.fields) await matches(field, 'flowModel.ts', 'FlowFieldDto');
     // The created result is the server's one plus the entry and the pending flag.
     const { entry, pending, ...created } = createdDto();
     expect([entry === null, pending]).toEqual([false, false]);
@@ -323,6 +373,7 @@ describe('devices API: the keys of the DTOs match the server', () => {
       'CatalogEntryDto',
       await serverKeys('catalog.ts', 'CatalogItem')
     );
+    await matches({ ...discoveredDto(), reason: 'x' }, 'discovered.ts', 'DiscoveredDeviceDto');
     await matches(
       { entryId: 'e1', configured: true, active: true, message: null },
       'powerRecipe.ts',

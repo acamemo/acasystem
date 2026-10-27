@@ -393,9 +393,9 @@ describe('PERF-2: LauncherPage spegne la visibilità mentre Sistema copre il lau
     expect(coverProbe()).toHaveTextContent('false');
   });
 
-  it('mostra tutti i 25 preset senza associazione anche dopo il caricamento delle entità HA', async () => {
+  it('mostra tutti i 26 preset senza associazione anche dopo il caricamento delle entità HA', async () => {
     renderPage(false);
-    await waitFor(() => expect(document.querySelectorAll('.aca-category-widget')).toHaveLength(25));
+    await waitFor(() => expect(document.querySelectorAll('.aca-category-widget')).toHaveLength(26));
   });
 
   it('il preset collegato usa l’entità reale', async () => {

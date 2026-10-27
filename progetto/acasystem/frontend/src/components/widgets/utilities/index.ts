@@ -12,6 +12,8 @@ import { MowerDetails } from './robots/MowerDetails';
 import { RoomWidget } from './room/RoomWidget';
 import { RoomDetails } from './room/RoomDetails';
 import { SpacerWidget } from './spacer/SpacerWidget';
+import { DiscoverWidget } from './discover/DiscoverWidget';
+import { DiscoverDetails } from './discover/DiscoverDetails';
 import { BatteryPage } from './fullpage/BatteryPage';
 import { RoomsPage } from './fullpage/RoomsPage';
 
@@ -73,6 +75,15 @@ export const utilityWidgets: WidgetDefinition[] = [
     matches: (id) => id.startsWith('room_card_'),
     Widget: RoomWidget,
     Details: RoomDetails,
+  },
+  {
+    type: 'rileva',
+    label: 'Rileva dispositivi',
+    icon: icon('wifi'),
+    sizes: { min: { w: 2, h: 2 }, max: { w: 4, h: 4 }, default: { w: 2, h: 2 } },
+    matches: (id) => id.startsWith('rileva_card_'),
+    Widget: DiscoverWidget,
+    Details: DiscoverDetails,
   },
   {
     type: 'spacer',

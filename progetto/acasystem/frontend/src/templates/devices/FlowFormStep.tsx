@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Button, Caption, Field } from '@/components/primitives';
+import { Button, Caption, Field, Icon } from '@/components/primitives';
 import type { FlowErrorDto, FlowFieldDto, FlowFormDto } from '@/@types/devices';
 import { ChoiceGroup, FormRow, Notice, ToggleRow } from '../sheets/parts/Form';
 import { deviceTexts } from './deviceTexts';
@@ -74,6 +74,74 @@ export function buildInput(fields: readonly FlowFieldDto[], values: Values): Bui
     }
   }
   return { input, errors };
+}
+
+/**
+ * A text, password or number field. A password hides what is typed and has a button to show it
+ * (the person types a long key on a tablet and wants to check it); the value stays in memory only.
+ */
+function TextRow({
+  field,
+  value,
+  busy,
+  error,
+  onChange,
+}: {
+  field: FlowFieldDto;
+  value: string;
+  busy: boolean;
+  error: string | undefined;
+  onChange: (value: string) => void;
+}) {
+  const [shown, setShown] = useState(false);
+  const numeric = field.kind === 'integer' || field.kind === 'number';
+  const password = field.kind === 'password';
+  return (
+    <FormRow label={field.label} {...(field.hint ? { hint: field.hint } : {})}>
+      {({ labelId, hintId }) => (
+        <Field
+          label={field.label}
+          aria-labelledby={labelId}
+          {...(hintId ? { 'aria-describedby': hintId } : {})}
+          type={password && !shown ? 'password' : numeric ? 'number' : 'text'}
+          {...(numeric
+            ? {
+                step: field.kind === 'integer' ? 1 : 'any',
+                ...(field.min !== undefined ? { min: field.min } : {}),
+                ...(field.max !== undefined ? { max: field.max } : {}),
+              }
+            : {})}
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={value}
+          disabled={busy}
+          {...(error ? { error } : {})}
+          {...(password
+            ? {
+                action: (
+                  <button
+                    type="button"
+                    className="aca-field__action"
+                    aria-label={shown ? deviceTexts.hidePassword : deviceTexts.showPassword}
+                    title={shown ? deviceTexts.hidePassword : deviceTexts.showPassword}
+                    aria-pressed={shown}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => setShown((visible) => !visible)}
+                  >
+                    <Icon
+                      name={shown ? 'eyeSlash' : 'eye'}
+                      className="aca-field__action-icon"
+                    />
+                  </button>
+                ),
+              }
+            : {})}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
+    </FormRow>
+  );
 }
 
 /**
@@ -198,39 +266,17 @@ export function FlowFormStep({
               </FormRow>
             );
           }
-          default: {
-            const numeric = field.kind === 'integer' || field.kind === 'number';
+          default:
             return (
-              <FormRow
+              <TextRow
                 key={field.name}
-                label={field.label}
-                {...(field.hint ? { hint: field.hint } : {})}
-              >
-                {({ labelId, hintId }) => (
-                  <Field
-                    label={field.label}
-                    aria-labelledby={labelId}
-                    {...(hintId ? { 'aria-describedby': hintId } : {})}
-                    type={field.kind === 'password' ? 'password' : numeric ? 'number' : 'text'}
-                    {...(numeric
-                      ? {
-                          step: field.kind === 'integer' ? 1 : 'any',
-                          ...(field.min !== undefined ? { min: field.min } : {}),
-                          ...(field.max !== undefined ? { max: field.max } : {}),
-                        }
-                      : {})}
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    value={typeof value === 'string' ? value : ''}
-                    disabled={busy}
-                    {...(error ? { error } : {})}
-                    onChange={(event) => set(field.name, event.target.value)}
-                  />
-                )}
-              </FormRow>
+                field={field}
+                value={typeof value === 'string' ? value : ''}
+                busy={busy}
+                error={error}
+                onChange={(next) => set(field.name, next)}
+              />
             );
-          }
         }
       })}
 

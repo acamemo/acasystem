@@ -70,8 +70,27 @@ export interface HaAdminUser {
 }
 
 export type HaLoginStep =
-  | { kind: 'form'; flowId: string; stepId: string; fields: string[]; error: string | null }
+  | {
+      kind: 'form';
+      flowId: string;
+      stepId: string;
+      fields: string[];
+      error: string | null;
+    }
   | { kind: 'done'; code: string };
+
+/** A flow in progress that HA opened by itself (a discovery), reduced to what the facade reads. */
+export interface HaProgressFlow {
+  flowId: string;
+  handler: string;
+  stepId: string | null;
+  /** `zeroconf`, `ssdp`, `dhcp`... (`context.source`). */
+  source: string;
+  /** Name and model from `context.title_placeholders`; never shown if they look like an address. */
+  name: string | null;
+  model: string | null;
+  hasUniqueId: boolean;
+}
 
 export interface HaWsApi {
   currentUser(): Promise<HaUserInfo>;
@@ -103,6 +122,15 @@ export interface HaWsApi {
   deleteRefreshToken(refreshTokenId: string): Promise<void>;
   createCredentials(userId: string, username: string, password: string): Promise<void>;
   changePassword(userId: string, password: string): Promise<void>;
+  /** Marks a discovery as ignored; HA drops the flow and remembers the device. */
+  ignoreFlow(flowId: string, title: string): Promise<void>;
+  /** Flows in progress other than the ones opened by a person (`source` is not `user`). */
+  flowsInProgress(): Promise<HaProgressFlow[]>;
+  /**
+   * Italian texts of the configuration flows of one integration (`frontend/get_translations`,
+   * category `config`): the raw `result`, read by `parseTranslations` (haTexts.ts).
+   */
+  translations(handler: string): Promise<unknown>;
 }
 
 export interface HaAdapter {
@@ -256,6 +284,39 @@ const parseAdminUser = (value: unknown): HaAdminUser | null => {
   };
 };
 
+const IPV4_TEXT = /\b\d{1,3}(?:\.\d{1,3}){3}\b/;
+const MAC_TEXT = /\b[0-9a-f]{2}(?:[:-][0-9a-f]{2}){5}\b/i;
+// eslint-disable-next-line no-control-regex
+const CONTROL_RUN = /[\x00-\x1f\x7f]+/g;
+
+/** A name for a person: cut, without control characters, and never an address or a MAC. */
+const readDisplayText = (value: unknown): string | null => {
+  const text = asString(value)?.replace(CONTROL_RUN, ' ').trim().slice(0, 80);
+  if (!text || IPV4_TEXT.test(text) || MAC_TEXT.test(text)) return null;
+  return text;
+};
+
+const parseProgressFlow = (value: unknown): HaProgressFlow | null => {
+  if (!isRecord(value)) return null;
+  const flowId = asString(value.flow_id);
+  const handler = asString(value.handler);
+  if (!flowId || !handler) return null;
+  const context = isRecord(value.context) ? value.context : {};
+  const placeholders = isRecord(context.title_placeholders) ? context.title_placeholders : {};
+  return {
+    flowId,
+    handler,
+    stepId: asString(value.step_id),
+    source: asString(context.source) ?? 'unknown',
+    name:
+      readDisplayText(placeholders.name) ??
+      readDisplayText(placeholders.device) ??
+      readDisplayText(placeholders.title),
+    model: readDisplayText(placeholders.model),
+    hasUniqueId: asString(context.unique_id) !== null,
+  };
+};
+
 const compact = <T>(items: (T | null)[]): T[] => items.filter((item): item is T => item !== null);
 
 const createWsApi = (
@@ -343,7 +404,23 @@ const createWsApi = (
     await send(HA_CALLS.credentialsCreate, { user_id: userId, username, password });
   },
   async changePassword(userId, password) {
-    await send(HA_CALLS.credentialsAdminChangePassword, { user_id: userId, password });
+    await send(HA_CALLS.credentialsAdminChangePassword, {
+      user_id: userId,
+      password,
+    });
+  },
+  async ignoreFlow(flowId, title) {
+    await send(HA_CALLS.flowIgnore, { flow_id: flowId, title });
+  },
+  async flowsInProgress() {
+    return compact(asArray(await send(HA_CALLS.flowList)).map(parseProgressFlow));
+  },
+  async translations(handler) {
+    return send(HA_CALLS.translations, {
+      language: 'it',
+      category: 'config',
+      integration: [handler],
+    });
   },
 });
 
@@ -402,7 +479,9 @@ export const createHaAdapter = ({
 
   const rest = async (
     call: Parameters<HaTransport['rest']>[0],
-    options: Omit<Parameters<HaTransport['rest']>[1], 'timeoutMs'> & { timeoutMs?: number }
+    options: Omit<Parameters<HaTransport['rest']>[1], 'timeoutMs'> & {
+      timeoutMs?: number;
+    }
   ) => transport.rest(call, { timeoutMs: callTimeoutMs, ...options });
 
   const flowParams = (flowId: string) => ({ flow_id: flowId });

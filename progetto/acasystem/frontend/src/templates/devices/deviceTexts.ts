@@ -4,6 +4,8 @@
  * here is built from what the person typed.
  */
 
+import type { DeviceKind } from './useDeviceFlow';
+
 export const deviceTexts = {
   // Entry points.
   addDevice: 'Aggiungi un dispositivo',
@@ -47,7 +49,17 @@ export const deviceTexts = {
   catalogShown: (shown: number, total: number) =>
     `Mostro ${shown} di ${total}: scrivi per restringere.`,
 
+  addByBrand: 'Non lo trovi? Aggiungi per marca',
+  addByBrandHint: 'Scegli la marca dall’elenco e segui i passi.',
+  catalogByBrand: 'Scegli la marca',
+
   // Steps of a flow.
+  progressWaiting: 'Attendo Home Assistant…',
+  openMakerPage: 'Apri la pagina del produttore',
+  externalWaiting:
+    'Quando hai finito sul sito del produttore, torna qui: continuo da solo.',
+  showPassword: 'Mostra il testo',
+  hidePassword: 'Nascondi il testo',
   unsupportedStep: 'Questo dispositivo non si può ancora aggiungere da Acasystem.',
   required: 'Compila questo campo.',
   confirmTitle: 'Conferma',
@@ -98,8 +110,17 @@ export const deviceTexts = {
   powerTrySent: 'Comando inviato. Se il televisore non si accende, controlla le sue impostazioni.',
   powerTryFailed: 'Il comando non è riuscito. Riprova.',
 
+  // Identify and remove.
+  removeDevice: 'Rimuovi dispositivo',
+  removeAsk:
+    'Il dispositivo sparisce da Home Assistant e da tutti i widget. Per riaverlo dovrai aggiungerlo di nuovo.',
+  removeConfirm: 'Rimuovi',
+  removeDone: 'Dispositivo rimosso.',
+  removeFailed: 'Non sono riuscito a rimuovere il dispositivo. Riprova.',
+
   // End.
   added: 'Dispositivo aggiunto.',
+  discoveredLoading: 'Preparo l’aggiunta…',
   addedHint: 'Ora puoi collegarlo al widget.',
 } as const;
 
@@ -111,9 +132,60 @@ const INTEGRATION_NAMES: Readonly<Record<string, string>> = {
 export const integrationName = (domain: string, technicalName: string): string =>
   INTEGRATION_NAMES[domain] ?? technicalName;
 
-/** Integrations proposed first for each kind of widget (D1: the TV only). */
-export const RECOMMENDED_HANDLERS: Readonly<Record<'tv', readonly string[]>> = {
+/** Integrations proposed first for each kind of widget (the catalogue knows the TV only). */
+export const RECOMMENDED_HANDLERS: Readonly<Partial<Record<DeviceKind, readonly string[]>>> = {
   tv: ['webostv'],
+};
+
+/**
+ * What the person does on the device while it pairs, for the steps the server keeps open (the
+ * TV asks for a confirmation on its screen). `needs` is a precondition, `intro` is shown before
+ * «Avanti», `look` while the call is open.
+ */
+export interface PairingHint {
+  needs?: string;
+  intro: (seconds: number) => string;
+  look: string;
+}
+
+export const PAIRING_HINTS: Readonly<Record<string, PairingHint>> = {
+  webostv: {
+    needs: deviceTexts.pairingNeeds,
+    intro: deviceTexts.pairingIntro,
+    look: deviceTexts.pairingLook,
+  },
+  samsungtv: {
+    intro: (seconds) =>
+      `Tieni in mano il telecomando. Premi Avanti: sul televisore comparirà una richiesta. Hai ${seconds} secondi per scegliere Consenti. Sui modelli più vecchi comparirà un codice.`,
+    look: 'Guarda il televisore e scegli Consenti.',
+  },
+};
+
+export const pairingHint = (handler: string): PairingHint =>
+  PAIRING_HINTS[handler] ?? {
+    intro: (seconds) =>
+      `Premi Avanti e segui le istruzioni sul dispositivo. Hai ${seconds} secondi.`,
+    look: 'Guarda il dispositivo.',
+  };
+
+/**
+ * One short line per integration for the steps that ask the person to do something on the
+ * device. The server sends its own description; this is shown when it sends none.
+ */
+export const HANDLER_HINTS: Readonly<Record<string, string>> = {
+  webostv: 'Accetta la richiesta sulla TV.',
+  samsungtv: 'Scegli Consenti sulla TV. I modelli più vecchi mostrano un codice.',
+  androidtv_remote: 'Sulla TV compare un codice: scrivilo qui.',
+  cast: 'Nessuna azione sul dispositivo.',
+  hue: 'Premi il pulsante del bridge, poi continua.',
+  shelly: 'Nessuna azione sul dispositivo.',
+  tplink: 'Nessuna azione sul dispositivo.',
+  wiz: 'Nessuna azione sul dispositivo.',
+  yeelight: 'Nessuna azione sul dispositivo.',
+  lifx: 'Nessuna azione sul dispositivo.',
+  nanoleaf: 'Tieni premuto il tasto di accensione per 5-7 secondi, poi continua.',
+  esphome: 'Serve la chiave di cifratura solo se il dispositivo ne ha una.',
+  homekit_controller: 'Scrivi il codice di abbinamento che trovi sul dispositivo.',
 };
 
 /** Four octets without leading zeros (so `010` is never read as octal), or null. */

@@ -574,7 +574,7 @@ describe('input and results are never guessed', () => {
       body: { handler: 'webostv' },
     });
     harness.fake.knobs.overrideNextResult = {
-      type: 'external',
+      type: 'shiny_new_type',
       step_id: 'auth',
       url: 'https://example.org/login',
     };
@@ -606,7 +606,9 @@ describe('input and results are never guessed', () => {
       method: 'POST',
       body: { handler: 'webostv' },
     });
-    expect(result.status).toBe(422);
+    // A field Acasystem cannot draw is for the installer (F4).
+    expect(result.status).toBe(403);
+    expect(result.body.code).toBe('REQUIRES_INSTALLER');
     expect(harness.fake.callsFor(FLOW_DELETE)).toHaveLength(1);
     expect(harness.database.prepare('SELECT COUNT(*) AS n FROM device_flows').get()).toEqual({
       n: 0,

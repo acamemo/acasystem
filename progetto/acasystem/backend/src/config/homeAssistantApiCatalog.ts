@@ -23,8 +23,15 @@ export const SUPPORTED_HA_VERSION = '2026.9.4';
  */
 export const VERIFIED_HA_VERSIONS: readonly string[] = [SUPPORTED_HA_VERSION];
 
-/** Compared with the source on 2026-10-23 but not verified: it may work, it is not promised. */
-export const COMPARED_HA_VERSIONS: readonly string[] = ['2026.10.2'];
+/**
+ * Series of versions provata on a running HA: every 2026.10.x. Tried on 2026-10-27 on the copy of
+ * the VM (REP-20261026-006): probes ok, flows read, Samsung pairing still to be tried. The
+ * calls are internal endpoints, so a later patch release is accepted, a later series is not.
+ */
+export const VERIFIED_HA_SERIES: readonly string[] = ['2026.10'];
+
+/** Compared with the source but not verified: it may work, it is not promised. */
+export const COMPARED_HA_VERSIONS: readonly string[] = [];
 
 export type HaCallClass = 'DOC' | 'DOC-nome' | 'INT';
 export type HaCallKind = 'public' | 'internal';
@@ -218,6 +225,38 @@ export const HA_CALLS = {
     }
   ),
 
+  // Flows that HA opened by itself when it discovered a device (zeroconf, ssdp, dhcp...). The
+  // list leaves out the flows with source `user`; `config_entries/ignore_flow` marks a
+  // discovery as ignored. On HA 2026.10.4 (copy of the test VM, 2026-10-27) the REST
+  // `GET /api/config/config_entries/flow` answers 405, while this WS command answers with the
+  // list (REP-20261026-006): run once against a real HA, not read in the source.
+  flowList: ws('config_entries.flow.progress', 'config_entries/flow/progress', {
+    haClass: 'INT',
+    permission: 'admin',
+    evidence: 'unverified',
+    checks: ['CT-12'],
+  }),
+  flowIgnore: ws('config_entries.ignore_flow', 'config_entries/ignore_flow', {
+    haClass: 'INT',
+    permission: 'admin',
+    evidence: 'unverified',
+    checks: ['CT-12'],
+  }),
+
+  // Italian texts of the flows of an integration, for the generic forms of F4. Observed once on
+  // HA 2026.10.4 (copy of the test VM, 2026-10-27, REP-20261026-006): with `language: 'it'`,
+  // `category: 'config'` and `integration: ['samsungtv']` it answers
+  // `result.resources` with keys like `component.samsungtv.config.step.encrypted_pairing.data.pin`.
+  // Some descriptions are still English there. Not read in the source of HA and the `evidence`
+  // enum has no "observed" value, so it stays `unverified`; the answer is read tolerantly and,
+  // when the command fails, the texts of Acasystem and the generic Italian labels are used.
+  translations: ws('frontend.get_translations', 'frontend/get_translations', {
+    haClass: 'INT',
+    permission: 'user',
+    evidence: 'unverified',
+    checks: ['CT-13'],
+  }),
+
   // --- Entries (H) -----------------------------------------------------------------------
   entriesGet: ws('config_entries.get', 'config_entries/get', {
     haClass: 'INT',
@@ -313,12 +352,17 @@ export const ALL_HA_CALLS: readonly HaCall[] = Object.values(HA_CALLS);
  * most of the calls are internal endpoints with no stability promise.
  */
 export const isKnownHaVersion = (version: string | null | undefined): boolean =>
-  typeof version === 'string' &&
-  (VERIFIED_HA_VERSIONS.includes(version) || COMPARED_HA_VERSIONS.includes(version));
+  isVerifiedHaVersion(version) ||
+  (typeof version === 'string' && COMPARED_HA_VERSIONS.includes(version));
 
-/** True for a version the facade was verified against. */
+/** True for a version the facade was verified against (an exact one, or a patch of a series). */
 export const isVerifiedHaVersion = (version: string | null | undefined): boolean =>
-  typeof version === 'string' && VERIFIED_HA_VERSIONS.includes(version);
+  typeof version === 'string' &&
+  (VERIFIED_HA_VERSIONS.includes(version) ||
+    VERIFIED_HA_SERIES.some(
+      (series) =>
+        version.startsWith(`${series}.`) && /^[0-9]{1,3}$/.test(version.slice(series.length + 1))
+    ));
 
 /**
  * Form of the `webostv.turn_on` trigger by HA version (D1b). The device trigger is the form

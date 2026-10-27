@@ -67,6 +67,8 @@ export interface DeviceModel {
   actions: {
     insert(action: NewDeviceAction): void;
     list(limit: number): DeviceActionRow[];
+    /** True when the registry records that a person created this entry from Acasystem (F4). */
+    createdEntry(entryId: string): boolean;
   };
   links: {
     get(webostvEntryId: string): PowerLinkRow | undefined;
@@ -121,6 +123,13 @@ export const createDeviceModel = (database: SqliteDatabase): DeviceModel => {
     'SELECT * FROM device_actions ORDER BY id DESC LIMIT ?'
   );
 
+  const findCreation = database.prepare<[string], { id: number }>(
+    `SELECT id FROM device_actions
+     WHERE entry_id = ? AND outcome = 'ok'
+       AND action IN ('flow.start', 'flow.step', 'flow.read', 'scoperti.aggiungi')
+     LIMIT 1`
+  );
+
   const getLink = database.prepare<[string], PowerLinkRow>(
     'SELECT * FROM device_power_links WHERE webostv_entry_id = ?'
   );
@@ -164,6 +173,7 @@ export const createDeviceModel = (database: SqliteDatabase): DeviceModel => {
         if (id % 500 === 0 && id > MAX_ACTION_ROWS) trimActions.run(id - MAX_ACTION_ROWS);
       },
       list: (limit) => listActions.all(limit),
+      createdEntry: (entryId) => findCreation.get(entryId) !== undefined,
     },
     links: {
       get: (webostvEntryId) => getLink.get(webostvEntryId),
