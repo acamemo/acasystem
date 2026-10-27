@@ -1,6 +1,32 @@
 # Infrastruttura e operazioni
 
-Aggiornato: 2026-10-23 (banco **0.9.27** su 192.168.1.7:3002, vedi la voce «banco 0.9.27» sotto; precedente: banco **0.9.26** su 192.168.1.27:3002, vedi la voce «banco 0.9.26» sotto; precedenti: Pressione lunga e trascinamento: banco **0.9.24** su 192.168.1.27:3002, vedi la voce «REP-20261021-003 — banco 0.9.24» sotto; Ripristino D-2/D-8 e widget: banco **0.9.23** su 192.168.1.27:3002, vedi la voce «REP-20261021-003 — Ripristino, banco 0.9.23» sotto; Interazioni G3-G5 e C1-C3: banco **0.9.22** su 192.168.1.7:3002, vedi la voce «REP-20261021-003 — G3-G5 e C1-C3, banco 0.9.22» sotto; Casa 3D R1: banco **0.9.21** su 192.168.1.7:3002, vedi la voce «REP-20261021-002 — Casa 3D, R1, banco 0.9.21» sotto; Interazioni G1-G2: banco **0.9.20** su 192.168.1.7:3002, vedi la voce «REP-20261021-003 — G1-G2, banco 0.9.20» sotto; Casa 3D T6: banco **0.9.19** su 192.168.1.7:3002, vedi la voce «REP-20261020-002 — Casa 3D, T6, banco 0.9.19» sotto; la voce «T6, persistenza» descrive le novità di infrastruttura; banco **0.9.18** su 172.20.10.6:3002, vedi la voce «REP-20261020-002 — Casa 3D, T5, banco 0.9.18» sotto; la 0.9.17 su 192.168.1.27:3002 è nella voce «REP-20261020-002 — Casa 3D, T3, banco 0.9.17»; la 0.9.16 è nella voce «REP-20261020-001 — banco 0.9.16»; la 0.9.15 è nella voce successiva; il resto è storico: banco 0.9.14 su 192.168.1.27:3002, vedi la voce «REP-20261019-003 — banco 0.9.14» sotto; la 0.9.13 è nella voce successiva e anche gli indirizzi 192.168.1.7 delle voci 0.9.11-0.9.13 sono storici; la 0.9.12 è nella voce successiva; il resto di questa riga è storico, 2026-10-15). Banco locale **Acasystem 0.9.10**, healthy su `http://192.168.1.19:3002`, con backup/ripristino verificati e venti tipi collaudati in isolamento. Fonte corrente: [REP-20261015-003](reports/REP-20261015-003-widget-operativi.md). M11/ISSUE-062 e prove manuali restano aperti; HA non aggiornato. Le voci successive conservano lo storico datato.
+Aggiornato: 2026-10-27 sera (banco **0.9.32** su **192.168.1.27:3002**, dal Tab M11 via USB su `localhost:3012`, vedi «Banco 0.9.32, 2026-10-27» sotto; prima: 2026-10-26 pomeriggio, banco **0.9.30** spostato su **192.168.1.19:3002**, vedi «Banco 0.9.30 spostato su 192.168.1.19» sotto; app di HA OS sulla VM `acasystem-ha`, vedi «Acasystem come app di HA OS sulla VM»; prima: banco **0.9.30** su 192.168.1.7:3002, vedi «Banco 0.9.30» sotto; precedente: banco **0.9.29** su 192.168.1.7:3002, vedi «Banco 0.9.29» sotto; precedente: banco **0.9.28** su 192.168.1.7:3002 dal mattino del 2026-10-26, vedi «Banco 0.9.28 spostato su 192.168.1.7» sotto; installato su 192.168.1.27:3002, vedi la voce «Aggiornamento — banco 0.9.28, 2026-10-26»; precedente: banco **0.9.27** su 192.168.1.7:3002, vedi la voce «banco 0.9.27» sotto; precedente: banco **0.9.26** su 192.168.1.27:3002, vedi la voce «banco 0.9.26» sotto; precedenti: Pressione lunga e trascinamento: banco **0.9.24** su 192.168.1.27:3002, vedi la voce «REP-20261021-003 — banco 0.9.24» sotto; Ripristino D-2/D-8 e widget: banco **0.9.23** su 192.168.1.27:3002, vedi la voce «REP-20261021-003 — Ripristino, banco 0.9.23» sotto; Interazioni G3-G5 e C1-C3: banco **0.9.22** su 192.168.1.7:3002, vedi la voce «REP-20261021-003 — G3-G5 e C1-C3, banco 0.9.22» sotto; Casa 3D R1: banco **0.9.21** su 192.168.1.7:3002, vedi la voce «REP-20261021-002 — Casa 3D, R1, banco 0.9.21» sotto; Interazioni G1-G2: banco **0.9.20** su 192.168.1.7:3002, vedi la voce «REP-20261021-003 — G1-G2, banco 0.9.20» sotto; Casa 3D T6: banco **0.9.19** su 192.168.1.7:3002, vedi la voce «REP-20261020-002 — Casa 3D, T6, banco 0.9.19» sotto; la voce «T6, persistenza» descrive le novità di infrastruttura; banco **0.9.18** su 172.20.10.6:3002, vedi la voce «REP-20261020-002 — Casa 3D, T5, banco 0.9.18» sotto; la 0.9.17 su 192.168.1.27:3002 è nella voce «REP-20261020-002 — Casa 3D, T3, banco 0.9.17»; la 0.9.16 è nella voce «REP-20261020-001 — banco 0.9.16»; la 0.9.15 è nella voce successiva; il resto è storico: banco 0.9.14 su 192.168.1.27:3002, vedi la voce «REP-20261019-003 — banco 0.9.14» sotto; la 0.9.13 è nella voce successiva e anche gli indirizzi 192.168.1.7 delle voci 0.9.11-0.9.13 sono storici; la 0.9.12 è nella voce successiva; il resto di questa riga è storico, 2026-10-15). Banco locale **Acasystem 0.9.10**, healthy su `http://192.168.1.19:3002`, con backup/ripristino verificati e venti tipi collaudati in isolamento. Fonte corrente: [REP-20261015-003](reports/REP-20261015-003-widget-operativi.md). M11/ISSUE-062 e prove manuali restano aperti; HA non aggiornato. Le voci successive conservano lo storico datato.
+
+## Banco 0.9.32, 2026-10-27 (sera)
+
+Richiesta dell'utente del 2026-10-27: «fallo», sul piano «commit e invio su GitHub; banco di nuovo raggiungibile e aggiornato; prova col dito sul tablet».
+- **Stato di partenza:** il compose legava il banco a `192.168.1.19:3002`, ma il Wi-Fi del PC era `192.168.1.27` («PosteMobile-40713171»). Docker dava il container 0.9.30 «healthy» ma senza porte pubblicate, e `/api/health` non rispondeva neppure su `127.0.0.1:3002`.
+- **Codice:** commit `2d1216c` (giro 4 della 0.9.28, 0.9.29, 0.9.30) sopra `700575d`; l'immagine contiene anche D1, «Rileva dispositivi» e le consolle. Controlli prima del commit, sull'albero completo:
+  - frontend: typecheck, lint, tipografia e colori; Vitest 231 file e 3431 test, in 4 parti;
+  - backend: typecheck, lint, 33 file e 523 test (1 saltato).
+- **Copie prima:**
+  - `backup/banco/compose.tunet-pre-ip27-20261027.yaml`;
+  - copia a freddo `backup/banco/tunet-data-pre-0.9.32-freddo.tgz`, 456101 byte, SHA-256 `4f9505bba211af84f866ff120cb8fdfd7b4f79cafa3c7d803261acfd147b546a`, con il container fermo. Lo stop è finito con il codice 137 (arresto forzato dopo circa 3 s: segnale 15 alle 20:56:31, segnale 9 alle 20:56:34, da `docker events`), quindi la copia contiene anche `tunet.db-wal` e `tunet.db-shm`.
+- **Modifiche:** binding LAN da `192.168.1.19` a `192.168.1.27` in `progetto/compose.tunet.yaml`, con il commento datato e l'indirizzo dell'intestazione del commento riportato a `192.168.1.27`; `ACASYSTEM_VERSION=0.9.32` in `progetto/.env` e nei controlli e2e (questi nel commit). Comando: `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d --build`.
+- **Esiti:** container `aca-system:0.9.32` healthy, con le porte `127.0.0.1:3002` e `192.168.1.27:3002`; `/api/health` 0.9.32 su entrambe.
+- **HA del PC partito su una cartella vuota:**
+  - `/ha/auth/providers` e `:8123/auth/providers` davano 400, e `/api/onboarding` chiedeva la configurazione iniziale;
+  - il PC non è stato riavviato: l'ultimo avvio di Windows è del 2026-10-26 alle 05:05. Alle 18:20:56 del 2026-10-27 è ripartito Docker Desktop, e con lui i container;
+  - il container `homeassistant`, avviato alle 18:21, vedeva in `/config` una cartella nuova e vuota. La sorgente del bind è `/mnt/c/homeassistant/config` nella macchina WSL di Docker, probabilmente non ancora pronta in quel momento [valutazione]. La configurazione vera in `C:\homeassistant\config` era intatta;
+  - `docker restart homeassistant` (arresto forzato dopo circa 3 s, codice 137): dopo il riavvio `.storage` è quello vero, `/auth/providers` risponde 200 sia diretto sia dal proxy, `/api/onboarding` 404 (configurazione già fatta). È lo stesso caso del 2026-10-26 mattina;
+  - **da sapere:** dopo ogni avvio o riavvio di Docker Desktop, anche dopo un riavvio del PC, controllare `http://127.0.0.1:8123/api/onboarding` (404 se tutto è a posto).
+- **Tablet:**
+  - il Tab M11 (192.168.1.32, stessa rete e stesso access point) non raggiunge `192.168.1.27:3002` né `:8123` (`nc` in timeout), mentre il PC raggiunge il tablet;
+  - causa probabile [valutazione, non provata cambiando le regole]: le sole regole d'ingresso abilitate per `com.docker.backend.exe` sono per il profilo «Pubblico» (TCP e UDP), e questa rete è «Privata». Le impostazioni di Windows non sono state toccate;
+  - strada usata: `adb reverse tcp:3012 tcp:3002`, scheda di Chrome su `http://localhost:3012/` con la pagina di accesso e `/api/health` 0.9.32. L'accesso lo fa l'utente;
+  - gli inoltri `3002`, `3007` e `8123` dell'altra chat non sono stati toccati: oggi `localhost:3002` del tablet porta al suo inoltro verso la VM `acasystem-ha-s45`. Per questo le schede `localhost:3002` del tablet non sono state ricaricate.
+- **Non eseguito:** la prova col dito, che fa l'utente.
+- **Ritorno indietro:** rimettere `ACASYSTEM_VERSION=0.9.30` in `.env` e ripristinare la copia a freddo nel volume `aca-tunet_tunet-data`, poi `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d` **senza `--build`**: l'immagine 0.9.30 vera è ancora presente (`949bd2de3632`), mentre `--build` ricostruirebbe l'albero attuale con il nome 0.9.30. Tenere il binding su `192.168.1.27` finché il Wi-Fi è questo: la copia del compose ha ancora `192.168.1.19`, che oggi non pubblica nessuna porta.
 
 ## Banco 0.9.30 spostato su 192.168.1.19, 2026-10-26 (pomeriggio)
 
@@ -26,6 +52,138 @@ Dettagli in [REP-20261026-005](reports/REP-20261026-005-configurazione-automatic
   - l'IP a ponte `192.168.1.183` non risponde né dal PC né dal Tab M11 (dal tablet anche il Dell non risponde);
   - la prova dal tablet è stata fatta via `adb reverse` più un inoltro temporaneo sul PC, ora chiusi.
 - **Per togliere l'app:** dalla console `ha apps uninstall 9960cdb4_acasystem` e `ha store delete 9960cdb4`, oppure snapshot «prima-app-acasystem».
+
+## Banco 0.9.30, 2026-10-26
+
+Banco `aca-system:0.9.30` su **192.168.1.7:3002** (e `localhost:3002` dal tablet con `adb reverse`), sul working tree con la correzione della visibilità delle pile in uso (ISSUE-116: una pila è nascosta solo se lo sono tutti i suoi membri) in aggiunta alla correzione dello scorrimento (ISSUE-117) già nella 0.9.29; nessun commit dopo `4e198c5`. Eseguito da Claude Code (Sonnet 5.5), subagente di un flusso, con gli stessi passi della 0.9.29.
+
+- **Rete:** IPv4 del Wi-Fi del PC 192.168.1.7, uguale al binding LAN di `progetto/compose.tunet.yaml`: nessuna modifica al file.
+- **Copia a freddo prima:** `docker compose … stop tunet`, poi `tar czf` del volume `aca-tunet_tunet-data` (montato in sola lettura) in `backup/banco/tunet-data-pre-0.9.30-freddo.tgz`: 455968 byte, sha256 `2c9169c943db14f0a7af19e654be4b35e0e31a983fb7273d7a73f285cb15fdf0`, contenuto `tunet.db`, `tunet.db-wal`, `tunet.db-shm` (`tar -tzf`). Copie di `.env`, `compose.tunet.yaml` e dei due file e2e in `backup/v0929/pre/banco-0930/`.
+- **Versione:** `ACASYSTEM_VERSION=0.9.30` in `progetto/.env`, `frontend/e2e/isolated-server.mjs` e `frontend/e2e/release.check.mjs`; `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d --build`.
+- **Esiti:** container healthy; `/api/health` restituisce `{"status":"ok","version":"0.9.30"}` su 127.0.0.1 e su 192.168.1.7; `/ha/auth/providers` 200 su entrambi (senza bisogno di riavviare `homeassistant`). Il bundle servito è `index-ZdUuEa41.js`; la versione 0.9.30 compare in Sistema.
+- **Tablet (Tab M11, tocco reale con `adb shell input`; schermate e strumenti in `backup/v0929/tablet-banco-0930/`):**
+  - chiavi di localStorage di 3002 salvate prima (38 chiavi non sensibili, `ls3002-prima.json`) e identiche alla fine (`ls-check.cjs`: nessuna differenza); le due schede 3002 ricaricate togliendo service worker e Cache Storage (sulla scheda in secondo piano la cancellazione delle cache è andata in timeout, ma il bundle servito è lo stesso, `index-ZdUuEa41.js`);
+  - **Multimedia:** la pila con Gruppo multimediale e Apple TV ora si vede (3 widget, nessuna casella riservata; due pallini di pagina); Android TV e Sonos invariati. Il tocco apre «Impostazioni del widget» con «Dispositivo da collegare: Non collegato» e «Cambia». **Scostamento:** l'elenco aperto con «Cambia» è vuoto («Nessuna entità adatta in Home Assistant»), perché l'Home Assistant del banco non espone media player; il foglio «Collega» si apre ma non ci sono dispositivi da mostrare. Chiuso senza scegliere nulla. Dopo il ritorno da Sistema la pila resta visibile (il transitorio osservato con la 0.9.29 non si è ripresentato);
+  - **Copertina:** compare la sua pila (orologio più pila, 397×397);
+  - **doppio scorrimento rapido** (secondo colpo dopo 0,3 s): 3 prove su 3 in avanti (da Copertina a Clima e meteo, due pagine) e 3 su 3 all'indietro; nel verso opposto torna a Copertina senza salti;
+  - **tocco sul «+»** (Principale) apre «Aggiungi un widget», «Annulla» lo chiude; **pressione lunga** sul vuoto apre la vista pagine con «Fine», «Fine» torna all'uso;
+  - **Sistema** si apre con l'ingranaggio e mostra 0.9.30; il pulsante «AI» apre l'informativa, «Chiudi» la chiude; «Torna al launcher» riporta alla Principale.
+- **Non eseguito:** trascinamento dei widget, pallini e telefono (già provati sulla 0.9.29 e non toccati dalla modifica); prova con dito invece che con eventi di `adb input`.
+- **Pulizia:** forward 9225 tolto, resta `adb reverse tcp:3002 tcp:3002`; nessuna scheda aperta da me né origini di prova usate; scheda 3002 in primo piano sulla Principale.
+- **Ripristino:** `ACASYSTEM_VERSION=0.9.29` in `progetto/.env` (e nei due file e2e) e `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d --build`; per i dati, `docker compose … stop tunet` e ripristino del volume dalla copia a freddo `backup/banco/tunet-data-pre-0.9.30-freddo.tgz` (stesso procedimento delle copie precedenti).
+
+## Banco 0.9.29, 2026-10-26
+
+Banco `aca-system:0.9.29` su **192.168.1.7:3002** (e `localhost:3002` dal tablet con `adb reverse`), sul working tree con la correzione ISSUE-117 (secondo scorrimento rapido) e la regola (a) di ISSUE-116 (pile fantasma); nessun commit dopo `4e198c5`. Richiesta dell'utente del 2026-10-26: «procedi con (a) e con la correzione dello scorrimento». Eseguito da Claude Code (Sonnet 5.5), subagente di un flusso; l'esito delle prove di misura è in `backup/v0929/tablet/RISULTATI.md`.
+
+- **Rete:** IPv4 del Wi-Fi del PC 192.168.1.7, uguale al binding LAN di `progetto/compose.tunet.yaml`: nessuna modifica al file.
+- **Copia a freddo prima:** `docker compose … stop tunet`, poi `tar czf` del volume `aca-tunet_tunet-data` (montato in sola lettura) in `backup/banco/tunet-data-pre-0.9.29-freddo.tgz`: 455767 byte, sha256 `dc36683c17920c33080d25355a3330fcef671c18ab56c185dfaf8f4c24cae7c4`, contenuto `tunet.db`, `tunet.db-wal`, `tunet.db-shm` (`tar -tzf`). Copie di `.env`, `compose.tunet.yaml` e dei due file e2e in `backup/v0929/pre/banco/`.
+- **Versione:** `ACASYSTEM_VERSION=0.9.29` in `progetto/.env`, `frontend/e2e/isolated-server.mjs` e `frontend/e2e/release.check.mjs`; `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d --build`.
+- **Esiti:** container healthy; `/api/health` restituisce `{"status":"ok","version":"0.9.29"}` su 127.0.0.1 e su 192.168.1.7; `/ha/auth/providers` 200 su entrambi (senza bisogno di riavviare `homeassistant`). Il bundle servito è `index-Ca3bRgmA.js`; la versione 0.9.29 compare in Sistema.
+- **Tablet (Tab M11, tocco reale con `adb shell input`; schermate e strumenti in `backup/v0929/tablet-banco/`):**
+  - chiavi di localStorage di 3002 salvate prima (38 chiavi non sensibili, `ls3002-prima.json`) e identiche alla fine (`ls-check.cjs`: nessuna differenza); schede ricaricate togliendo service worker e Cache Storage, senza toccare localStorage;
+  - **doppio scorrimento rapido** (secondo colpo dopo 0,3 s): 3 prove su 3 nello stesso verso (da Multimedia a Energia, due pagine) e 3 su 3 all'indietro; nel verso opposto torna a Multimedia, senza salti di due pagine;
+  - **tocco sul «+»** apre il foglio «Aggiungi un widget», «Annulla» lo chiude; tocco su una casella riservata e sul vuoto: nessun effetto;
+  - **pressione lunga** sul vuoto apre la vista pagine con «Fine»; i pallini saltano alla pagina (Casa 3D, Copertina, Multimedia) e lo scorrimento nella vista pagine cambia pagina; pressione lunga su un widget lo seleziona in modifica;
+  - **trascinamento** del widget Android TV di quattro colonne con il tocco (CDP `Input.dispatchTouchEvent`, perché `adb input draganddrop` non avvia il trascinamento): fantasma presente, rilascio valido, nessuna sessione rimasta aperta; «Annulla» ha riportato il widget al suo posto e il localStorage è identico;
+  - **Sistema** si apre con l'ingranaggio, il pulsante «AI» apre l'informativa e «Chiudi» la chiude.
+- **Pagina Multimedia, scostamento dall'attesa:** le due caselle accanto ad Android TV **restano senza «+»** (riservate). La regola (a) riguarda le pile senza alcun widget risolvibile; la pila `stack_mvjd2g21` ha membri con definizione (preimpostati non collegati) e `isCardHiddenByLogic` la nasconde come entità sconosciuta. I widget presenti (Android TV, Sonos) sono invariati. È il caso già annotato in ISSUE-116: per cambiarlo serve una scelta dell'utente, non presa. Subito dopo il ritorno da Sistema la pila è comparsa per un istante come widget visibile (3 widget, 0 riservate) e dopo il successivo scorrimento è tornata riservata: stato transitorio a entità non ancora caricate, già presente prima, non indagato.
+- **Non eseguito:** controllo dei pallini con misure di tempo (solo funzionale); prova sul telefono; prova con dito invece che con eventi di `adb input`.
+- **Pulizia:** forward 9225 tolto, resta `adb reverse tcp:3002 tcp:3002`; nessuna scheda aperta da me; scheda 3002 in primo piano sulla Principale.
+- **Ripristino:** `ACASYSTEM_VERSION=0.9.28` in `progetto/.env` e `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d --build`; per i dati, `docker compose … stop tunet` e ripristino del volume dalla copia a freddo `backup/banco/tunet-data-pre-0.9.29-freddo.tgz` (stesso procedimento delle copie precedenti).
+
+## VM acasystem-ha preparata per D1, 2026-10-26 (V2)
+
+Dettagli, prove e limiti in [REP-20261023-003](reports/REP-20261023-003-piano-aggiungi-dispositivi.md), sezione «V2 — preparazione per D1 (2026-10-26)». Eseguito da Claude Code (Sonnet 5.5); nessun commit, nessuna credenziale, Docker, banco e tablet non toccati.
+
+- **Stato:** VM `acasystem-ha` **accesa**, headless (`VBoxManage startvm … --type headless`), HAOS 18.3, **Core 2026.9.4** (riportato da 2026.10.2 con `core update --version 2026.9.4` dalla console; il ritorno indietro funziona), RAM **4096 MB**, 2 vCPU, grafica vmsvga, paravirt hyperv. Avvio lento: 20-30 minuti dall'accensione alla risposta HTTP.
+- **Rete:** scheda 1 **a ponte** sul «Realtek RTL8852BE WiFi 6» (cavo connesso), DHCP, oggi 192.168.1.183/24 (cambia con la rete); scheda 2 **Host-Only** con IP fisso **192.168.56.10/24** (`ha network update enp0s8 --ipv4-method static --ipv4-address 192.168.56.10/24`, senza gateway; il DHCP di VirtualBox dà 192.168.56.101-254); scheda 3 NAT **tolta** (`--nic3 none`). La VM raggiunge 192.168.1.26 (ping).
+- **HA ascolta sulla porta 80** e solo su `192.168.56.10`, `172.30.32.1` (Supervisor) e `127.0.0.1` (D-I8). Non con `http: server_host` in `configuration.yaml`, che il Core 2026.9.4 ignora dopo la migrazione (`yaml_migration_done: true`), ma con `"server_host"` nel blocco `stable` di `/mnt/data/supervisor/homeassistant/.storage/http`, a Core fermato; copia dell'originale in `/mnt/data/http.storage.bak-20261026` (nella VM). Dal PC la 80 sull'indirizzo del ponte e la 8123 rifiutano la connessione; `192.168.56.10:80` risponde 200. La prova da un secondo apparecchio della rete dell'ufficio non è stata fatta.
+- **Acasystem verso la VM (non eseguito, tappa I4):** `TUNET_INTERNAL_HA_URL` dovrà essere `http://192.168.56.10` (porta 80). Il container `homeassistant` di Docker e `compose.tunet.yaml` non sono stati toccati.
+- **Snapshot:** «prima-del-primo-avvio», «dopo-onboarding», «prima-di-D1-oggi», «**dopo-preparazione-D1**» (presa a VM spenta, poi la VM è stata riavviata e ricontrollata). Avvio automatico con Windows: no (D-I7 aperta).
+- **Ritorno indietro:** `.storage/http` dalla copia nella VM (`ha core stop`, `cp`, `ha core start`) oppure ripristino dello snapshot «prima-di-D1-oggi» (VM spenta); per spegnere: `VBoxManage controlvm acasystem-ha acpipowerbutton`.
+
+## Seconda istanza D1 su :3003 verso l'HA della VM, 2026-10-26
+
+Scelta dell'utente del 2026-10-26: «Seconda istanza su :3003», così il banco 3002 (0.9.30, HA del PC) resta com'è.
+- **File nuovo:** `progetto/compose.d1.yaml`, progetto Docker `aca-d1`.
+  - Immagine `aca-system:0.9.31`, costruita dal working tree con D1 unito: server e schermate, vedi REP-20261023-003, «Unione di D1 nel progetto (2026-10-26)».
+  - Porta `127.0.0.1:3003` → 3002, senza binding sulla LAN.
+  - `TUNET_INTERNAL_HA_URL: http://192.168.56.10`, cioè la VM `acasystem-ha` sulla scheda host-only, porta 80, che ascolta solo per Acasystem (D-I8).
+  - Volumi propri `aca-d1_d1-data` e `aca-d1_d1-service-secret`.
+- **Avvio:** `ACASYSTEM_VERSION=0.9.31 docker compose -f progetto/compose.d1.yaml up -d --build`.
+- **Arresto:** `docker compose -f progetto/compose.d1.yaml down`. I volumi restano; si cancellano solo con `-v`.
+- **Esiti:**
+  - container healthy;
+  - `/api/health` restituisce 0.9.31;
+  - `/ha/auth/providers` risponde 200 dal container verso la VM;
+  - `deviceServiceIdentity.ts status` risponde «non è stato attivato» (uscita 1), come atteso prima di `activate`.
+- **Banco 3002:** invariato, 0.9.30.
+- **Tablet:** `adb reverse tcp:3003 tcp:3003` e una scheda aperta su `http://localhost:3003/`. L'accesso lo fa l'utente con le credenziali della VM.
+
+## Banco 0.9.28 spostato su 192.168.1.7, 2026-10-26 (mattina)
+
+La causa è il cambio di postazione e di Wi-Fi dell'utente: «MeMo Repeater 5 Ghz 2», PC su 192.168.1.7. Inoltre il PC si era riavviato alle 05:05 (Windows 10.0.26300).
+- **Docker Desktop** non era avviato. L'ho avviato da `C:\Users\matti\AppData\Local\Programs\DockerDesktop\Docker Desktop.exe`, tramite `explorer.exe`, e i due container sono ripartiti da soli.
+- **Binding LAN** in `progetto/compose.tunet.yaml`: da `192.168.1.27:3002:3002` a `192.168.1.7:3002:3002`, con il commento datato. Copia prima in `backup/v0928/pre/compose.tunet-pre-ufficio-20261026.yaml`.
+- **Bench:** `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d`, senza build: stessa immagine `aca-system:0.9.28`, volume invariato. Non ho fatto una copia a freddo, perché non è cambiata la versione e il volume non è stato toccato.
+- **Esiti:**
+  - container healthy;
+  - `/api/health` restituisce 0.9.28 su 127.0.0.1 e su 192.168.1.7.
+- **Home Assistant:** `/ha/auth/providers` dava 400 «onboarding_required», l'anomalia nota dopo l'avvio. Dopo `docker restart homeassistant` risponde 200 su entrambi gli indirizzi.
+- **Tablet:**
+  - `adb reverse tcp:3002 tcp:3002` era stato perso col riavvio e l'ho ripristinato;
+  - le due schede di `http://localhost:3002` sono state ricaricate via CDP e l'app è caricata in entrambe;
+  - il forward 9225 è stato tolto.
+
+## Aggiornamento — banco 0.9.28, 2026-10-26
+
+Banco `aca-system:0.9.28` su **192.168.1.27:3002**, sul working tree con la coreografia di [REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md) e le correzioni dei giri 1-4 (nessun commit dopo `4e198c5`). Eseguito da Claude Code (Sonnet 5.5), subagente di un flusso.
+
+- **Decisione dell'utente (2026-10-26):** «Mettila sul banco». Accetta i residui del quarto giro di ottimizzazione, misurati sul Tab M11 contro la 0.9.27 (5 giri alternati più il giro 0, intervalli non sovrapposti; [REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md), «Misura del giro 4 sul Tab M11 (2026-10-25)», tabelle in `backup/v0928/misura-g4/RISULTATI.md`):
+  - JUMP, massimo 125 [123-133] contro 106 [90-116] ms (tocco sul pallino accanto, «+1»);
+  - apertura della vista pagine, T1 72 [68-74] contro 65 [59-67] ms;
+  - uscita da Sistema, somma dei due task 282 [278-334] contro 269 [263-275] ms;
+  - in più la dissolvenza di entrata in Sistema, già accettata il 2026-10-25.
+
+  **Restano un problema aperto da registrare** (obiettivo «nessuna misura peggiore della 0.9.27» non raggiunto). Tutto il resto del giro 4 è «nd» o migliore (SW1-SW3, «Fine», «Annulla», rilascio prima del volo, ridimensionamento, riscontro del «+», tocco breve, foglio senza salto, layout-shift).
+- **Rete:** l'IPv4 Wi-Fi del PC è 192.168.1.27 (prima 192.168.1.7): aggiornati binding e commento di `progetto/compose.tunet.yaml`. Gli altri indirizzi del PC sono 172.23.160.1 e 192.168.56.1 (adattatori virtuali).
+- **Copia a freddo PRIMA** (container `tunet` fermato, uscito con 137): `backup/banco/tunet-data-pre-0.9.28-freddo.tgz`, **451599 byte**, SHA-256 `bd58a930f22b66e66bdffde185451b09d0a03eea73729e1b0cfcfa12bb3ff2b1`, `tar -tzf` leggibile (`tunet.db`, `-wal`, `-shm`). Copie di `.env`, compose ed e2e in `backup/v0928/pre/banco/`; dei documenti toccati in `backup/v0928/pre/banco-doc/`.
+- **Build e avvio:** `ACASYSTEM_VERSION=0.9.28` in `progetto/.env` (locale, ignorato da Git), `e2e/isolated-server.mjs` e `e2e/release.check.mjs`; `docker compose --env-file progetto/.env -f progetto/compose.tunet.yaml up -d --build` (log in `backup/v0928/build-banco.log`): immagine `sha256:d7e866a18ffd7e67e54d2d25bf09f08a6ca7d21a92284525701049adbdcbfe7a`, container `healthy`, `/api/health` `{"status":"ok","version":"0.9.28"}` e `/ha/auth/providers` 200 su `127.0.0.1` e su `192.168.1.27`. Bundle servito `index-DrtldulY.js` e `index-CC9wd10P.css`: il CSS è uguale a `backup/v0928/dist-g4`, il JS ha un altro nome (non analizzata la differenza, probabilmente la versione scritta nel bundle). `homeassistant` non toccato; `release.check.mjs` non eseguito.
+- **Tablet Tab M11** (`adb reverse tcp:3002 tcp:3002` resta; `adb forward tcp:9225` tolto a fine prova; origini 3013-3015 e fixture non usate in questo passo): chiavi del launcher di prima in `backup/v0928/tablet-banco/ls3002-prima-banco.json` (token esclusi per nome e mai letti); le due schede di `http://localhost:3002` ricaricate senza service worker né cache, entrambe sul bundle nuovo (la seconda era nascosta: ricaricata senza leggerne la pagina, poi verificato `index-DrtldulY.js`). Le prove hanno cambiato solo `tunet_launcher_layout` (spostamenti, ridimensionamento, rimozione) e a fine prova il valore è stato rimesso (`ls3002-restore.cjs`: nessuna chiave diversa, `pages_config` compresa). Schermate e script in `backup/v0928/tablet-banco/` (`strumenti/b1.js`-`b6.js`).
+- **Prove sul tablet** (gesti sintetici `Input.dispatchTouchEvent`, **non** il dito; layout reale del tablet, pagina «Casa e info» per i widget). **Riuscite:**
+  - tocco breve sul «+» (casella premuta, pagina ferma, si apre il foglio) e sul vuoto (nessun effetto);
+  - pressione lunga sul vuoto → vista pagine, scheda tenuta che si solleva (`is-lifted`), «Fine», tocco su una scheda → pagina in uso;
+  - frecce della vista pagine («Sposta … prima/dopo», poi rimessa a posto), scorrimento a dito, salto diretto in modifica (da -4 e +6: nessuna pagina in mezzo vista scorrere; da -1: scorrimento animato) e dal pallino della vista pagine;
+  - pressione lunga sul widget (barra del solo widget, nessun tremolio), trascinamento con copia sotto il dito, rilascio nella casella, «Annulla»;
+  - ridimensionamento con sagoma tratteggiata (bordo `dashed` durante il gesto, +1 riga, «Annulla»), rimozione e «Annulla» della pillola, «Aggiungi widget» dalla vista pagine (foglio con 27 pulsanti);
+  - nessun chip «Da collegare» in nessuna delle 9 pagine;
+  - Sistema con il pulsante «AI» in alto a destra, informativa aperta e chiusa con «Chiudi»; ritorno alla Principale.
+- **Cambi del giro 4 a dito simulato:** durante il trascinamento una pressione e un clic su una cella libera non hanno effetto (nessuna casella premuta, nessun foglio; eventi inviati da script, non da un secondo dito); un vero tocco su una cella libera arrivato 194 ms dopo il rilascio è ignorato, uno dopo 0,4 s risponde (sposta il widget). Dal rilascio: sessione finita a 291 ms, ingranaggio e barra di nuovo raggiungibili a 386 ms (95 ms dopo, 4 fotogrammi rAF di cui uno di 89 ms); «Annulla» (397 ms), Sistema (408 ms) e uno scorrimento subito dopo l'atterraggio rispondono.
+- **Non riuscito: la pila vuota di Multimedia c'è ancora.** La pagina mostra due caselle senza «+» (`is-reserved`, colonne 3-4 della prima riga). Causa letta nei dati: il segnaposto `stack_mvjd2g21` ha `ids` non vuoto (`media_group_preset_multimedia`, `appletv_card_preset_multimedia`) ma nessun widget visibile, e `withoutEmptyStacks` (`utils/launcher/layout.ts`) toglie solo le pile con `ids` vuoto; il layout salvato è identico prima e dopo il ricaricamento. Non corretto (fuori dall'incarico del banco): è il punto 2 della 0.9.28, da riaprire.
+- **Osservazione, non confrontata con la 0.9.27:** con il tocco sintetico, un secondo scorrimento che inizia entro circa 0,5 s dal primo viene ignorato (a 0,8 s funziona); la causa non è stata individuata (il codice di `Pager.tsx` non ha un blocco evidente: potrebbe essere l'animazione di aggancio o il tocco sintetico). Da provare col dito.
+- **Limiti:** nessuna prova col dito, nessun telefono, nessun TalkBack; suite e controlli statici non rieseguiti in questo passo (restano quelli del giro 4: 204 file e 3089 test verdi).
+- **Ripristino:** `ACASYSTEM_VERSION=0.9.27` in `progetto/.env`, `compose.tunet.yaml` riportato a `192.168.1.7` se il PC torna su quell'indirizzo (copia in `backup/v0928/pre/banco/`), `up -d --build`; dati dalla copia `backup/banco/tunet-data-pre-0.9.28-freddo.tgz` solo se necessario, con il container fermo; sul tablet le chiavi di `ls3002-prima-banco.json` (il formato delle chiavi non è cambiato rispetto al 2026-10-23, a quanto risulta dal confronto prima/dopo; non verificato con la 0.9.27 in esecuzione).
+
+## Primo invio su GitHub, 2026-10-25
+
+Richiesta dell'utente del 2026-10-25: caricare il progetto su GitHub «Adesso», prima del quarto giro della 0.9.28; poi «voglio usare un altro account». Eseguito da Claude Code (Opus 5.5), con l'utente presente per l'accesso. Il banco non è cambiato (resta `aca-system:0.9.27`).
+
+- **Controllo prima dell'invio.** File da inviare (1480, circa 19 MB) e tutti i 16 commit esistenti, con ricerca di:
+  - token, chiavi e password, tra cui JWT, chiavi private, token GitHub/AWS/Google/Slack/OpenAI/Anthropic, `Bearer` letterali e assegnazioni di password e segreti;
+  - email, indirizzi MAC e file di nomi rischiosi (`.env`, database, log, chiavi).
+
+  Nessun segreto trovato. L'unico valore di accesso è quello finto del banco isolato (`aca-isolated-fixture`). Il MAC presente nei documenti è un segnaposto (`02:00:00:00:00:01`) e le immagini sono gli esempi dell'upstream Tunet. Esclusi da Git: `backup/`, `progetto/.env`, il database (`data/`) e le build (`dist/`). La cartella locale `.claude/` (configurazione dell'anteprima) non è stata aggiunta.
+- **Commit** `4e198c5` «feat: launcher interactions, motion choreography and device plans (0.9.22-0.9.28)», con il lavoro fino al giro 3 della 0.9.28.
+- **Invio.**
+  - Il primo tentativo con l'account già salvato in Git Credential Manager (`Mattiapentagallo-unina`) ha dato «Repository not found».
+  - L'utente ha scelto un altro account e ha autorizzato `Mattiapentagallo` con il codice dispositivo di GitHub.
+  - Comando: `git push https://Mattiapentagallo@github.com/acamemo/acasystem.git master:main`, esito `* [new branch] master -> main`.
+- **Configurazione locale.**
+  - `origin` = `https://Mattiapentagallo@github.com/acamemo/acasystem.git`, così gli invii usano quell'account.
+  - Il ramo locale `master` segue `origin/main`.
+  - Verifica: `git ls-remote origin` dà `refs/heads/main` = `4e198c5`.
+- **Non fatto:** nessun aggiornamento automatico dal repository, nessuna CI e nessun rilascio. Il canale di aggiornamento resta un lavoro futuro (REP-20261023-004).
 
 ## Messaggi dei commit riscritti senza menzioni di Claude, 2026-10-26
 

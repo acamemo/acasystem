@@ -1,0 +1,45 @@
+# Second Acasystem instance for the D1 test with the real TV (REP-20261023-003, user's choice of
+# 2026-10-26: «Seconda istanza su :3003»). It talks to the Home Assistant of the VM acasystem-ha
+# (host-only 192.168.56.10, port 80, which listens only for Acasystem: D-I8) and keeps its own data
+# and service secret, so the bench on 3002 (compose.tunet.yaml) is not touched.
+# Start: ACASYSTEM_VERSION=0.9.31 docker compose -f progetto/compose.d1.yaml up -d --build
+# Stop:  docker compose -f progetto/compose.d1.yaml down   (volumes stay; add -v only to wipe them)
+# The tablet opens http://localhost:3003 through `adb reverse tcp:3003 tcp:3003`; no LAN binding.
+name: aca-d1
+services:
+  tunet:
+    image: aca-system:${ACASYSTEM_VERSION:?set ACASYSTEM_VERSION, e.g. 0.9.31}
+    build:
+      context: ./acasystem
+      args:
+        ACASYSTEM_VERSION: ${ACASYSTEM_VERSION}
+    ports:
+      - "127.0.0.1:3003:3002"
+    restart: unless-stopped
+    environment:
+      ACASYSTEM_VERSION: ${ACASYSTEM_VERSION}
+      NODE_ENV: production
+      DATA_DIR: /app/data
+      TUNET_INTERNAL_HA_URL: http://192.168.56.10
+      TUNET_ENCRYPTION_MODE: "off"
+      TUNET_SERVICE_SECRET_FILE: /app/service-secret/service-identity.json
+    volumes:
+      - d1-data:/app/data
+      - d1-service-secret:/app/service-secret
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:3002/api/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+volumes:
+  d1-data:
+  d1-service-secret:
