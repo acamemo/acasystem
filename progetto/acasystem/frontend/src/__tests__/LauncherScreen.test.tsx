@@ -4398,12 +4398,23 @@ describe('simplified editing of the widgets (REP-20261008-001)', () => {
       expect(ghost).toHaveClass('is-landed');
       // ... and what belongs to the end of the session is still there: the drag style of the grid.
       expect(grid).toHaveClass('is-dragging');
+      const gear = document.querySelector<HTMLElement>('.aca-system-gear')!;
+      const pagerNode = document.querySelector<HTMLElement>('.aca-pager')!;
+      expect(gear).toHaveAttribute('inert');
+      expect(pagerNode).toHaveClass('is-locked');
       // Second beat, after the frames: the session ends, the copy goes, the grid is as at rest.
       for (let step = 0; step < 10 && document.querySelector('.aca-drag-ghost'); step += 1) {
         act(() => vi.advanceTimersByTime(20));
       }
       expect(document.querySelector('.aca-drag-ghost')).toBeNull();
       expect(grid).not.toHaveClass('is-dragging');
+      // The gear and the pager come back two frames later, not in the commit that ends the session
+      // (G4 tracing of 2026-10-25, W-B and W-L).
+      expect(gear).toHaveAttribute('inert');
+      expect(pagerNode).toHaveClass('is-locked');
+      act(() => vi.advanceTimersByTime(100));
+      expect(gear).not.toHaveAttribute('inert');
+      expect(pagerNode).not.toHaveClass('is-locked');
       expect(widgetOf('home', 'test_tile_a')).not.toHaveClass('is-dragging');
       // The landing counts 260 ms from the first beat.
       act(() => vi.advanceTimersByTime(400));
@@ -4696,5 +4707,77 @@ describe('a widget just added comes in after the sheet (REP-20261023-006, D-M11,
     const [[, widgetId]] = spacers();
     await waitFor(() => expect(widgetOf(widgetId)).toHaveClass('is-selected'));
     expect(widgetOf(widgetId)).not.toHaveClass('is-entering');
+  });
+});
+
+describe('a stack with no widget that can be resolved shows free cells (ISSUE-116)', () => {
+  const ghostLayout: LauncherLayout = {
+    version: 1,
+    cover: { enabled: false },
+    pages: [
+      {
+        id: 'home',
+        label: 'Casa',
+        kind: 'widgets',
+        placements: {
+          tablet: {
+            test_tile_a: { x: 0, y: 0, w: 2, h: 2 },
+            stack_fantasma: { x: 2, y: 0, w: 2, h: 1 },
+            stack_viva: { x: 4, y: 0, w: 2, h: 1 },
+          },
+        },
+      },
+    ],
+    stacks: {
+      stack_fantasma: { ids: ['unknown_a', 'unknown_b'] },
+      stack_viva: { ids: ['unknown_c', 'test_tile_b'] },
+    },
+  };
+  const cellLabel = (x: number, y: number) => `Aggiungi un widget: colonna ${x + 1}, riga ${y + 1}`;
+  const drawn = (id: string) => document.querySelector(`[data-widget-id="${id}"]`);
+  const reservedCells = () =>
+    Array.from(document.querySelectorAll<HTMLElement>('[data-launcher-reserved]')).map(
+      (cell) => cell.dataset.launcherReserved
+    );
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem(LAUNCHER_LAYOUT_STORAGE_KEY, JSON.stringify(ghostLayout));
+    latest = null;
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
+  it('draws the ghost as «+» cells, not as a widget and not as reserved wells, and writes nothing', async () => {
+    await openHome();
+    expect(drawn('stack_fantasma')).toBeNull();
+    expect(drawn('stack_viva')).not.toBeNull();
+    expect(screen.getByRole('button', { name: cellLabel(2, 0) })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: cellLabel(3, 0) })).toBeInTheDocument();
+    expect(reservedCells()).toEqual([]);
+    // The saved layout keeps the stack, its place and its widgets.
+    expect(placement('home', 'stack_fantasma')).toEqual({ x: 2, y: 0, w: 2, h: 1 });
+    expect(latest?.layout.stacks?.stack_fantasma.ids).toEqual(['unknown_a', 'unknown_b']);
+  });
+
+  it('in edit mode the cells are free as well, and the layout is still untouched', async () => {
+    await openHome();
+    act(() => latest?.setEditMode(true));
+    expect(drawn('stack_fantasma')).toBeNull();
+    // With a widget selected the cells offer to move it there, still as free cells.
+    expect(screen.getByRole('button', { name: /qui: colonna 3, riga 1$/ })).toBeInTheDocument();
+    expect(reservedCells()).toEqual([]);
+    expect(placement('home', 'stack_fantasma')).toEqual({ x: 2, y: 0, w: 2, h: 1 });
+  });
+
+  it('a stack with one widget that can be resolved is drawn as a stack', async () => {
+    await openHome();
+    expect(screen.queryByRole('button', { name: cellLabel(4, 0) })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: cellLabel(5, 0) })).not.toBeInTheDocument();
+  });
+
+  it('a tap on a free cell of the ghost opens the sheet to add a widget there', async () => {
+    await openHome();
+    fireEvent.click(screen.getByRole('button', { name: cellLabel(2, 0) }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 });

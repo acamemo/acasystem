@@ -16,8 +16,10 @@ import type { GridGeometry } from '@/hooks/launcher/useWidgetDrag';
 import { createLauncherSelection } from '@/hooks/launcher/useLauncherSelection';
 import { LauncherUiContext, type LauncherUi } from '@/templates/launcher/LauncherUiContext';
 import {
+  CLOSING_SAFETY_MS,
   NARROW_AFTER_LANDING_MS,
   NARROW_IDLE_TIMEOUT_MS,
+  OVERVIEW_MS,
   Pager,
   SETTLE_MS,
   overviewWindow,
@@ -1114,6 +1116,257 @@ describe('a grid on a page the pager resized while it was skipped (ISSUE-109, re
       (element as HTMLElement).classList.contains('aca-launcher-page')
     );
     expect(areas).toHaveLength(0);
+  });
+});
+
+/**
+ * The page left by a far jump is skipped: it does not get `data-quiet` (0.9.28, G4 tracing of
+ * 2026-10-25, J-A). A write on a page the browser skips touches no element, leaves its 476 elements
+ * dirty, and they were restyled all together in the commit of the jump back and again by J1 two
+ * frames later.
+ */
+describe('the attribute of quiet on a page left by a far jump (J-A)', () => {
+  /** Two frames of the page, and some margin (afterNextFrame). */
+  const FRAMES = 40;
+  const quietOf = () => sections().map((section) => section.hasAttribute('data-quiet'));
+  const tick = (ms: number) =>
+    act(() => {
+      vi.advanceTimersByTime(ms);
+    });
+  /** Every write of the attribute, as `page:added|removed`. */
+  const watch = () => {
+    const writes: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        const page = sections().indexOf(record.target as HTMLElement);
+        const on = (record.target as HTMLElement).hasAttribute('data-quiet');
+        writes.push(`${page}:${on ? 'added' : 'removed'}`);
+      }
+    });
+    observer.observe(pager(), { attributes: true, attributeFilter: ['data-quiet'], subtree: true });
+    return {
+      writes,
+      stop: () => {
+        for (const record of observer.takeRecords()) {
+          const page = sections().indexOf(record.target as HTMLElement);
+          const on = (record.target as HTMLElement).hasAttribute('data-quiet');
+          writes.push(`${page}:${on ? 'added' : 'removed'}`);
+        }
+        observer.disconnect();
+      },
+    };
+  };
+
+  it('the page left, skipped when the time of the landing is over, does not get it', () => {
+    lendLayout();
+    const { update } = renderPager({ index: 1 });
+    update({ index: 7, dotJump: { current: 7 } });
+    expect(far()).toContain(1);
+    tick(FRAMES);
+    tick(NARROW);
+    // Page 1 stays as it was left: no attribute, and skipped. Page 7 lost it as the current one.
+    expect(quietOf()).toEqual([true, false, true, true, true, true, true, false, true, true]);
+    expect(far()).toContain(1);
+    tick(NARROW_IDLE_TIMEOUT_MS + 50);
+    expect(quietOf()[1]).toBe(false);
+  });
+
+  it('jumping back writes no attribute, neither in the commit nor two frames later nor after the landing', () => {
+    lendLayout();
+    const { update } = renderPager({ index: 1 });
+    update({ index: 7, dotJump: { current: 7 } });
+    tick(FRAMES);
+    tick(NARROW);
+    const watching = watch();
+    update({ index: 1, dotJump: { current: 1 } });
+    // The page comes back as the current one: skipped no more, and nothing written on it.
+    expect(sections()[1]).not.toHaveAttribute('data-far');
+    expect(sections()[1]).not.toHaveAttribute('data-quiet');
+    tick(FRAMES);
+    expect(sections()[1]).not.toHaveAttribute('data-quiet');
+    tick(NARROW + NARROW_IDLE_TIMEOUT_MS + 50);
+    watching.stop();
+    // Page 7 had lost it as the current one and is skipped now: it keeps waiting. No write at all.
+    expect(watching.writes).toEqual([]);
+    expect(sections()[7]).not.toHaveAttribute('data-quiet');
+    expect(far()).toContain(7);
+    expect(quietOf().filter(Boolean)).toHaveLength(8);
+  });
+
+  it('a page that enters the window as a neighbour gets it in the commit that stops skipping it', () => {
+    lendLayout();
+    const { update } = renderPager({ index: 1 });
+    update({ index: 7, dotJump: { current: 7 } });
+    tick(FRAMES);
+    tick(NARROW);
+    expect(sections()[1]).toHaveAttribute('data-far');
+    expect(sections()[1]).not.toHaveAttribute('data-quiet');
+    const watching = watch();
+    // Page 2: page 1 is its neighbour. One commit gives it the attribute and stops skipping it.
+    update({ index: 2, dotJump: { current: 2 } });
+    expect(sections()[1]).not.toHaveAttribute('data-far');
+    expect(sections()[1]).toHaveAttribute('data-quiet');
+    watching.stop();
+    expect(watching.writes.filter((write) => write.startsWith('1:'))).toEqual(['1:added']);
+    // Nothing more comes of it later.
+    tick(FRAMES + NARROW + NARROW_IDLE_TIMEOUT_MS + 50);
+    expect(sections()[1]).toHaveAttribute('data-quiet');
+  });
+
+  it('a page that was waiting and is skipped again after being drawn is not unmarked', () => {
+    lendLayout();
+    const { update } = renderPager({ index: 1 });
+    update({ index: 7, dotJump: { current: 7 } });
+    tick(FRAMES);
+    tick(NARROW);
+    update({ index: 2, dotJump: { current: 2 } });
+    expect(sections()[1]).toHaveAttribute('data-quiet');
+    // Far again: the attribute stays, it is not taken off a page the browser skips.
+    update({ index: 8, dotJump: { current: 8 } });
+    tick(FRAMES + NARROW + NARROW_IDLE_TIMEOUT_MS + 50);
+    expect(sections()[1]).toHaveAttribute('data-far');
+    expect(sections()[1]).toHaveAttribute('data-quiet');
+  });
+
+  it('a page left that is still drawn keeps the timer of the landing', () => {
+    lendLayout();
+    const { update } = renderPager({ index: 4 });
+    update({ index: 5 });
+    expect(sections()[4]).not.toHaveAttribute('data-quiet');
+    expect(sections()[4]).not.toHaveAttribute('data-far');
+    tick(NARROW - 1);
+    expect(sections()[4]).not.toHaveAttribute('data-quiet');
+    tick(1);
+    expect(sections()[4]).toHaveAttribute('data-quiet');
+  });
+
+  it('a page waiting for the attribute that goes by the pages view writes none: a scene changes nothing', () => {
+    lendLayout();
+    const { update } = renderPager({ index: 1 });
+    update({ index: 7, dotJump: { current: 7 } });
+    tick(FRAMES);
+    tick(NARROW);
+    const watching = watch();
+    update({ overview: true, index: 7 });
+    tick(OVERVIEW_MS + 400);
+    update({ overview: false, index: 7 });
+    tick(CLOSING_SAFETY_MS + 20);
+    tick(100 + FRAMES);
+    watching.stop();
+    expect(watching.writes).toEqual([]);
+    expect(sections()[1]).not.toHaveAttribute('data-quiet');
+  });
+});
+
+describe('the pages crossed by a running scroll are in reach (ISSUE-117)', () => {
+  const unreachable = () =>
+    sections()
+      .map((section, position) =>
+        section.hasAttribute('inert') && section.getAttribute('aria-hidden') === 'true'
+          ? position
+          : -1
+      )
+      .filter((position) => position >= 0);
+  const reachable = () =>
+    sections()
+      .map((section, position) =>
+        !section.hasAttribute('inert') && !section.hasAttribute('aria-hidden') ? position : -1
+      )
+      .filter((position) => position >= 0);
+  const swipeTo = (scrollTo: (left: number) => void, steps: number[]) => {
+    for (const page of steps) scrollTo(page * WIDTH);
+  };
+
+  it('at rest only the current page is in reach, as before', () => {
+    lendLayout();
+    renderPager({ index: 4 });
+    expect(reachable()).toEqual([4]);
+    expect(unreachable()).toEqual([0, 1, 2, 3, 5, 6, 7, 8, 9]);
+  });
+
+  it('from its first scroll event the pages the scroll is over are in reach, the others not', () => {
+    const { scrollTo } = lendLayout();
+    const { onIndexChange } = renderPager({ index: 4 });
+    scrollTo(4.4 * WIDTH);
+    expect(reachable()).toEqual([4, 5]);
+    expect(unreachable()).toEqual([0, 1, 2, 3, 6, 7, 8, 9]);
+    // The index has not changed yet: it follows after SETTLE_MS of quiet.
+    expect(onIndexChange).not.toHaveBeenCalled();
+  });
+
+  it('after the landing the page just left is still in reach until the window narrows', () => {
+    const { scrollTo } = lendLayout();
+    const { onIndexChange, update } = renderPager({ index: 4 });
+    swipeTo(scrollTo, [4.002, 4.4, 4.9, 5]);
+    act(() => {
+      vi.advanceTimersByTime(SETTLE);
+    });
+    expect(onIndexChange).toHaveBeenCalledWith(5);
+    update({ index: 5 });
+    // The second swipe, begun here, finds the page under the finger.
+    expect(reachable()).toEqual([4, 5]);
+    expect(sections()[5]).toHaveClass('is-current');
+    act(() => {
+      vi.advanceTimersByTime(NARROW_LEFT);
+    });
+    expect(reachable()).toEqual([5]);
+    expect(unreachable()).toEqual([0, 1, 2, 3, 4, 6, 7, 8, 9]);
+  });
+
+  it('a turn back widens the reach to the other side, and it narrows to the page it rests on', () => {
+    const { scrollTo } = lendLayout();
+    const { update } = renderPager({ index: 4 });
+    swipeTo(scrollTo, [4.002, 4.5, 4.9, 5]);
+    act(() => {
+      vi.advanceTimersByTime(SETTLE);
+    });
+    update({ index: 5 });
+    swipeTo(scrollTo, [4.9, 4.5, 4.05, 4]);
+    expect(reachable()).toEqual([4, 5]);
+    act(() => {
+      vi.advanceTimersByTime(SETTLE);
+    });
+    update({ index: 4 });
+    act(() => {
+      vi.advanceTimersByTime(NARROW_LEFT);
+    });
+    expect(reachable()).toEqual([4]);
+  });
+
+  it('in the overview every card is in reach and the cards going back are out of reach again', () => {
+    const { scrollTo } = lendLayout();
+    const { update } = renderPager({ index: 4 });
+    scrollTo(4.4 * WIDTH);
+    update({ overview: true });
+    expect(reachable()).toEqual(range(0, COUNT - 1));
+    // Closing: the cards are still cards, and what is not current is out of reach at once.
+    update({ overview: false });
+    expect(reachable()).toEqual([4]);
+  });
+
+  it('a jump (a far dot, the keyboard) has no scroll to cross: the neighbours are out of reach at once', () => {
+    lendLayout();
+    const { update } = renderPager({ index: 1 });
+    update({ index: 7, dotJump: { current: 7 } });
+    expect(reachable()).toEqual([7]);
+  });
+
+  it('the dot next to the page: the page left is in reach while the glide runs, out of it after', () => {
+    const { scrollTo } = lendLayout();
+    const { update } = renderPager({ index: 4 });
+    update({ index: 5, dotJump: { current: 5 } });
+    // The index changed at once and nothing has scrolled yet.
+    expect(reachable()).toEqual([5]);
+    scrollTo(4.9 * WIDTH);
+    expect(reachable()).toEqual([4, 5]);
+    scrollTo(5 * WIDTH);
+    act(() => {
+      vi.advanceTimersByTime(SETTLE);
+    });
+    act(() => {
+      vi.advanceTimersByTime(NARROW_LEFT);
+    });
+    expect(reachable()).toEqual([5]);
   });
 });
 

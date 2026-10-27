@@ -111,18 +111,23 @@ describe('selectors that restyle the shell', () => {
     );
   });
 
-  it('the drag style of the grid reaches only the cells and their content, and the copy has its own hiding class (W1, W2)', () => {
+  it('the drag style of the grid reaches only the content of the cells, and the copy has its own hiding class (W1, W2, W-P, W-V)', () => {
     // The class is taken off three grids at the end of a drag, and each descendant rule restyles
-    // every cell with its subtree (97-100 cells, tracing of 2026-10-25): no rule is added to the two.
+    // every cell with its subtree (97-100 cells, tracing of 2026-10-25): no rule is added to the
+    // one. The rule on the cell itself (`pointer-events: none`, inherited by the whole subtree of
+    // the 85 cells) went in the round 4 (W-P): FreeCells ignores a press while a session is open.
     const rules = Object.values(sheets)
       .flatMap(selectorsOf)
       .filter((selector) => selector.includes('.aca-launcher-grid.is-dragging'));
-    expect(rules.sort()).toEqual([
-      '.aca-launcher-grid.is-dragging .aca-launcher-cell',
-      '.aca-launcher-grid.is-dragging .aca-launcher-cell__content',
-    ]);
+    expect(rules.sort()).toEqual(['.aca-launcher-grid.is-dragging .aca-launcher-cell__content']);
     const launcher = sheets[`${ROOT}/templates/launcher/launcher.css`];
-    expect(launcher).toMatch(/\.aca-drag-ghost\.is-landed \{\s*visibility: hidden;/);
+    expect(launcher).not.toMatch(
+      /\.aca-launcher-grid\.is-dragging \.aca-launcher-cell\s*\{[^}]*pointer-events/
+    );
+    // The landed copy goes by opacity, which is not inherited: `visibility` restyled its whole
+    // subtree on the first beat of the landing (W-V).
+    expect(launcher).toMatch(/\.aca-drag-ghost\.is-landed \{\s*opacity: 0;\s*\}/);
+    expect(launcher).not.toMatch(/\.aca-drag-ghost\.is-landed \{[^}]*visibility/);
   });
 
   it('the indicator waits for the cards by its own class, in the normal and in the reduced group', () => {

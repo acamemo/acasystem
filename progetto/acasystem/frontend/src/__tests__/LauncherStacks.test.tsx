@@ -4,11 +4,15 @@
  */
 import { act, fireEvent, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { LauncherLayout } from '@/@types/launcher';
+import type { CellRect, LauncherLayout } from '@/@types/launcher';
 import { useWidgetDrag, type DragSession } from '@/hooks/launcher/useWidgetDrag';
 import { DEFAULT_GRIDS } from '@/utils/launcher/deviceClass';
+import { isCardHiddenByLogic } from '@/utils/cardUtils';
 import { layoutToPagesConfig } from '@/utils/launcher/legacySync';
 import {
+  liftGhostStacks,
+  placeWidgetInLayout,
+  reseatGhostStacks,
   setStackRotateInLayout,
   stackWidgetsInLayout,
   unstackWidgetInLayout,
@@ -238,5 +242,130 @@ describe('empty stacks give their cells back (0.9.28)', () => {
     expect(emptied.stacks).toBeUndefined();
     expect(emptied.pages[0].placements.tablet?.stack_a).toBeUndefined();
     expect(emptied.pages[0].placements.tablet?.['light.cucina']).toBeDefined();
+  });
+});
+
+describe('ghost stacks (ISSUE-116)', () => {
+  const stacks = { stack_f: { ids: ['widget_ignoto_a', 'widget_ignoto_b'] } };
+  const isGhost = (_pageId: string, id: string) => id === 'stack_f';
+  const withGhost = (placements: Record<string, CellRect>): LauncherLayout => ({
+    version: 1,
+    cover: { enabled: false },
+    pages: [
+      { id: 'home', label: 'Principale', kind: 'widgets', placements: { tablet: placements } },
+    ],
+    stacks,
+  });
+  const overlap = (a: CellRect, b: CellRect) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const noOverlap = (placements: Record<string, CellRect>) => {
+    const rects = Object.values(placements);
+    return rects.every((rect, i) => rects.every((other, j) => i === j || !overlap(rect, other)));
+  };
+
+  it('lifting takes the ghost off the page for the operation and keeps its rectangle', () => {
+    const base = withGhost({
+      'light.cucina': { x: 0, y: 0, w: 1, h: 1 },
+      stack_f: { x: 2, y: 0, w: 2, h: 1 },
+    });
+    const { layout: bare, lifted } = liftGhostStacks(base, ctx, isGhost);
+    expect(bare.pages[0].placements.tablet).toEqual({
+      'light.cucina': { x: 0, y: 0, w: 1, h: 1 },
+    });
+    expect(lifted).toEqual([
+      { pageId: 'home', key: 'tablet', id: 'stack_f', rect: { x: 2, y: 0, w: 2, h: 1 } },
+    ]);
+    expect(bare.stacks).toBe(base.stacks);
+  });
+
+  it('a layout without ghosts comes back as the same object', () => {
+    const base = withGhost({ 'light.cucina': { x: 0, y: 0, w: 1, h: 1 } });
+    const lifted = liftGhostStacks(base, ctx, () => false);
+    expect(lifted.layout).toBe(base);
+    expect(lifted.lifted).toEqual([]);
+    expect(reseatGhostStacks(base, ctx, [])).toBe(base);
+  });
+
+  it('a widget added on a ghost cell goes there and the stack moves to a free rectangle of its size', () => {
+    const base = withGhost({
+      'light.cucina': { x: 0, y: 0, w: 1, h: 1 },
+      stack_f: { x: 2, y: 0, w: 2, h: 1 },
+    });
+    const { layout: bare, lifted } = liftGhostStacks(base, ctx, isGhost);
+    const placed = placeWidgetInLayout(
+      bare,
+      ctx,
+      'home',
+      'light.sala',
+      { w: 2, h: 1 },
+      { x: 2, y: 0 }
+    );
+    expect(placed.placed).toBe(true);
+    const next = reseatGhostStacks(placed.layout, ctx, lifted);
+    const placements = next.pages[0].placements.tablet!;
+    expect(placements['light.sala']).toEqual({ x: 2, y: 0, w: 2, h: 1 });
+    expect(placements.stack_f).toMatchObject({ w: 2, h: 1 });
+    expect(noOverlap(placements)).toBe(true);
+    // Never deleted, never edited: the stack keeps its widgets.
+    expect(next.stacks).toBe(base.stacks);
+  });
+
+  it('with no free rectangle of its size the stack shrinks, not below one cell', () => {
+    const rects: Record<string, CellRect> = { stack_f: { x: 0, y: 0, w: 2, h: 2 } };
+    let n = 0;
+    for (let y = 0; y < 5; y += 1) {
+      for (let x = 0; x < 8; x += 1) {
+        if (x < 2 && y < 2) continue;
+        if (x === 7 && y === 4) continue;
+        n += 1;
+        rects[`light.${n}`] = { x, y, w: 1, h: 1 };
+      }
+    }
+    const { layout: bare, lifted } = liftGhostStacks(withGhost(rects), ctx, isGhost);
+    const taken = placeWidgetInLayout(
+      bare,
+      ctx,
+      'home',
+      'light.nuova',
+      { w: 2, h: 2 },
+      { x: 0, y: 0 }
+    );
+    const next = reseatGhostStacks(taken.layout, ctx, lifted);
+    const placements = next.pages.find((page) => page.id === 'home')!.placements.tablet!;
+    expect(placements.stack_f).toEqual({ x: 7, y: 4, w: 1, h: 1 });
+    expect(noOverlap(placements)).toBe(true);
+    expect(next.stacks).toBe(bare.stacks);
+  });
+
+  it('on a full page the stack goes to a new page: never dropped', () => {
+    const rects: Record<string, CellRect> = {};
+    for (let y = 0; y < 5; y += 1) {
+      for (let x = 0; x < 8; x += 1) rects[`light.${y}_${x}`] = { x, y, w: 1, h: 1 };
+    }
+    const full = withGhost(rects);
+    const lifted = [
+      { pageId: 'home', key: 'tablet' as const, id: 'stack_f', rect: { x: 0, y: 0, w: 2, h: 1 } },
+    ];
+    const next = reseatGhostStacks(full, ctx, lifted);
+    expect(next.pages).toHaveLength(2);
+    const carrier = next.pages.find((page) => page.placements.tablet?.stack_f);
+    expect(carrier).toBeDefined();
+    expect(carrier?.id).not.toBe('home');
+    expect(next.pages[0].placements.tablet?.stack_f).toBeUndefined();
+    expect(next.stacks).toBe(full.stacks);
+  });
+});
+
+describe('why a stack was reserved in use (ISSUE-116, cause kept)', () => {
+  it('isCardHiddenByLogic on its own still reads a stack id as an entity', () => {
+    // The cause of the reserved cells. The launcher no longer passes a stack id to it: the
+    // visibility of a stack follows its members (StackVisibility.test.ts).
+    const hidden = isCardHiddenByLogic('stack_x', {
+      activePage: 'home',
+      getCardSettingsKey: (cardId: string) => `home::${cardId}`,
+      cardSettings: {},
+      entities: { 'person.mario': { entity_id: 'person.mario', state: 'home', attributes: {} } },
+    } as never);
+    expect(hidden).toBe(true);
   });
 });

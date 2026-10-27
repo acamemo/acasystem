@@ -30,6 +30,7 @@ import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import type { LauncherController } from '@/hooks/launcher/useLauncherController';
 import { useWidgetController } from '@/hooks/launcher/useWidgetController';
 import { useEditHint } from '@/hooks/launcher/useEditHint';
+import { useHeldAfterFrames } from '@/hooks/launcher/useHeldAfterFrames';
 import { holdTouchOnPage } from '@/hooks/launcher/gestures';
 import { createLauncherSelection, type WidgetRef } from '@/hooks/launcher/useLauncherSelection';
 import { useLongPress, type LongPressInfo } from '@/hooks/launcher/useLongPress';
@@ -338,6 +339,19 @@ export function LauncherScreen({
     [isWidgetHidden]
   );
 
+  // The placements of a page as the user sees them: a ghost stack (ISSUE-116) has no cells, so a
+  // drop, a drag preview and «Sposta qui» find them free.
+  const placementsOf = useCallback(
+    (pageId: string) => {
+      const page = controller.findPage(pageId);
+      if (!page) return {};
+      return (
+        controller.placementsFor?.(pageId) ?? pagePlacements(page, controller.classFor(pageId))
+      );
+    },
+    [controller]
+  );
+
   // ── Grids (for the drag geometry) ──
   const grids = useRef(new Map<string, () => GridGeometry | null>());
   const registerGrid = useCallback((pageId: string, measure: () => GridGeometry | null) => {
@@ -496,9 +510,7 @@ export function LauncherScreen({
         return;
       }
       const targetPage = controller.findPage(target.pageId);
-      const before = targetPage
-        ? pagePlacements(targetPage, controller.classFor(target.pageId))
-        : {};
+      const before = placementsOf(target.pageId);
       const layoutBefore = controller.layout;
       const shrunk = shrunkText(target.pageId, before, target.preview, session.widgetId);
       const { rect } = target;
@@ -561,15 +573,12 @@ export function LauncherScreen({
       select(target.pageId, session.widgetId, layoutBefore, true);
       if (session.mode === 'move') land(target.pageId, session.widgetId, flying);
     },
-    [controller, announce, reject, shrunkText, select, land, selection]
+    [controller, announce, reject, shrunkText, select, land, selection, placementsOf]
   );
 
   const drag = useWidgetDrag({
     getGeometry: (pageId) => grids.current.get(pageId)?.() ?? null,
-    getPlacements: (pageId) => {
-      const page = controller.findPage(pageId);
-      return page ? pagePlacements(page, controller.classFor(pageId)) : {};
-    },
+    getPlacements: placementsOf,
     sizesFor: controller.sizesFor,
     getPagerBounds: () => {
       const box = pagerRef.current?.getBoundingClientRect();
@@ -1891,7 +1900,7 @@ export function LauncherScreen({
       const page = controller.findPage(pageId);
       if (!chosen || chosen.pageId !== pageId || !page) return;
       const { widgetId } = chosen;
-      const placements = pagePlacements(page, controller.classFor(pageId));
+      const placements = placementsOf(pageId);
       const placement = placements[widgetId];
       if (!placement) return;
       const grid = controller.gridFor(pageId);
@@ -1915,7 +1924,7 @@ export function LauncherScreen({
         requestFocus(pageId, widgetId);
       } else reject(widgetId, 'Non c’è spazio lì.');
     },
-    [controller, selection, shrunkText, widgetName, announce, reject, requestFocus]
+    [controller, selection, shrunkText, widgetName, announce, reject, requestFocus, placementsOf]
   );
   /** Maiusc + Tab on «Rimuovi»: back to the selected widget (false: Tab goes on as usual). */
   const focusSelected = () =>
@@ -2016,6 +2025,11 @@ export function LauncherScreen({
     ]
   );
 
+  // The gear and the pager stay out of reach for two frames after the session ends (G4 tracing of
+  // 2026-10-25, W-B and W-L): the commit that ends it no longer writes `inert` on the gear nor the
+  // lock of the pager, which move layout and style in the frame after `stop()`.
+  const sessionHeld = useHeldAfterFrames(Boolean(drag.session));
+
   // The page whose turn the finger arms at an edge: its grid drops the «+» before it comes (W1).
   const edgePageId =
     drag.session && drag.edgeSide !== 0
@@ -2050,7 +2064,7 @@ export function LauncherScreen({
                     onOpenSystem={onOpenSystem}
                     updateCount={updateCount}
                     connectionProblem={connectionProblem}
-                    inert={Boolean(drag.session)}
+                    inert={sessionHeld}
                   />
                 }
                 commands={
@@ -2180,9 +2194,7 @@ export function LauncherScreen({
                     pages={pages}
                     index={currentPage}
                     onIndexChange={goToPage}
-                    locked={
-                      Boolean(drag.session) || Boolean(pageDrag.state) || renaming || pageLocks > 0
-                    }
+                    locked={sessionHeld || Boolean(pageDrag.state) || renaming || pageLocks > 0}
                     // A resize never turns a page (useWidgetDrag): only a move or an add does.
                     dragging={drag.session != null && drag.session.mode !== 'resize'}
                     dotJump={dotJump}

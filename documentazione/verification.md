@@ -69,7 +69,7 @@ Un controllo è **Superato** soltanto con procedura realmente eseguita ed eviden
 - **C3 pubblicata dall'utente e verificata:** release `v0.9.30` su `acamemo/acasystem-releases`, SHA-256 coincidente. Sul Tab M11 l'APK di rilascio scarica la release e apre la pagina di accesso con il banco 0.9.30. Login non provato.
 - **C3, release v0.9.30 preparata** dall'immagine del banco (117 file, 3,2 MB). Con il guscio Windows, un finto GitHub e il banco vero: pagina di accesso, `/api/health` 0.9.30 e WebSocket HA `auth_required`. Non pubblicata; login non provato.
 
-**2026-10-25 — ottimizzazione della coreografia 0.9.28, opzione B ([REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md)):** tre giri di correzioni (K1-K5, K6a, D1, D2, W1-W3, J1) e tre misure sul Tab M11 con gesti sintetici CDP, 5 giri alternati più il giro 0, contro la 0.9.27 (`dist-banco-0.9.27`); build `backup/v0928/dist-g3`. Controlli statici superati: typecheck strict, `eslint src`, `lint:typography` (0 violazioni, 522 file), `lint:theme-colors` (0 violazioni, 343 file); Vitest `--maxWorkers=4`, suite completa 203 file e 3064 test superati; build Vite riuscita. **Esito della misura: obiettivo non raggiunto**; dopo il giro 3 restano peggiori della 0.9.27 JUMP (somma 262 contro 195 ms, numero 3 contro 2), il task singolo prima della scena all'apertura (+7-11 ms), la somma dei task all'uscita da Sistema (290 contro 264 ms) e il rilascio nel volo in S3cD (blocco 90 contro 0 ms); la dissolvenza di entrata in Sistema è peggiore ma accettata dall'utente il 2026-10-25. Non eseguiti: prova col dito dell'utente, TalkBack, nuovo banco, e2e; le misure sintetiche non sostituiscono la prova a video. Nessun commit.
+**2026-10-25 — ottimizzazione della coreografia 0.9.28, opzione B ([REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md)):** tre giri di correzioni (K1-K5, K6a, D1, D2, W1-W3, J1) e tre misure sul Tab M11 con gesti sintetici CDP, 5 giri alternati più il giro 0, contro la 0.9.27 (`dist-banco-0.9.27`); build `backup/v0928/dist-g3`. Controlli statici superati: typecheck strict, `eslint src`, `lint:typography` (0 violazioni, 522 file), `lint:theme-colors` (0 violazioni, 343 file); Vitest `--maxWorkers=4`, suite completa 203 file e 3064 test superati; build Vite riuscita. **Esito della misura: obiettivo non raggiunto** (aggiornato dopo il giro 4: vedi la sezione «0.9.28, quarto giro» più sotto); dopo il giro 3 restano peggiori della 0.9.27 JUMP (somma 262 contro 195 ms, numero 3 contro 2), il task singolo prima della scena all'apertura (+7-11 ms), la somma dei task all'uscita da Sistema (290 contro 264 ms) e il rilascio nel volo in S3cD (blocco 90 contro 0 ms); la dissolvenza di entrata in Sistema è peggiore ma accettata dall'utente il 2026-10-25. Non eseguiti: prova col dito dell'utente, TalkBack, nuovo banco, e2e; le misure sintetiche non sostituiscono la prova a video. Nessun commit.
 
 ## Controlli documentali
 
@@ -1379,6 +1379,95 @@ Fonte: [REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md), �
 **Misura sul Tab M11** (Chrome, 1280x665 a DPR 1,5; **gesti sintetici CDP** sui fixture, non il dito; `dist-parte3` contro 0.9.27 e, per lo scorrimento, 0.9.26; 5 giri alternati più il giro 0; giri non validi 0). Esito: **migliori** la chiusura del foglio «Impostazioni del widget» (layout-shift 0 contro 0,014), il riscontro del «+» (15,7-17,5 contro 107-301 ms), il tocco breve (0 fotogrammi sotto scala 1 in 12 prove su 12) e il blocco prima del volo della copia (0 contro 119-140 ms); **scorrimento** con blocco massimo non distinguibile dalla 0.9.27 (SW1 121 [76-146] contro 85, SW2 76 contro 60, SW3 72 contro 85) ma somma peggiore su SW1 e SW2 (348 contro 144; 275 contro 118) e JUMP peggiore su tutto (133 contro 93 ms); **peggiori** apertura della vista pagine (290 contro 65 ms prima della scena), «Fine» (894 contro 748 ms), Sistema, «Annulla» della pillola (285 contro 184 ms) e della barra, commit dentro il volo della copia (blocco 143 contro 0 ms), blocchi nel ridimensionamento.
 
 **Non eseguito:** traccia CDP del thread (non registrata, vedi la diagnosi); prova col dito; telefono; Casa 3D; e2e (Playwright) sulla 0.9.28; backend; aggiornamento del banco. **Limiti:** gesti sintetici, i rAF non sono fotogrammi presentati. Le correzioni sono state provate prima della misura solo con i test di guardia (jsdom); la misura non conferma il ritorno dello scorrimento al livello della 0.9.27.
+
+## 2026-10-25 — 0.9.28, quarto giro dell'ottimizzazione: correzioni e misura sul Tab M11 (REP-20261023-006, «Giro 4 (2026-10-25)»)
+
+Fonte: [REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md), sezioni «Giro 4: applicazione dei passi 1-7» e «Misura del giro 4 sul Tab M11». Evidenze in `backup/v0928/` (esclusa da Git: `g4/vitest-completo.log`, `build-g4.log`, `misura-g4/RISULTATI.md`, `diagnosi-g4/`). Esecuzioni di passi del flusso (Claude Code), cartella `progetto/acasystem/frontend`, `--maxWorkers=4`. Nessun commit. Questa sezione trascrive gli esiti riportati dai passi; non rieseguo i comandi.
+
+| Controllo | Esito |
+|---|---|
+| Suite frontend completa (`npx vitest run --maxWorkers=4`) | Superato: 204 file, **3089 test** (prima 203 file e 3064); nuovi `Optimize0928G4` (19 test) e 6 test «J-A» in `PagerFarPages`; aggiornati `LauncherScreen`, `PolishLauncherScreen`, `StyleInvalidation0928` |
+| Test di guardia sul codice di prima | 4 dei 6 test J-A e 9 dei 19 di `Optimize0928G4` falliscono sui sorgenti precedenti (gli altri descrivono comportamenti invariati) |
+| `npm run typecheck` (`tsc -p tsconfig.strict.json --noEmit`), `eslint src` | Superato |
+| `lint:typography` / `lint:theme-colors` | Superato: 0 violazioni (523 / 343 file) |
+| `npx vite build --outDir backup/v0928/dist-g4` | Riuscita (solo l'avviso sui chunk oltre 500 kB); `dist/` non toccato |
+| Prettier (`format:check`) | Non superato sulla base per file già fuori formato; non applicato ai file preesistenti, il codice aggiunto è formattato |
+| Backend | Non toccato e non rieseguito |
+
+**Misura sul Tab M11** (Chrome, 1280x665 a DPR 1,5; gesti sintetici CDP sui fixture; `dist-g4` contro 0.9.27; 5 giri alternati più il giro 0; mediana [min-max]; «migliore» o «peggiore» solo a intervalli non sovrapposti; giri non validi 0). **Obiettivo «nessuna misura peggiore della 0.9.27»: non raggiunto.** Risolti: task extra di JUMP «-6» (blocco prima di T0 0 contro 0 in 5 giri su 5) e task a fine volo del rilascio (nessun task oltre +250 ms; blocco in finestra 0 contro 0 in S3a e S3cD). **Peggiori:** JUMP, massimo dei task lunghi 125 [123-133] contro 106 [90-116] ms; apertura della vista pagine in T1, task prima della scena 72 [68-74] contro 65 [59-67] ms; uscita da Sistema, somma dei due task 282 [278-334] contro 269 [263-275] ms. La dissolvenza di entrata in Sistema è peggiore (fps 72,6 contro 82,8) ma accettata dall'utente il 2026-10-25. Nd o migliori: SW1-SW3, JUMP (somma 196 contro 192, numero 2 contro 2), «Fine», «Annulla» di pillola e barra, rilascio della copia prima del volo, ridimensionamento; mantenuti il riscontro del «+» (17 contro 106-306 ms), il tocco breve, il foglio senza salto e il layout-shift del ridimensionamento.
+
+**Non eseguito:** prova a video del giro 4 (scorrimento verso la vicina dopo un rilascio, «Annulla» e Sistema due fotogrammi dopo l'atterraggio, mouse sulle celle durante il trascinamento), J-B, prova col dito, TalkBack, e2e, telefono, nuovo banco. **Limiti:** gesti sintetici, i rAF non sono fotogrammi presentati; le simulazioni che hanno motivato il piano erano di 1-3 giri e non seguono la regola a intervalli; la causa dei circa 19 ms in più del tocco «+1» in JUMP è un'ipotesi non confermata da una traccia.
+
+## 2026-10-26 — ISSUE-116 (a) e ISSUE-117 P1: controlli locali (REP-20261023-006, annotazione)
+
+Fonte: [project-status.md](project-status.md), ISSUE-116 e ISSUE-117. Esecuzione di un passo del flusso (Claude Code, claude-sonnet-5-5), cartella `progetto/acasystem/frontend`, `--maxWorkers=4`. Log in `backup/v0929/` (esclusa da Git). Nessun commit, browser o tablet.
+
+| Controllo | Esito |
+|---|---|
+| `tsc -p tsconfig.strict.json --noEmit` | Superato |
+| `eslint src` | Superato |
+| `lint:typography` / `lint:theme-colors` | 0 violazioni (523 / 343 file) |
+| Mirati: `PagerFarPages`, `PagerFarNear`, `PagerRestyle`, `LauncherStacks` (14), `LauncherController` (20), `LauncherScreen` (sezione ISSUE-116, 4) | Superati |
+| Suite completa `npx vitest run --maxWorkers=4` | 204 file, **3109 test verdi**, 624 s (`backup/v0929/vitest-completo.log`) |
+| `npx vite build --outDir backup/v0929/dist` (`dist/` non toccata) | Riuscita |
+
+**Guardie nuove:** pagine incrociate dallo scorrimento in corso (`PagerFarPages.test.tsx`); sollevamento e rimessa delle pile fantasma, senza cancellarle (`LauncherStacks.test.tsx`, `LauncherController.test.tsx`); caselle libere al posto della pila fantasma in uso e in modifica, nessuna casella riservata, layout invariato, tocco sul «+» (`LauncherScreen.test.tsx`); `isCardHiddenByLogic` nasconde l'id di una pila (causa osservata).
+
+**Non eseguito:** prova sul tablet (tocco reale, costo SW1-SW3/JUMP/T1, pila di prova sul server dei fixture, Copertina del banco), prova col dito, e2e, telefono, TalkBack. La pagina Multimedia **non** cambia (vedi ISSUE-116): resta una scelta dell'utente.
+
+## 2026-10-26 — 0.9.28 sul banco: prove sul Tab M11 (REP-20261023-006, «Banco 0.9.28 e prove sul tablet»)
+
+Fonte: [REP-20261023-006](reports/REP-20261023-006-coreografia-animazioni.md) e [infrastructure.md](infrastructure.md), «Aggiornamento — banco 0.9.28, 2026-10-26». Evidenze in `backup/v0928/tablet-banco/` (esclusa da Git).
+
+| Controllo | Esito |
+|---|---|
+| Banco `aca-system:0.9.28` su 192.168.1.27:3002: container healthy, `/api/health` 0.9.28, `/ha/auth/providers` 200 su `127.0.0.1` e IP LAN | Superato |
+| Tab M11, gesti sintetici CDP, bundle nuovo senza service worker né cache: tocco breve su «+» e sul vuoto, pressione lunga, vista pagine, «Fine», frecce, scorrimento, salto diretto, widget (barra, copia, rilascio, «Annulla»), sagoma tratteggiata, pillola, «Aggiungi widget», Sistema con il pulsante «AI», informativa | Superato |
+| Cambi del giro 4 (celle libere durante il trascinamento e 194 ms dopo il rilascio, raggiungibilità di ingranaggio e barra 95 ms dopo la fine) | Superato |
+| Pagina Multimedia senza caselle vuote | **Non superato**: due caselle senza «+» (`stack_mvjd2g21`, `withoutEmptyStacks` non la copre); non corretta, proposta |
+| Residui di prestazione del giro 4 | Accettati dall'utente il 2026-10-26; aperti in ISSUE-115 |
+
+**Non eseguito:** prova col dito dell'utente, telefono, TalkBack, `release.check.mjs`, suite e controlli statici in questo passo (l'ultima suite è quella del giro 4: 204 file, 3089 test); confronto con la 0.9.27 dello scorrimento ravvicinato (un secondo scorrimento entro circa 0,5 s viene ignorato con il tocco sintetico, causa non trovata). Nessun commit né push.
+
+## 2026-10-26 — 0.9.29 e 0.9.30: pila fantasma, visibilità delle pile e doppio scorrimento (REP-20261026-003)
+
+Fonte: [REP-20261026-003](reports/REP-20261026-003-pila-fantasma-doppio-scorrimento.md), [project-status.md](project-status.md) (ISSUE-116 e ISSUE-117). Esecuzione di passi di un flusso (Claude Code, claude-sonnet-5-5). Cartella `progetto/acasystem/frontend`, `--maxWorkers=4`; Tab M11 con `adb` e CDP su origini di prova 3013-3017 (server dei fixture, dati finti) e sul banco 3002 (senza token, `localStorage` salvato e confrontato). Log e misure locali in `backup/v0929/` (esclusa da Git). Nessun commit.
+
+**Software**
+
+| Comando | Esito |
+|---|---|
+| `npx vitest run --maxWorkers=4 --shard=1..4/4` (0.9.29) | Superato: 737 + 1006 + 749 + 617 = 3109 test, 204 file |
+| `npm run typecheck`, `npm run lint`, `npm run build`, `node scripts/check-bundle-size.mjs` (0.9.29) | Superati (build con il solo avviso di dimensione dei chunk) |
+| `npm run lint:typography` / `lint:theme-colors` / `i18n:check` (0.9.29) | 0 violazioni (523 / 343 file); 4 test |
+| `npx vitest run --maxWorkers=4 --shard=1..4/4` (0.9.30) | Superato: 746 + 1006 + 745 + 619 = 3116 test |
+| `typecheck`, `lint`, `lint:typography`, `lint:theme-colors`, `i18n:check`, `build`, `check-bundle-size` (0.9.30) | Superati (0 violazioni su 524 / 344 file) |
+
+Guardie nuove: `PagerFarPages.test.tsx` (pagine incrociate), `LauncherStacks.test.tsx`, `LauncherController.test.tsx` e `LauncherScreen.test.tsx` (pile fantasma), `StackVisibility.test.ts` (visibilità della pila dai membri).
+
+**Tab M11 (eventi di `adb input` e CDP, non il dito)**
+
+| Controllo | Esito |
+|---|---|
+| Secondo scorrimento, tocco reale (`dopp3.cjs`, 30 prove per versione) | 0.9.28: 24/30 ignorati; 0.9.29: 0/30 |
+| Secondo scorrimento, tocco CDP (`dopp2.cjs`, 50 prove per versione) | 0.9.28: 11/50; 0.9.29: 1/50 (aggancio del primo scorrimento, non ripetuto) |
+| Costo SW1, SW2, SW3, JUMP, T1 (5 giri alternati più giro 0) | Non distinguibile, nessuna misura nominata peggiore; SW3: 10 righe di fotogrammi «peggiore» non confrontabili, con SW3L non distinguibili. `trace4.cjs` non eseguito |
+| Pila fantasma su fixture | Superato (due «+», pila spostata e non cancellata, `stacks` identico) |
+| Pila con due widget collegati in uso, 0.9.28 e 0.9.29 | Non superato (preesistente): corretta in 0.9.30 per scelta dell'utente, coperta da guardie unitarie |
+| Riposo, vista pagine, fuoco | Superato come progettato |
+
+**Banco 3002**
+
+| Controllo | Esito |
+|---|---|
+| 0.9.29: `/api/health` e `/ha/auth/providers` su 127.0.0.1 e 192.168.1.7, container healthy | Superato |
+| 0.9.29: doppio scorrimento 3/3 per verso, «+», pressione lunga, «Fine», pallini, trascinamento (tocco CDP), Sistema, «AI» | Superato; Multimedia senza «+» come atteso dalla sola regola (a) |
+| 0.9.30: stessi controlli di salute (versione 0.9.30), container healthy | Superato |
+| 0.9.30: pila di Multimedia visibile, tocco su «Impostazioni del widget» con «Dispositivo da collegare», Copertina con la sua pila, doppio scorrimento 3/3 per verso, «+», «Fine», Sistema, «AI» | Superato |
+| 0.9.30: scelta del dispositivo da «Cambia» | Non eseguito: elenco vuoto, l'HA del banco non espone media player |
+| `localStorage` di 3002 prima/dopo | 38 chiavi non sensibili, nessuna differenza |
+
+**Non eseguito:** prova col dito, e2e, telefono, TalkBack, trascinamento e pallini sulla 0.9.30, screenshot della Copertina sulla 0.9.29. Incidenti di prova senza effetti sul prodotto: tasti Tab inviati per errore a Chrome nella barra degli indirizzi (ripulito, nessuna navigazione); un primo script di ricarica bloccato (terminato per PID).
 
 ## 2026-10-23 — D1, parte server: facciata `/api/dispositivi`, identità di servizio e ricetta di accensione (REP-20261023-003, «Parte server di D1»)
 

@@ -1022,10 +1022,12 @@
       opacity var(--aca-dur-cell, 160ms) var(--aca-motion-ease-in, ease-in),
       scale var(--aca-dur-cell, 160ms) var(--aca-motion-ease-in, ease-in);
   }
-  /* While a widget is dragged the wells stay as the grid of reference, and the «+» goes in 120 ms. */
-  .aca-launcher-grid.is-dragging .aca-launcher-cell {
-    pointer-events: none;
-  }
+  /*
+   * While a widget is dragged the wells stay as the grid of reference, and the «+» goes in 120 ms.
+   * The cells take no press meanwhile, but not from here: `pointer-events` is inherited, and a rule
+   * on each cell restyled its whole subtree at every pick-up and drop (G4 tracing of 2026-10-25,
+   * W-P). FreeCells ignores a press or a click while a session is open and right after a drop.
+   */
   .aca-launcher-grid.is-dragging .aca-launcher-cell__content {
     opacity: 0;
     transition-duration: var(--aca-dur-swap-out, 120ms);
@@ -1227,9 +1229,14 @@
     transition-duration: var(--aca-fly-dur);
     transition-timing-function: var(--aca-fly-ease);
   }
-  /* Landed: the widget shows in its cell and the copy goes in the same frame (W2). */
+  /*
+   * Landed: the widget shows in its cell and the copy goes in the same frame (W2). By opacity and
+   * not by visibility (G4 tracing of 2026-10-25, W-V): visibility is inherited and restyled the
+   * whole subtree of the copy on the first beat of the landing; the copy has its layer already,
+   * and opacity is not inherited.
+   */
   .aca-drag-ghost.is-landed {
-    visibility: hidden;
+    opacity: 0;
   }
   .aca-drag-ghost.is-flying--remove {
     transition: none;

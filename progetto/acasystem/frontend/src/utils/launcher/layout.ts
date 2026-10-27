@@ -1236,6 +1236,105 @@ export function withoutEmptyStacks(layout: LauncherLayout): LauncherLayout {
   return { ...others, pages, ...(Object.keys(kept).length > 0 ? { stacks: kept } : {}) };
 }
 
+/*
+ * Ghost stacks (ISSUE-116). A stack none of whose widgets has a definition shows its cells free,
+ * with the «+», but the saved layout is not touched: its ids stay, so the stack comes back as soon
+ * as a widget of it can be resolved again (Home Assistant reachable, a definition loaded). While a
+ * user action places or moves something, the ghosts are lifted off the page for the operation
+ * (so their cells count as free) and put back afterwards, never deleted: the saved layout has no
+ * overlap and `layout.stacks` is the same object.
+ */
+
+/** A ghost stack taken off the active class of a page, to be put back by reseatGhostStacks. */
+export interface LiftedStack {
+  pageId: string;
+  key: DeviceClass;
+  id: string;
+  rect: CellRect;
+}
+
+/**
+ * Takes the ghost stacks off the placements the page uses on this screen, for the operation that
+ * follows. The same layout comes back when there are none. Other classes are not touched.
+ */
+export function liftGhostStacks(
+  layout: LauncherLayout,
+  ctx: LayoutContext,
+  isGhost: (pageId: string, id: string) => boolean
+): { layout: LauncherLayout; lifted: LiftedStack[] } {
+  const lifted: LiftedStack[] = [];
+  const pages = layout.pages.map((page) => {
+    if (page.kind !== 'widgets' && page.kind !== 'cover') return page;
+    const key = pageClass(layout, page, ctx);
+    const rects = page.placements[key];
+    if (!rects) return page;
+    const ghosts = Object.keys(rects).filter((id) => isStackId(id) && isGhost(page.id, id));
+    if (ghosts.length === 0) return page;
+    for (const id of ghosts) lifted.push({ pageId: page.id, key, id, rect: rects[id] });
+    const kept = Object.fromEntries(Object.entries(rects).filter(([id]) => !ghosts.includes(id)));
+    return { ...page, placements: { ...page.placements, [key]: kept } };
+  });
+  return lifted.length === 0 ? { layout, lifted } : { layout: { ...layout, pages }, lifted };
+}
+
+/**
+ * Puts the lifted stacks back, one by one: on the same rectangle when it is still free; else at
+ * the first free rectangle of the same size on the page, then smaller (down to one cell); else on
+ * the first later page of widgets that has room, else on a new page at the end. A stack is never
+ * dropped: `layout.stacks` is not read or written, so its widgets stay as they were.
+ */
+export function reseatGhostStacks(
+  layout: LauncherLayout,
+  ctx: LayoutContext,
+  lifted: readonly LiftedStack[]
+): LauncherLayout {
+  return lifted.reduce((next, item) => reseatGhostStack(next, ctx, item), layout);
+}
+
+function reseatGhostStack(
+  layout: LauncherLayout,
+  ctx: LayoutContext,
+  { pageId, key, id, rect }: LiftedStack
+): LauncherLayout {
+  const size: CellSize = { w: rect.w, h: rect.h };
+  const page = findPage(layout, pageId);
+  if (page) {
+    const current = pagePlacements(page, key);
+    if (current[id]) return layout;
+    const grid = gridFor(ctx.grids, key);
+    const spot =
+      (rectFits(rect, grid) && isFree(current, rect) ? rect : null) ??
+      findFreeRect(current, grid, size) ??
+      findFreeRectShrinking(current, grid, size);
+    if (spot)
+      return replacePage(layout, pageId, (item) =>
+        withPlacements(item, key, { ...current, [id]: spot })
+      );
+  }
+  // No room on its page: the first page of widgets after it that has room, else a new one.
+  const start = page ? layout.pages.indexOf(page) + 1 : 0;
+  for (const later of layout.pages.slice(start)) {
+    if (later.kind !== 'widgets' || later.hidden) continue;
+    const laterKey = pageClass(layout, later, ctx);
+    const laterGrid = gridFor(ctx.grids, laterKey);
+    const current = pagePlacements(later, laterKey);
+    const spot = findFreeRectShrinking(current, laterGrid, clampSize(size, laterGrid));
+    if (spot) {
+      return replacePage(layout, later.id, (item) =>
+        withPlacements(item, laterKey, { ...current, [id]: spot })
+      );
+    }
+  }
+  const added = addPageToLayout(layout, { label: PAGE_KIND_LABEL.widgets, kind: 'widgets' });
+  const created = findPage(added.layout, added.pageId);
+  if (!created) return layout;
+  const createdKey = pageClass(added.layout, created, ctx);
+  const fitted = clampSize(size, gridFor(ctx.grids, createdKey));
+  return replacePage(added.layout, added.pageId, (item) =>
+    withPlacements(item, createdKey, { [id]: { x: 0, y: 0, ...fitted } })
+  );
+}
+
 /** Replaces `fromId` with `toId` in every class of the page, keeping its rectangles. */
 function renamePlacement(page: LauncherPage, fromId: string, toId: string): LauncherPage {
   const placements: LauncherPage['placements'] = {};

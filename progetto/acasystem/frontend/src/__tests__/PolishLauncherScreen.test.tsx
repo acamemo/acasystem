@@ -400,9 +400,13 @@ describe('free cells with «+»', () => {
     fireEvent.pointerMove(window, { pointerId: 1, clientX: 500, clientY: 50 });
     await new Promise((resolve) => setTimeout(resolve, 80));
     expect(dragging()).toEqual([false, true, true, false]);
-    // Nothing keeps it after the session.
+    // The session ends: the page in view loses it in that commit (the «+» come back as ever), the
+    // page armed at the edge, off screen, keeps it until the quiet moment (G4, W-A) ...
     fireEvent.pointerCancel(window, { pointerId: 1 });
-    await waitFor(() => expect(dragging()).toEqual([false, false, false, false]));
+    expect(dragging()).toEqual([false, false, true, false]);
+    // ... or until the first pointerdown, which takes it off at once.
+    fireEvent.pointerDown(document.body, { pointerId: 2 });
+    expect(dragging()).toEqual([false, false, false, false]);
   });
 
   it('a resize draws the drag style on the grid it starts from and on no other (W1)', async () => {

@@ -1,5 +1,6 @@
 import type { KeyboardEvent, Ref } from 'react';
 import { Body, Button, Icon } from '@/components/primitives';
+import { useHeldAfterFrames } from '@/hooks/launcher/useHeldAfterFrames';
 import './edit.css';
 
 /**
@@ -53,6 +54,11 @@ export function WidgetActionBar({
   onTabForward,
 }: WidgetActionBarProps) {
   const dropping = drop !== 'none';
+  // «Annulla» and «Fine» are out of reach as the drop begins, and come back two frames after it
+  // ends: the class and the look of the bar change in the commit that ends the session as ever,
+  // the `inert` of the group does not (G4 tracing of 2026-10-25, W-B: about 23 elements in the
+  // frame after `stop()`).
+  const restOut = useHeldAfterFrames(dropping);
   // Tab is taken only when the focus moved; otherwise it goes on in the usual order.
   const tab = (event: KeyboardEvent<HTMLElement>, back: boolean, to?: () => boolean) => {
     if (event.key !== 'Tab' || event.shiftKey !== back || !to) return;
@@ -100,7 +106,7 @@ export function WidgetActionBar({
         <div
           className="aca-widget-actions__rest"
           aria-hidden={dropping || undefined}
-          inert={dropping || undefined}
+          inert={restOut || undefined}
         >
           <span className="aca-widget-actions__divider" aria-hidden="true" />
           <Button

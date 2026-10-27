@@ -36,6 +36,7 @@ import {
   LauncherPressContext,
   useLauncherUi,
 } from './LauncherUiContext';
+import { whenIdle } from './Pager';
 import { WidgetHost } from './WidgetHost';
 
 type GridStyle = CSSProperties &
@@ -115,6 +116,13 @@ interface FreeCellsProps {
   /** The keyboard entered the cells: Invio adds there, so the selection is cleared. */
   onKeyboardEnter: () => void;
   /**
+   * True while a widget is dragged or flying, and right after a drop: a press or a click on a cell
+   * does nothing then. The stylesheet no longer says it with `pointer-events: none` on every cell
+   * under `is-dragging` (G4 tracing of 2026-10-25, W-P): the property is inherited, and each cell
+   * with its whole subtree was restyled at the pick-up and at the end of the drag.
+   */
+  busy: () => boolean;
+  /**
    * Only the wells, no «+»: the same cells as non-interactive spans hidden from assistive
    * technology (the cover outside edit mode, REP-20261009-004). While the page has free cells
    * the layer stays mounted across the two looks, only the cells change; a full page has no
@@ -140,6 +148,7 @@ const FreeCells = memo(function FreeCells({
   moving,
   onMove,
   onKeyboardEnter,
+  busy,
   wells = false,
 }: FreeCellsProps) {
   const groupRef = useRef<HTMLDivElement>(null);
@@ -176,6 +185,7 @@ const FreeCells = memo(function FreeCells({
   const beginPress = (key: string, event: PointerEvent<HTMLButtonElement>) => {
     // The main button of the primary pointer, as the long press counts.
     if ((event.button ?? 0) !== 0 || event.isPrimary === false) return;
+    if (busy()) return;
     stopPress();
     const { pointerId, clientX, clientY } = event;
     const win = window;
@@ -292,6 +302,7 @@ const FreeCells = memo(function FreeCells({
             onKeyDown={(event) => onKeyDown(event, cell)}
             onPointerDown={(event) => beginPress(key, event)}
             onClick={() => {
+              if (busy()) return;
               // A tap: the cell stays down until the sheet moves (or PRESSED_MAX_MS).
               if (press.current) press.current.clicked = true;
               if (moving) onMove(cell);
@@ -467,7 +478,11 @@ export function WidgetGrid({
   );
 
   const placements = pagePlacements(page, deviceClass);
-  const ids = idsByPosition(placements);
+  const allIds = idsByPosition(placements);
+  // A stack with no widget that can be resolved (ISSUE-116) is not drawn and takes no cell: its
+  // cells are free, with the «+». The saved layout keeps it; only a user action moves it.
+  const ghostIds = allIds.filter((id) => controller.isGhostStack?.(page.id, id));
+  const ids = ghostIds.length > 0 ? allIds.filter((id) => !ghostIds.includes(id)) : allIds;
   const drag = useContext(LauncherDragContext);
   const edgePageId = useContext(LauncherEdgePageContext);
   const pressed = useContext(LauncherPressContext);
@@ -490,7 +505,32 @@ export function WidgetGrid({
   const held = useRef(false);
   if (!drag) held.current = false;
   else if (reached) held.current = true;
-  const dragging = Boolean(drag) && held.current;
+  const live = Boolean(drag) && held.current;
+  // The end of a session takes the style off the grid on screen at once, so the «+» fade is the
+  // same as ever. A grid that is not on screen keeps it until the quiet moment of W3 (the same as
+  // the window of the pager) or the first pointerdown, and loses it at once then (G4 tracing of
+  // 2026-10-25, W-A): the commit after the session restyled 785 elements, 85 cells with their
+  // whole subtree on three grids. Those pages carry `data-quiet` (Pager), so the «+» come back
+  // without a transition before the page can be seen. A drag taken up again before that, or the
+  // page coming on screen, ends the wait; the class is never off between two drags.
+  const [afterDrag, setAfterDrag] = useState(false);
+  const [wasLive, setWasLive] = useState(live);
+  if (live !== wasLive) {
+    setWasLive(live);
+    if (!live && !onScreen) setAfterDrag(true);
+  }
+  if (afterDrag && (live || onScreen)) setAfterDrag(false);
+  useEffect(() => {
+    if (!afterDrag || drag) return undefined;
+    const end = () => setAfterDrag(false);
+    const cancel = whenIdle(end);
+    window.addEventListener('pointerdown', end, { capture: true, once: true });
+    return () => {
+      cancel();
+      window.removeEventListener('pointerdown', end, { capture: true });
+    };
+  }, [afterDrag, drag]);
+  const dragging = live || afterDrag;
   const flightLands = drag?.flight?.kind === 'land';
   const preview = target?.valid ? target.preview : null;
   const visibleIds = editMode ? ids : ids.filter((id) => !ui.isWidgetHidden(page.id, id));
@@ -533,14 +573,25 @@ export function WidgetGrid({
     );
   }
 
-  const { openAddWidget, moveSelectedTo, clearSelection } = ui;
+  const { openAddWidget, moveSelectedTo, clearSelection, justDropped } = ui;
+  // Read when a cell is pressed or clicked: the session as of the last commit, so the cells do not
+  // redraw with the pointer (FreeCells is memoised).
+  const sessionOpen = useRef(false);
+  useLayoutEffect(() => {
+    sessionOpen.current = Boolean(drag);
+  });
+  const busy = useCallback(() => sessionOpen.current || justDropped(), [justDropped]);
   const onAdd = useCallback((cell: Cell) => openAddWidget(page.id, cell), [openAddWidget, page.id]);
   const onMove = useCallback(
     (cell: Cell) => moveSelectedTo(page.id, cell),
     [moveSelectedTo, page.id]
   );
-  // A widget selected on this page (and none dragged): the free cells move it there.
-  const moving = editMode && !drag && selectedId ? ui.widgetName(page.id, selectedId) : null;
+  // A widget selected on this page (and none dragged): the free cells move it there. A drop that
+  // lands shows it from the release (G4 tracing of 2026-10-25, W-I): the cells are at opacity 0
+  // under `is-dragging` for the whole flight, so the swap of their icons is not seen, and it left
+  // the frame where the copy arrives (29 icons inserted on the page).
+  const moving =
+    editMode && (!drag || flightLands) && selectedId ? ui.widgetName(page.id, selectedId) : null;
 
   const style: GridStyle = {
     '--aca-cell': `${metrics.cell}px`,
@@ -599,6 +650,7 @@ export function WidgetGrid({
           moving={moving}
           onMove={onMove}
           onKeyboardEnter={clearSelection}
+          busy={busy}
           wells={cellPolicy === 'wells'}
         />
         <ReservedCells cells={reserved} />

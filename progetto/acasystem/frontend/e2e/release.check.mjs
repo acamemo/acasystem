@@ -15,7 +15,7 @@ const manifest = JSON.parse(
   await readFile(resolve(evidence, '../assets-image-final.json'), 'utf8')
 );
 const health = await fetch(bench + '/api/health').then((r) => r.json());
-assert.equal(health.version, '0.9.27');
+assert.equal(health.version, '0.9.32');
 for (const [name, expected] of Object.entries(manifest)) {
   const response = await fetch(bench + '/' + name);
   assert.equal(response.status, 200);
@@ -33,7 +33,7 @@ try {
   await page.locator('.aca-shell').waitFor();
   await page.getByRole('button', { name: /^Sistema/ }).click();
   await page.locator('#sistema-informazioni').scrollIntoViewIfNeeded();
-  await page.getByText('0.9.27', { exact: true }).waitFor();
+  await page.getByText('0.9.32', { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   await page.screenshot({ path: resolve(evidence, 'interface-version.png') });
   await page.getByRole('button', { name: 'Torna al launcher' }).click();
@@ -67,7 +67,7 @@ try {
       {
         health,
         assets: Object.keys(manifest).length,
-        interfaceVersion: '0.9.27',
+        interfaceVersion: '0.9.32',
         interfaceOrigin: 'http://localhost:3003',
         bench,
         socketDisconnect: true,
@@ -79,7 +79,7 @@ try {
     )
   );
   console.log(
-    `PASS: API ${isolated ? 'simulata' : 'reale'} 0.9.27, asset conformi, versione UI e socket offline senza nuovi comandi.`
+    `PASS: API ${isolated ? 'simulata' : 'reale'} 0.9.32, asset conformi, versione UI e socket offline senza nuovi comandi.`
   );
 } finally {
   await fetch('http://localhost:3003/__fixture/scenario', {

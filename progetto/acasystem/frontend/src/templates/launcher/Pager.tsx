@@ -404,7 +404,7 @@ const inputIsKeyboard = () => document.documentElement.dataset.acaInput === 'key
  * moment of the main thread (NARROW_IDLE_TIMEOUT_MS at most), or after that time where the engine
  * has no idle callbacks. Returns what cancels it.
  */
-function whenIdle(task: () => void): () => void {
+export function whenIdle(task: () => void): () => void {
   let idle: number | null = null;
   const timer = setTimeout(() => {
     if (typeof requestIdleCallback === 'function') {
@@ -477,11 +477,32 @@ export function Pager({
     setSeenKey(currentKey);
     setLeftKey(seenKey);
   }
+  // The pages left that were skipped (`data-far`) when the time of the landing was over keep
+  // their wait for `data-quiet` (G4 tracing of 2026-10-25, J-A): the write on a page the browser
+  // skips touches no element, so its 476 elements stayed dirty and were restyled together in the
+  // commit that drew the page again, at the jump back (505 elements against 31), and once more
+  // two frames later when the page lost the attribute as the new current one (J1). The page gets
+  // it in the commit that stops skipping it, if it comes back as a neighbour; if it comes back as
+  // the current page it never has it.
+  const [withheld, setWithheld] = useState<readonly string[]>([]);
+  /** The pages and the window of the last commit: what the timer below reads when it fires. */
+  const drawnNow = useRef<{ pages: readonly PagerPage[]; first: number; last: number }>({
+    pages,
+    first: 0,
+    last: pages.length - 1,
+  });
   useEffect(() => {
     if (leftKey === null) return undefined;
     // A timer and not an idle callback: the narrowing of the window of the pages asks for the idle
     // moment of the landing (whenIdle), and this one page is a few dozen elements.
-    const timer = setTimeout(() => setLeftKey(null), NARROW_AFTER_LANDING_MS);
+    const timer = setTimeout(() => {
+      const { pages: shown, first, last } = drawnNow.current;
+      const position = shown.findIndex((page) => page.key === leftKey);
+      if (position >= 0 && (position < first || position > last)) {
+        setWithheld((now) => (now.includes(leftKey) ? now : [...now, leftKey]));
+      }
+      setLeftKey(null);
+    }, NARROW_AFTER_LANDING_MS);
     return () => clearTimeout(timer);
   }, [leftKey]);
 
@@ -537,7 +558,9 @@ export function Pager({
   if (arrivalSeen !== currentKey) {
     setArrivalSeen(currentKey);
     const inScene = overview || view.overview || closing || settling || staged;
-    setArrivingKey(inScene ? null : currentKey);
+    // Only a page that had the attribute keeps it for the frames: a page that was skipped without
+    // it (withheld above) comes back as the current one with nothing to write (J-A).
+    setArrivingKey(inScene || withheld.includes(currentKey ?? '') ? null : currentKey);
   }
   useEffect(() => {
     if (arrivingKey === null) return undefined;
@@ -634,6 +657,16 @@ export function Pager({
     ? overviewWindow(pages.length, index, frame, frame ? (panStep * frame.pitch) / 2 : 0, cardDrag)
     : restWindow(pages.length, rested, reach, wideDrag, !skipNear || touching);
 
+  // A withheld page is released when it is the current one or no longer skipped; the commit that
+  // stops skipping it gives it the attribute (the render below reads the same window).
+  if (withheld.length > 0) {
+    const kept = withheld.filter((key) => {
+      const position = pages.findIndex((page) => page.key === key);
+      return position >= 0 && position !== index && (position < firstDrawn || position > lastDrawn);
+    });
+    if (kept.length !== withheld.length) setWithheld(kept);
+  }
+
   const latest = useRef({ index, base, shrunk, locked });
   /**
    * Where the scroll rests and how wide the pager is, as the last settled scroll, write and size
@@ -652,6 +685,7 @@ export function Pager({
     latest.current = { index, base, shrunk, locked };
     dragging.current = Boolean(cardDrag);
     reachRef.current = reach;
+    drawnNow.current = { pages, first: firstDrawn, last: lastDrawn };
   });
 
   useEffect(() => {
@@ -1180,6 +1214,11 @@ export function Pager({
       )}
       {pages.map((page, position) => {
         const off = position !== index;
+        // Crossed by the scroll that runs (ISSUE-117): a fling lands 0.45-0.65 s after the release
+        // and the index follows SETTLE_MS later; an inert page under the finger made the browser
+        // miss the second swipe. At rest `reach` is null and the neighbours stay out of reach.
+        const crossed = reach !== null && position >= reach.lo && position <= reach.hi;
+        const unreachable = !overview && off && !crossed;
         const style: CardStyle = {
           '--aca-o': String(position - base),
           '--aca-d': String(position - index),
@@ -1216,12 +1255,20 @@ export function Pager({
             // of the settling (tracing of 2026-10-24, G2). The page just left gets it after the
             // landing (leftKey above).
             data-quiet={
-              (off && page.key !== leftKey) || (!off && page.key === arrivingKey) ? '' : undefined
+              (off &&
+                page.key !== leftKey &&
+                !(
+                  withheld.includes(page.key) &&
+                  (position < firstDrawn || position > lastDrawn)
+                )) ||
+              (!off && page.key === arrivingKey)
+                ? ''
+                : undefined
             }
             aria-label={page.label}
             // In the overview every card is in reach (its opener and controls); the content never.
-            aria-hidden={(!overview && off) || undefined}
-            inert={(!overview && off) || undefined}
+            aria-hidden={unreachable || undefined}
+            inert={unreachable || undefined}
           >
             {/*
               Out of reach while the cards are shown and while they go back (REP-20261019-002):

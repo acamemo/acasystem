@@ -42,6 +42,9 @@ import {
   coverTakesColumns,
   dropEmptyContinuations,
   installCasa3dPage,
+  isStackId,
+  liftGhostStacks,
+  reseatGhostStacks,
   withCoverPage,
   canRemovePage,
   ensureDeviceClass,
@@ -50,6 +53,7 @@ import {
   moveWidgetToPageInLayout,
   normalizeColumns,
   pageClass,
+  pagePlacements,
   placeWidgetAheadInLayout,
   placeWidgetInLayout,
   removePageFromLayout,
@@ -61,6 +65,7 @@ import {
   type LayoutContext,
   type PlaceResult,
 } from '@/utils/launcher/layout';
+import type { Placements } from '@/utils/launcher/grid';
 import { layoutToPageSettings, layoutToPagesConfig } from '@/utils/launcher/legacySync';
 import { legacySettingsKey, migrateLegacyLayout } from '@/utils/launcher/migration';
 import { entryIndex, homeEntryIndex, pagerEntries, type PagerEntry } from '@/utils/launcher/pager';
@@ -154,6 +159,14 @@ export interface LauncherController extends LauncherApi {
   settingsKeyFor: (pageId: string, widgetId: string) => string;
   settingsFor: (pageId: string, widgetId: string) => CardSettings;
   sizesFor: (pageId: string, widgetId: string) => WidgetSizes | undefined;
+  /**
+   * A stack none of whose widgets has a definition (ISSUE-116): its cells are shown free, with the
+   * «+», and the saved layout is not touched. False before the settings are loaded, without a
+   * registry lookup (`resolveSizes`), and for a stack with at least one resolvable widget.
+   */
+  isGhostStack?: (pageId: string, id: string) => boolean;
+  /** The placements of the page on this screen without its ghost stacks (ISSUE-116). */
+  placementsFor?: (pageId: string) => Placements;
   canRemovePage: (pageId: string) => boolean;
   /**
    * False when `columns` cannot be chosen for the page on this screen: the cover needs room for
@@ -222,6 +235,16 @@ export function useLauncherController({
       return { min, max, default: all[0].default };
     },
     [resolveSizes, settingsFor, stacks]
+  );
+
+  const isGhostStack = useCallback(
+    (pageId: string, id: string) =>
+      ready &&
+      resolveSizes !== undefined &&
+      isStackId(id) &&
+      Boolean(stacks?.[id]?.ids.length) &&
+      sizesFor(pageId, id) === undefined,
+    [ready, resolveSizes, stacks, sizesFor]
   );
 
   const ctx = useMemo<LayoutContext>(
@@ -415,6 +438,26 @@ export function useLauncherController({
     },
     [commit, carrySettings]
   );
+  // A user action runs with the ghost stacks lifted off the pages (their cells are free, ISSUE-116)
+  // and puts them back after, never deleting them. Automatic writes (ensureKeys, migration) do not.
+  const asideLayout = useCallback(
+    (base: LauncherLayout, run: (bare: LauncherLayout) => LauncherLayout | null) => {
+      const { layout: bare, lifted } = liftGhostStacks(base, ctx, isGhostStack);
+      const next = run(bare);
+      return next && lifted.length > 0 ? reseatGhostStacks(next, ctx, lifted) : next;
+    },
+    [ctx, isGhostStack]
+  );
+  const asidePlace = useCallback(
+    (base: LauncherLayout, run: (bare: LauncherLayout) => PlaceResult): PlaceResult => {
+      const { layout: bare, lifted } = liftGhostStacks(base, ctx, isGhostStack);
+      const result = run(bare);
+      return lifted.length > 0 && result.placed
+        ? { ...result, layout: reseatGhostStacks(result.layout, ctx, lifted) }
+        : result;
+    },
+    [ctx, isGhostStack]
+  );
   const placeWidget = useCallback(
     (
       pageId: string,
@@ -424,22 +467,26 @@ export function useLauncherController({
       settingsPageId = pageId
     ) =>
       commitPlacement(
-        placeWidgetInLayout(withCover(pageId), ctx, pageId, widgetId, size, at),
+        asidePlace(withCover(pageId), (bare) =>
+          placeWidgetInLayout(bare, ctx, pageId, widgetId, size, at)
+        ),
         pageId,
         widgetId,
         settingsPageId
       ),
-    [ctx, commitPlacement, withCover]
+    [ctx, commitPlacement, withCover, asidePlace]
   );
   const placeWidgetAhead = useCallback(
     (pageId: string, widgetId: string, size?: CellSize, settingsPageId = pageId) =>
       commitPlacement(
-        placeWidgetAheadInLayout(withCover(pageId), ctx, pageId, widgetId, size),
+        asidePlace(withCover(pageId), (bare) =>
+          placeWidgetAheadInLayout(bare, ctx, pageId, widgetId, size)
+        ),
         pageId,
         widgetId,
         settingsPageId
       ),
-    [ctx, commitPlacement, withCover]
+    [ctx, commitPlacement, withCover, asidePlace]
   );
 
   // Overflow produced while rotating/importing is not an explicit placeWidget call.
@@ -466,34 +513,32 @@ export function useLauncherController({
 
   const moveWidget = useCallback(
     (pageId: string, widgetId: string, to: CellRect) => {
-      const next = moveWidgetInLayout(withCover(pageId), ctx, pageId, widgetId, to);
+      const next = asideLayout(withCover(pageId), (bare) =>
+        moveWidgetInLayout(bare, ctx, pageId, widgetId, to)
+      );
       if (!next) return false;
       commit(next);
       return true;
     },
-    [ctx, commit, withCover]
+    [ctx, commit, withCover, asideLayout]
   );
 
   const resizeWidget = useCallback(
     (pageId: string, widgetId: string, size: CellSize) => {
-      const next = resizeWidgetInLayout(withCover(pageId), ctx, pageId, widgetId, size);
+      const next = asideLayout(withCover(pageId), (bare) =>
+        resizeWidgetInLayout(bare, ctx, pageId, widgetId, size)
+      );
       if (!next) return false;
       commit(next);
       return true;
     },
-    [ctx, commit, withCover]
+    [ctx, commit, withCover, asideLayout]
   );
 
   const moveWidgetToPage = useCallback(
     (fromPageId: string, toPageId: string, widgetId: string, to?: CellRect, size?: CellSize) => {
-      const next = moveWidgetToPageInLayout(
-        withCover(fromPageId, toPageId),
-        ctx,
-        fromPageId,
-        toPageId,
-        widgetId,
-        to,
-        size
+      const next = asideLayout(withCover(fromPageId, toPageId), (bare) =>
+        moveWidgetToPageInLayout(bare, ctx, fromPageId, toPageId, widgetId, to, size)
       );
       if (!next) return false;
       carrySettings(
@@ -504,7 +549,7 @@ export function useLauncherController({
       commit(next);
       return true;
     },
-    [ctx, commit, carrySettings, withCover]
+    [ctx, commit, carrySettings, withCover, asideLayout]
   );
 
   const removeWidget = useCallback(
@@ -703,6 +748,17 @@ export function useLauncherController({
       (pageId === COVER_PAGE_ID && layout.cover.enabled ? coverPageOf(layout, grids) : undefined),
     [layout, grids]
   );
+  const placementsFor = useCallback(
+    (pageId: string): Placements => {
+      const page = findShownPage(pageId);
+      if (!page) return {};
+      const placements = pagePlacements(page, classFor(pageId));
+      return Object.fromEntries(
+        Object.entries(placements).filter(([id]) => !isGhostStack(pageId, id))
+      );
+    },
+    [findShownPage, classFor, isGhostStack]
+  );
   const canRemove = useCallback((pageId: string) => canRemovePage(layout, pageId), [layout]);
   const columnsAllowed = useCallback(
     (pageId: string, columns: number) => {
@@ -751,6 +807,8 @@ export function useLauncherController({
       settingsKeyFor,
       settingsFor,
       sizesFor,
+      isGhostStack,
+      placementsFor,
       canRemovePage: canRemove,
       columnsAllowed,
     }),
@@ -791,6 +849,8 @@ export function useLauncherController({
       settingsKeyFor,
       settingsFor,
       sizesFor,
+      isGhostStack,
+      placementsFor,
     ]
   );
 }

@@ -358,6 +358,83 @@ describe('launcher controller', () => {
       h: 2,
     });
   });
+
+  describe('ghost stacks (ISSUE-116)', () => {
+    const ghostLayout: LauncherLayout = {
+      version: 1,
+      cover: { enabled: false },
+      pages: [
+        {
+          id: 'home',
+          label: 'Casa',
+          kind: 'widgets',
+          placements: {
+            tablet: {
+              'light.b': { x: 0, y: 0, w: 1, h: 1 },
+              stack_fantasma: { x: 2, y: 0, w: 2, h: 1 },
+              stack_viva: { x: 4, y: 0, w: 2, h: 1 },
+            },
+          },
+        },
+      ],
+      stacks: {
+        stack_fantasma: { ids: ['widget_ignoto_a', 'widget_ignoto_b'] },
+        stack_viva: { ids: ['widget_ignoto_c', 'light.b'] },
+      },
+    };
+    const known = { min: { w: 1, h: 1 }, max: { w: 4, h: 4 }, default: { w: 2, h: 1 } };
+    const renderGhosts = (resolve = true) =>
+      renderHook(() => {
+        const store = useTestStore(ghostLayout);
+        const controller = useLauncherController({
+          store,
+          deviceClass: 'tablet',
+          resolveSizes: resolve ? (id) => (id === 'light.b' ? known : undefined) : undefined,
+        });
+        return { store, controller };
+      });
+
+    it('a stack with no resolvable widget is a ghost, one with a resolvable widget is not', async () => {
+      const { result } = renderGhosts();
+      await waitFor(() => expect(result.current.store.layout).not.toBeNull());
+      const { controller } = result.current;
+      expect(controller.isGhostStack?.('home', 'stack_fantasma')).toBe(true);
+      expect(controller.isGhostStack?.('home', 'stack_viva')).toBe(false);
+      expect(controller.isGhostStack?.('home', 'light.b')).toBe(false);
+      expect(Object.keys(controller.placementsFor?.('home') ?? {}).sort()).toEqual([
+        'light.b',
+        'stack_viva',
+      ]);
+    });
+
+    it('without a registry lookup nothing is a ghost, the safe default', async () => {
+      const { result } = renderGhosts(false);
+      await waitFor(() => expect(result.current.store.layout).not.toBeNull());
+      expect(result.current.controller.isGhostStack?.('home', 'stack_fantasma')).toBe(false);
+    });
+
+    it('showing a ghost writes nothing; a widget placed on its cells moves it, never deletes it', async () => {
+      const { result } = renderGhosts();
+      await waitFor(() => expect(result.current.store.layout).not.toBeNull());
+      const stacksBefore = result.current.store.layout?.stacks;
+      expect(result.current.store.layout?.pages[0].placements.tablet?.stack_fantasma).toEqual({
+        x: 2,
+        y: 0,
+        w: 2,
+        h: 1,
+      });
+      act(() => {
+        result.current.controller.placeWidget('home', 'light.sala', { w: 2, h: 1 }, { x: 2, y: 0 });
+      });
+      const placements = result.current.store.layout?.pages[0].placements.tablet ?? {};
+      expect(placements['light.sala']).toEqual({ x: 2, y: 0, w: 2, h: 1 });
+      expect(placements.stack_fantasma).toBeDefined();
+      const a = placements.stack_fantasma;
+      const b = placements['light.sala'];
+      expect(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).toBe(false);
+      expect(result.current.store.layout?.stacks).toEqual(stacksBefore);
+    });
+  });
 });
 
 describe('launcher layout persistence', () => {

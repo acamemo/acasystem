@@ -143,3 +143,5 @@ Con R10 (D-2 «Salto diretto») il tocco su un pallino lontano dell'indicatore *
 - Invariati: livello 2 tolto, finestra del trascinamento (due pagine per lato) e della vista pagine, nessuna pagina vuota nell'uso normale.
 
 **Stato: realizzato e provato con i test; non misurato sul tablet.** L'effetto atteso (blocco massimo vicino al livello della 0.9.27, non della 0.9.26) è una stima, da verificare con la stessa misura (5 giri alternati). Il costo dello sblocco torna a cadere durante il dito (nella 0.9.27: 56-94 ms a +184-215 ms dal tocco): se la prova col dito lo mostra come scatto, la strada alternativa è disegnare in anticipo al tocco, che sposta il costo sul tocco di ogni widget e non è stata scelta.
+
+**Annotazione del 2026-10-26 (ISSUE-117).** `inert` e `aria-hidden` delle pagine non correnti seguono anche la finestra incrociata dallo scorrimento in corso (`reach`): a riposo restano su tutte le pagine non correnti; durante e subito dopo uno scorrimento le pagine fra `reach.lo` e `reach.hi` sono raggiungibili fino a `narrow()`. Serve perché un secondo scorrimento non venga ignorato mentre l'indice non è ancora cambiato.

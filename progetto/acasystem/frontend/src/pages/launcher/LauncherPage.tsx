@@ -13,11 +13,10 @@ import { translateItalian } from '@/hooks/launcher/useItalianTranslate';
 import { useLauncherController, type LauncherStore } from '@/hooks/launcher/useLauncherController';
 import { usePopupTriggerBridge } from '@/hooks/launcher/usePopupTriggerBridge';
 import { useDeviceClass, useViewportSize } from '@/hooks/launcher/useViewport';
-import { isCardHiddenByLogic } from '@/utils/cardUtils';
 import { connectionSummary, pendingUpdateCount } from '@/utils/launcher/connection';
 import { buildStatusChips } from '@/utils/launcher/statusChips';
 import { LauncherScreen } from '@/templates/launcher/LauncherScreen';
-import { categoryDeviceId, isCategoryWidgetReady } from '@/templates/sheets/categoryPages';
+import { isWidgetHiddenByLogic } from './widgetVisibility';
 
 const resolveSizes = (widgetId: string, settings: CardSettings) =>
   findWidgetDefinition(widgetId, settings)?.sizes;
@@ -144,26 +143,11 @@ export function LauncherPage({
 
   const { cardSettings } = pages;
   const { entities, entitiesLoaded } = ha;
+  const stacks = pages.launcherLayout?.stacks;
   const isWidgetHidden = useCallback(
-    (pageId: string, widgetId: string) => {
-      const settingsKey = `${pageId}::${widgetId}`;
-      const settings = cardSettings[settingsKey] ?? cardSettings[widgetId] ?? {};
-      // Empty presets stay visible to be configured; bound presets use the actual HA id.
-      if (settings.categoryWidgetType && !isCategoryWidgetReady(settings)) return false;
-      const visibilityId = settings.categoryWidgetType
-        ? categoryDeviceId(widgetId, settings)
-        : widgetId;
-      return (
-        entitiesLoaded &&
-        isCardHiddenByLogic(visibilityId, {
-          activePage: pageId,
-          getCardSettingsKey: () => (cardSettings[settingsKey] ? settingsKey : widgetId),
-          cardSettings,
-          entities,
-        })
-      );
-    },
-    [entitiesLoaded, cardSettings, entities]
+    (pageId: string, widgetId: string) =>
+      isWidgetHiddenByLogic(pageId, widgetId, { cardSettings, entities, entitiesLoaded, stacks }),
+    [entitiesLoaded, cardSettings, entities, stacks]
   );
 
   // The screen is an element of its own, made again only when something it shows changes. The

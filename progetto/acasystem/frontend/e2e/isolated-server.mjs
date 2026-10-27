@@ -147,8 +147,8 @@ const server = createServer(async (req, res) => {
       );
     }
     if (url.pathname === '/api/health')
-      return json(res, { status: 'ok', version: '0.9.27', isolated: true });
-    if (url.pathname === '/api/version') return json(res, { version: '0.9.27' });
+      return json(res, { status: 'ok', version: '0.9.32', isolated: true });
+    if (url.pathname === '/api/version') return json(res, { version: '0.9.32' });
     if (url.pathname === '/api/settings/current') {
       if (req.method === 'PUT') {
         const input = await body(req);
