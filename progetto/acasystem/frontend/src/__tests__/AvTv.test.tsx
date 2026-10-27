@@ -36,7 +36,7 @@ function setup(entities: HassEntity[], overrides: Partial<WidgetRuntime> = {}) {
 const size2x2: CellSize = { w: 2, h: 2 };
 
 describe('Android TV: widget', () => {
-  it('mostra dispositivo, app e titolo; play/pausa sul lettore collegato che sta suonando', () => {
+  it('mostra dispositivo, app e titolo; il terzo tasto cambia canale con il telecomando', () => {
     const { callService, wrap } = setup([
       tv('on'),
       fixtureEntity(EMBY, 'playing', { media_title: 'Episodio 3', media_series_title: 'Dark' }),
@@ -53,18 +53,19 @@ describe('Android TV: widget', () => {
     // The launcher draws the card frame: the widget never nests a card of its own.
     expect(container.querySelector('.aca-m--card')).toBeNull();
     expect(screen.getByText('TV sala')).toBeInTheDocument();
-    expect(screen.getByText('Episodio 3')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Metti in pausa' }));
-    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', {
-      entity_id: EMBY,
+    // Two rows: one small status line with the app and the title.
+    expect(screen.getByText('Dark · Episodio 3')).toBeInTheDocument();
+    // Play/pause is no longer on the tile: the third key is the channel.
+    expect(screen.queryByRole('button', { name: /Riproduci|Metti in pausa/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Canale' }));
+    expect(callService).toHaveBeenCalledWith('remote', 'send_command', {
+      entity_id: REMOTE,
+      command: 'CHANNEL_UP',
     });
   });
 
-  it('Android: con il lettore collegato in pausa comanda la TV (regola legacy)', () => {
-    const { callService, wrap } = setup([
-      tv('on'),
-      fixtureEntity(EMBY, 'paused', { media_title: 'Film' }),
-    ]);
+  it('Android: senza modo di cambiare canale il terzo posto resta vuoto', () => {
+    const { wrap } = setup([tv('on'), fixtureEntity(EMBY, 'paused', { media_title: 'Film' })]);
     wrap(
       <AndroidTvWidget
         id="androidtv_card_1"
@@ -74,23 +75,23 @@ describe('Android TV: widget', () => {
         editMode={false}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Riproduci' }));
-    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', { entity_id: TV });
+    expect(screen.queryByRole('button', { name: 'Canale' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Riproduci|Metti in pausa/ })).toBeNull();
   });
 
-  it('spenta: nessun play/pausa; non configurata: messaggio', () => {
+  it('spenta: il tasto canale c’è ma è inerte; non configurata: messaggio', () => {
     const { wrap } = setup([tv('off')]);
     const { unmount } = wrap(
       <AndroidTvWidget
         id="androidtv_card_1"
         settingsKey="k"
-        settings={{ mediaPlayerId: TV }}
+        settings={{ mediaPlayerId: TV, remoteId: REMOTE }}
         size={size2x2}
         editMode={false}
       />
     );
     expect(screen.getAllByText('Spento').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: /Riproduci|Metti in pausa/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Canale' })).toBeDisabled();
     unmount();
     wrap(
       <AndroidTvWidget
@@ -162,11 +163,8 @@ describe('Apple TV: widget', () => {
     expect(callService).toHaveBeenCalledTimes(1);
   });
 
-  it('play/pausa sul lettore collegato attivo anche se in pausa', () => {
-    const { callService, wrap } = setup([
-      tv('on'),
-      fixtureEntity(EMBY, 'paused', { media_title: 'Film' }),
-    ]);
+  it('Apple TV: nessun tasto canale né play/pausa sul widget', () => {
+    const { wrap } = setup([tv('on'), fixtureEntity(EMBY, 'paused', { media_title: 'Film' })]);
     wrap(
       <AppleTvWidget
         id="appletv_card_1"
@@ -176,10 +174,7 @@ describe('Apple TV: widget', () => {
         editMode={false}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Riproduci' }));
-    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', {
-      entity_id: EMBY,
-    });
+    expect(screen.queryByRole('button', { name: /Canale|Riproduci|Metti in pausa/ })).toBeNull();
   });
 
   it('errore del comando: messaggio e stato confermato', async () => {
@@ -250,7 +245,8 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
     );
     expect(screen.queryByRole('button', { name: 'Su' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alza il volume' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Spegni' })).toBeNull();
+    // The power key is one of the base keys of the sheet, as on the widget.
+    expect(screen.getByRole('button', { name: 'Spegni' })).toBeInTheDocument();
   });
 
   it('Apple: clickpad, menu/home, app, muto, volume, trasporto sul lettore collegato', () => {
@@ -274,7 +270,8 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
       'false'
     );
     fireEvent.click(screen.getByRole('button', { name: 'YouTube' }));
-    fireEvent.click(screen.getByRole('button', { name: /Disattiva l’audio/ }));
+    // Mute is the tap of the single volume knob.
+    fireEvent.click(screen.getByRole('slider', { name: 'Volume' }));
     fireEvent.click(screen.getByRole('button', { name: 'Alza il volume' }));
     fireEvent.click(screen.getByRole('button', { name: 'Riproduci o metti in pausa' }));
     fireEvent.click(screen.getByRole('button', { name: 'Brano successivo' }));
@@ -292,7 +289,8 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
     ]);
   });
 
-  it('Apple: riattiva l’audio con lo stato esplicito di HA e accende', () => {
+  // 2026-10-27: the knob of the details is the widget's: faded and inert with the TV off.
+  it('Apple: con la TV spenta la manopola è inerte e il tasto accende', () => {
     const { callService, wrap } = setup([tv('off', { is_volume_muted: true })]);
     wrap(
       <AppleTvDetails
@@ -302,11 +300,8 @@ describe('Dettagli TV: comandi identici ai modali legacy', () => {
         onClose={() => undefined}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Riattiva l’audio/ }));
+    fireEvent.click(screen.getByRole('slider', { name: 'Volume' }));
     fireEvent.click(screen.getByRole('button', { name: 'Accendi' }));
-    expect(callService.mock.calls).toEqual([
-      ['media_player', 'volume_mute', { entity_id: TV, is_volume_muted: false }],
-      ['media_player', 'turn_on', { entity_id: TV }],
-    ]);
+    expect(callService.mock.calls).toEqual([['media_player', 'turn_on', { entity_id: TV }]]);
   });
 });

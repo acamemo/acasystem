@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { flushSync } from 'react-dom';
-import { Icon } from '@/components/primitives';
+import { Icon, type ConsoleOrigin } from '@/components/primitives';
 import { EditHint } from '@/components/system/edit/EditHint';
 import { PageCardControls, type CardColumns } from '@/components/system/edit/PageCardControls';
 import { PageOverviewBar } from '@/components/system/edit/PageOverviewBar';
@@ -68,6 +68,7 @@ import { CategoryPageSheet } from '../sheets/CategoryPageSheet';
 import { isCategoryWidgetUnbound } from '../sheets/categoryPages';
 import { WIDGET_CATEGORIES } from '../sheets/catalog';
 import { DetailsSheet, type DefinitionResolver, type DetailsTarget } from './DetailsSheet';
+import { WidgetConsole } from './WidgetConsole';
 import { FlashingPageIndicator } from './FlashingPageIndicator';
 import { HeldByStage } from './HeldByStage';
 import { DragGhost } from './DragGhost';
@@ -177,6 +178,18 @@ function handleOf(pageId: string, widgetId: string) {
   return widget?.querySelector<HTMLElement>(':scope > .aca-launcher-widget__handle') ?? null;
 }
 
+/** The rectangle of a widget on a page: where a console grows out of and shrinks back into. */
+function rectOf(pageId: string, widgetId: string): ConsoleOrigin | undefined {
+  const page = Array.from(document.querySelectorAll<HTMLElement>('[data-launcher-page]')).find(
+    (element) => element.dataset.launcherPage === pageId
+  );
+  const widget = Array.from(page?.querySelectorAll<HTMLElement>('[data-widget-id]') ?? []).find(
+    (element) => element.dataset.widgetId === widgetId
+  );
+  const { top, left, width, height } = widget?.getBoundingClientRect() ?? {};
+  return width && height ? { top: top ?? 0, left: left ?? 0, width, height } : undefined;
+}
+
 /** Focuses an element; true when it took the focus (a page out of view is inert). */
 function takesFocus(element: HTMLElement | null | undefined) {
   element?.focus();
@@ -185,7 +198,7 @@ function takesFocus(element: HTMLElement | null | undefined) {
 
 function isOverlayOpen() {
   if (typeof document === 'undefined') return false;
-  if (document.querySelector('dialog[open]')) return true;
+  if (document.querySelector('dialog[open], [data-aca-console]')) return true;
   try {
     return Boolean(document.querySelector(':popover-open'));
   } catch {
@@ -1382,6 +1395,18 @@ export function LauncherScreen({
     };
   }, [detailsWidgetId, currentPageId, controller, firstWidgetPageId, widgetName]);
 
+  // A definition with a console opens it in place of the sheet, from the rectangle of its widget.
+  // Both stay mounted (with a null target when not theirs) so the one that closes can leave.
+  const opensConsole = Boolean(
+    detailsTarget && findDefinition(detailsTarget.widgetId, detailsTarget.settings)?.Console
+  );
+  const consolePageId = opensConsole ? detailsTarget?.pageId : undefined;
+  const consoleWidgetId = opensConsole ? detailsTarget?.widgetId : undefined;
+  const consoleOrigin = useMemo(
+    () => (consolePageId && consoleWidgetId ? rectOf(consolePageId, consoleWidgetId) : undefined),
+    [consolePageId, consoleWidgetId]
+  );
+
   // ── Page overview: order, delete, add (REP-20261007-028) ──
   const coverFirst = entries[0]?.type === 'cover';
   const pageIds = entries.flatMap((entry) => (entry.type === 'page' ? [entry.key] : []));
@@ -2228,7 +2253,13 @@ export function LauncherScreen({
             </div>
 
             <DetailsSheet
-              target={detailsTarget}
+              target={opensConsole ? null : detailsTarget}
+              onClose={onCloseDetails}
+              resolve={findDefinition}
+            />
+            <WidgetConsole
+              target={opensConsole ? detailsTarget : null}
+              origin={consoleOrigin}
               onClose={onCloseDetails}
               resolve={findDefinition}
             />

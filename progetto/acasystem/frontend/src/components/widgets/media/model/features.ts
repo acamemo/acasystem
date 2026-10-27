@@ -11,14 +11,36 @@ export const MEDIA_FEATURE = {
   VOLUME_MUTE: 8,
   PREVIOUS_TRACK: 16,
   NEXT_TRACK: 32,
+  TURN_ON: 128,
+  TURN_OFF: 256,
   PLAY_MEDIA: 512,
   VOLUME_STEP: 1024,
   SELECT_SOURCE: 2048,
+  STOP: 4096,
+  CLEAR_PLAYLIST: 8192,
   PLAY: 16384,
   SHUFFLE_SET: 32768,
+  SELECT_SOUND_MODE: 65536,
   BROWSE_MEDIA: 131072,
   REPEAT_SET: 262144,
 } as const;
+
+/**
+ * `supported_features` of the entity, or null when it does not declare any. For the controls that
+ * must be explicitly declared (stop, sound mode, seek), unlike `mediaCapabilities`.
+ */
+export function declaredFeatures(entity: EntityLike | null | undefined): number | null {
+  const raw = entity?.attributes?.supported_features;
+  const bits =
+    typeof raw === 'number' ? raw : typeof raw === 'string' && raw.trim() ? Number(raw) : NaN;
+  return Number.isFinite(bits) ? bits : null;
+}
+
+/** The entity explicitly declares at least one bit of `mask`. */
+export const declares = (entity: EntityLike | null | undefined, mask: number): boolean => {
+  const bits = declaredFeatures(entity);
+  return bits !== null && (bits & mask) !== 0;
+};
 
 export interface MediaCapabilities {
   playPause: boolean;

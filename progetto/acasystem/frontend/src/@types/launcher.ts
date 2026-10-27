@@ -193,8 +193,16 @@ export interface WidgetDefinition {
   Widget: ComponentType<WidgetProps>;
   /** Content of the detail sheet; the launcher wraps it in the Sheet primitive. */
   Details?: ComponentType<WidgetDetailsProps>;
+  /**
+   * A full-screen console that grows out of the widget, in place of the sheet: the launcher wraps
+   * it in the Console primitive (back arrow, title, Android Back, swipe down). The definition keeps
+   * `Details` too, which stays the one-column fallback.
+   */
+  Console?: ComponentType<WidgetDetailsProps>;
   /** Drawn without the kit frame (e.g. the spacer). */
   frameless?: boolean;
+  /** The detail sheet shows no type label under its title (a TV named «UE50J6200» is not «Android TV»). */
+  detailsWithoutLabel?: boolean;
 }
 
 /** Props of a special full page: its own saved settings (legacy `pageSettings[pageId]`). */

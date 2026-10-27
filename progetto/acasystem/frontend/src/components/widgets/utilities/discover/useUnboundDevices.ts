@@ -20,6 +20,8 @@ export type UnboundDevicesState =
       devices: DiscoveredDevice[];
       /** «Fai lampeggiare» per device id, for the devices that can show which one they are. */
       identify: ReadonlyMap<string, IdentifyAction>;
+      /** Devices whose entities are all `unavailable`: they stay addable but come last (ISSUE-120). */
+      unreachable: ReadonlySet<string>;
     };
 
 /**
@@ -75,6 +77,15 @@ export function useUnboundDevices(): UnboundDevicesState {
       const action = identifyActionFor(entitiesOfDevice.get(device.deviceId) ?? [], entities);
       if (action) identify.set(device.deviceId, action);
     }
-    return { status: 'ready', devices, identify };
+    const unreachable = new Set<string>();
+    for (const device of devices) {
+      if (
+        device.entityIds.length > 0 &&
+        device.entityIds.every((entityId) => entities[entityId]?.state === 'unavailable')
+      ) {
+        unreachable.add(device.deviceId);
+      }
+    }
+    return { status: 'ready', devices, identify, unreachable };
   }, [conn, entities, entitiesLoaded, registries, pagesConfig, cardSettings]);
 }

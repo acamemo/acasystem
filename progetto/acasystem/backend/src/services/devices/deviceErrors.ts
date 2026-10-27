@@ -65,6 +65,10 @@ export const DEVICE_ERROR_DEFINITIONS = {
     message:
       "Questo dispositivo non si può ancora aggiungere da Acasystem. Chiedi all'installatore.",
   },
+  TV_NOT_FOUND: {
+    status: 404,
+    message: "Questo televisore non si trova più in rete. Aggiorna l'elenco.",
+  },
   ENTRY_NOT_FOUND: { status: 404, message: 'Dispositivo non trovato.' },
   DEVICE_NOT_FOUND: { status: 404, message: 'Dispositivo non trovato.' },
   AREA_NOT_FOUND: { status: 404, message: 'Stanza non trovata.' },

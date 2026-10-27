@@ -188,6 +188,8 @@ describe('the closed list of operations', () => {
       '/scoperti',
       '/scoperti/:flowId/aggiungi',
       '/scoperti/:flowId/ignora',
+      '/tv-in-rete',
+      '/tv-in-rete/:tvId/collega',
       '/voci/:entryId',
       '/voci/:entryId',
       '/dispositivi/:deviceId',

@@ -108,6 +108,9 @@ export const DEVICE_OPERATIONS = [
   'scoperti.leggi',
   'scoperti.aggiungi',
   'scoperti.ignora',
+  // Televisions that HA saw on the network and the one-tap connection of one (F5).
+  'tv.leggi',
+  'tv.collega',
 ] as const;
 
 export type DeviceOperation = (typeof DEVICE_OPERATIONS)[number];

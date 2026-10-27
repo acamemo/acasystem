@@ -100,6 +100,14 @@
       "sha256": "782FE9AA64D673621D773B82376BB9B0EC77236E034D6FBD8EF9ADBE239F47FC",
       "source": "messaggio inline dell’utente del 2026-10-09, trascritto senza adattamenti",
       "note": "Trascrizione del testo incollato in chat (componente con icone social e classe .tooltip): identità byte per byte con un file sorgente non dimostrabile. L'utente indica come oggetto della reference la sola nuvoletta (classe tooltip)."
+    },
+    {
+      "id": "UI-011",
+      "file": "originali/UI-011-riproduttore-now-playing.html.txt",
+      "bytes": 10158,
+      "sha256": "FE07E8840037F5CA6719B720941C35889F2F33DA3DEE0B94C8D6F05E71B7A91B",
+      "source": "messaggio inline dell'utente del 2026-10-27, trascritto senza adattamenti",
+      "note": "Trascrizione del markup HTML/Tailwind incollato in chat insieme a una schermata della consolle TV con il riproduttore cerchiato: identità byte per byte con un file sorgente non dimostrabile."
     }
   ]
 }

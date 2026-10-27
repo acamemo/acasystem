@@ -89,7 +89,14 @@ const single: WidgetDefinition = {
   sizes: { min: { w: 2, h: 2 }, max: { w: 2, h: 2 }, default: { w: 2, h: 2 } },
   matches: (id) => id.startsWith('test_single'),
 };
-const definitions = [tile, broken, opener, narrow, single];
+/** A widget with a full-screen console (the TV), in place of the sheet. */
+const consoleTile: WidgetDefinition = {
+  ...tile,
+  type: 'test_console',
+  matches: (id) => id.startsWith('test_console'),
+  Console: ({ id }) => <p>{`Console di ${id}`}</p>,
+};
+const definitions = [tile, broken, opener, narrow, single, consoleTile];
 const findDefinition = (id: string, settings: CardSettings) =>
   definitions.find((definition) => definition.matches(id, settings));
 
@@ -242,6 +249,51 @@ describe('launcher screen', () => {
     await openHome();
     fireEvent.click(screen.getByRole('button', { name: 'Tile test_tile_a 2x2' }));
     expect(await screen.findByText('Dettagli di test_tile_a')).toBeInTheDocument();
+  });
+
+  it('opens a widget with a console full screen from its rectangle, and the others in the sheet', async () => {
+    localStorage.setItem(
+      LAUNCHER_LAYOUT_STORAGE_KEY,
+      JSON.stringify({
+        ...layout,
+        pages: [
+          {
+            id: 'home',
+            label: 'Casa',
+            kind: 'widgets',
+            placements: {
+              tablet: {
+                test_tile_a: { x: 0, y: 0, w: 2, h: 2 },
+                test_console_a: { x: 2, y: 0, w: 2, h: 2 },
+              },
+            },
+          },
+        ],
+      })
+    );
+    const rect = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        return this.dataset.widgetId === 'test_console_a'
+          ? ({ top: 20, left: 10, width: 200, height: 100 } as DOMRect)
+          : ({ top: 0, left: 0, width: 0, height: 0 } as DOMRect);
+      });
+    await openHome();
+    fireEvent.click(screen.getByRole('button', { name: 'Tile test_console_a 2x2' }));
+    expect(await screen.findByText('Console di test_console_a')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.querySelector('.aca-console')).not.toBeNull();
+    expect(document.querySelector('dialog[open]')).toBeNull();
+    expect(dialog.querySelector('.aca-console')?.getAttribute('style')).toContain(
+      'translate(10px, 20px)'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Chiudi' }));
+    await waitFor(() => expect(screen.queryByText('Console di test_console_a')).toBeNull());
+    // A widget without a console still opens the sheet.
+    fireEvent.click(screen.getByRole('button', { name: 'Tile test_tile_a 2x2' }));
+    expect(await screen.findByText('Dettagli di test_tile_a')).toBeInTheDocument();
+    expect(document.querySelector('.aca-console')).toBeNull();
+    rect.mockRestore();
   });
 
   it('moves and resizes a widget with the keyboard in edit mode', async () => {

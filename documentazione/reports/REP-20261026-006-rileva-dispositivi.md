@@ -189,6 +189,35 @@ Leggere questi elenchi non è una scansione di Acasystem: è il risultato della 
 3. **Compatibilità:** testi e prove con l'HA finto per ogni gestore della lista; MAC salvato per l'accensione via rete dove la TV la supporta.
 4. **Non incluso:** l'accesso ai cloud dei produttori (SmartThings, LG ThinQ) per l'accensione.
 
+**2026-10-27 notte, lavoro fatto mentre l'utente dorme (codice scritto da subagenti Claude Code con modello Sonnet, controllato dall'agente principale). Nessun commit dopo `94d88fc`.**
+
+1. **Commit `94d88fc`** di F1-F4 e delle correzioni della TV (su richiesta dell'utente), senza menzioni di Claude.
+   - Contenuto verificato da solo, esportato con `git checkout-index`: server 505 test; frontend 215 file, 3246 test; typecheck pulito.
+   - Nei file misti `LauncherScreen.tsx` e `LauncherController.test.tsx` sono entrati solo i blocchi di questo incarico.
+   - Errore di procedura trovato e corretto prima del commit: la prima applicazione dei blocchi senza contesto aveva messo i fornitori nel punto sbagliato, e il typecheck della copia esportata l'ha rilevato.
+2. **Nuovo widget TV** (non committato):
+   - `VolumeKnob`: un solo pulsante del volume. Tocco = muto e riattiva; premi e trascina in verticale = volume.
+     - **Livello**, con riempimento e «35 %»: per le TV con `volume_level`, come le LG.
+     - **Passi**, con «+2/−1»: per le TV senza livello, come la Samsung J (22 px per passo, al massimo 5 al secondo).
+   - Disposizione per dimensione: 2x1-4x1 con la manopola accanto all'accensione; 2x2 con la manopola accanto a play; 3x2-4x2 con la manopola grande; da spenta solo l'accensione, con il widget desaturato.
+   - Nei dettagli: manopola grande fra «−» e «+» (WCAG 2.5.7).
+   - Test `TvVolumeKnob.test.tsx`: 30.
+3. **F5, collegamento di una TV con un tocco** (non committato):
+   - Il server legge gli elenchi di rete di HA (`ssdp/zeroconf/dhcp_subscribe_discovery`) e riconosce le TV da produttore UPnP e prefissi MAC. Fonte dei prefissi: registro IEEE MA-L, https://standards-oui.ieee.org/oui/oui.csv, consultato il 2026-10-27. Esclude le TV già collegate (MAC nel registro dei dispositivi).
+   - «Collega» avvia l'integrazione, compila l'indirizzo e passa subito al PIN o al «Consenti».
+   - Il PIN ha un campo grande, con invio automatico all'ultima cifra.
+   - Le LG ormai irraggiungibili vanno in «Non raggiungibili» (ISSUE-120).
+   - Test: server `devicesTv.test.ts` 18; frontend `TvOnNetwork.test.tsx` 11.
+   - **Prova sui dati veri:**
+     - dagli elenchi reali di HA risultano «Televisore Samsung», collegabile con PIN, e una Fire TV, non collegabile senza debug ADB, con il motivo;
+     - la Samsung già collegata ha il MAC nel registro ed è esclusa, correttamente;
+     - sul tablet la sezione «Televisori in rete» mostra la Fire TV con il motivo.
+4. **Controlli finali dell'agente principale:** server 33 file, 523 test (1 saltato); frontend 219 file, 3339 test; typecheck, lint, tipografia (0 su 560 file) e colori (0 su 369) superati. Interfaccia di prova ricostruita e server di prova riavviato.
+5. **Non provato:** il collegamento con un tocco fino al PIN su una TV vera (la Samsung va prima rimossa), il gesto del volume a dito sul tablet con la TV accesa, le altre marche (Sony, Philips, Panasonic, Roku, Apple TV, Vizio), il riconoscimento da zeroconf (elenco vuoto a casa).
+6. **Rilievi:**
+   - `GestureControl.tsx` del widget adattivo ha una classe CSS incollata senza spazio, intorno alla riga 130 (proposta, non corretta);
+   - nel foglio «Aggiungi un widget» il tipo «Rileva dispositivi» è in fondo all'elenco (ISSUE-118).
+
 ## Verifiche ed evidenze
 
 | Controllo | Comando/procedura e ambiente | Esito | Evidenza e limiti |
@@ -201,7 +230,74 @@ Da compilare alla chiusura.
 
 ## Chiusura e punto di ripresa
 
-**Punto di ripresa (2026-10-27):**
+**Aggiornamento 2026-10-27, canale e tendina completa.** Su suggerimento dell'utente (e di suo padre):
+- **Widget su due righe:** accensione, volume e canale. Il tasto canale funziona come il volume: un tocco porta al canale +, trascinare su o giù cambia un canale alla volta. Play/pausa esce dal widget.
+- **Volume:** da muto mostra l'altoparlante con la X, sbiadito; con l'audio attivo, l'altoparlante con le onde.
+- **Tendina, dall'alto in basso:**
+  - intestazione come il widget;
+  - i tre tasti base;
+  - volume −/+ e canali −/+;
+  - sorgenti e modalità audio;
+  - telecomando con «Altri tasti» (colori e numeri);
+  - per ultimo il riproduttore (play/pausa, stop, avanzamento se dichiarato).
+- **Mappe dei tasti per piattaforma:** in `model/tvRemote.ts`.
+  - Samsung: `remote.send_command` KEY_*.
+  - LG: `webostv.button`.
+  - Android TV: `androidtv_remote`, nomi da verificare su un dispositivo vero.
+  - Fallback: next/previous track.
+
+Esiti:
+- **test:** suite completa del frontend, 221 file e 3372 test superati (dichiarati dal sottoagente);
+- **controlli:** typecheck, lint, tipografia e colori puliti;
+- **tablet con la Samsung accesa:** il widget mostra i tre tasti e il livello del volume; la tendina mostra intestazione, volume, canali, sorgenti (TV, HDMI) e riproduttore.
+
+Osservazioni dalla prova sul tablet:
+- **Telecomando assente:** nessun widget di prova ha il `remoteId` configurato, quindi la sezione telecomando non compare. Senza il telecomando lo spegnimento della Samsung ricade su `turn_off`, che su questo modello non funziona.
+- **Sottotitolo sbagliato:** la tendina dice «Android TV» per una Samsung.
+- **Nome ripetuto:** il nome compare due volte in cima alla tendina.
+- **Icona del canale:** sembra un filtro.
+
+Correzioni dello stesso giorno, su richiesta dell'utente:
+- **telecomando collegato da solo:** senza `remoteId` il widget usa il `remote.*` con lo stesso object id del media player (`pairedRemoteId` in `model/tv.ts`). Così la Samsung si spegne con KEY_POWER e la tendina mostra il telecomando;
+- **tendina:** il nome resta solo nel titolo, e la definizione TV non mostra più l'etichetta del tipo (`detailsWithoutLabel`);
+- **icona del canale:** due frecce, su e giù.
+
+Esiti:
+- **test:** suite completa a 221 file e 3373 test superati (prima del cambio d'icona); dopo, i test TV passano (72) e lint, tipografia e colori sono puliti;
+- **tablet:** telecomando visibile in tendina.
+
+Domanda aperta: la Samsung non comunica posizione e durata, quindi la barra di avanzamento non può comparire. Sono stati proposti due tasti, indietro e avanti veloce.
+
+Indietro e avanti veloce (2026-10-27, approvati dall'utente). Nella tendina, il riproduttore mostra i tasti «Indietro veloce» e «Avanti veloce» ai lati di play/pausa, solo quando manca la barra di avanzamento e il telecomando della piattaforma li ha. Comandi: Samsung KEY_REWIND/KEY_FF con `remote.send_command`; LG REWIND/FASTFORWARD con `webostv.button`; Android TV MEDIA_REWIND/MEDIA_FAST_FORWARD; Apple TV skip_backward/skip_forward. I nomi LG, Android TV e Apple TV non sono ancora stati provati su un dispositivo vero. Verifiche: 105 test TV passano, typecheck, ESLint, Prettier e lint di tipografia e colori puliti. Sul tablet, con la Samsung accesa, i tasti compaiono e un tocco su «Indietro veloce» è accettato da Home Assistant senza errore; l'effetto sulla TV non è stato osservato.
+
+App nella tendina (2026-10-27, richiesta dell'utente: «allora dovremmo permetterlo anche noi da acasystem»). La sezione «Sorgenti» si divide in «App» (Netflix, Prime Video…) e «Ingressi» (TV, HDMI, AV…); ciascuna compare solo se la TV ne ha. LG webOS, Apple TV e i Samsung che le elencano: le app sono quelle di `source_list` e si aprono con `media_player.select_source`. Android TV (`androidtv_remote`): non c'è elenco; si aprono Netflix, Prime Video, YouTube, Disney+, Plex e Twitch con i link indicati dalla documentazione di HA (`media_player.play_media`, tipo `url`; home-assistant.io/integrations/androidtv_remote, letta il 2026-10-27). La Samsung UE50J6200 elenca solo TV e HDMI, quindi mostra soltanto «Ingressi». Durante il lavoro è stata ipotizzata l'assenza della piattaforma nelle entità: è falsa, perché `utils/entityRegistryMetadata.ts` la copia già dal registro; la correzione tentata è stata tolta. Verifiche: 110 test TV passano (nuovo `TvApps.test.ts`), typecheck, ESLint, Prettier e lint di tipografia e colori puliti; sul tablet la Samsung mostra solo «Ingressi». Non provato su un dispositivo vero: apertura delle app su LG (non raggiungibili) e Android TV (non presente).
+
+App con la TV spenta (2026-10-27, scelta dell'utente: «Se tocco un'app con la TV spenta, Acasystem accende la TV e poi apre l'app (solo per le TV che si possono accendere)»). Il tocco su un'app a TV spenta invia `media_player.turn_on` (il tasto di accensione mostra l'attesa); quando HA riporta la TV accesa, dopo 2 s apre l'app. Se la TV non risulta accesa entro 30 s, compare «Comando non riuscito». Una TV che non si può accendere dalla rete mostra le app sbiadite e inerti finché è spenta, senza testi. Codice: `hooks/useTvAppLaunch.ts`; prove in `TvAppLaunch.test.tsx` (4 casi). Verifiche: test TV, typecheck, ESLint, Prettier e lint di tipografia e colori puliti. Non provato su una TV vera: la Samsung non ha app e non si accende dalla rete, le LG non sono raggiungibili.
+
+**Aggiornamento 2026-10-27, comandi sempre sul widget TV.** L'utente non vuole dover aprire il widget per i comandi di base. Dai bozzetti ha scelto:
+- **1 riga (2x1-4x1):** volume e accensione a destra;
+- **2 righe (2x2-4x2):** tre tasti grandi (accensione, volume, play/pausa). Dopo la foto del tablet l'utente ha chiesto in alto icona TV e nome, sotto una riga di stato piccola (Spento, app · titolo, suggerimento o errore) e sotto i tre tasti, con gli spazi distribuiti in modo uniforme in verticale e in orizzontale, anche nel 3x2 e 4x2 (niente immagine affiancata).
+
+Il comportamento a TV spenta:
+- **tasti fermi al loro posto:** con la TV spenta restano visibili, con bordo tratteggiato, e volume e play sono inerti;
+- **TV che non si accende dalla rete (Samsung via Wi-Fi):** toccare l'accensione mostra per 4 s «Accendi la TV con il telecomando» e non chiama HA.
+  - Rettifica (stesso giorno), su richiesta dell'utente: niente testo di spiegazione; a TV spenta che non si può accendere il tasto di accensione è sbiadito e inerte come volume e play. Resta normale sulle TV che si accendono dalla rete.
+
+Le modifiche sono in `TvWidget.tsx`, `Controls.tsx`, `media.css` e `testi.ts`, con i test in `TvVolumeKnob`, `AvTv` e `TvPowerApps`.
+
+Esiti:
+- **test:** i 4 file TV passano (63 test);
+- **controlli:** typecheck, lint tipografia e colori puliti;
+- **tablet:** foto con la TV spenta, suggerimento comparso al tocco.
+
+Non ancora verificati: la TV accesa sul tablet e l'intera suite dopo l'ultima modifica (play a TV spenta reso neutro). Il lavoro non è committato.
+
+**Punto di ripresa (2026-10-27, mattina):**
+- **valutazione dell'utente:** nuovo widget TV (accendere la TV col telecomando, provare tocco e trascinamento del volume);
+- **prova del collegamento con un tocco:** «Rimuovi dispositivo» sulla Samsung, poi «Collega» in «Televisori in rete» e PIN dal tablet;
+- **commit** del widget TV e di F5 dopo la valutazione.
+
+**Punto di ripresa precedente (2026-10-27):**
 - commit di F1-F4 e delle correzioni (su richiesta dell'utente);
 - prova dell'aggiunta per indirizzo dalle schermate F4, dopo «Rimuovi dispositivo»;
 - accensione della Samsung (proposte al punto 5);

@@ -1,7 +1,10 @@
 import type { PageKindDefinition, WidgetDefinition } from '@/@types/launcher';
 import { CameraDetails, CameraWidget } from './widgets/Camera';
+import { CameraConsole } from './widgets/CameraConsole';
+import { MediaGroupConsole, MediaPlayerConsole } from './widgets/MediaConsole';
 import { MediaGroupDetails, MediaPlayerDetails } from './widgets/MediaDetails';
 import { MediaGroupWidget, MediaPlayerWidget } from './widgets/MediaWidgets';
+import { AndroidTvConsole, AppleTvConsole } from './widgets/TvConsole';
 import { AndroidTvDetails, AppleTvDetails } from './widgets/TvDetails';
 import { AndroidTvWidget, AppleTvWidget } from './widgets/TvWidget';
 import { MediaKindPage, SonosKindPage } from './views/MediaPage';
@@ -21,6 +24,7 @@ export const mediaWidgets: WidgetDefinition[] = [
     matches: (id) => id.startsWith('media_player.'),
     Widget: MediaPlayerWidget,
     Details: MediaPlayerDetails,
+    Console: MediaPlayerConsole,
   },
   {
     type: 'mediaGroup',
@@ -30,6 +34,7 @@ export const mediaWidgets: WidgetDefinition[] = [
     matches: (id) => id.startsWith('media_group_') || id.startsWith('sonos_group_'),
     Widget: MediaGroupWidget,
     Details: MediaGroupDetails,
+    Console: MediaGroupConsole,
   },
   {
     type: 'androidTv',
@@ -37,8 +42,10 @@ export const mediaWidgets: WidgetDefinition[] = [
     icon: 'tv',
     sizes: { min: { w: 2, h: 1 }, max: { w: 4, h: 2 }, default: { w: 2, h: 2 } },
     matches: (id) => id.startsWith('androidtv_card_'),
+    detailsWithoutLabel: true,
     Widget: AndroidTvWidget,
     Details: AndroidTvDetails,
+    Console: AndroidTvConsole,
   },
   {
     type: 'appleTv',
@@ -46,8 +53,10 @@ export const mediaWidgets: WidgetDefinition[] = [
     icon: 'tv',
     sizes: { min: { w: 2, h: 1 }, max: { w: 4, h: 2 }, default: { w: 2, h: 2 } },
     matches: (id) => id.startsWith('appletv_card_'),
+    detailsWithoutLabel: true,
     Widget: AppleTvWidget,
     Details: AppleTvDetails,
+    Console: AppleTvConsole,
   },
   {
     type: 'camera',
@@ -57,6 +66,7 @@ export const mediaWidgets: WidgetDefinition[] = [
     matches: (id) => id.startsWith('camera_card_'),
     Widget: CameraWidget,
     Details: CameraDetails,
+    Console: CameraConsole,
   },
 ];
 

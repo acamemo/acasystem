@@ -243,6 +243,36 @@ export const HA_CALLS = {
     checks: ['CT-12'],
   }),
 
+  // What HA itself sees on the network, for «Televisori in rete» (F5, REP-20261026-006). Each
+  // command subscribes and answers with an initial event `{add: [...]}`: Acasystem takes that
+  // first event and unsubscribes (`unsubscribe_events`). Observed once on HA 2026.10.4 (copy of
+  // the test VM, 2026-10-27): the SSDP and DHCP lists had items, the zeroconf list was empty.
+  // Not read in the source of HA, so `unverified`; Acasystem sends no packet on the network.
+  ssdpDiscovery: ws('ssdp.subscribe_discovery', 'ssdp/subscribe_discovery', {
+    haClass: 'INT',
+    permission: 'admin',
+    evidence: 'unverified',
+    checks: ['CT-14'],
+  }),
+  zeroconfDiscovery: ws('zeroconf.subscribe_discovery', 'zeroconf/subscribe_discovery', {
+    haClass: 'INT',
+    permission: 'admin',
+    evidence: 'unverified',
+    checks: ['CT-14'],
+  }),
+  dhcpDiscovery: ws('dhcp.subscribe_discovery', 'dhcp/subscribe_discovery', {
+    haClass: 'INT',
+    permission: 'admin',
+    evidence: 'unverified',
+    checks: ['CT-14'],
+  }),
+  unsubscribeEvents: ws('unsubscribe_events', 'unsubscribe_events', {
+    haClass: 'INT',
+    permission: 'user',
+    evidence: 'documentation',
+    checks: ['CT-14'],
+  }),
+
   // Italian texts of the flows of an integration, for the generic forms of F4. Observed once on
   // HA 2026.10.4 (copy of the test VM, 2026-10-27, REP-20261026-006): with `language: 'it'`,
   // `category: 'config'` and `integration: ['samsungtv']` it answers

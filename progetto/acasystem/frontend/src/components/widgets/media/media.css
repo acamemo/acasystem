@@ -259,6 +259,27 @@
   .aca-media-transport--start {
     justify-content: flex-start;
   }
+  /* Player after UI-011: recessed card, cover tile and title, thin bar, spaced keys. */
+  /* Compact: the card's own padding only (no second one), so the console column fits. */
+  .aca-media-nowplaying-card {
+    --aca-pad: 1em;
+  }
+  .aca-media-nowplaying {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+  }
+  .aca-media-nowplaying__head {
+    display: flex;
+    align-items: center;
+    gap: 0.875em;
+  }
+  .aca-media-nowplaying__head > .aca-media-art.aca-m {
+    --aca-media-art-size: 3.5rem;
+  }
+  .aca-media-nowplaying__keys {
+    gap: 1em;
+  }
   .aca-media-progress {
     position: relative;
     height: 0.375rem;
@@ -297,6 +318,25 @@
     min-width: 4rem;
   }
 
+  /* Remote keys of the details: a wrapping grid of labelled keys and the numeric pad. */
+  .aca-media-keygrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+    gap: 0.5em;
+  }
+  .aca-media-keygrid > .aca-m {
+    display: block;
+  }
+  .aca-media-numpad {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: center;
+    gap: 0.5em;
+  }
+  .aca-media-numpad__zero {
+    grid-column: 2;
+  }
+
   /* ── Detail sheets ───────────────────────────────────────────────────────────── */
   .aca-media-details {
     display: flex;
@@ -311,6 +351,16 @@
   .aca-media-section + .aca-media-section {
     padding-top: 1em;
     border-top: var(--aca-ring) solid var(--aca-socket);
+  }
+  /* Console: the volume and channel sections share one row. */
+  .aca-media-steps-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10em, 1fr));
+    gap: 1em;
+  }
+  .aca-media-steps-row > .aca-media-section + .aca-media-section {
+    padding-top: 0;
+    border-top: 0;
   }
   .aca-media-wrap {
     display: flex;
@@ -521,6 +571,146 @@
     overflow: hidden;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+  /* ── Volume knob: tap mutes, vertical drag sets the volume (VolumeKnob) ───────── */
+  .aca-vknob {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .aca-vknob__button {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  .aca-vknob--xl .aca-vknob__button {
+    --aca-dim: 4.5em;
+  }
+  .aca-vknob__content {
+    position: relative;
+    overflow: hidden;
+    border-radius: 50%;
+  }
+  .aca-vknob__content > .aca-icon {
+    position: relative;
+    color: var(--aca-ink-muted);
+    transition: opacity 120ms ease-out;
+  }
+  /* The level as a fill rising from the bottom of the knob (level mode only). */
+  .aca-vknob__fill {
+    position: absolute;
+    inset: auto 0 0;
+    height: var(--aca-vknob-fill, 0%);
+    background: linear-gradient(0deg, var(--aca-orange), var(--aca-orange-light));
+    opacity: 0.9;
+    transition: height 140ms ease-out;
+    pointer-events: none;
+  }
+  .aca-vknob__fill[data-filled] ~ .aca-icon {
+    color: var(--aca-on-orange);
+  }
+  /* Muted: no fill, the speaker with an X, faded. */
+  .aca-vknob__button--muted .aca-vknob__content > .aca-icon {
+    color: var(--aca-ink-muted);
+    opacity: 0.55;
+  }
+  /* While dragging, the value takes the place of the icon: nothing sticks out of the card. */
+  .aca-vknob__bubble {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--aca-ink-solid);
+    font-size: 0.875em;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+    pointer-events: none;
+  }
+  .aca-vknob--xl .aca-vknob__bubble {
+    font-size: 1.125em;
+  }
+  .aca-vknob__bubble[data-visible] {
+    opacity: 1;
+  }
+  .aca-vknob[data-dragging] .aca-vknob__content > .aca-icon {
+    opacity: 0;
+  }
+  .aca-vknob[data-dragging] .aca-vknob__fill {
+    transition: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-vknob__fill,
+    .aca-vknob__bubble,
+    .aca-vknob__content > .aca-icon {
+      transition: none;
+    }
+  }
+
+  /*
+   * Basic keys of the TV widget (power, volume, play), always on the tile. Two rows: a mini
+   * remote, TV icon and name above three keys of the same size, spaced evenly both ways.
+   */
+  .aca-chkey__glyph {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125em;
+  }
+  .aca-media-remote {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: space-evenly;
+    min-width: 0;
+    min-height: 0;
+  }
+  .aca-media-remote__head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    min-width: 0;
+  }
+  .aca-media-keys {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    min-width: 0;
+  }
+  .aca-media-key.aca-m,
+  .aca-media-key.aca-vknob .aca-vknob__button {
+    --aca-dim: 3.75em;
+  }
+  .aca-media-key--xl.aca-m,
+  .aca-media-key--xl.aca-vknob .aca-vknob__button {
+    --aca-dim: 4.5em;
+  }
+  /* A key that cannot act now (TV off or not reachable): dashed edge and muted icon, as «waiting». */
+  .aca-media-key--waiting .aca-m__face {
+    outline: 1px dashed var(--aca-ink-muted);
+    outline-offset: -0.25em;
+  }
+  .aca-media-key--waiting .aca-icon {
+    color: var(--aca-ink-muted);
+  }
+
+  /* Volume row of the details: big knob between the − and + buttons. */
+  .aca-media-volume {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5em;
+  }
+  /* Off: the tile loses its colour, only the power button stays lively. */
+  .aca-media-widget--off :is(.aca-media-art, .aca-media-open) {
+    filter: grayscale(1);
+    opacity: 0.7;
   }
   @media (max-width: 56rem) {
     .aca-media-page__grid {

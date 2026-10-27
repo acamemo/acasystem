@@ -4,12 +4,15 @@ import {
   ArrowRight2Linear,
   ArrowSwapHorizontalLinear,
   ArrowUp2Linear,
+  BackwardLinear,
+  ForwardLinear,
   LinkLinear,
   MusicPlaylistLinear,
   RepeateOneLinear,
   ShuffleOutline,
   UndoLinear,
   VideoSlashLinear,
+  VolumeCrossLinear,
   VolumeLowLinear,
   type IconProps as MxIconProps,
 } from 'mx-icons';
@@ -26,6 +29,8 @@ const localIcons = {
   shuffle: ShuffleOutline,
   repeatOne: RepeateOneLinear,
   volumeLow: VolumeLowLinear,
+  /** Muted volume knob: the speaker with an X. */
+  volumeCross: VolumeCrossLinear,
   playlist: MusicPlaylistLinear,
   /** Pairs with the primitive's `camera` (VideoLinear). */
   cameraOff: VideoSlashLinear,
@@ -36,6 +41,8 @@ const localIcons = {
   left: ArrowLeft2Linear,
   right: ArrowRight2Linear,
   back: UndoLinear,
+  rewind: BackwardLinear,
+  fastForward: ForwardLinear,
 } satisfies Record<string, ComponentType<MxIconProps>>;
 
 /** Icons of the kit (play, pause, next, previous, volume, mute, power, tv, camera…) plus the local ones. */

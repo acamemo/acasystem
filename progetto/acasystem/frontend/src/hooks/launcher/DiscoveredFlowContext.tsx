@@ -8,6 +8,8 @@ export interface DiscoveredFlowProps {
    * brands («Non lo trovi? Aggiungi per marca», F4).
    */
   flowId: string | null;
+  /** A television seen on the network (F5): «Collega» starts its integration with one tap. */
+  tvId?: string | null;
   family: DeviceFamily | null;
   /** The person left; an open flow has been cancelled. */
   onExit: () => void;

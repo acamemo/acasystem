@@ -18,6 +18,7 @@ import type {
   PowerSetupBody,
   PowerStatusDto,
   StatusDto,
+  TvInReteDto,
 } from '@/@types/devices';
 import { isObject } from '@/validators/guards';
 
@@ -100,6 +101,25 @@ export async function addDiscovered(
 /** «Non mi interessa»: Home Assistant ignores this discovery. */
 export async function ignoreDiscovered(flowId: string): Promise<void> {
   await backendRequest(`${BASE}/scoperti/${segment(flowId)}/ignora`, { method: 'POST' });
+}
+
+/** Televisions Home Assistant saw on the network and nobody connected yet. */
+export async function listTvs(signal?: AbortSignal): Promise<TvInReteDto[]> {
+  const body = await backendRequest(`${BASE}/tv-in-rete`, signal ? { signal } : {});
+  return isObject(body) && Array.isArray(body.tvs) ? as<TvInReteDto[]>(body.tvs) : [];
+}
+
+/**
+ * One tap on «Collega»: the server starts the integration with the address already filled in and
+ * answers with the step on the television (PIN, «Consenti»...).
+ */
+export async function connectTv(tvId: string, signal?: AbortSignal): Promise<FlowResponseDto> {
+  return as<FlowResponseDto>(
+    await backendRequest(`${BASE}/tv-in-rete/${segment(tvId)}/collega`, {
+      method: 'POST',
+      ...(signal ? { signal } : {}),
+    })
+  );
 }
 
 export async function getEntry(entryId: string): Promise<EntryDto> {

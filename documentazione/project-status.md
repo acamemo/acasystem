@@ -1,5 +1,7 @@
 # Stato effettivo del progetto
 
+**Aggiornamento 2026-10-27 (consolle dei widget, [REP-20261027-002](reports/REP-20261027-002-consolle-widget.md), [ADR-0025](decisions/ADR-0025-consolle-schermo-intero.md)):** il tocco su uno spazio vuoto del widget TV apre una consolle a schermo intero al posto della tendina. La consolle si allarga dal widget e mostra due colonne sul tablet; si chiude con la freccia, Indietro, Esc o scorrendo in basso. Gli altri widget restano sulla tendina. La suite completa passa (3402 test); sul tablet il tasto Indietro chiude la consolle senza lasciare la pagina. Non verificati: l'animazione, il tempo di apertura, lo scorrimento con il dito e la vista telefono. Nulla è committato.
+
 **Aggiornamento 2026-10-26 (app client, [REP-20261026-002](reports/REP-20261026-002-app-client-pc-android.md)):**
 - L'utente ha accettato [ADR-0023](decisions/ADR-0023-app-client-a-ibrida.md), l'app client «A-ibrida»: guscio Electron/Capacitor, interfaccia scaricata da un repository pubblico nuovo, server sul mini PC.
 - **C1:** verifica in sola lettura dei file da pubblicare. Nessun rilievo bloccante; cinque punti da decidere.

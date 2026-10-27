@@ -18,6 +18,7 @@ import type {
   FlowMenuDto,
   FlowProgressDto,
   StatusDto,
+  TvInReteDto,
 } from '@/@types/devices';
 
 export interface RecordedCall {
@@ -230,6 +231,37 @@ export const samsungCreated = (entry: EntryDto = samsungEntry()): FlowCreatedDto
   pending: false,
 });
 
+// --- Televisions seen on the network (F5) -----------------------------------------------------
+
+export const TV_SAMSUNG_ID = '0123456789abcdef';
+
+export const tvDto = (overrides: Partial<TvInReteDto> = {}): TvInReteDto => ({
+  id: TV_SAMSUNG_ID,
+  brandKey: 'samsung',
+  brand: 'Samsung',
+  name: 'Televisore Samsung',
+  model: null,
+  handler: 'samsungtv',
+  conferma: 'pin',
+  collegabile: true,
+  ...overrides,
+});
+
+/** The step after the tap: the PIN of a Samsung (older model), as the server sends it. */
+export const samsungPinForm = (errors: FlowErrorDto[] = []): FlowFormDto => ({
+  type: 'form',
+  flowId: 'flow-tv',
+  handler: 'samsungtv',
+  stepId: 'encrypted_pairing',
+  title: 'Scrivi il codice',
+  description: null,
+  waitSeconds: null,
+  fields: [
+    { name: 'pin', kind: 'text', required: true, label: 'Codice mostrato sul televisore' },
+  ],
+  errors,
+});
+
 // --- Steps that are not forms, and generic forms (F4) -----------------------------------------
 
 export const menuDto = (flowId = 'flow-brand'): FlowMenuDto => ({
@@ -356,6 +388,7 @@ export function installFakeDevices(
     ],
     ['GET /flussi', () => ({ body: { flows: [] } })],
     ['GET /scoperti', () => ({ body: { devices: [] } })],
+    ['GET /tv-in-rete', () => ({ body: { tvs: [] } })],
     ['GET /catalogo', () => ({ body: catalogDto() })],
     ['POST /flussi', () => ({ status: 201, body: userForm() })],
     ['GET /flussi/:id', () => ({ body: userForm() })],

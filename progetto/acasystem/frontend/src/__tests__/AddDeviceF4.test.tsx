@@ -440,10 +440,10 @@ describe('«Non lo trovi? Aggiungi per marca»', () => {
       target: { value: '192.168.1.60' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
+    // The code step (F5): the fourth digit sends the answer, there is no «Avanti».
     fireEvent.change(await screen.findByLabelText('Codice mostrato sul televisore'), {
       target: { value: '4321' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
     await waitFor(() => expect(fake.callsTo('POST /flussi/flow-s')).toHaveLength(2));
     expect(fake.callsTo('POST /flussi/flow-s').map((call) => call.body)).toEqual([
       { input: { host: '192.168.1.60' } },

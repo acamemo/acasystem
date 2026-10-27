@@ -126,7 +126,7 @@ export const createDeviceModel = (database: SqliteDatabase): DeviceModel => {
   const findCreation = database.prepare<[string], { id: number }>(
     `SELECT id FROM device_actions
      WHERE entry_id = ? AND outcome = 'ok'
-       AND action IN ('flow.start', 'flow.step', 'flow.read', 'scoperti.aggiungi')
+       AND action IN ('flow.start', 'flow.step', 'flow.read', 'scoperti.aggiungi', 'tv.collega')
      LIMIT 1`
   );
 

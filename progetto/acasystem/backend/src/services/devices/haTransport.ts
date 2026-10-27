@@ -74,6 +74,12 @@ export interface WsCommandOptions {
 export interface HaWsSession {
   readonly haVersion: string | null;
   send(call: HaWsCall, options: WsCommandOptions): Promise<unknown>;
+  /**
+   * Subscribes with `call`, takes the first event HA sends (the subscriptions of the discovery
+   * answer with the current list at once), unsubscribes and returns the events received. After
+   * `options.timeoutMs` without an event it returns what it has (nothing).
+   */
+  collect(call: HaWsCall, unsubscribe: HaWsCall, options: WsCommandOptions): Promise<unknown[]>;
   close(): void;
 }
 
@@ -196,6 +202,7 @@ const connect = (
     let ready = false;
     let settled = false;
     const pending = new Map<number, PendingCommand>();
+    const subscribers = new Map<number, (event: unknown) => void>();
 
     const failAll = (error: HaError) => {
       for (const command of pending.values()) {
@@ -242,6 +249,55 @@ const connect = (
           });
         });
       },
+      collect(call, unsubscribe, options) {
+        onCall?.(call.id);
+        if (!ready || socket.readyState !== WebSocket.OPEN) {
+          return Promise.reject(new HaError('unreachable'));
+        }
+        const id = nextId++;
+        const events: unknown[] = [];
+        return new Promise<unknown[]>((resolveCollect, rejectCollect) => {
+          let finished = false;
+          const finish = (error?: HaError) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            subscribers.delete(id);
+            const waiting = pending.get(id);
+            if (waiting) {
+              clearTimeout(waiting.timer);
+              pending.delete(id);
+            }
+            if (error) {
+              rejectCollect(error);
+              return;
+            }
+            if (ready && socket.readyState === WebSocket.OPEN) {
+              onCall?.(unsubscribe.id);
+              // The answer to this command is not waited for: its id is unknown on purpose.
+              socket.send(
+                JSON.stringify({ id: nextId++, type: unsubscribe.type, subscription: id }),
+                () => undefined
+              );
+            }
+            resolveCollect(events);
+          };
+          const timer = setTimeout(() => finish(), options.timeoutMs);
+          subscribers.set(id, (event) => {
+            events.push(event);
+            finish();
+          });
+          pending.set(id, {
+            resolve: () => undefined,
+            reject: (error) => finish(error),
+            // The result of the subscription must not stop the wait for the first event.
+            timer: setTimeout(() => undefined, 0),
+          });
+          socket.send(JSON.stringify({ ...options.payload, id, type: call.type }), (error) => {
+            if (error) finish(new HaError('unreachable'));
+          });
+        });
+      },
       close() {
         failAll(new HaError('unreachable'));
         try {
@@ -284,6 +340,11 @@ const connect = (
       if (type === 'auth_invalid') {
         settle(() => reject(new HaError('unauthorized')));
         socket.terminate();
+        return;
+      }
+      if (type === 'event') {
+        const id = message.id;
+        if (typeof id === 'number') subscribers.get(id)?.(message.event ?? null);
         return;
       }
       if (type === 'result') {

@@ -35,6 +35,13 @@ export const validateFlowId = (value: unknown): string => {
   return value;
 };
 
+const TV_ID = /^[0-9a-f]{16}$/;
+
+export const validateTvId = (value: unknown): string => {
+  if (typeof value !== 'string' || !TV_ID.test(value)) throw new DeviceError('TV_NOT_FOUND');
+  return value;
+};
+
 export const validateEntryId = (value: unknown): string => {
   if (typeof value !== 'string' || !ENTRY_ID.test(value)) throw new DeviceError('ENTRY_NOT_FOUND');
   return value;

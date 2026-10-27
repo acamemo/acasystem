@@ -1,21 +1,16 @@
-import { Button, Caption, Display, IconText, Text } from '@/components/primitives';
+import { Caption, Display, IconText, Text } from '@/components/primitives';
 import type { CardSettings } from '@/@types/dashboard';
+import type { EntityMap } from '@/@types/ha';
 import type { WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useConfirmedCommand } from '../hooks/commands';
-import { MediaIcon } from '../icons';
+import { useTvChannel } from '../hooks/useTvChannel';
+import { useTvVolume } from '../hooks/useTvVolume';
 import { readString, resolveImage, stringList } from '../model/entity';
-import {
-  resolveTv,
-  tvCanPower,
-  tvPowerOffCall,
-  widgetPlayTarget,
-  type TvKind,
-  type TvView,
-} from '../model/tv';
+import { pairedRemoteId, resolveTv, tvPowerOffCall, type TvKind, type TvView } from '../model/tv';
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
-import { PowerButton } from '../parts/Controls';
+import { TvFace, TvHeadContent, TvPowerKey, TvVolumeKey } from '../parts/tv/TvFace';
 import {
   OpenButton,
   WidgetLoading,
@@ -32,9 +27,15 @@ export interface TvConfig {
   tapToggle: boolean;
 }
 
-export const readTvConfig = (settings: CardSettings): TvConfig => ({
+/**
+ * Widget settings of a TV. Without a configured remote, the remote HA created with the TV (same
+ * object id: `media_player.x` → `remote.x`, as samsungtv and androidtv_remote do) is used, so a
+ * Samsung added by hand still switches off with KEY_POWER and shows its remote (2026-10-27).
+ */
+export const readTvConfig = (settings: CardSettings, entities?: EntityMap): TvConfig => ({
   mediaPlayerId: readString(settings.mediaPlayerId),
-  remoteId: readString(settings.remoteId),
+  remoteId:
+    readString(settings.remoteId) || pairedRemoteId(readString(settings.mediaPlayerId), entities),
   linkedMediaPlayers: stringList(settings.linkedMediaPlayers),
   tapToggle: settings.tapAction === 'toggle',
 });
@@ -47,12 +48,16 @@ export function tvStatus(view: TvView): string {
 
 /**
  * Android TV (`androidtv_card_*`) and Apple TV (`appletv_card_*`) widgets: device, app and title,
- * play/pause while on, the power button (Apple TV always; Android TV when the entity declares
- * TURN_ON or TURN_OFF) and, for Apple TV, the optional tap-to-toggle.
+ * and the basic keys, always on the tile also while the TV is off: power, the single volume knob
+ * (tap mutes, vertical drag sets the volume; when the TV declares volume or mute) and, on two
+ * rows, the channel key (tap or drag up: next channel, drag down: previous; when the TV can
+ * change channel). Off or unavailable, volume and channel keep a «waiting» look and are inert; a TV
+ * that cannot be switched on over the network keeps the power key and a tap says how to turn it on.
+ * For Apple TV, the optional tap-to-toggle.
  */
 export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & { kind: TvKind }) {
   const runtime = useWidgetRuntime();
-  const config = readTvConfig(settings);
+  const config = readTvConfig(settings, runtime.entities);
   const view = resolveTv(
     kind,
     runtime.entities,
@@ -62,7 +67,8 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
     runtime.customNames
   );
   const power = useConfirmedCommand(view.isOn, { ignoreWhilePending: true });
-  const playing = useConfirmedCommand(view.isPlaying);
+  const volume = useTvVolume(kind, view, config.mediaPlayerId, Boolean(config.remoteId));
+  const channel = useTvChannel(kind, view, config.remoteId);
 
   if (!runtime.entitiesLoaded)
     return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
@@ -82,18 +88,12 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
         : runtime.callService('media_player', 'turn_on', { entity_id: config.mediaPlayerId })
     );
   };
-  const togglePlay = () => {
-    const target = widgetPlayTarget(kind, view, config.mediaPlayerId);
-    playing.request(!playing.value, () =>
-      runtime.callService('media_player', 'media_play_pause', { entity_id: target })
-    );
-  };
   const tapToggle = kind === 'apple' && config.tapToggle;
   const compact = size.h <= 1;
   const picture = resolveImage(view.picture, runtime.getEntityImageUrl);
   const logo = resolveImage(view.logo, runtime.getEntityImageUrl);
-  const app = view.appName || (view.isOn ? testi.schermataHome : testi.spento);
-  const failed = power.error || playing.error;
+  const app = !view.isOn ? testi.spento : view.appName || testi.schermataHome;
+  const failed = power.error || volume.failed || channel.failed;
   const status = tvStatus(view);
 
   const info = (
@@ -137,78 +137,72 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
     </IconText>
   );
 
-  const powerButton = tvCanPower(kind, view) ? (
-    <PowerButton
-      on={power.value}
-      action={power.value ? 'turn_off' : 'turn_on'}
-      pending={power.pending}
-      disabled={editMode || view.unavailable}
-      onClick={togglePower}
-    />
-  ) : null;
-
-  const playButton =
-    view.isOn && !compact ? (
-      <Button
-        variant="primary"
-        shape="circle"
-        size="lg"
-        aria-label={playing.value ? testi.pausa : testi.riproduci}
-        loading={playing.pending}
-        disabled={editMode}
-        onClick={(event) => {
-          event.stopPropagation();
-          togglePlay();
-        }}
-      >
-        <MediaIcon name={playing.value ? 'pause' : 'play'} size="md" />
-      </Button>
-    ) : null;
+  // One row: small keys. Two rows: three keys of the same size, larger on wide tiles.
+  const bigKeys = !compact && size.w >= 3;
+  const keySize = compact ? 'md' : bigKeys ? 'xl' : 'lg';
+  const face = { kind, view, power, volume, channel, togglePower };
 
   const art = picture ?? logo;
+  let content;
+  if (compact) {
+    content = (
+      <>
+        <Artwork
+          src={art}
+          icon="tv"
+          fit={picture ? 'cover' : 'contain'}
+          variant="compact"
+          className="aca-media-show-13"
+        />
+        {info}
+        {size.w >= 3 && statusCue}
+        <TvVolumeKey tv={face} size={keySize} editMode={editMode} />
+        <TvPowerKey tv={face} size={keySize} editMode={editMode} />
+      </>
+    );
+  } else {
+    // Two rows: TV icon and name, a small status line (failure, hint, «Spento», or the app and
+    // title), then the three keys; the space is shared evenly in both directions.
+    const statusLine = failed
+      ? testi.comandoNonRiuscito
+      : view.unavailable
+        ? status
+        : [app, view.isOn ? view.title : ''].filter(Boolean).join(' · ');
+    content = (
+      <>
+        <TvFace
+          tv={face}
+          size={keySize}
+          statusLine={statusLine}
+          failed={failed}
+          editMode={editMode}
+          head={
+            <OpenButton
+              editMode={editMode}
+              onOpen={openDetails}
+              stretch={!tapToggle}
+              className="aca-media-remote__head"
+            >
+              <TvHeadContent view={view} failed={failed} statusLine={statusLine} showName />
+            </OpenButton>
+          }
+        />
+        <span className="sr-only" role="status">
+          {failed ? testi.comandoNonRiuscito : ''}
+        </span>
+      </>
+    );
+  }
+
   return (
     <WidgetShell
       size={size}
       editMode={editMode}
+      className={!view.isOn ? 'aca-media-widget--off' : undefined}
       onBackgroundTap={tapToggle ? togglePower : undefined}
       label={view.deviceName}
     >
-      {compact ? (
-        <>
-          <Artwork
-            src={art}
-            icon="tv"
-            fit={picture ? 'cover' : 'contain'}
-            variant="compact"
-            className="aca-media-show-13"
-          />
-          {info}
-          {size.w >= 3 && statusCue}
-          {powerButton}
-        </>
-      ) : (
-        <>
-          <div className="aca-media-row aca-media-row--between">
-            {statusCue}
-            {powerButton}
-          </div>
-          {art ? (
-            <Artwork
-              src={art}
-              icon="tv"
-              fit={picture ? 'cover' : 'contain'}
-              variant="window"
-              className="aca-media-show-10"
-            />
-          ) : (
-            <div className="aca-media-grow" />
-          )}
-          <div className="aca-media-row">
-            {info}
-            {playButton}
-          </div>
-        </>
-      )}
+      {content}
     </WidgetShell>
   );
 }

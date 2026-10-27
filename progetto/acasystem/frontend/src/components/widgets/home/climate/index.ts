@@ -1,5 +1,6 @@
 import type { WidgetDefinition } from '@/@types/launcher';
 import type { IconName } from '@/components/primitives';
+import { ClimateConsole } from './ClimateConsole';
 import { ClimateDetails } from './ClimateDetails';
 import { ClimateWidget } from './ClimateWidget';
 
@@ -12,4 +13,5 @@ export const climateWidget: WidgetDefinition = {
   matches: (id) => id.startsWith('climate_card_'),
   Widget: ClimateWidget,
   Details: ClimateDetails,
+  Console: ClimateConsole,
 };

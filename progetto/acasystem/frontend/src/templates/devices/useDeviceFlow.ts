@@ -14,6 +14,7 @@ import type {
 import {
   addDiscovered,
   cancelFlow,
+  connectTv,
   getEntry,
   getFlow,
   getStatus,
@@ -128,7 +129,9 @@ export function useDeviceFlow(
   kind: DeviceKind,
   onExit: () => void,
   /** A flow Home Assistant opened by itself: taken over instead of starting from the catalogue. */
-  discoveredFlowId: string | null = null
+  discoveredFlowId: string | null = null,
+  /** A television seen on the network (F5): the server starts its flow and fills the address. */
+  tvId: string | null = null
 ): DeviceFlow {
   const [state, setState] = useState<DeviceFlowState>(INITIAL);
   const flowIdRef = useRef<string | null>(null);
@@ -273,7 +276,7 @@ export function useDeviceFlow(
           return;
         }
         // A discovered device goes straight to its flow: no catalogue, no resume.
-        if (discoveredFlowId) {
+        if (discoveredFlowId || tvId) {
           setState((previous) => ({ ...previous, status }));
           return;
         }
@@ -309,7 +312,7 @@ export function useDeviceFlow(
       if (flowId && !inFlightRef.current) void cancelFlow(flowId).catch(() => undefined);
       abortRef.current?.abort();
     };
-  }, [kind, discoveredFlowId]);
+  }, [kind, discoveredFlowId, tvId]);
 
   const start = useCallback(
     (handler: string) =>
@@ -343,7 +346,7 @@ export function useDeviceFlow(
 
   const restart = useCallback(() => {
     // A discovered device has no catalogue to go back to: starting again means leaving.
-    if (discoveredFlowId) {
+    if (discoveredFlowId || tvId) {
       onExitRef.current();
       return;
     }
@@ -360,7 +363,7 @@ export function useDeviceFlow(
       message: null,
       openFlow: null,
     }));
-  }, [discoveredFlowId]);
+  }, [discoveredFlowId, tvId]);
 
   const discardOpen = useCallback(() => {
     const open = state.openFlow;
@@ -425,16 +428,21 @@ export function useDeviceFlow(
   }, [patch, state.created]);
 
   // The service answered: take the discovered flow over (one call; «Riprova» repeats it).
+  // A television (F5) is the same, with its own call: the server starts the flow by itself.
   const takeOver = useCallback(() => {
+    if (tvId) {
+      run('start', (signal) => connectTv(tvId, signal), takeOver);
+      return;
+    }
     if (!discoveredFlowId) return;
     run('start', (signal) => addDiscovered(discoveredFlowId, signal), takeOver);
-  }, [discoveredFlowId, run]);
+  }, [discoveredFlowId, run, tvId]);
   const takenRef = useRef(false);
   useEffect(() => {
-    if (!discoveredFlowId || !state.status || takenRef.current) return;
+    if ((!discoveredFlowId && !tvId) || !state.status || takenRef.current) return;
     takenRef.current = true;
     takeOver();
-  }, [discoveredFlowId, state.status, takeOver]);
+  }, [discoveredFlowId, state.status, takeOver, tvId]);
 
   // A progress or an external step: the flow is read every few seconds until HA moves on (the
   // task ended, or the person finished on the page of the maker). The same step again changes

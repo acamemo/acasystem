@@ -30,6 +30,8 @@ export { Switch } from './components/Switch';
 export { DialogShell } from './components/DialogShell';
 export { Modal } from './components/Modal';
 export { Sheet } from './components/Sheet';
+export { Console, ConsoleColumns } from './components/Console';
+export type { ConsoleOrigin, ConsoleProps } from './components/Console';
 export { SideSheet } from './components/SideSheet';
 export { ConfirmSheet } from './components/ConfirmSheet';
 export type { ConfirmCode, ConfirmSheetProps } from './components/ConfirmSheet';

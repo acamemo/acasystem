@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, Caption, IconText, Numeric, Slider } from '@/components/primitives';
 import { formatDuration } from '@/utils/formatting';
 import { MediaIcon } from '../icons';
@@ -18,6 +18,13 @@ export interface TransportProps {
   skipClassName?: string;
   /** Width from which the power button is shown. */
   powerClassName?: string;
+  /** Stop key, shown when given (the caller checks that the entity declares STOP). */
+  onStop?: () => void;
+  /** Keys around play/pause (rewind and fast forward of a TV remote); the music player has none. */
+  beforePlay?: ReactNode;
+  afterPlay?: ReactNode;
+  /** Label of play/pause when it is one key for both (Apple TV). */
+  playLabel?: string;
 }
 
 /** Transport buttons of a media_player, shown only when the entity supports them. */
@@ -30,6 +37,10 @@ export function Transport({
   className,
   skipClassName,
   powerClassName,
+  onStop,
+  beforePlay,
+  afterPlay,
+  playLabel,
 }: TransportProps) {
   const { caps, playing, power, powerAction, shuffle, repeat, busy } = controls;
   const full = variant === 'full';
@@ -74,17 +85,32 @@ export function Transport({
           <MediaIcon name="previous" size="md" />
         </Button>
       )}
+      {beforePlay}
       {caps.playPause && (
         <Button
           variant="primary"
           shape="circle"
           size="lg"
-          aria-label={playing.value ? testi.pausa : testi.riproduci}
+          aria-label={playLabel ?? (playing.value ? testi.pausa : testi.riproduci)}
           loading={playing.pending}
           disabled={disabled}
           onClick={controls.togglePlay}
         >
           <MediaIcon name={playing.value ? 'pause' : 'play'} size="md" />
+        </Button>
+      )}
+      {afterPlay}
+      {onStop && (
+        <Button
+          variant="control"
+          shape="circle"
+          size="md"
+          aria-label={testi.ferma}
+          loading={busy === 'stop'}
+          disabled={disabled}
+          onClick={onStop}
+        >
+          <MediaIcon name="stop" size="md" />
         </Button>
       )}
       {withSkip && caps.next && (
@@ -135,6 +161,7 @@ export function PowerButton({
   pending,
   disabled,
   className,
+  size = 'md',
   onClick,
 }: {
   /** Shown state: on means the device is on (orange icon). */
@@ -143,13 +170,14 @@ export function PowerButton({
   pending: boolean;
   disabled?: boolean;
   className?: string;
+  size?: 'md' | 'lg' | 'xl';
   onClick: () => void;
 }) {
   return (
     <Button
       variant="control"
       shape="circle"
-      size="md"
+      size={size}
       className={className}
       aria-label={action === 'turn_on' ? testi.accendi : testi.spegni}
       loading={pending}
@@ -161,6 +189,70 @@ export function PowerButton({
     >
       <MediaIcon name="power" size="md" tone={on ? 'active' : undefined} />
     </Button>
+  );
+}
+
+/** One − or + button; the size follows the context (`md` in the volume row, `lg` in the details). */
+export function StepButton({
+  direction,
+  size = 'md',
+  label,
+  busy,
+  disabled,
+  onClick,
+}: {
+  direction: 1 | -1;
+  size?: 'md' | 'lg';
+  label: string;
+  busy?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="control"
+      shape="circle"
+      size={size}
+      aria-label={label}
+      loading={busy}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <MediaIcon name={direction > 0 ? 'add' : 'minus'} size={size === 'lg' ? 'md' : 'sm'} />
+    </Button>
+  );
+}
+
+/** A − / + pair (volume, channel): the single-pointer alternative to a knob or a key. */
+export function StepPair({
+  size = 'lg',
+  labels,
+  busy,
+  onStep,
+}: {
+  size?: 'md' | 'lg';
+  /** Accessible names of − and +. */
+  labels: [string, string];
+  busy: [boolean, boolean];
+  onStep: (direction: 1 | -1) => void;
+}) {
+  return (
+    <div className="aca-media-volume">
+      <StepButton
+        direction={-1}
+        size={size}
+        label={labels[0]}
+        busy={busy[0]}
+        onClick={() => onStep(-1)}
+      />
+      <StepButton
+        direction={1}
+        size={size}
+        label={labels[1]}
+        busy={busy[1]}
+        onClick={() => onStep(1)}
+      />
+    </div>
   );
 }
 
@@ -180,16 +272,12 @@ export function VolumeControl({
   return (
     <div className="aca-media-volume" onClick={stop}>
       {steps && caps.volumeSet && (
-        <Button
-          variant="control"
-          shape="circle"
-          size="md"
-          aria-label={testi.volumeGiu}
+        <StepButton
+          direction={-1}
+          label={testi.volumeGiu}
           disabled={disabled}
           onClick={() => controls.stepVolume(-1)}
-        >
-          <MediaIcon name="minus" size="sm" />
-        </Button>
+        />
       )}
       {caps.volumeMute && (
         <Button
@@ -225,16 +313,12 @@ export function VolumeControl({
         />
       )}
       {steps && caps.volumeSet && (
-        <Button
-          variant="control"
-          shape="circle"
-          size="md"
-          aria-label={testi.volumeSu}
+        <StepButton
+          direction={1}
+          label={testi.volumeSu}
           disabled={disabled}
           onClick={() => controls.stepVolume(1)}
-        >
-          <MediaIcon name="add" size="sm" />
-        </Button>
+        />
       )}
     </div>
   );

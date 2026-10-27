@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { HassEntity } from 'home-assistant-js-websocket';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
@@ -65,16 +65,21 @@ describe('Android TV: the power button follows what the entity declares', () => 
     expect(callService).toHaveBeenCalledWith('media_player', 'turn_off', { entity_id: TV });
   });
 
-  it('off with TURN_OFF only (no power-on from off yet): no button that could not work', () => {
-    const { wrap } = setup(tv('off', { supported_features: TURN_OFF }));
+  it('off with TURN_OFF only (no power-on from off yet): the key stays, waiting, and calls nothing', () => {
+    const { callService, wrap } = setup(tv('off', { supported_features: TURN_OFF }));
     wrap(widget);
-    expect(screen.queryByRole('button', { name: /Accendi|Spegni/ })).toBeNull();
+    const power = screen.getByRole('button', { name: 'Accendi' });
+    expect(power.className).toContain('aca-media-key--waiting');
+    fireEvent.click(power);
+    expect(callService).not.toHaveBeenCalled();
   });
 
-  it('an Android TV that declares nothing shows no power button, as before', () => {
-    const { wrap } = setup(tv('on'));
+  it('an Android TV that declares nothing and is off keeps the power key, waiting', () => {
+    const { wrap } = setup(tv('off'));
     wrap(widget);
-    expect(screen.queryByRole('button', { name: /Accendi|Spegni/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Accendi' }).className).toContain(
+      'aca-media-key--waiting'
+    );
   });
 
   it('the Apple TV keeps its button whatever it declares', () => {
@@ -98,25 +103,27 @@ describe('Android TV: the power button follows what the entity declares', () => 
     expect(callService).toHaveBeenCalledWith('media_player', 'turn_on', { entity_id: TV });
   });
 
-  it('shows no button in the details when nothing is declared and no remote is linked', () => {
+  it('shows its single power key among the base keys, as the widget does', () => {
     const { wrap } = setup(tv('on'));
     wrap(details);
-    expect(screen.queryByRole('button', { name: /Accendi|Spegni/ })).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Accendi|Spegni/ })).toHaveLength(1);
   });
 });
 
 describe('Android TV: the apps follow SELECT_SOURCE', () => {
   const sources = ['Netflix', 'YouTube', 'HDMI 1'];
 
-  it('lists the sources and opens one with select_source', () => {
+  it('lists apps and inputs apart and opens one with select_source', () => {
     const { callService, wrap } = setup(
       tv('on', { supported_features: SELECT_SOURCE | TURN_OFF, source_list: sources })
     );
     wrap(details);
-    expect(screen.getByRole('heading', { name: 'App' })).toBeInTheDocument();
-    for (const source of sources) {
-      expect(screen.getByRole('button', { name: source })).toBeInTheDocument();
-    }
+    const apps = screen.getByRole('region', { name: 'App' });
+    const inputs = screen.getByRole('region', { name: 'Ingressi' });
+    expect(within(apps).getByRole('button', { name: 'Netflix' })).toBeInTheDocument();
+    expect(within(apps).getByRole('button', { name: 'YouTube' })).toBeInTheDocument();
+    expect(within(inputs).getByRole('button', { name: 'HDMI 1' })).toBeInTheDocument();
+    expect(within(apps).queryByRole('button', { name: 'HDMI 1' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Netflix' }));
     expect(callService).toHaveBeenCalledWith('media_player', 'select_source', {
       entity_id: TV,

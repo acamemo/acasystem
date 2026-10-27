@@ -92,6 +92,25 @@ export interface HaProgressFlow {
   hasUniqueId: boolean;
 }
 
+/** One device that HA saw on the network by SSDP, zeroconf or DHCP (F5). */
+export interface HaNetworkDevice {
+  source: 'ssdp' | 'zeroconf' | 'dhcp';
+  host: string | null;
+  /** Only DHCP gives the MAC. Never returned to the browser. */
+  mac: string | null;
+  hostname: string | null;
+  manufacturer: string | null;
+  modelName: string | null;
+  friendlyName: string | null;
+  deviceType: string | null;
+  /** SSDP: the UDN; zeroconf: the service name. */
+  uid: string | null;
+  /** Zeroconf service type, like `_googlecast._tcp.local.`. */
+  serviceType: string | null;
+  /** SSDP: integrations HA matched for the device (`x_homeassistant_matching_domains`). */
+  domains: string[];
+}
+
 export interface HaWsApi {
   currentUser(): Promise<HaUserInfo>;
   entries(domain?: string): Promise<HaEntry[]>;
@@ -126,6 +145,11 @@ export interface HaWsApi {
   ignoreFlow(flowId: string, title: string): Promise<void>;
   /** Flows in progress other than the ones opened by a person (`source` is not `user`). */
   flowsInProgress(): Promise<HaProgressFlow[]>;
+  /**
+   * The list of devices HA sees on the network for one source: the first event of its
+   * `subscribe_discovery` subscription of the source, which is closed again. Read-only; HA does the scan.
+   */
+  networkDevices(source: HaNetworkDevice['source']): Promise<HaNetworkDevice[]>;
   /**
    * Italian texts of the configuration flows of one integration (`frontend/get_translations`,
    * category `config`): the raw `result`, read by `parseTranslations` (haTexts.ts).
@@ -172,6 +196,9 @@ export interface HaAdapterOptions {
   callTimeoutMs: number;
   flowStepTimeoutMs: number;
 }
+
+/** How long to wait for the first event of a discovery subscription (F5: at most 3 seconds). */
+const DISCOVERY_WAIT_MS = 3_000;
 
 const asString = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
@@ -319,11 +346,75 @@ const parseProgressFlow = (value: unknown): HaProgressFlow | null => {
 
 const compact = <T>(items: (T | null)[]): T[] => items.filter((item): item is T => item !== null);
 
+const hostOfUrl = (value: unknown): string | null => {
+  const text = asString(value);
+  if (!text) return null;
+  try {
+    return new URL(text).hostname || null;
+  } catch {
+    return null;
+  }
+};
+
+const IPV4_ADDRESS = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+const parseNetworkDevice = (
+  source: HaNetworkDevice['source'],
+  value: unknown
+): HaNetworkDevice | null => {
+  if (!isRecord(value)) return null;
+  const device: HaNetworkDevice = {
+    source,
+    host: null,
+    mac: null,
+    hostname: null,
+    manufacturer: null,
+    modelName: null,
+    friendlyName: null,
+    deviceType: null,
+    uid: null,
+    serviceType: null,
+    domains: [],
+  };
+  if (source === 'dhcp') {
+    device.mac = normalizeMacAddress(value.mac_address);
+    device.host = asString(value.ip_address);
+    device.hostname = asString(value.hostname);
+    return device.mac || device.host ? device : null;
+  }
+  if (source === 'ssdp') {
+    const upnp = isRecord(value.upnp) ? value.upnp : {};
+    device.host = hostOfUrl(value.ssdp_location);
+    device.manufacturer = asString(upnp.manufacturer);
+    device.modelName = asString(upnp.modelName);
+    device.friendlyName = asString(upnp.friendlyName);
+    device.deviceType = asString(upnp.deviceType);
+    device.uid = asString(upnp.UDN) ?? asString(value.ssdp_udn) ?? asString(value.ssdp_usn);
+    device.domains = asArray(value.x_homeassistant_matching_domains).filter(
+      (domain): domain is string => typeof domain === 'string'
+    );
+    return device.host || device.uid ? device : null;
+  }
+  // Zeroconf: the list was empty when observed; the keys follow HA's ServiceInfo, read tolerantly.
+  const properties = isRecord(value.properties) ? value.properties : {};
+  const addresses = asArray(value.ip_addresses ?? value.addresses).filter(
+    (address): address is string => typeof address === 'string' && IPV4_ADDRESS.test(address)
+  );
+  device.host = addresses[0] ?? null;
+  device.uid = asString(value.name);
+  device.serviceType = asString(value.type);
+  device.friendlyName = asString(properties.fn) ?? asString(properties.friendly_name);
+  device.modelName = asString(properties.md) ?? asString(properties.model);
+  device.manufacturer = asString(properties.manufacturer);
+  return device.host ? device : null;
+};
+
 const createWsApi = (
   send: (
     call: Parameters<HaWsSession['send']>[0],
     payload?: Record<string, unknown>
-  ) => Promise<unknown>
+  ) => Promise<unknown>,
+  collect: (call: Parameters<HaWsSession['send']>[0]) => Promise<unknown[]>
 ): HaWsApi => ({
   async currentUser() {
     return parseUser(await send(HA_CALLS.currentUser));
@@ -415,6 +506,22 @@ const createWsApi = (
   async flowsInProgress() {
     return compact(asArray(await send(HA_CALLS.flowList)).map(parseProgressFlow));
   },
+  async networkDevices(source) {
+    const call =
+      source === 'ssdp'
+        ? HA_CALLS.ssdpDiscovery
+        : source === 'dhcp'
+          ? HA_CALLS.dhcpDiscovery
+          : HA_CALLS.zeroconfDiscovery;
+    const found: HaNetworkDevice[] = [];
+    for (const event of await collect(call)) {
+      if (!isRecord(event)) continue;
+      for (const key of ['add', 'change']) {
+        found.push(...compact(asArray(event[key]).map((item) => parseNetworkDevice(source, item))));
+      }
+    }
+    return found;
+  },
   async translations(handler) {
     return send(HA_CALLS.translations, {
       language: 'it',
@@ -466,15 +573,22 @@ export const createHaAdapter = ({
   };
 
   const wsApiFor = (session: HaWsSession): HaWsApi =>
-    createWsApi((call, payload) =>
-      session.send(call, { ...(payload ? { payload } : {}), timeoutMs: callTimeoutMs })
+    createWsApi(
+      (call, payload) =>
+        session.send(call, { ...(payload ? { payload } : {}), timeoutMs: callTimeoutMs }),
+      (call) => session.collect(call, HA_CALLS.unsubscribeEvents, { timeoutMs: DISCOVERY_WAIT_MS })
     );
 
   const oneShotApi = (token: string): HaWsApi =>
-    createWsApi((call, payload) =>
-      withSession(token, (session) =>
-        session.send(call, { ...(payload ? { payload } : {}), timeoutMs: callTimeoutMs })
-      )
+    createWsApi(
+      (call, payload) =>
+        withSession(token, (session) =>
+          session.send(call, { ...(payload ? { payload } : {}), timeoutMs: callTimeoutMs })
+        ),
+      (call) =>
+        withSession(token, (session) =>
+          session.collect(call, HA_CALLS.unsubscribeEvents, { timeoutMs: DISCOVERY_WAIT_MS })
+        )
     );
 
   const rest = async (

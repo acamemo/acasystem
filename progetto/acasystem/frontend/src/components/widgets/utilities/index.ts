@@ -8,9 +8,11 @@ import { CarWidget } from './car/CarWidget';
 import { CarDetails } from './car/CarDetails';
 import { MowerWidget, VacuumWidget } from './robots/RobotWidget';
 import { VacuumDetails } from './robots/VacuumDetails';
+import { VacuumConsole } from './robots/VacuumConsole';
 import { MowerDetails } from './robots/MowerDetails';
 import { RoomWidget } from './room/RoomWidget';
 import { RoomDetails } from './room/RoomDetails';
+import { RoomConsole } from './room/RoomConsole';
 import { SpacerWidget } from './spacer/SpacerWidget';
 import { DiscoverWidget } from './discover/DiscoverWidget';
 import { DiscoverDetails } from './discover/DiscoverDetails';
@@ -57,6 +59,7 @@ export const utilityWidgets: WidgetDefinition[] = [
     matches: (id) => id.startsWith('vacuum.'),
     Widget: VacuumWidget,
     Details: VacuumDetails,
+    Console: VacuumConsole,
   },
   {
     type: 'mower',
@@ -75,6 +78,7 @@ export const utilityWidgets: WidgetDefinition[] = [
     matches: (id) => id.startsWith('room_card_'),
     Widget: RoomWidget,
     Details: RoomDetails,
+    Console: RoomConsole,
   },
   {
     type: 'rileva',

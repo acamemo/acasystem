@@ -15,6 +15,7 @@ import {
   validatePowerBody,
   validateStartFlowBody,
   validateStepBody,
+  validateTvId,
 } from '../validators/deviceValidators.ts';
 
 /**
@@ -34,6 +35,8 @@ export interface DevicesController {
   listDiscovered: RequestHandler;
   addDiscovered: RequestHandler;
   ignoreDiscovered: RequestHandler;
+  listTvs: RequestHandler;
+  connectTv: RequestHandler;
   getEntry: RequestHandler;
   removeEntry: RequestHandler;
   updateDevice: RequestHandler;
@@ -117,6 +120,13 @@ export const createDevicesController = (
 
   ignoreDiscovered: route((req, user) =>
     service.ignoreDiscovered(user, validateFlowId(req.params.flowId))
+  ),
+
+  listTvs: route((_req, user) => service.listTvs(user)),
+
+  connectTv: route(
+    (req, user) => service.connectTv(user, validateTvId(req.params.tvId)),
+    201
   ),
 
   getEntry: route((req, user) => service.getEntry(user, validateEntryId(req.params.entryId))),

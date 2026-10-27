@@ -138,6 +138,26 @@ export interface DiscoveredDeviceDto {
   reason?: string;
 }
 
+/** What the television asks of the person while it is connected. */
+export type TvConfirmation = 'consenti' | 'pin' | 'codice' | 'nessuno';
+
+/** A television Home Assistant saw on the network (`GET /tv-in-rete`): no address, no MAC. */
+export interface TvInReteDto {
+  /** Opaque id; `POST /tv-in-rete/:id/collega` starts the connection. */
+  id: string;
+  /** Machine key of the maker (`samsung`, `lg`, `amazon`...), for the icon. */
+  brandKey: string;
+  brand: string;
+  name: string;
+  model: string | null;
+  handler: string | null;
+  conferma: TvConfirmation;
+  /** False when the maker needs something Acasystem cannot do for a customer. */
+  collegabile: boolean;
+  /** Why not, in Italian; only when `collegabile` is false. */
+  motivo?: string;
+}
+
 export interface FlowSummaryDto {
   flowId: string;
   handler: string;

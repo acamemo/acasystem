@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Body, Button, Caption, Icon } from '@/components/primitives';
-import type { DiscoveredDeviceDto, EntryDto } from '@/@types/devices';
+import type { DiscoveredDeviceDto, EntryDto, TvInReteDto } from '@/@types/devices';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { ignoreDiscovered, toDeviceError } from '@/api/devicesApi';
 import { getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
@@ -23,6 +23,7 @@ import { Notice } from '../shared/UtilityCard';
 import { UtilityIcon } from '../shared/UtilityIcon';
 import { FAMILY_ICON } from './familyIcon';
 import { useDiscoveredDevices } from './useDiscoveredDevices';
+import { useTvsOnNetwork } from './useTvsOnNetwork';
 import { useUnboundDevices } from './useUnboundDevices';
 
 const subtitleOf = (device: DiscoveredDevice): string =>
@@ -85,8 +86,47 @@ function FoundRow({
   );
 }
 
+/** A television Home Assistant saw: its name and maker, and one big «Collega». */
+function TvRow({
+  tv,
+  canConnect,
+  onConnect,
+}: {
+  tv: TvInReteDto;
+  canConnect: boolean;
+  onConnect: () => void;
+}) {
+  return (
+    <li className="utility-found-row">
+      <UtilityIcon name="tv" size="md" />
+      <span className="utility-found-row__text">
+        <Body as="span" size="sm" className="utility-truncate">
+          {tv.name}
+        </Body>
+        <Caption className="utility-truncate">
+          {tv.model && !tv.name.includes(tv.model) ? `${tv.brand} · ${tv.model}` : tv.brand}
+        </Caption>
+        {!tv.collegabile && tv.motivo && <Caption>{tv.motivo}</Caption>}
+      </span>
+      {tv.collegabile && (
+        <Button
+          variant="primary"
+          size="md"
+          disabled={!canConnect}
+          aria-label={`Collega ${tv.name}`}
+          onClick={onConnect}
+        >
+          Collega
+        </Button>
+      )}
+    </li>
+  );
+}
+
 /**
- * Two lists. «Trovati in rete»: what Home Assistant found by itself (SSDP, mDNS, DHCP...), each
+ * Three lists. «Televisori in rete»: the televisions Home Assistant saw, each with a «Collega»
+ * that does the whole connection in one tap (the server fills the address; the person only reads
+ * the code or accepts on the television). «Trovati in rete»: what Home Assistant found by itself (SSDP, mDNS, DHCP...), each
  * with «Aggiungi» (the flow of «Aggiungi un dispositivo» opens in place, then «Aggiungi un
  * widget» on the new device) and «Non mi interessa». «Non lo trovi? Aggiungi per marca» opens the
  * same flow from the catalogue of brands, for a device nobody discovered (a TV by its address).
@@ -103,12 +143,15 @@ export function DiscoverDetails({ id, onClose }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const state = useUnboundDevices();
   // The flow is open: a discovery to take over, or (flowId null) the catalogue of brands.
-  const [adding, setAdding] = useState<{ flowId: string | null; family: DeviceFamily | null } | null>(
-    null
-  );
+  const [adding, setAdding] = useState<{
+    flowId: string | null;
+    tvId?: string;
+    family: DeviceFamily | null;
+  } | null>(null);
   const [working, setWorking] = useState<ReadonlySet<string>>(new Set());
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
   const found = useDiscoveredDevices(adding !== null);
+  const tvs = useTvsOnNetwork(adding !== null);
 
   const targetPage = (): string => {
     const pages = launcher?.layout.pages ?? [];
@@ -185,10 +228,12 @@ export function DiscoverDetails({ id, onClose }: WidgetDetailsProps) {
       <DetailsBody label="Rileva dispositivi">
         <Flow
           flowId={adding.flowId}
+          {...(adding.tvId ? { tvId: adding.tvId } : {})}
           family={adding.family}
           onExit={() => {
             setAdding(null);
             found.refresh();
+            tvs.refresh();
           }}
           onDone={(entry) =>
             // A brand picked from the catalogue has no family yet: the integration gives it.
@@ -198,6 +243,10 @@ export function DiscoverDetails({ id, onClose }: WidgetDetailsProps) {
       </DetailsBody>
     );
   }
+
+  // «Televisori in rete» appears only when there is one to connect; errors are said by the
+  // section below, which reads the same service.
+  const tvList = tvs.status === 'ready' && tvs.tvs.length > 0 ? tvs.tvs : null;
 
   let network: ReactNode = null;
   if (found.status === 'unavailable') {
@@ -239,41 +288,77 @@ export function DiscoverDetails({ id, onClose }: WidgetDetailsProps) {
       </Notice>
     );
   } else {
-    const { devices, identify } = state;
-    body = FAMILY_ORDER.map((family) => {
-      const inFamily = devices.filter((device) => device.family === family);
-      if (inFamily.length === 0) return null;
-      return (
-        <div key={family} role="group" aria-label={FAMILY_LABEL[family]} className="utility-stack">
-          <Caption as="p">{FAMILY_LABEL[family]}</Caption>
-          {inFamily.map((device) => (
-            <div key={device.deviceId} className="utility-device-line">
-              <Button
-                variant="control"
-                size="sm"
-                disabled={!requestAdd}
-                onClick={() => add(device)}
-                className="utility-device-row"
-                contentClassName="utility-device-row__content"
-              >
-                <span className="utility-device-row__text">
-                  <Body as="span" size="sm" className="utility-truncate">
-                    {device.name}
-                  </Body>
-                  <Caption className="utility-truncate">{subtitleOf(device)}</Caption>
-                </span>
-                <Icon name="add" size="md" />
-              </Button>
-              <IdentifyButton action={identify.get(device.deviceId)} name={device.name} />
+    const { devices, identify, unreachable } = state;
+    // A device that does not answer (all its entities `unavailable`) is still addable, but it goes
+    // after the ones that do, with a tag (ISSUE-120).
+    const reachable = devices.filter((device) => !unreachable.has(device.deviceId));
+    const silent = devices.filter((device) => unreachable.has(device.deviceId));
+    const deviceLine = (device: DiscoveredDevice, tag: boolean) => (
+      <div key={device.deviceId} className="utility-device-line">
+        <Button
+          variant="control"
+          size="sm"
+          disabled={!requestAdd}
+          onClick={() => add(device)}
+          className="utility-device-row"
+          contentClassName="utility-device-row__content"
+        >
+          <span className="utility-device-row__text">
+            <Body as="span" size="sm" className="utility-truncate">
+              {device.name}
+            </Body>
+            <Caption className="utility-truncate">
+              {tag ? `Non raggiungibile · ${subtitleOf(device)}` : subtitleOf(device)}
+            </Caption>
+          </span>
+          <Icon name="add" size="md" />
+        </Button>
+        <IdentifyButton action={identify.get(device.deviceId)} name={device.name} />
+      </div>
+    );
+    body = (
+      <>
+        {FAMILY_ORDER.map((family) => {
+          const inFamily = reachable.filter((device) => device.family === family);
+          if (inFamily.length === 0) return null;
+          return (
+            <div
+              key={family}
+              role="group"
+              aria-label={FAMILY_LABEL[family]}
+              className="utility-stack"
+            >
+              <Caption as="p">{FAMILY_LABEL[family]}</Caption>
+              {inFamily.map((device) => deviceLine(device, false))}
             </div>
-          ))}
-        </div>
-      );
-    });
+          );
+        })}
+        {silent.length > 0 && (
+          <div role="group" aria-label="Non raggiungibili" className="utility-stack">
+            <Caption as="p">Non raggiungibili</Caption>
+            {silent.map((device) => deviceLine(device, true))}
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
     <DetailsBody label="Rileva dispositivi">
+      {tvList && (
+        <Section title="Televisori in rete" icon="tv">
+          <ul className="utility-stack" aria-label="Televisori trovati in rete">
+            {tvList.map((tv) => (
+              <TvRow
+                key={tv.id}
+                tv={tv}
+                canConnect={Flow !== null}
+                onConnect={() => setAdding({ flowId: null, tvId: tv.id, family: 'tv' })}
+              />
+            ))}
+          </ul>
+        </Section>
+      )}
       {network && (
         <Section title="Trovati in rete" icon="wifi">
           {network}

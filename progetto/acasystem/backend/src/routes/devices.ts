@@ -18,6 +18,8 @@ import type { DeviceModule } from '../services/devices/index.ts';
  * - GET    /scoperti                 devices that HA found on the network (ADR-0024)
  * - POST   /scoperti/:flowId/aggiungi  take a discovered flow over, answers with its step
  * - POST   /scoperti/:flowId/ignora    «Non mi interessa»
+ * - GET    /tv-in-rete               televisions HA saw on the network (F5), no address
+ * - POST   /tv-in-rete/:tvId/collega  start the integration with the address filled in, answers with its step
  * - GET    /voci/:entryId            entry with its device and entities
  * - DELETE /voci/:entryId            «Rimuovi dispositivo»: the entry leaves HA (not system ones)
  * - PATCH  /dispositivi/:deviceId    name and room           {name?, areaId?}
@@ -45,6 +47,9 @@ export const createDevicesRouter = (devices: Pick<DeviceModule, 'service' | 'pow
   router.get('/scoperti', controller.listDiscovered);
   router.post('/scoperti/:flowId/aggiungi', controller.addDiscovered);
   router.post('/scoperti/:flowId/ignora', controller.ignoreDiscovered);
+
+  router.get('/tv-in-rete', controller.listTvs);
+  router.post('/tv-in-rete/:tvId/collega', controller.connectTv);
 
   router.get('/voci/:entryId', controller.getEntry);
   router.delete('/voci/:entryId', controller.removeEntry);

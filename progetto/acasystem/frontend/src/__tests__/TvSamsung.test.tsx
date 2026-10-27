@@ -60,6 +60,24 @@ describe('Samsung TV: switching off', () => {
     expect(callService).not.toHaveBeenCalledWith('media_player', 'turn_off', expect.anything());
   });
 
+  it('without a configured remote, the remote HA created with the TV is used (KEY_POWER)', () => {
+    const { callService, wrap } = setup(samsung('on'));
+    wrap(
+      <AndroidTvWidget
+        id="androidtv_card_1"
+        settingsKey="k"
+        settings={settings('')}
+        size={{ w: 2, h: 2 }}
+        editMode={false}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Spegni' }));
+    expect(callService).toHaveBeenCalledWith('remote', 'send_command', {
+      entity_id: REMOTE,
+      command: 'KEY_POWER',
+    });
+  });
+
   it('without a remote, or for another brand, «Spegni» stays media_player.turn_off', () => {
     const { callService, wrap } = setup(samsung('on', 'webostv'));
     wrap(
@@ -89,7 +107,8 @@ describe('Samsung TV: details', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /Alza il volume|Volume su/i }));
     expect(callService).toHaveBeenCalledWith('media_player', 'volume_up', { entity_id: TV });
-    fireEvent.click(screen.getByRole('button', { name: /Disattiva l.audio/ }));
+    // Mute is now the tap of the single volume knob.
+    fireEvent.click(screen.getByRole('slider', { name: 'Volume' }));
     expect(callService).toHaveBeenCalledWith('media_player', 'volume_mute', {
       entity_id: TV,
       is_volume_muted: true,

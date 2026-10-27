@@ -76,6 +76,18 @@ function buildEntities(): HassEntity[] {
       app_name: 'YouTube',
       media_title: 'Concerto dal vivo',
       source_list: ['Netflix', 'YouTube', 'Prime Video'],
+      // Like an LG webOS TV: level (VOLUME_SET), mute and steps.
+      supported_features: 4 | 8 | 1024 | 128 | 256,
+      volume_level: 0.3,
+      is_volume_muted: false,
+    }),
+    // Like the Samsung UE50J6200: volume and mute declared, but no volume_level (step mode).
+    live('media_player.tv_samsung', 'on', {
+      friendly_name: 'Samsung camera',
+      app_name: 'Netflix',
+      media_title: 'Dark',
+      supported_features: 24381,
+      platform: 'samsungtv',
     }),
     live('media_player.emby_sala', 'playing', {
       friendly_name: 'Emby sala',
@@ -105,6 +117,7 @@ const cardSettings: Record<string, CardSettings> = {
     linkedMediaPlayers: ['media_player.emby_sala'],
   },
   androidtv_card_2: { mediaPlayerId: 'media_player.tv_sala', remoteId: 'remote.tv_sala' },
+  androidtv_card_3: { mediaPlayerId: 'media_player.tv_samsung', remoteId: 'remote.tv_samsung' },
   appletv_card_1: {
     mediaPlayerId: 'media_player.apple_tv',
     remoteId: 'remote.apple_tv',
@@ -174,6 +187,15 @@ const SAMPLES: Array<{ title: string; items: Sample[] }> = [
     items: [
       { id: 'androidtv_card_1', size: { w: 2, h: 2 }, note: 'Android TV con Emby collegato' },
       { id: 'androidtv_card_2', size: { w: 2, h: 1 }, note: 'Android TV 2×1, logo app' },
+      { id: 'androidtv_card_2', size: { w: 3, h: 1 }, note: 'Android TV 3×1, manopola volume' },
+      { id: 'androidtv_card_2', size: { w: 4, h: 1 }, note: 'Android TV 4×1' },
+      { id: 'androidtv_card_2', size: { w: 4, h: 2 }, note: 'Android TV 4×2, manopola grande' },
+      {
+        id: 'androidtv_card_3',
+        size: { w: 2, h: 2 },
+        note: 'Samsung senza livello: volume a passi',
+      },
+      { id: 'androidtv_card_3', size: { w: 2, h: 1 }, note: 'Samsung 2×1' },
       {
         id: 'appletv_card_1',
         size: { w: 2, h: 2 },

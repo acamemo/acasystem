@@ -11,6 +11,13 @@ import { MEDIA_FEATURE } from './features';
 
 export type TvKind = 'android' | 'apple';
 
+/** The `remote.*` entity with the same object id as the TV's media player, when HA has one. */
+export function pairedRemoteId(mediaPlayerId: string, entities?: EntityMap): string {
+  if (!entities || !mediaPlayerId.startsWith('media_player.')) return '';
+  const remoteId = `remote.${mediaPlayerId.slice('media_player.'.length)}`;
+  return entities[remoteId] ? remoteId : '';
+}
+
 export interface TvView {
   entity: Entity | undefined;
   displayId: string;
@@ -142,6 +149,29 @@ export function tvShowsVolume(kind: TvKind, view: TvView): boolean {
 export function tvShowsMute(kind: TvKind, view: TvView): boolean {
   return kind === 'apple' || declares(view, MEDIA_FEATURE.VOLUME_MUTE);
 }
+
+export type TvVolumeMode = 'level' | 'step';
+
+/**
+ * How the single volume knob works: `level` when the entity reports a numeric `volume_level` and
+ * can set it (LG webOS: the drag sets a percentage), `step` when it only has relative volume
+ * (Samsung UE50J6200 declares VOLUME_SET but reports no level; a configured remote or an Apple TV
+ * also work in steps), `null` when the TV declares no volume at all.
+ */
+export function tvVolumeMode(kind: TvKind, view: TvView, hasRemote = false): TvVolumeMode | null {
+  if (tvVolumeLevel(view) !== null && declares(view, MEDIA_FEATURE.VOLUME_SET)) return 'level';
+  return hasRemote || tvShowsVolume(kind, view) ? 'step' : null;
+}
+
+/** `volume_level` of the TV (0–1), or null when the entity does not report one. */
+export function tvVolumeLevel(view: TvView): number | null {
+  const raw = view.entity?.attributes?.volume_level;
+  return typeof raw === 'number' && Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : null;
+}
+
+/** The entity reports `is_volume_muted`; otherwise the mute state is only the widget's own. */
+export const tvReportsMute = (view: TvView): boolean =>
+  typeof view.entity?.attributes?.is_volume_muted === 'boolean';
 
 const declares = (view: TvView, mask: number): boolean => {
   const raw = view.entity?.attributes?.supported_features;

@@ -4,7 +4,7 @@ import { isFacadeEntry, isStartableHandler, isSystemDomain, searchCatalog } from
 import type { CatalogEntryDto, CatalogItem } from './catalog.ts';
 import { DEVICE_ERROR_DEFINITIONS, DeviceError, describeForLog } from './deviceErrors.ts';
 import { authorizeOperation, runGuarded } from './deviceContext.ts';
-import type { DeviceContext, DeviceUser } from './deviceContext.ts';
+import type { AuditTrail, DeviceContext, DeviceUser } from './deviceContext.ts';
 import {
   devicesOfEntry,
   entitiesOfEntry,
@@ -26,8 +26,16 @@ import type {
   NormalizedFlow,
 } from './flowModel.ts';
 import { createTranslationCache } from './haTexts.ts';
+import {
+  ADDRESS_FIELD_NAMES,
+  brandKeyOfMaker,
+  classifyTvs,
+  toTvDto,
+  withoutKnown,
+} from './tvClassify.ts';
+import type { TvCandidate, TvInReteDto } from './tvClassify.ts';
 import type { HandlerTranslations } from './haTexts.ts';
-import type { HaArea, HaDevice, HaEntry } from './haAdapter.ts';
+import type { HaArea, HaDevice, HaEntry, HaNetworkDevice } from './haAdapter.ts';
 import { isHaError } from './haTransport.ts';
 import { describeIdentityState } from './serviceIdentity.ts';
 import type { IdentityState } from './serviceIdentity.ts';
@@ -81,6 +89,10 @@ export interface FlowSummaryDto {
 
 export interface DiscoveredListDto {
   devices: DiscoveredDeviceDto[];
+}
+
+export interface TvListDto {
+  tvs: TvInReteDto[];
 }
 
 export interface CatalogDto {
@@ -140,6 +152,10 @@ export interface DeviceService {
   addDiscovered(user: DeviceUser, flowId: string): Promise<FlowResponseDto>;
   /** «Non mi interessa»: HA ignores this discovery. */
   ignoreDiscovered(user: DeviceUser, flowId: string): Promise<{ ignored: true }>;
+  /** The televisions that HA saw on the network and nobody connected yet (F5). */
+  listTvs(user: DeviceUser): Promise<TvListDto>;
+  /** Starts the integration of the television and fills in its address: next step to answer. */
+  connectTv(user: DeviceUser, tvId: string): Promise<FlowResponseDto>;
   getEntry(user: DeviceUser, entryId: string): Promise<EntryDto>;
   /** «Rimuovi dispositivo»: the entry goes away from HA (F4). System integrations never. */
   removeEntry(user: DeviceUser, entryId: string): Promise<{ removed: true }>;
@@ -158,6 +174,9 @@ export interface DeviceService {
 }
 
 const CATALOG_CACHE_MS = 600_000;
+/** The lists of the network that HA keeps are read at most this often (F5). */
+const TV_CACHE_MS = 30_000;
+const NETWORK_SOURCES: readonly HaNetworkDevice['source'][] = ['ssdp', 'zeroconf', 'dhcp'];
 /** `external_done` and `progress_done` are read through at most this many times in a row. */
 const MAX_CONTINUE_HOPS = 3;
 /** Reasons for which the step needs the installer (a field Acasystem cannot draw). */
@@ -217,6 +236,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
   let catalogCache: { items: CatalogItem[]; at: number } | null = null;
   const translationCache = createTranslationCache({ now: ctx.now });
   const flowSpecs = new Map<string, FlowSpec>();
+  let tvCache: { items: TvCandidate[]; at: number } | null = null;
 
   /** Italian texts of HA for the handler of a result that is not the end of the flow; or null. */
   const translationsFor = async (
@@ -562,6 +582,128 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     throw error;
   };
 
+  /** Answers the step a flow is at: validates the input against what HA asked, sends it, settles. */
+  const answerStep = async (
+    token: string,
+    user: DeviceUser,
+    row: DeviceFlowRow,
+    input: unknown,
+    audit: AuditTrail | undefined
+  ): Promise<FlowResponseDto> => {
+    const flowId = row.flow_id;
+    const stepId = row.step_id ?? '';
+    const spec = flowSpecs.get(flowId);
+    const known = spec !== undefined && spec.stepId === stepId ? spec : undefined;
+    if (known && (known.kind === 'progress' || known.kind === 'external')) {
+      // These steps are waited for (the flow is read until it moves), never answered.
+      throw new DeviceError('INVALID_INPUT');
+    }
+
+    let built:
+      | { ok: true; input: Record<string, unknown> }
+      | { ok: false; field: string | null };
+    if (known?.kind === 'menu') {
+      built = buildMenuInput(known.menuIds, input);
+    } else if (hasInputRules(row.handler, stepId)) {
+      // Hand-written rules first: they refine the values; the constants HA asked for join.
+      const hand = buildFlowInput(row.handler, stepId, input);
+      built = hand.ok ? { ok: true, input: { ...known?.constants, ...hand.input } } : hand;
+    } else if (known?.kind === 'form') {
+      built = buildGenericInput(known.fields, known.constants, input);
+    } else {
+      // A step this server does not know how to answer is never improvised.
+      await cancelUnsupported(token, flowId, row);
+      flowSpecs.delete(flowId);
+      if (audit) audit.code = 'unsupported_step';
+      throw new DeviceError('UNSUPPORTED_STEP');
+    }
+    if (!built.ok)
+      throw new DeviceError('INVALID_INPUT', built.field ? { field: built.field } : {});
+
+    ctx.busyFlows.add(flowId);
+    try {
+      const now = ctx.now();
+      ctx.model.flows.updateStep(flowId, stepId, now, now + ctx.settings.flowTtlMs);
+
+      let raw: unknown;
+      try {
+        raw = await ctx.adapter.flowStep(token, flowId, built.input);
+      } catch (error) {
+        return await rethrowStepError(error, row, token, (errors) => {
+          const first = errors[0];
+          throw new DeviceError(
+            'INVALID_INPUT',
+            first?.field
+              ? { field: first.field, message: first.message }
+              : { message: first?.message ?? '' }
+          );
+        });
+      }
+      return await settleFlowResult(token, user, row.handler, raw, row, audit);
+    } finally {
+      ctx.busyFlows.delete(flowId);
+    }
+  };
+
+  /** The television candidates in the lists of HA, read at most every 30 seconds. */
+  const readTvCandidates = async (token: string): Promise<TvCandidate[]> => {
+    if (tvCache && ctx.now() - tvCache.at < TV_CACHE_MS) return tvCache.items;
+    const lists = await ctx.adapter.withWs(token, (api) =>
+      Promise.allSettled(NETWORK_SOURCES.map((source) => api.networkDevices(source)))
+    );
+    const read = lists.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+    const failed = lists.find((result) => result.status === 'rejected');
+    // One list missing (an HA without it) is tolerated; none readable is an error.
+    if (read.length === 0 && failed?.status === 'rejected') throw failed.reason;
+    tvCache = { items: classifyTvs(read.flat()), at: ctx.now() };
+    return tvCache.items;
+  };
+
+  /** What hides a candidate: devices already in HA and discoveries HA already offers. */
+  const readTvExclusions = async (token: string) =>
+    ctx.adapter.withWs(token, async (api) => {
+      const [devices, flows] = await Promise.all([api.devices(), api.flowsInProgress()]);
+      const configuredMacs = new Set(devices.flatMap((device) => device.macs));
+      const configuredModels = new Set<string>();
+      for (const device of devices) {
+        const brand = brandKeyOfMaker(device.manufacturer);
+        if (brand && device.model) configuredModels.add(`${brand}|${device.model.toLowerCase()}`);
+      }
+      const discoveredByHandler = new Map<string, number>();
+      for (const flow of pickDiscovered(flows)) {
+        discoveredByHandler.set(flow.handler, (discoveredByHandler.get(flow.handler) ?? 0) + 1);
+      }
+      return { configuredMacs, configuredModels, discoveredByHandler };
+    });
+
+  /** The input that fills the address of the first step; null when the person must do it. */
+  const addressInputFor = (
+    handler: string,
+    stepId: string,
+    fields: readonly FlowFieldDto[],
+    candidate: TvCandidate
+  ): Record<string, string> | null => {
+    if (!candidate.host) return null;
+    const address = ADDRESS_FIELD_NAMES.map((name) =>
+      fields.find((field) => field.name === name && field.kind === 'text')
+    ).find((field): field is FlowFieldDto => field !== undefined);
+    if (!address) return null;
+    const input: Record<string, string> = { [address.name]: candidate.host };
+    if (hasInputRules(handler, stepId)) {
+      // Hand-written rules accept the address and nothing else.
+      return address.name === 'host' ? input : null;
+    }
+    for (const field of fields) {
+      if (field === address) continue;
+      if (field.name === 'name' && field.kind === 'text' && !field.required) {
+        input[field.name] = candidate.name;
+      } else if (field.required && field.default === undefined) {
+        return null;
+      }
+    }
+    return input;
+  };
+
   // --- Service -----------------------------------------------------------------------------
 
   const service: DeviceService = {
@@ -715,59 +857,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           const row = await loadOwnFlow(user, flowId);
           if (audit) audit.domain = row.handler;
           if (ctx.busyFlows.has(flowId)) throw new DeviceError('FLOW_BUSY');
-
-          const stepId = row.step_id ?? '';
-          const spec = flowSpecs.get(flowId);
-          const known = spec !== undefined && spec.stepId === stepId ? spec : undefined;
-          if (known && (known.kind === 'progress' || known.kind === 'external')) {
-            // These steps are waited for (the flow is read until it moves), never answered.
-            throw new DeviceError('INVALID_INPUT');
-          }
-
-          let built:
-            | { ok: true; input: Record<string, unknown> }
-            | { ok: false; field: string | null };
-          if (known?.kind === 'menu') {
-            built = buildMenuInput(known.menuIds, input);
-          } else if (hasInputRules(row.handler, stepId)) {
-            // Hand-written rules first: they refine the values; the constants HA asked for join.
-            const hand = buildFlowInput(row.handler, stepId, input);
-            built = hand.ok ? { ok: true, input: { ...known?.constants, ...hand.input } } : hand;
-          } else if (known?.kind === 'form') {
-            built = buildGenericInput(known.fields, known.constants, input);
-          } else {
-            // A step this server does not know how to answer is never improvised.
-            await cancelUnsupported(token, flowId, row);
-            flowSpecs.delete(flowId);
-            if (audit) audit.code = 'unsupported_step';
-            throw new DeviceError('UNSUPPORTED_STEP');
-          }
-          if (!built.ok)
-            throw new DeviceError('INVALID_INPUT', built.field ? { field: built.field } : {});
-
-          ctx.busyFlows.add(flowId);
-          try {
-            const now = ctx.now();
-            ctx.model.flows.updateStep(flowId, stepId, now, now + ctx.settings.flowTtlMs);
-
-            let raw: unknown;
-            try {
-              raw = await ctx.adapter.flowStep(token, flowId, built.input);
-            } catch (error) {
-              return await rethrowStepError(error, row, token, (errors) => {
-                const first = errors[0];
-                throw new DeviceError(
-                  'INVALID_INPUT',
-                  first?.field
-                    ? { field: first.field, message: first.message }
-                    : { message: first?.message ?? '' }
-                );
-              });
-            }
-            return await settleFlowResult(token, user, row.handler, raw, row, audit);
-          } finally {
-            ctx.busyFlows.delete(flowId);
-          }
+          return answerStep(token, user, row, input, audit);
         }
       );
     },
@@ -911,6 +1001,72 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           }
           if (row) ctx.model.flows.remove(flowId);
           return { ignored: true as const };
+        }
+      );
+    },
+
+    async listTvs(user) {
+      return runGuarded(ctx, user, 'tv.leggi', { feature: 'flows' }, async (token) => {
+        const candidates = await readTvCandidates(token);
+        const exclusions = await readTvExclusions(token);
+        return { tvs: withoutKnown(candidates, exclusions).map(toTvDto) };
+      });
+    },
+
+    async connectTv(user, tvId) {
+      return runGuarded(
+        ctx,
+        user,
+        'tv.collega',
+        { feature: 'flows', mutation: true, audit: { action: 'tv.collega' } },
+        async (token, audit) => {
+          await expireFlows();
+          let candidate = (await readTvCandidates(token)).find((item) => item.id === tvId);
+          if (!candidate && tvCache) {
+            // The list may have changed since the screen drew it: one fresh read.
+            tvCache = null;
+            candidate = (await readTvCandidates(token)).find((item) => item.id === tvId);
+          }
+          if (!candidate) throw new DeviceError('TV_NOT_FOUND');
+          const { handler } = candidate;
+          if (!handler || !isStartableHandler(handler)) {
+            throw new DeviceError('REQUIRES_INSTALLER', {
+              message: candidate.reason ?? DEVICE_ERROR_DEFINITIONS.REQUIRES_INSTALLER.message,
+            });
+          }
+          if (audit) audit.domain = handler;
+
+          // A tap on «Collega» starts over: the flow left open by an earlier try is dropped.
+          const stale = ctx.model.flows.findOpenForHandler(user.id, handler, ctx.now());
+          if (stale) {
+            await ctx.adapter.flowCancel(token, stale.flow_id).catch(() => false);
+            ctx.model.flows.remove(stale.flow_id);
+            flowSpecs.delete(stale.flow_id);
+          }
+          if (
+            ctx.model.flows.countOpen(ctx.now(), user.id) >= ctx.settings.maxOpenFlowsPerUser ||
+            ctx.model.flows.countOpen(ctx.now()) >= ctx.settings.maxOpenFlowsTotal
+          ) {
+            throw new DeviceError('TOO_MANY_FLOWS');
+          }
+          const turn = ctx.limiters.flowStart.take(user.id);
+          if (!turn.allowed)
+            throw new DeviceError('RATE_LIMITED', { retryAfterSeconds: turn.retryAfterSeconds });
+
+          const first = await settleFlowResult(
+            token,
+            user,
+            handler,
+            await ctx.adapter.flowStart(token, handler),
+            null,
+            audit
+          );
+          if (first.type !== 'form') return first;
+          const row = ctx.model.flows.get(first.flowId);
+          const input = addressInputFor(handler, first.stepId, first.fields, candidate);
+          // The step asks for more than the address (or for something else): the person answers it.
+          if (!row || !input) return first;
+          return answerStep(token, user, row, input, audit);
         }
       );
     },

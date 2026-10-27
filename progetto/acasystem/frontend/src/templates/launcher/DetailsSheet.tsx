@@ -25,7 +25,8 @@ export function hasDetails(
   settings: CardSettings = {},
   resolve: DefinitionResolver = findWidgetDefinition
 ): boolean {
-  return Boolean(resolve(widgetId, settings)?.Details);
+  const definition = resolve(widgetId, settings);
+  return Boolean(definition?.Details || definition?.Console);
 }
 
 /**
@@ -48,7 +49,11 @@ export function DetailsSheet({
       open={Boolean(target && Details)}
       onClose={onClose}
       title={target?.title ?? 'Dettagli'}
-      description={definition?.label === target?.title ? undefined : definition?.label}
+      description={
+        definition?.detailsWithoutLabel || definition?.label === target?.title
+          ? undefined
+          : definition?.label
+      }
     >
       {target && Details && (
         <ErrorBoundary

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Body, Button, Caption, Heading, Skeleton } from '@/components/primitives';
 import { useOptionalWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { identifyActionFor } from '@/utils/devices/identify';
+import { pinSpecFor } from '@/utils/devices/pinSpec';
 import type { EntryDto } from '@/@types/devices';
 import { Notice } from '../sheets/parts/Form';
 import { CatalogStep } from './CatalogStep';
@@ -10,6 +11,7 @@ import { FlowFormStep } from './FlowFormStep';
 import { ExternalStep, MenuStep, ProgressStep } from './FlowOtherSteps';
 import { NameRoomStep } from './NameRoomStep';
 import { PairingStep } from './PairingStep';
+import { PinStep, TvConsentStep } from './PinStep';
 import { PowerStep } from './PowerStep';
 import { useDeviceFlow, type DeviceKind } from './useDeviceFlow';
 import { useEntityPresence } from './useEntityPresence';
@@ -28,6 +30,8 @@ export interface AddDeviceFlowProps {
   discoveredFlowId?: string | null;
   /** The device is added and shown in the live data: the whole entry, for any family. */
   onEntryDone?: (entry: EntryDto) => void;
+  /** A television seen on the network (F5): its flow is started by the server in one tap. */
+  tvId?: string | null;
 }
 
 /**
@@ -42,9 +46,10 @@ export function AddDeviceFlow({
   onExit,
   discoveredFlowId = null,
   onEntryDone,
+  tvId = null,
 }: AddDeviceFlowProps) {
-  const flow = useDeviceFlow(kind, onExit, discoveredFlowId);
-  const discovered = discoveredFlowId !== null;
+  const flow = useDeviceFlow(kind, onExit, discoveredFlowId, tvId);
+  const discovered = discoveredFlowId !== null || tvId !== null;
   const { state } = flow;
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [stage, setStage] = useState('');
@@ -64,9 +69,11 @@ export function AddDeviceFlow({
 
   // The focus follows the step, so a screen reader announces where the person is.
   const stepKey = `${state.phase}:${state.form?.stepId ?? state.step?.stepId ?? ''}:${stage}`;
+  // The step of the code has its own field with the focus (the keyboard opens at once).
+  const codeStep = state.phase === 'form' && state.form !== null && pinSpecFor(state.form) !== null;
   useEffect(() => {
-    headingRef.current?.focus();
-  }, [stepKey]);
+    if (!codeStep) headingRef.current?.focus();
+  }, [stepKey, codeStep]);
 
   const exitRow = (extra?: ReactNode) => (
     <div className="aca-device-actions">
@@ -145,25 +152,44 @@ export function AddDeviceFlow({
       const extra = state.formError
         ? { field: state.formError.field, message: state.formError.message }
         : null;
-      body =
-        form.waitSeconds !== null ? (
-          <PairingStep
-            form={form}
-            busy={state.busy}
-            extraError={extra}
-            onSubmit={() => flow.answer({})}
-            onExit={flow.exit}
-          />
-        ) : (
-          <FlowFormStep
-            key={`${form.flowId}:${form.stepId}`}
-            form={form}
-            busy={state.busy}
-            extraError={extra}
-            onSubmit={flow.answer}
-            onExit={flow.exit}
-          />
-        );
+      const pin = pinSpecFor(form);
+      body = pin ? (
+        <PinStep
+          key={`${form.flowId}:${form.stepId}`}
+          form={form}
+          spec={pin}
+          busy={state.busy}
+          extraError={extra}
+          onSubmit={flow.answer}
+          onExit={flow.exit}
+        />
+      ) : tvId !== null && form.fields.length === 0 ? (
+        <TvConsentStep
+          key={`${form.flowId}:${form.stepId}`}
+          form={form}
+          busy={state.busy}
+          extraError={extra}
+          onSubmit={() => flow.answer({})}
+          onExit={flow.exit}
+        />
+      ) : form.waitSeconds !== null ? (
+        <PairingStep
+          form={form}
+          busy={state.busy}
+          extraError={extra}
+          onSubmit={() => flow.answer({})}
+          onExit={flow.exit}
+        />
+      ) : (
+        <FlowFormStep
+          key={`${form.flowId}:${form.stepId}`}
+          form={form}
+          busy={state.busy}
+          extraError={extra}
+          onSubmit={flow.answer}
+          onExit={flow.exit}
+        />
+      );
       break;
     }
 

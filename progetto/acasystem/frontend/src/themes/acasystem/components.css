@@ -794,6 +794,123 @@
   }
 
   /*
+   * Console: full-screen panel that grows out of the widget that opened it. The panel goes from
+   * the rectangle of the widget (--aca-console-from, set by Console.tsx) to the whole screen with
+   * transform and opacity only: no animated shadow or filter, the tablet's GPU cannot raster them.
+   * The content fades in when the panel has arrived (data-arrived) and out as soon as it leaves.
+   */
+  .aca-console-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--aca-z-sheet);
+  }
+  .aca-console-dialog {
+    position: absolute;
+    inset: 0;
+    outline: none;
+  }
+  .aca-console {
+    position: absolute;
+    inset: 0;
+    transform: none;
+    transition-property: transform, opacity;
+    transition-duration: var(--aca-dur-sheet-in, 280ms);
+    transition-timing-function: var(--aca-motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+  @starting-style {
+    .aca-console {
+      transform: var(--aca-console-from, none);
+      opacity: 0;
+    }
+  }
+  [data-panel-state='exiting'] .aca-console {
+    transform: var(--aca-console-from, none);
+    opacity: 0;
+    transition-duration: var(--aca-dur-sheet-out, 200ms);
+    transition-timing-function: var(--aca-motion-ease-in, cubic-bezier(0.42, 0, 1, 1));
+  }
+  .aca-console__sheet {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    background: var(--aca-page);
+    color: var(--aca-ink-solid);
+  }
+  .aca-console__header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.5em;
+    padding: max(0.5em, env(safe-area-inset-top, 0px)) 1em 0.5em 0.5em;
+    /* The swipe down starts here: the browser must not take the gesture for a scroll. */
+    touch-action: none;
+    user-select: none;
+  }
+  .aca-console__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+  }
+  .aca-console__actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .aca-console__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0.5em 1.25em max(1.25em, env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition: opacity var(--aca-dur-content-in, 160ms) var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-console:not([data-arrived]) .aca-console__body {
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+  }
+  [data-panel-state='exiting'] .aca-console__body {
+    opacity: 0;
+    transition-duration: 80ms;
+  }
+  .aca-console-columns {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+  }
+  .aca-console-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+    min-width: 0;
+  }
+  /* Two columns on a wide screen (the landscape tablet), each scrolling on its own. */
+  @media (min-width: 900px) {
+    .aca-console__body {
+      display: flex;
+      overflow: hidden;
+    }
+    .aca-console-columns {
+      flex: 1 1 auto;
+      flex-direction: row;
+      gap: 1.5em;
+      min-height: 0;
+    }
+    .aca-console-column {
+      flex: 1 1 0;
+      min-height: 0;
+      /* Room for the shadows of raised controls inside the scroll box. */
+      margin: -0.5em -0.75em;
+      padding: 0.5em 0.75em;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+
+  /*
    * SideSheet: side panel on a native modal <dialog>, from the left. Flat by design (no shadow, a
    * hairline edge): it stands over the Casa 3D picture, which keeps redrawing (ISSUE-062: shadows
    * over a live canvas cost raster time on the tablet).
@@ -949,6 +1066,22 @@
       .aca-sheet[open] {
         opacity: 0;
       }
+    }
+    /* Console: only a fade, in the same 120 ms. */
+    .aca-console,
+    [data-panel-state='exiting'] .aca-console {
+      transform: none;
+      transition-duration: var(--aca-dur-reduced, 120ms);
+      transition-timing-function: linear;
+    }
+    @starting-style {
+      .aca-console {
+        transform: none;
+      }
+    }
+    .aca-console__body,
+    [data-panel-state='exiting'] .aca-console__body {
+      transition: none;
     }
     /* Content at once: the structure and the content do not come one after the other. */
     .aca-sheet__body,

@@ -31,4 +31,18 @@
   .aca-device-pairing__text {
     max-width: 28rem;
   }
+  /* The code of the television (F5): big, centred, readable from the couch. */
+  .aca-device-pin {
+    align-items: stretch;
+  }
+  .aca-device-pin__field {
+    align-self: center;
+    width: min(100%, 16rem);
+  }
+  .aca-device-pin__field .aca-field__input {
+    text-align: center;
+    font-size: var(--aca-step-5);
+    font-weight: var(--aca-weight-light);
+    font-variant-numeric: tabular-nums;
+  }
 }

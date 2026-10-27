@@ -74,6 +74,18 @@ export const deviceTexts = {
   pairingCountdown: 'Secondi rimasti per premere OK',
   pairingRetry: 'Riprova',
 
+  // The code the television shows, and the request to accept (F5).
+  pinGuide: 'Guarda la TV: compare un codice. Scrivilo qui.',
+  pinLabel: 'Codice mostrato sul televisore',
+  pinChecking: 'Controllo il codice…',
+  consentAsk: 'Accetta la richiesta sulla TV con il telecomando.',
+  consentWaiting: 'Accetta la richiesta sulla TV con il telecomando. Aspetto la tua risposta…',
+
+  // Televisions seen on the network (F5).
+  tvSection: 'Televisori in rete',
+  tvConnect: 'Collega',
+  tvConnecting: 'Collego il televisore…',
+
   // Entry not ready.
   entryPending: 'Il dispositivo si sta avviando. Aspetta qualche secondo.',
   entryChecking: 'Controllo il dispositivo…',

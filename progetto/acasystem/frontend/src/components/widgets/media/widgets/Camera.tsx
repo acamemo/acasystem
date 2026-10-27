@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Body, Button, Caption, IconText, Numeric, Segmented, Text } from '@/components/primitives';
+import { Caption, Text } from '@/components/primitives';
 import type { WidgetDetailsProps, WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
 import { MediaIcon } from '../icons';
 import { isMotionState, readCameraSettings, type CameraSettings } from '../model/camera';
-import { attrString, type Entity } from '../model/entity';
+import { attrString } from '../model/entity';
 import { testi } from '../testi';
+import { MotionCue, formatTime, isOffline } from '../parts/camera/cameraShared';
 import {
-  CameraStream,
-  SnapshotWindow,
-  asCameraConnection,
-  useSnapshotUrl,
-} from '../parts/CameraFeed';
+  CameraControlsRow,
+  CameraFeedView,
+  CameraInfoRow,
+  CameraMissing,
+} from '../parts/camera/CameraSections';
+import { useCameraDetailsState } from '../parts/camera/useCameraDetailsState';
+import { SnapshotWindow, asCameraConnection, useSnapshotUrl } from '../parts/CameraFeed';
 import {
   OpenButton,
   WidgetLoading,
@@ -20,12 +23,6 @@ import {
   WidgetShell,
   missingDevice,
 } from '../parts/WidgetShell';
-
-const isOffline = (entity: Entity | undefined) =>
-  !entity || entity.state === 'unavailable' || entity.state === 'unknown' || entity.state === 'off';
-
-const formatTime = (at: number) =>
-  new Date(at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
 /**
  * Snapshot refresh of the legacy CameraCard: every `cameraRefreshInterval` seconds (minimum 2,
@@ -63,25 +60,6 @@ function useSnapshotRefresh(
   }, [active, camera.refreshMode, camera.motionSensorId, motion]);
 
   return { refreshKey, refresh: () => setRefreshKey(Date.now()) };
-}
-
-function MotionCue({
-  camera,
-  motionState,
-  short = false,
-}: {
-  camera: CameraSettings;
-  motionState?: string;
-  short?: boolean;
-}) {
-  if (camera.refreshMode !== 'motion' || !camera.motionSensorId || !isMotionState(motionState)) {
-    return null;
-  }
-  return (
-    <IconText icon="activity" iconTone="active" iconSize="sm" tone="ink">
-      {short ? testi.movimentoBreve : testi.movimento}
-    </IconText>
-  );
 }
 
 /** `camera_card_*` widget: periodic snapshot preview; the live stream is in the details. */
@@ -155,84 +133,19 @@ export function CameraWidget({ id, settings, size, editMode }: WidgetProps) {
   );
 }
 
-type CameraView = 'stream' | 'snapshot';
-
-const VIEWS: ReadonlyArray<{ value: CameraView; label: string }> = [
-  { value: 'stream', label: testi.diretta },
-  { value: 'snapshot', label: testi.istantanea },
-];
-
-/** Details of the camera widget: live stream with fallback, snapshot view and refresh. */
-export function CameraDetails({ id, settings }: WidgetDetailsProps) {
-  const runtime = useWidgetRuntime();
-  const camera = readCameraSettings(settings);
-  const entity = camera.cameraId ? runtime.entities[camera.cameraId] : undefined;
-  const [view, setView] = useState<CameraView>('stream');
-  const [refreshKey, setRefreshKey] = useState(() => Date.now());
-  const motionState = camera.motionSensorId
-    ? runtime.entities[camera.motionSensorId]?.state
-    : undefined;
-
-  if (!camera.cameraId || !entity) {
-    return (
-      <div className="aca-media-details">
-        <Body tone="muted" role="status">
-          {camera.cameraId ? testi.dispositivoNonTrovato : testi.dispositivoNonConfigurato}
-        </Body>
-      </div>
-    );
-  }
-
-  const name = runtime.customNames[id] || attrString(entity, 'friendly_name') || camera.cameraId;
+/**
+ * Details of the camera widget in one column (the sheet): live stream with fallback, snapshot
+ * view and refresh. The console (CameraConsole) puts the video in its own column.
+ */
+export function CameraDetails(props: WidgetDetailsProps) {
+  const cam = useCameraDetailsState(props);
+  if (!cam.camera.cameraId || !cam.entity) return <CameraMissing cam={cam} />;
   return (
     <div className="aca-media-details">
-      <section className="aca-media-section" aria-label={name}>
-        <div className="aca-media-row aca-media-row--between">
-          <div className="aca-media-text aca-media-grow">
-            <Caption translate="no">{camera.cameraId}</Caption>
-            {isOffline(entity) && (
-              <IconText icon="warning" iconTone="danger" iconSize="sm" tone="danger">
-                {testi.videocameraSpenta}
-              </IconText>
-            )}
-            <MotionCue camera={camera} motionState={motionState} />
-          </div>
-          <Numeric as="time" dateTime={new Date(refreshKey).toISOString()} tone="muted">
-            {formatTime(refreshKey)}
-          </Numeric>
-        </div>
-        <div className="aca-media-row aca-media-row--between">
-          <Segmented<CameraView>
-            options={VIEWS}
-            value={view}
-            label={testi.vista}
-            size="sm"
-            onChange={(next) => {
-              setView(next);
-              setRefreshKey(Date.now());
-            }}
-          />
-          <Button
-            variant="control"
-            shape="circle"
-            size="md"
-            aria-label={testi.aggiorna}
-            onClick={() => setRefreshKey(Date.now())}
-          >
-            <MediaIcon name="refresh" size="md" />
-          </Button>
-        </div>
-        <CameraStream
-          camera={camera}
-          accessToken={attrString(entity, 'access_token')}
-          conn={asCameraConnection(runtime.conn)}
-          getEntityImageUrl={runtime.getEntityImageUrl}
-          refreshKey={refreshKey}
-          snapshotOnly={view === 'snapshot'}
-          alt={name}
-          fit="contain"
-          controls={view === 'stream'}
-        />
+      <section className="aca-media-section" aria-label={cam.name}>
+        <CameraInfoRow cam={cam} />
+        <CameraControlsRow cam={cam} />
+        <CameraFeedView cam={cam} />
       </section>
     </div>
   );

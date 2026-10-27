@@ -180,6 +180,10 @@ export interface FakeKnobs {
   translationsMissing: boolean;
   /** `result.resources` of `frontend/get_translations`, per integration. */
   translations: Record<string, Record<string, string>>;
+  /** First event (`{add: [...]}`) of the `ssdp`, `zeroconf` and `dhcp` `subscribe_discovery`. */
+  network: { ssdp: unknown[]; zeroconf: unknown[]; dhcp: unknown[] };
+  /** Sources whose subscription answers `unknown_command` (an HA without it). */
+  networkMissing: ('ssdp' | 'zeroconf' | 'dhcp')[];
 }
 
 const BASE_FEATURES = 1028;
@@ -219,6 +223,8 @@ export class FakeHomeAssistant {
     overrideNextResult: null,
     translationsMissing: false,
     translations: {},
+    network: { ssdp: [], zeroconf: [], dhcp: [] },
+    networkMissing: [],
   };
 
   users = new Map<string, FakeUser>();
@@ -1133,6 +1139,26 @@ export class FakeHomeAssistant {
         userId: session.user.id,
         tokenKind: session.info.kind,
       });
+      const subscription = /^(ssdp|zeroconf|dhcp)\/subscribe_discovery$/.exec(type);
+      if (subscription) {
+        const source = subscription[1] as 'ssdp' | 'zeroconf' | 'dhcp';
+        if (!session.user.isAdmin || this.knobs.networkMissing.includes(source)) {
+          const code = session.user.isAdmin ? 'unknown_command' : 'unauthorized';
+          socket.send(
+            JSON.stringify({ id, type: 'result', success: false, error: { code, message: code } })
+          );
+          return;
+        }
+        socket.send(JSON.stringify({ id, type: 'result', success: true, result: null }));
+        socket.send(
+          JSON.stringify({ id, type: 'event', event: { add: this.knobs.network[source] } })
+        );
+        return;
+      }
+      if (type === 'unsubscribe_events') {
+        socket.send(JSON.stringify({ id, type: 'result', success: true, result: null }));
+        return;
+      }
       try {
         const result = this.command(type, message, session);
         socket.send(JSON.stringify({ id, type: 'result', success: true, result }));
