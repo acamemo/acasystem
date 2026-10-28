@@ -221,6 +221,17 @@ describe('createApp API surface', () => {
     expect(response.headers.get('ratelimit-policy')).toBeTruthy();
   });
 
+  it('counts an ingress-prefixed /api request in the general limit too (REP-20261028-002, S1)', async () => {
+    const harness = await startHarness(createTestApp({ isProduction: false }));
+
+    const response = await harness.request('/x/api/health', {
+      headers: { 'x-ingress-path': '/x' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('ratelimit-policy')).toBeTruthy();
+  });
+
   it('reads the default version from backend/package.json', async () => {
     const harness = await startHarness(createTestApp({ isProduction: false }));
 

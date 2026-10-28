@@ -6,7 +6,6 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { macDigits, normalizeMacAddress } from '../helpers/macAddress.ts';
 import {
-  deriveBroadcastAddress,
   normalizeBroadcastAddress,
   normalizeDeviceHost,
   normalizePort,
@@ -21,11 +20,7 @@ import {
   searchCatalog,
   toCatalogEntry,
 } from '../services/devices/catalog.ts';
-import {
-  publicEntryTitle,
-  translateAbortReason,
-  translateFormError,
-} from '../services/devices/messagesIt.ts';
+import { publicEntryTitle } from '../services/devices/messagesIt.ts';
 import { createTtyPrompter } from '../helpers/ttyPrompter.ts';
 import { openDatabase } from '../models/database.ts';
 import { createDeviceModel } from '../models/deviceModel.ts';
@@ -146,15 +141,6 @@ describe('network helpers', () => {
     expect(normalizePort(70000)).toBeNull();
     expect(normalizePort(1.5)).toBeNull();
     expect(normalizePort('abc')).toBeNull();
-  });
-
-  it('derives the broadcast address of the /24 network without looking at the network', () => {
-    expect(deriveBroadcastAddress('192.168.1.26')).toBe('192.168.1.255');
-    expect(deriveBroadcastAddress('10.1.2.3', 16)).toBe('10.1.255.255');
-    expect(deriveBroadcastAddress('172.16.5.130', 25)).toBe('172.16.5.255');
-    expect(deriveBroadcastAddress('172.16.5.10', 25)).toBe('172.16.5.127');
-    expect(deriveBroadcastAddress('not an ip')).toBeNull();
-    expect(deriveBroadcastAddress('192.168.1.26', 31)).toBeNull();
   });
 });
 
@@ -294,7 +280,8 @@ describe('normalizeFlowResult', () => {
     if (normalized.outcome !== 'step' || normalized.dto.type !== 'form')
       throw new Error('expected a form');
     expect(normalized.dto.errors).toEqual([
-      { field: null, code: 'cannot_connect', message: translateFormError('cannot_connect') },
+      { field: null, code: 'cannot_connect', message:
+        "Non riesco a collegarmi al televisore. Controlla che sia acceso, collegato alla stessa rete e che l'indirizzo sia giusto." },
       { field: 'host', code: 'weird_key', message: 'Qualcosa non ha funzionato. Riprova.' },
     ]);
     expect(normalized.dto.errors[0]?.message).toMatch(/televisore/);
@@ -374,7 +361,7 @@ describe('normalizeFlowResult', () => {
         type: 'abort',
         handler: 'webostv',
         reason: 'already_configured',
-        message: translateAbortReason('already_configured'),
+        message: 'Questo dispositivo è già stato aggiunto.',
       },
     });
   });
@@ -440,7 +427,8 @@ describe('normalizeFlowResult', () => {
         code: 'required key not provided',
         message: 'Qualcosa non ha funzionato. Riprova.',
       },
-      { field: null, code: 'cannot_connect', message: translateFormError('cannot_connect') },
+      { field: null, code: 'cannot_connect', message:
+        "Non riesco a collegarmi al televisore. Controlla che sia acceso, collegato alla stessa rete e che l'indirizzo sia giusto." },
     ]);
     expect(flowErrorsFromBadRequest('Failed dependencies')).toEqual([]);
   });

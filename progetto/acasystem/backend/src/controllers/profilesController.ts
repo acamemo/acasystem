@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
-import { sendFailure } from '../middlewares/errors.ts';
 import type { ProfileService } from '../services/profileService.ts';
 import {
   validateCreateProfileBody,
   validateListProfilesQuery,
   validateUpdateProfileBody,
 } from '../validators/profileValidators.ts';
-import { requireRequestUserId } from './requestUser.ts';
+import { valid } from '../validators/common.ts';
+import { andThen, authed, respond } from './requestUser.ts';
 
 /** Gestori HTTP di /api/profiles. */
 
@@ -20,80 +20,29 @@ export interface ProfilesController {
 
 export const createProfilesController = (service: ProfileService): ProfilesController => ({
   // List profiles for a HA user
-  list: (req, res) => {
-    const requestUserId = requireRequestUserId(req, res);
-    if (!requestUserId) return;
-
-    const query = validateListProfilesQuery(req.query, requestUserId);
-    if (!query.ok) {
-      sendFailure(res, query.failure);
-      return;
-    }
-
-    res.json(service.list(query.value.haUserId));
-  },
+  list: authed((req, res, userId) => {
+    respond(res, andThen(validateListProfilesQuery(req.query, userId), (query) => valid(service.list(query.haUserId))));
+  }),
 
   // Get a single profile
-  get: (req, res) => {
-    const requestUserId = requireRequestUserId(req, res);
-    if (!requestUserId) return;
-
-    const result = service.get(requestUserId, req.params.id);
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.json(result.value);
-  },
+  get: authed((req, res, userId) => {
+    respond(res, service.get(userId, req.params.id));
+  }),
 
   // Create a new profile
-  create: (req, res) => {
-    const requestUserId = requireRequestUserId(req, res);
-    if (!requestUserId) return;
-
-    const input = validateCreateProfileBody(req.body, requestUserId);
-    if (!input.ok) {
-      sendFailure(res, input.failure);
-      return;
-    }
-
-    const result = service.create(input.value);
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.status(201).json(result.value);
-  },
+  create: authed((req, res, userId) => {
+    const input = validateCreateProfileBody(req.body, userId);
+    respond(res, andThen(input, (value) => service.create(value)), 201);
+  }),
 
   // Update a profile
-  update: (req, res) => {
-    const requestUserId = requireRequestUserId(req, res);
-    if (!requestUserId) return;
-
-    const input = validateUpdateProfileBody(req.body, requestUserId);
-    if (!input.ok) {
-      sendFailure(res, input.failure);
-      return;
-    }
-
-    const result = service.update(requestUserId, req.params.id, input.value);
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.json(result.value);
-  },
+  update: authed((req, res, userId) => {
+    const input = validateUpdateProfileBody(req.body, userId);
+    respond(res, andThen(input, (value) => service.update(userId, req.params.id, value)));
+  }),
 
   // Delete a profile
-  remove: (req, res) => {
-    const requestUserId = requireRequestUserId(req, res);
-    if (!requestUserId) return;
-
-    const result = service.remove(requestUserId, req.params.id);
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.json(result.value);
-  },
+  remove: authed((req, res, userId) => {
+    respond(res, service.remove(userId, req.params.id));
+  }),
 });

@@ -7,7 +7,8 @@ import {
   validateSaveBody,
   validateSnapshotId,
 } from '../validators/casa3dValidators.ts';
-import { requireRequestUserId } from './requestUser.ts';
+import { valid } from '../validators/common.ts';
+import { andThen, authed, respond } from './requestUser.ts';
 
 /** Gestori HTTP di /api/casa3d (ADR-0014, T6). L'utente autenticato lo ha già verificato `requireCasa3dEditor` (ISSUE-102: scrive chiunque sia autenticato). */
 
@@ -36,26 +37,18 @@ export interface Casa3dController {
 }
 
 export const createCasa3dController = (service: Casa3dService): Casa3dController => ({
-  getBuilding: (req, res) => {
-    if (!requireRequestUserId(req, res)) return;
+  getBuilding: authed((_req, res) => {
     const result = service.getBuilding();
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.setHeader('Cache-Control', 'no-store');
-    res.json(result.value);
-  },
+    if (result.ok) res.setHeader('Cache-Control', 'no-store');
+    respond(res, result);
+  }),
 
-  getRevision: (req, res) => {
-    if (!requireRequestUserId(req, res)) return;
+  getRevision: authed((_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json({ revision: service.getRevision() });
-  },
+  }),
 
-  putBuilding: (req, res) => {
-    const userId = requireRequestUserId(req, res);
-    if (!userId) return;
+  putBuilding: authed((req, res, userId) => {
     const input = validateSaveBody(req.body);
     if (!input.ok) {
       sendFailure(res, input.failure);
@@ -70,10 +63,9 @@ export const createCasa3dController = (service: Casa3dService): Casa3dController
       return;
     }
     res.json({ revision: result.revision, updated_at: result.updated_at });
-  },
+  }),
 
-  getImage: (req, res) => {
-    if (!requireRequestUserId(req, res)) return;
+  getImage: authed((req, res) => {
     const id = validateImageId(req.params.id);
     if (!id.ok) {
       sendFailure(res, id.failure);
@@ -94,11 +86,9 @@ export const createCasa3dController = (service: Casa3dService): Casa3dController
       return;
     }
     res.type(image.mime).send(image.bytes);
-  },
+  }),
 
-  putImage: (req, res) => {
-    const userId = requireRequestUserId(req, res);
-    if (!userId) return;
+  putImage: authed((req, res, userId) => {
     const id = validateImageId(req.params.id);
     if (!id.ok) {
       sendFailure(res, id.failure);
@@ -115,15 +105,10 @@ export const createCasa3dController = (service: Casa3dService): Casa3dController
       return;
     }
     const result = service.putImage(id.value, body, userId, declared);
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.json({ id: id.value, ...result.value });
-  },
+    respond(res, result.ok ? { ok: true, value: { id: id.value, ...result.value } } : result);
+  }),
 
-  deleteImage: (req, res) => {
-    if (!requireRequestUserId(req, res)) return;
+  deleteImage: authed((req, res) => {
     const id = validateImageId(req.params.id);
     if (!id.ok) {
       sendFailure(res, id.failure);
@@ -134,41 +119,23 @@ export const createCasa3dController = (service: Casa3dService): Casa3dController
       return;
     }
     res.json({ success: true });
-  },
+  }),
 
-  listHistory: (req, res) => {
-    if (!requireRequestUserId(req, res)) return;
+  listHistory: authed((_req, res) => {
     res.json({ snapshots: service.listHistory() });
-  },
+  }),
 
-  createSnapshot: (req, res) => {
-    if (!requireRequestUserId(req, res)) return;
+  createSnapshot: authed((_req, res) => {
     const result = service.snapshot();
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.json({ snapshot: result.value });
-  },
+    respond(res, result.ok ? valid({ snapshot: result.value }) : result);
+  }),
 
-  restoreSnapshot: (req, res) => {
-    const userId = requireRequestUserId(req, res);
-    if (!userId) return;
+  restoreSnapshot: authed((req, res, userId) => {
     const id = validateSnapshotId(req.params.id);
-    if (!id.ok) {
-      sendFailure(res, id.failure);
-      return;
-    }
-    const result = service.restore(id.value, userId);
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.json(result.value);
-  },
+    respond(res, andThen(id, (value) => service.restore(value, userId)));
+  }),
 
-  exportBackup: (req, res) => {
-    if (!requireRequestUserId(req, res)) return;
+  exportBackup: authed((_req, res) => {
     const result = service.exportBackup();
     if (!result.ok) {
       sendFailure(res, result.failure);
@@ -182,21 +149,10 @@ export const createCasa3dController = (service: Casa3dService): Casa3dController
       building: result.value.building,
       packs: [],
     });
-  },
+  }),
 
-  importBackup: (req, res) => {
-    const userId = requireRequestUserId(req, res);
-    if (!userId) return;
+  importBackup: authed((req, res, userId) => {
     const input = validateImportBody(req.body);
-    if (!input.ok) {
-      sendFailure(res, input.failure);
-      return;
-    }
-    const result = service.importBackup({ ...input.value, userId });
-    if (!result.ok) {
-      sendFailure(res, result.failure);
-      return;
-    }
-    res.json(result.value);
-  },
+    respond(res, andThen(input, (value) => service.importBackup({ ...value, userId })));
+  }),
 });

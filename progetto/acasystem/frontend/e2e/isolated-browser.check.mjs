@@ -29,7 +29,8 @@ page.on('request', (request) => {
     );
 });
 const go = async (index) => {
-  const range = page.getByRole('slider', { name: 'Pagina', exact: true });
+  // At rest the indicator is aria-hidden (only shown while moving): reach its input directly.
+  const range = page.locator('input[type="range"][aria-label="Pagina"]').first();
   await range.evaluate((el, value) => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
       el,
@@ -124,15 +125,16 @@ try {
   // Real pointer gesture and state confirmation against the mock HA, same production bundle.
   await go(Object.keys(adaptiveFixtureSettings).indexOf('light'));
   const widget = page.locator('.aca-pager__page.is-current [data-widget-type="light"]');
-  // The settings open in edit mode (ADR-0016): a tap selects the widget, a second tap opens them.
+  // The settings open in edit mode (ADR-0016), here by keyboard on the handle of the widget.
   // The screen commands are clipped and take no pointer until focused: reach them by keyboard.
   await page.getByRole('button', { name: 'Modifica la disposizione', exact: true }).focus();
   await page.keyboard.press('Enter');
   const handle = page.locator(
     '.aca-pager__page.is-current [data-widget-id]:has([data-widget-type="light"]) .aca-launcher-widget__handle'
   );
-  await handle.click();
-  await handle.click();
+  // Enter on the handle opens the settings (the hint of edit mode: «Invio per le impostazioni»).
+  await handle.focus();
+  await page.keyboard.press('Enter');
   const settings = page.getByRole('dialog', { name: 'Impostazioni del widget' });
   await settings.waitFor();
   await settings.getByRole('switch', { name: 'Colore della luce', exact: true }).click();

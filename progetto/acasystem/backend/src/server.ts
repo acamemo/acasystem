@@ -62,16 +62,17 @@ export const createApp = ({
   // in streaming; il WebSocket è collegato al server con attachHomeAssistantWebSocketProxy.
   app.use(createHomeAssistantProxyRouter());
 
-  // Parse JSON bodies
-  app.use(express.json({ limit: JSON_BODY_LIMIT }));
+  // Ingress support — strip X-Ingress-Path prefix from request URL. Before the limiter, so a
+  // prefixed /x/api/... is counted as /api/... too (REP-20261028-002, S1).
+  app.use(stripIngressPath);
 
   const apiRateLimiter = createApiRateLimiter();
   const assetFallbackRateLimiter = createAssetFallbackRateLimiter();
 
   app.use('/api', apiRateLimiter);
 
-  // Ingress support — strip X-Ingress-Path prefix from request URL
-  app.use(stripIngressPath);
+  // Parse JSON bodies, after the limiter: a flood is refused before its body is read (S4).
+  app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
   // API routes
   app.use('/api/profiles', homeAssistantAuth, createProfilesRouter(database));

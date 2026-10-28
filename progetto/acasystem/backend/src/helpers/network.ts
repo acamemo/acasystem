@@ -62,23 +62,3 @@ export const normalizePort = (value: unknown): number | null => {
   if (typeof port !== 'number' || !Number.isInteger(port) || port < 1 || port > 65_535) return null;
   return port;
 };
-
-/**
- * Broadcast address of the network that holds `ip` (default /24: 192.168.1.26 gives
- * 192.168.1.255). Pure arithmetic: the server does not look at the network.
- */
-export const deriveBroadcastAddress = (ip: unknown, prefix = 24): string | null => {
-  const parsed = parseIpv4(ip);
-  if (!parsed || !Number.isInteger(prefix) || prefix < 8 || prefix > 30) return null;
-
-  const address = parsed.reduce((acc, octet) => acc * 256 + octet, 0);
-  const hostBits = 32 - prefix;
-  const hostMask = 2 ** hostBits - 1;
-  const broadcast = Math.floor(address / 2 ** hostBits) * 2 ** hostBits + hostMask;
-  return formatIpv4([
-    Math.floor(broadcast / 2 ** 24) % 256,
-    Math.floor(broadcast / 2 ** 16) % 256,
-    Math.floor(broadcast / 2 ** 8) % 256,
-    broadcast % 256,
-  ]);
-};

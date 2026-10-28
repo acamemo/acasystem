@@ -1,6 +1,7 @@
 import { HA_CALLS } from '../../config/homeAssistantApiCatalog.ts';
 import { isRecord } from '../../helpers/objects.ts';
 import { normalizeMacAddress } from '../../helpers/macAddress.ts';
+import { displayText } from '../../helpers/text.ts';
 import { HaError, isHaError } from './haTransport.ts';
 import type { HaTransport, HaWsSession } from './haTransport.ts';
 
@@ -205,6 +206,31 @@ const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : [
 
 const protocolError = (): HaError => new HaError('protocol');
 
+/** True when the call succeeds, false when HA answers one of `kinds` (a missing resource); anything else is thrown. */
+const swallowNotFound = async (
+  call: () => Promise<unknown>,
+  kinds: readonly HaError['kind'][] = ['not_found']
+): Promise<boolean> => {
+  try {
+    await call();
+    return true;
+  } catch (error) {
+    if (isHaError(error) && kinds.includes(error.kind)) return false;
+    throw error;
+  }
+};
+
+/** Body of the 404 HA answers for a missing resource; undefined when the call succeeds; other failures are thrown. */
+const notFoundBody = async (call: () => Promise<unknown>): Promise<unknown> => {
+  try {
+    await call();
+    return undefined;
+  } catch (error) {
+    if (isHaError(error) && error.kind === 'not_found') return error.body;
+    throw error;
+  }
+};
+
 const requireRecord = (value: unknown): Record<string, unknown> => {
   if (!isRecord(value) || Array.isArray(value)) throw protocolError();
   return value;
@@ -311,17 +337,8 @@ const parseAdminUser = (value: unknown): HaAdminUser | null => {
   };
 };
 
-const IPV4_TEXT = /\b\d{1,3}(?:\.\d{1,3}){3}\b/;
-const MAC_TEXT = /\b[0-9a-f]{2}(?:[:-][0-9a-f]{2}){5}\b/i;
-// eslint-disable-next-line no-control-regex
-const CONTROL_RUN = /[\x00-\x1f\x7f]+/g;
-
-/** A name for a person: cut, without control characters, and never an address or a MAC. */
-const readDisplayText = (value: unknown): string | null => {
-  const text = asString(value)?.replace(CONTROL_RUN, ' ').trim().slice(0, 80);
-  if (!text || IPV4_TEXT.test(text) || MAC_TEXT.test(text)) return null;
-  return text;
-};
+/** A name for a person (see displayText), from any value. */
+const readDisplayText = (value: unknown): string | null => displayText(asString(value), 80);
 
 const parseProgressFlow = (value: unknown): HaProgressFlow | null => {
   if (!isRecord(value)) return null;
@@ -572,21 +589,15 @@ export const createHaAdapter = ({
     }
   };
 
-  const wsApiFor = (session: HaWsSession): HaWsApi =>
+  /** The WebSocket API over the sessions `scope` hands out: one shared session or one per call. */
+  const wsApi = (scope: <T>(run: (session: HaWsSession) => Promise<T>) => Promise<T>): HaWsApi =>
     createWsApi(
       (call, payload) =>
-        session.send(call, { ...(payload ? { payload } : {}), timeoutMs: callTimeoutMs }),
-      (call) => session.collect(call, HA_CALLS.unsubscribeEvents, { timeoutMs: DISCOVERY_WAIT_MS })
-    );
-
-  const oneShotApi = (token: string): HaWsApi =>
-    createWsApi(
-      (call, payload) =>
-        withSession(token, (session) =>
+        scope((session) =>
           session.send(call, { ...(payload ? { payload } : {}), timeoutMs: callTimeoutMs })
         ),
       (call) =>
-        withSession(token, (session) =>
+        scope((session) =>
           session.collect(call, HA_CALLS.unsubscribeEvents, { timeoutMs: DISCOVERY_WAIT_MS })
         )
     );
@@ -602,8 +613,8 @@ export const createHaAdapter = ({
 
   return {
     readVersion: () => transport.readVersion(callTimeoutMs),
-    ws: oneShotApi,
-    withWs: (token, run) => withSession(token, (session) => run(wsApiFor(session))),
+    ws: (token) => wsApi((run) => withSession(token, run)),
+    withWs: (token, run) => withSession(token, (session) => run(wsApi((use) => use(session)))),
 
     async authProviders() {
       try {
@@ -656,35 +667,14 @@ export const createHaAdapter = ({
       return body;
     },
 
-    async flowCancel(token, flowId) {
-      try {
-        await rest(HA_CALLS.flowCancel, { token, params: flowParams(flowId) });
-        return true;
-      } catch (error) {
-        if (isHaError(error) && error.kind === 'not_found') return false;
-        throw error;
-      }
-    },
+    flowCancel: (token, flowId) =>
+      swallowNotFound(() => rest(HA_CALLS.flowCancel, { token, params: flowParams(flowId) })),
 
-    async removeEntry(token, entryId) {
-      try {
-        await rest(HA_CALLS.entryRemove, { token, params: { entry_id: entryId } });
-        return true;
-      } catch (error) {
-        if (isHaError(error) && error.kind === 'not_found') return false;
-        throw error;
-      }
-    },
+    removeEntry: (token, entryId) =>
+      swallowNotFound(() => rest(HA_CALLS.entryRemove, { token, params: { entry_id: entryId } })),
 
-    async automationExists(token, automationId) {
-      try {
-        await rest(HA_CALLS.automationGet, { token, params: { id: automationId } });
-        return true;
-      } catch (error) {
-        if (isHaError(error) && error.kind === 'not_found') return false;
-        throw error;
-      }
-    },
+    automationExists: (token, automationId) =>
+      swallowNotFound(() => rest(HA_CALLS.automationGet, { token, params: { id: automationId } })),
 
     async automationPut(token, automationId, body) {
       const { body: answer } = await rest(HA_CALLS.automationPut, {
@@ -695,17 +685,12 @@ export const createHaAdapter = ({
       if (!isRecord(answer) || answer.result !== 'ok') throw protocolError();
     },
 
-    async automationDelete(token, automationId) {
-      try {
-        await rest(HA_CALLS.automationDelete, { token, params: { id: automationId } });
-        return true;
-      } catch (error) {
-        // HA answers 400 "Resource not found" (not 404) for an unknown id.
-        if (isHaError(error) && (error.kind === 'not_found' || error.kind === 'bad_request'))
-          return false;
-        throw error;
-      }
-    },
+    // HA answers 400 "Resource not found" (not 404) for an unknown id.
+    automationDelete: (token, automationId) =>
+      swallowNotFound(
+        () => rest(HA_CALLS.automationDelete, { token, params: { id: automationId } }),
+        ['not_found', 'bad_request']
+      ),
 
     async state(token, entityId) {
       try {
@@ -723,33 +708,23 @@ export const createHaAdapter = ({
       }
     },
 
+    // RD-03: an unknown flow answers 404 with {"message": "Invalid flow specified"}. Any
+    // other failure (timeout, 500, protocol) means the probe could not run: it is thrown,
+    // not counted as a failed probe, so the report is repeated soon.
     async probeFlowRoute(token) {
-      try {
-        await rest(HA_CALLS.flowCancel, { token, params: flowParams('acasystem-sonda') });
-        return false;
-      } catch (error) {
-        // RD-03: an unknown flow answers 404 with {"message": "Invalid flow specified"}. Any
-        // other failure (timeout, 500, protocol) means the probe could not run: it is thrown,
-        // not counted as a failed probe, so the report is repeated soon.
-        if (isHaError(error) && error.kind === 'not_found') {
-          return isRecord(error.body) && error.body.message === 'Invalid flow specified';
-        }
-        throw error;
-      }
+      const body = await notFoundBody(() =>
+        rest(HA_CALLS.flowCancel, { token, params: flowParams('acasystem-sonda') })
+      );
+      return isRecord(body) && body.message === 'Invalid flow specified';
     },
 
+    // RD-07: an unknown automation answers 404 with {"message": "Resource not found"}.
+    // Any other failure means the probe could not run (see RD-03).
     async probeAutomationRoute(token) {
-      try {
-        await rest(HA_CALLS.automationGet, { token, params: { id: 'acasystem-sonda' } });
-        return false;
-      } catch (error) {
-        // RD-07: an unknown automation answers 404 with {"message": "Resource not found"}.
-        // Any other failure means the probe could not run (see RD-03).
-        if (isHaError(error) && error.kind === 'not_found') {
-          return isRecord(error.body) && error.body.message === 'Resource not found';
-        }
-        throw error;
-      }
+      const body = await notFoundBody(() =>
+        rest(HA_CALLS.automationGet, { token, params: { id: 'acasystem-sonda' } })
+      );
+      return isRecord(body) && body.message === 'Resource not found';
     },
 
     async loginStart(clientId) {

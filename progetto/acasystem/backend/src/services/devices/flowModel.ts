@@ -1,4 +1,5 @@
 import { isRecord } from '../../helpers/objects.ts';
+import { asString } from '../../helpers/text.ts';
 import { italianText } from './haTexts.ts';
 import type { HandlerTranslations, StepTranslations } from './haTexts.ts';
 import {
@@ -126,8 +127,6 @@ export type NormalizedFlow =
   | { outcome: 'terminal'; dto: FlowTerminalDto; nextFlowId: string | null }
   | { outcome: 'unsupported'; flowId: string | null; reason: string };
 
-const asString = (value: unknown): string | null =>
-  typeof value === 'string' && value ? value : null;
 
 const unsupported = (flowId: string | null, reason: string): NormalizedFlow => ({
   outcome: 'unsupported',

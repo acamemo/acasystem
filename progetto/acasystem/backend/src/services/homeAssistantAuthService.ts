@@ -22,6 +22,9 @@ import { readProperty } from '../helpers/objects.ts';
 const DEFAULT_CACHE_TTL_MS = readHomeAssistantAuthCacheTtlMs();
 const DEFAULT_INVALID_AUTH_CACHE_TTL_MS = readHomeAssistantInvalidAuthCacheTtlMs();
 const MAX_CACHE_ENTRIES = 200;
+// A Home Assistant reachable over TCP but silent (suspended VM, blackholed network) must not
+// leave the request pending forever (REP-20261028-002, S3).
+const LOAD_TIMEOUT_MS = 10_000;
 
 // home-assistant-js-websocket uses the global WebSocket (native from Node 22).
 if (typeof globalThis.WebSocket === 'undefined') {
@@ -52,10 +55,26 @@ export const loadCurrentUserFromHomeAssistant: HomeAssistantUserLoader = async (
   accessToken,
 }) => {
   const auth = createLongLivedTokenAuth(haUrl, accessToken);
-  const connection = await createConnection({ auth });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error('Home Assistant did not answer in time')),
+      LOAD_TIMEOUT_MS
+    );
+  });
+  const connecting = createConnection({ auth });
+  const connection = await Promise.race([connecting, timeout]).catch((error: unknown) => {
+    clearTimeout(timer);
+    // A connection that opens after the timeout is closed at once.
+    connecting.then((late) => late.close()).catch(() => {});
+    throw error;
+  });
 
   try {
-    const user = await connection.sendMessagePromise<unknown>({ type: 'auth/current_user' });
+    const user = await Promise.race([
+      connection.sendMessagePromise<unknown>({ type: 'auth/current_user' }),
+      timeout,
+    ]);
     const id = readProperty(user, 'id');
     if (!id || typeof id !== 'string') {
       throw new Error('Home Assistant did not return an authenticated user');
@@ -69,6 +88,7 @@ export const loadCurrentUserFromHomeAssistant: HomeAssistantUserLoader = async (
       is_owner: Boolean(readProperty(user, 'is_owner')),
     };
   } finally {
+    clearTimeout(timer);
     try {
       connection.close();
     } catch {
@@ -131,6 +151,9 @@ export const createValidatedHomeAssistantUserResolver = ({
         } else {
           cache.delete(cacheKey);
         }
+        // Rejected tokens are kept too: without this a stream of invented tokens grows the
+        // cache without bound (S2).
+        pruneCache(cache, Date.now());
         throw error;
       });
 

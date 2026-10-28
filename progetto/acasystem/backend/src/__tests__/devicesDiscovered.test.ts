@@ -316,6 +316,22 @@ describe('taking a discovery over', () => {
     });
   });
 
+  it('takes two simultaneous taps on a new discovery in turn, never a 500 (REP-20261028-002, S8)', async () => {
+    const harness = await harnessFor({});
+    const flowId = harness.fake.seedDiscovery(hue());
+
+    const answers = await Promise.all([
+      harness.request(`/scoperti/${flowId}/aggiungi`, { method: 'POST' }),
+      harness.request(`/scoperti/${flowId}/aggiungi`, { method: 'POST' }),
+    ]);
+    const statuses = answers.map((answer) => answer.status).sort();
+    expect(statuses[0]).toBe(200);
+    expect([200, 409]).toContain(statuses[1]);
+    expect(harness.database.prepare('SELECT COUNT(*) AS n FROM device_flows').get()).toEqual({
+      n: 1,
+    });
+  });
+
   it('keeps the discovery of one person away from another', async () => {
     const harness = await harnessFor({});
     const flowId = harness.fake.seedDiscovery(hue());

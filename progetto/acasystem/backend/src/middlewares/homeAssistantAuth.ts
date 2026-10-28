@@ -33,7 +33,6 @@ export interface HomeAssistantAuthRequest {
   connection?: RemoteAddressSource | undefined;
   get(name: string): string | string[] | undefined;
   authenticatedHaUser?: HomeAssistantUser | undefined;
-  authenticatedHaUrl?: string | null | undefined;
 }
 
 export type HomeAssistantAuthMiddleware = (
@@ -158,7 +157,6 @@ export const createHomeAssistantAuthMiddleware = ({
     const trustedSupervisorUser = getTrustedSupervisorUser(req);
     if (trustedSupervisorUser) {
       req.authenticatedHaUser = trustedSupervisorUser;
-      req.authenticatedHaUrl = null;
       next();
       return;
     }
@@ -188,7 +186,6 @@ export const createHomeAssistantAuthMiddleware = ({
       try {
         const user = await validateHomeAssistantUser({ haUrl, accessToken });
         req.authenticatedHaUser = user;
-        req.authenticatedHaUrl = haUrl;
         next();
         return;
       } catch (error) {

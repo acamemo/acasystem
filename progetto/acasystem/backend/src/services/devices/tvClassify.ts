@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { displayText } from '../../helpers/text.ts';
 import type { HaNetworkDevice } from './haAdapter.ts';
 import { brandForMac } from './tvOui.ts';
 
@@ -99,18 +100,6 @@ const NOT_A_TV_HOSTNAME =
 const SCREEN_DEVICE_TYPE = /mediarenderer|dial|tvdevice|basicdevice:1.*tv/i;
 const TV_MODEL = /tv|bravia|oled|qled|uhd|webos|chromecast|fire|aft|roku|shield/i;
 
-const IPV4_TEXT = /\b\d{1,3}(?:\.\d{1,3}){3}\b/;
-const MAC_TEXT = /\b[0-9a-f]{2}(?:[:-][0-9a-f]{2}){5}\b/i;
-// eslint-disable-next-line no-control-regex
-const CONTROL_RUN = /[\x00-\x1f\x7f]+/g;
-
-/** A name for a person: cut, without control characters, never an address or a MAC. */
-const displayText = (value: string | null): string | null => {
-  const text = value?.replace(CONTROL_RUN, ' ').trim().slice(0, 60);
-  if (!text || IPV4_TEXT.test(text) || MAC_TEXT.test(text)) return null;
-  return text;
-};
-
 const brandOfMaker = (text: string | null): TvBrandKey | null => {
   if (!text) return null;
   return BRAND_BY_MAKER.find(([pattern]) => pattern.test(text))?.[1] ?? null;
@@ -188,8 +177,8 @@ const fromDescription = (device: HaNetworkDevice): Seen | null => {
       : null);
   if (!brand) return null;
 
-  const model = displayText(device.modelName);
-  const label = displayText(device.friendlyName);
+  const model = displayText(device.modelName, 60);
+  const label = displayText(device.friendlyName, 60);
   const text = `${model ?? ''} ${label ?? ''}`;
   const matchedByDomain = brandOfDomains(device.domains) !== null;
   const screen = SCREEN_DEVICE_TYPE.test(device.deviceType ?? '');

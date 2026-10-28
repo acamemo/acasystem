@@ -408,6 +408,19 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     pruneSpecs();
   };
 
+  /** Room for one more open flow (per user and in total), then one start from the user's rate limit. */
+  const reserveFlowSlot = (user: DeviceUser): void => {
+    if (
+      ctx.model.flows.countOpen(ctx.now(), user.id) >= ctx.settings.maxOpenFlowsPerUser ||
+      ctx.model.flows.countOpen(ctx.now()) >= ctx.settings.maxOpenFlowsTotal
+    ) {
+      throw new DeviceError('TOO_MANY_FLOWS');
+    }
+    const turn = ctx.limiters.flowStart.take(user.id);
+    if (!turn.allowed)
+      throw new DeviceError('RATE_LIMITED', { retryAfterSeconds: turn.retryAfterSeconds });
+  };
+
   /** The row of a flow that belongs to this user and is still open. */
   const loadOwnFlow = async (user: DeviceUser, flowId: string): Promise<DeviceFlowRow> => {
     const row = ctx.model.flows.get(flowId);
@@ -808,15 +821,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           await expireFlows();
           const existing = ctx.model.flows.findOpenForHandler(user.id, handler, ctx.now());
           if (existing) throw new DeviceError('FLOW_ALREADY_OPEN', { flowId: existing.flow_id });
-          if (
-            ctx.model.flows.countOpen(ctx.now(), user.id) >= ctx.settings.maxOpenFlowsPerUser ||
-            ctx.model.flows.countOpen(ctx.now()) >= ctx.settings.maxOpenFlowsTotal
-          ) {
-            throw new DeviceError('TOO_MANY_FLOWS');
-          }
-          const turn = ctx.limiters.flowStart.take(user.id);
-          if (!turn.allowed)
-            throw new DeviceError('RATE_LIMITED', { retryAfterSeconds: turn.retryAfterSeconds });
+          reserveFlowSlot(user);
 
           const raw = await ctx.adapter.flowStart(token, handler);
           return settleFlowResult(token, user, handler, raw, null, audit);
@@ -924,45 +929,42 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           if (!found) throw new DeviceError('FLOW_NOT_FOUND');
           if (audit) audit.domain = found.handler;
           if (!isAddableHandler(found.handler)) throw new DeviceError('REQUIRES_INSTALLER');
-
-          const existing = ctx.model.flows.get(flowId) ?? null;
-          if (existing) {
-            if (existing.status !== 'open') throw new DeviceError('FLOW_NOT_FOUND');
-            if (existing.ha_user_id !== user.id) throw new DeviceError('FORBIDDEN');
-          } else {
-            if (
-              ctx.model.flows.countOpen(ctx.now(), user.id) >= ctx.settings.maxOpenFlowsPerUser ||
-              ctx.model.flows.countOpen(ctx.now()) >= ctx.settings.maxOpenFlowsTotal
-            ) {
-              throw new DeviceError('TOO_MANY_FLOWS');
-            }
-            const turn = ctx.limiters.flowStart.take(user.id);
-            if (!turn.allowed)
-              throw new DeviceError('RATE_LIMITED', {
-                retryAfterSeconds: turn.retryAfterSeconds,
-              });
-          }
-
-          let raw: unknown;
+          // Two taps on the same discovery (two people, two tablets) take it in turn: the
+          // second would otherwise insert the same flow again and fail (REP-20261028-002, S8).
+          if (ctx.busyFlows.has(flowId)) throw new DeviceError('FLOW_BUSY');
+          ctx.busyFlows.add(flowId);
           try {
-            raw = await ctx.adapter.flowRead(token, flowId);
-          } catch (error) {
-            if (isHaError(error) && error.kind === 'not_found') {
-              if (existing) ctx.model.flows.remove(flowId);
-              throw new DeviceError('FLOW_NOT_FOUND');
+            const existing = ctx.model.flows.get(flowId) ?? null;
+            if (existing) {
+              if (existing.status !== 'open') throw new DeviceError('FLOW_NOT_FOUND');
+              if (existing.ha_user_id !== user.id) throw new DeviceError('FORBIDDEN');
+            } else {
+              reserveFlowSlot(user);
             }
-            throw error;
-          }
 
-          // The flow is HA's own discovery: a step Acasystem cannot show is left in HA, not
-          // cancelled (the installer can still finish it), and the person is told so.
-          const normalized = normalizeFlowResult(raw, found.handler);
-          if (normalized.outcome === 'unsupported') {
-            if (audit) audit.code = normalized.reason;
-            throw new DeviceError('REQUIRES_INSTALLER');
-          }
+            let raw: unknown;
+            try {
+              raw = await ctx.adapter.flowRead(token, flowId);
+            } catch (error) {
+              if (isHaError(error) && error.kind === 'not_found') {
+                if (existing) ctx.model.flows.remove(flowId);
+                throw new DeviceError('FLOW_NOT_FOUND');
+              }
+              throw error;
+            }
 
-          return settleFlowResult(token, user, found.handler, raw, existing, audit);
+            // The flow is HA's own discovery: a step Acasystem cannot show is left in HA, not
+            // cancelled (the installer can still finish it), and the person is told so.
+            const normalized = normalizeFlowResult(raw, found.handler);
+            if (normalized.outcome === 'unsupported') {
+              if (audit) audit.code = normalized.reason;
+              throw new DeviceError('REQUIRES_INSTALLER');
+            }
+
+            return await settleFlowResult(token, user, found.handler, raw, existing, audit);
+          } finally {
+            ctx.busyFlows.delete(flowId);
+          }
         }
       );
     },
@@ -1043,15 +1045,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
             ctx.model.flows.remove(stale.flow_id);
             flowSpecs.delete(stale.flow_id);
           }
-          if (
-            ctx.model.flows.countOpen(ctx.now(), user.id) >= ctx.settings.maxOpenFlowsPerUser ||
-            ctx.model.flows.countOpen(ctx.now()) >= ctx.settings.maxOpenFlowsTotal
-          ) {
-            throw new DeviceError('TOO_MANY_FLOWS');
-          }
-          const turn = ctx.limiters.flowStart.take(user.id);
-          if (!turn.allowed)
-            throw new DeviceError('RATE_LIMITED', { retryAfterSeconds: turn.retryAfterSeconds });
+          reserveFlowSlot(user);
 
           const first = await settleFlowResult(
             token,

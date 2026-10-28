@@ -1,6 +1,7 @@
 import { FACADE_DOMAINS, SYSTEM_DOMAINS } from '../../config/devices.ts';
 import { DISCOVERY_SOURCES } from '../../config/deviceFamilies.ts';
 import { isRecord } from '../../helpers/objects.ts';
+import { asString } from '../../helpers/text.ts';
 
 /**
  * Catalogue of the integrations. In D1 it is built from the flow handlers of HA only
@@ -26,8 +27,6 @@ export interface CatalogEntryDto extends CatalogItem {
   requiresInstaller: boolean;
 }
 
-const asString = (value: unknown): string | null =>
-  typeof value === 'string' && value ? value : null;
 
 const itemFrom = (domain: string, value: unknown, brand: string | null): CatalogItem | null => {
   if (!isRecord(value)) return null;

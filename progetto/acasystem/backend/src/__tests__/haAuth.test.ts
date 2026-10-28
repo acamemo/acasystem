@@ -1,10 +1,15 @@
 // @vitest-environment node
 
+import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { WebSocketServer } from 'ws';
 import { createHomeAssistantAuthMiddleware } from '../middlewares/homeAssistantAuth.ts';
 import type { HomeAssistantAuthRequest } from '../middlewares/homeAssistantAuth.ts';
 import type { JsonResponse } from '../middlewares/errors.ts';
-import { createValidatedHomeAssistantUserResolver } from '../services/homeAssistantAuthService.ts';
+import {
+  createValidatedHomeAssistantUserResolver,
+  loadCurrentUserFromHomeAssistant,
+} from '../services/homeAssistantAuthService.ts';
 
 const createRequest = (headers: Record<string, string> = {}): HomeAssistantAuthRequest => ({
   ip: headers.__ip,
@@ -90,6 +95,57 @@ describe('createValidatedHomeAssistantUserResolver', () => {
 
     expect(loadCurrentUser).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps the cache bounded under a stream of rejected tokens (REP-20261028-002, S2)', async () => {
+    const loadCurrentUser = vi.fn().mockRejectedValue(new Error('Invalid auth'));
+    const resolveUser = createValidatedHomeAssistantUserResolver({
+      cacheTtlMs: 60_000,
+      invalidAuthCacheTtlMs: 60_000,
+      loadCurrentUser,
+    });
+
+    for (let index = 0; index < 250; index += 1) {
+      await expect(
+        resolveUser({ haUrl: 'https://ha.example', accessToken: `bad-${index}` })
+      ).rejects.toThrow('Invalid auth');
+    }
+    // The oldest rejection was dropped to keep at most 200 entries: it is asked again.
+    await expect(
+      resolveUser({ haUrl: 'https://ha.example', accessToken: 'bad-0' })
+    ).rejects.toThrow('Invalid auth');
+    expect(loadCurrentUser).toHaveBeenCalledTimes(251);
+    // The newest is still remembered.
+    await expect(
+      resolveUser({ haUrl: 'https://ha.example', accessToken: 'bad-249' })
+    ).rejects.toThrow('Invalid auth');
+    expect(loadCurrentUser).toHaveBeenCalledTimes(251);
+  });
+});
+
+describe('loadCurrentUserFromHomeAssistant', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gives up on a Home Assistant that accepts the socket but never answers (S3)', async () => {
+    const server = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+    await new Promise<void>((resolve) => server.once('listening', () => resolve()));
+    const { port } = server.address() as AddressInfo;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const loading = loadCurrentUserFromHomeAssistant({
+        haUrl: `http://127.0.0.1:${port}`,
+        accessToken: 'token',
+      });
+      const outcome = expect(loading).rejects.toThrow('Home Assistant did not answer in time');
+      await vi.advanceTimersByTimeAsync(10_000);
+      await outcome;
+    } finally {
+      vi.useRealTimers();
+      for (const client of server.clients) client.terminate();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
 });
 
 const ATTACKER_URL = 'http://attacker.example';
@@ -137,7 +193,6 @@ describe('createHomeAssistantAuthMiddleware', () => {
         is_owner: false,
         source: 'supervisor-ingress',
       });
-      expect(req.authenticatedHaUrl).toBeNull();
       expect(next).toHaveBeenCalledOnce();
     }
   );
@@ -178,7 +233,6 @@ describe('createHomeAssistantAuthMiddleware', () => {
         accessToken: 'token-1',
       });
       expect(req.authenticatedHaUser).toEqual({ id: 'user-123' });
-      expect(req.authenticatedHaUrl).toBe('https://ha.example');
       expect(next).toHaveBeenCalledOnce();
     });
 
@@ -269,7 +323,6 @@ describe('createHomeAssistantAuthMiddleware', () => {
         'http://homeassistant.lan:8123',
       ]);
       expect(req.authenticatedHaUser).toEqual({ id: 'user-456' });
-      expect(req.authenticatedHaUrl).toBe('http://homeassistant.lan:8123');
       expect(next).toHaveBeenCalledOnce();
     });
 

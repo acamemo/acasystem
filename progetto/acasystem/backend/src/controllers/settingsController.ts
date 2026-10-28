@@ -2,13 +2,15 @@ import type { Request, Response } from 'express';
 import { sendFailure } from '../middlewares/errors.ts';
 import type { SettingsService } from '../services/settingsService.ts';
 import {
+  type DeviceQuery,
   validateCurrentSettingsBody,
   validateDeviceLabelBody,
   validateDeviceQuery,
   validatePublishBody,
   validateUserQuery,
 } from '../validators/settingsValidators.ts';
-import { requireRequestUserId } from './requestUser.ts';
+import { valid } from '../validators/common.ts';
+import { andThen, authed, respond } from './requestUser.ts';
 
 /** Gestori HTTP di /api/settings. */
 
@@ -26,79 +28,32 @@ export interface SettingsController {
 }
 
 export const createSettingsController = (service: SettingsService): SettingsController => {
-  /** Utente autenticato e query con ha_user_id/device_id; null se ha già risposto. */
-  const readDeviceQuery = (req: Request, res: Response) => {
-    const requestUserId = requireRequestUserId(req, res);
-    if (!requestUserId) return null;
-
-    const query = validateDeviceQuery(req.query, requestUserId);
-    if (!query.ok) {
-      sendFailure(res, query.failure);
-      return null;
-    }
-    return query.value;
-  };
+  /** Utente autenticato e query con ha_user_id/device_id; il risultato di `run` è la risposta. */
+  const deviceRoute = (run: (query: DeviceQuery) => unknown): Handler =>
+    authed((req, res, userId) => {
+      respond(res, andThen(validateDeviceQuery(req.query, userId), (query) => valid(run(query))));
+    });
 
   return {
-    getCurrent: (req, res) => {
-      const query = readDeviceQuery(req, res);
-      if (!query) return;
-      res.json(service.getCurrent(query.haUserId, query.deviceId, query.revision));
-    },
+    getCurrent: deviceRoute((q) => service.getCurrent(q.haUserId, q.deviceId, q.revision)),
 
-    listHistory: (req, res) => {
-      const query = readDeviceQuery(req, res);
-      if (!query) return;
-      res.json(service.listHistory(query.haUserId, query.deviceId, query.limit));
-    },
+    listHistory: deviceRoute((q) => service.listHistory(q.haUserId, q.deviceId, q.limit)),
 
-    deleteHistory: (req, res) => {
-      const query = readDeviceQuery(req, res);
-      if (!query) return;
-      res.json(service.deleteHistory(query.haUserId, query.deviceId, query.keepLatest));
-    },
+    deleteHistory: deviceRoute((q) => service.deleteHistory(q.haUserId, q.deviceId, q.keepLatest)),
 
-    listDevices: (req, res) => {
-      const requestUserId = requireRequestUserId(req, res);
-      if (!requestUserId) return;
+    listDevices: authed((req, res, userId) => {
+      respond(res, andThen(validateUserQuery(req.query, userId), (haUserId) => valid(service.listDevices(haUserId))));
+    }),
 
-      const haUserId = validateUserQuery(req.query, requestUserId);
-      if (!haUserId.ok) {
-        sendFailure(res, haUserId.failure);
-        return;
-      }
-      res.json(service.listDevices(haUserId.value));
-    },
+    deleteDevice: deviceRoute((q) => service.deleteDevice(q.haUserId, q.deviceId)),
 
-    deleteDevice: (req, res) => {
-      const query = readDeviceQuery(req, res);
-      if (!query) return;
-      res.json(service.deleteDevice(query.haUserId, query.deviceId));
-    },
+    updateDeviceLabel: authed((req, res, userId) => {
+      const input = validateDeviceLabelBody(req.body, userId);
+      respond(res, andThen(input, (value) => service.updateDeviceLabel(value)));
+    }),
 
-    updateDeviceLabel: (req, res) => {
-      const requestUserId = requireRequestUserId(req, res);
-      if (!requestUserId) return;
-
-      const input = validateDeviceLabelBody(req.body, requestUserId);
-      if (!input.ok) {
-        sendFailure(res, input.failure);
-        return;
-      }
-
-      const result = service.updateDeviceLabel(input.value);
-      if (!result.ok) {
-        sendFailure(res, result.failure);
-        return;
-      }
-      res.json(result.value);
-    },
-
-    putCurrent: (req, res) => {
-      const requestUserId = requireRequestUserId(req, res);
-      if (!requestUserId) return;
-
-      const input = validateCurrentSettingsBody(req.body, requestUserId);
+    putCurrent: authed((req, res, userId) => {
+      const input = validateCurrentSettingsBody(req.body, userId);
       if (!input.ok) {
         sendFailure(res, input.failure);
         return;
@@ -119,24 +74,11 @@ export const createSettingsController = (service: SettingsService): SettingsCont
         revision: result.revision,
         updated_at: result.updated_at,
       });
-    },
+    }),
 
-    publish: (req, res) => {
-      const requestUserId = requireRequestUserId(req, res);
-      if (!requestUserId) return;
-
-      const input = validatePublishBody(req.body, requestUserId);
-      if (!input.ok) {
-        sendFailure(res, input.failure);
-        return;
-      }
-
-      const result = service.publish(input.value);
-      if (!result.ok) {
-        sendFailure(res, result.failure);
-        return;
-      }
-      res.json(result.value);
-    },
+    publish: authed((req, res, userId) => {
+      const input = validatePublishBody(req.body, userId);
+      respond(res, andThen(input, (value) => service.publish(value)));
+    }),
   };
 };

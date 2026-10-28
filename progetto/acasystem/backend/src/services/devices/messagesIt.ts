@@ -77,12 +77,6 @@ export const resolveFormError = (
 export const resolveAbortReason = (reason: string, haText: string | null): string =>
   ABORT_MESSAGES[reason] ?? haText ?? GENERIC_ABORT_MESSAGE;
 
-export const translateFormError = (key: string): string =>
-  FORM_ERROR_MESSAGES[key] ?? GENERIC_ERROR_MESSAGE;
-
-export const translateAbortReason = (reason: string): string =>
-  ABORT_MESSAGES[reason] ?? GENERIC_ABORT_MESSAGE;
-
 /**
  * Italian labels for the field names that integrations use over and over (F4, point 3). Used when
  * neither our own texts nor an Italian translation of HA give the field a label.

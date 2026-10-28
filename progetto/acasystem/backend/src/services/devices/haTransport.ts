@@ -171,7 +171,8 @@ const wsCommandError = (error: unknown): HaError => {
 interface PendingCommand {
   resolve(value: unknown): void;
   reject(error: HaError): void;
-  timer: NodeJS.Timeout;
+  /** Absent for a subscription: its result must not stop the wait for the first event. */
+  timer?: NodeJS.Timeout;
 }
 
 /**
@@ -263,11 +264,7 @@ const connect = (
             finished = true;
             clearTimeout(timer);
             subscribers.delete(id);
-            const waiting = pending.get(id);
-            if (waiting) {
-              clearTimeout(waiting.timer);
-              pending.delete(id);
-            }
+            pending.delete(id);
             if (error) {
               rejectCollect(error);
               return;
@@ -287,12 +284,7 @@ const connect = (
             events.push(event);
             finish();
           });
-          pending.set(id, {
-            resolve: () => undefined,
-            reject: (error) => finish(error),
-            // The result of the subscription must not stop the wait for the first event.
-            timer: setTimeout(() => undefined, 0),
-          });
+          pending.set(id, { resolve: () => undefined, reject: (error) => finish(error) });
           socket.send(JSON.stringify({ ...options.payload, id, type: call.type }), (error) => {
             if (error) finish(new HaError('unreachable'));
           });
