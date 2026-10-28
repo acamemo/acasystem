@@ -291,6 +291,12 @@ export interface TvExclusions {
   configuredMacs: ReadonlySet<string>;
   /** `brand|model` of the configured devices (lower case), for the television seen without a MAC. */
   configuredModels: ReadonlySet<string>;
+  /**
+   * MACs and `brand|model` of the devices that HA knows only through Google Cast. They hide a
+   * Cast candidate (a Chromecast), never a television of a brand with its own integration.
+   */
+  castOnlyMacs?: ReadonlySet<string>;
+  castOnlyModels?: ReadonlySet<string>;
   /** Handlers of the discoveries HA already offers in «Trovati in rete», with how many. */
   discoveredByHandler: ReadonlyMap<string, number>;
 }
@@ -309,13 +315,12 @@ export const withoutKnown = (
 ): TvCandidate[] => {
   const remainingDiscoveries = new Map(exclusions.discoveredByHandler);
   return candidates.filter((candidate) => {
+    const modelKey = candidate.model ? `${candidate.brandKey}|${candidate.model.toLowerCase()}` : null;
     if (candidate.mac && exclusions.configuredMacs.has(candidate.mac)) return false;
-    if (
-      !candidate.mac &&
-      candidate.model &&
-      exclusions.configuredModels.has(`${candidate.brandKey}|${candidate.model.toLowerCase()}`)
-    ) {
-      return false;
+    if (!candidate.mac && modelKey && exclusions.configuredModels.has(modelKey)) return false;
+    if (candidate.handler === 'cast') {
+      if (candidate.mac && exclusions.castOnlyMacs?.has(candidate.mac)) return false;
+      if (!candidate.mac && modelKey && exclusions.castOnlyModels?.has(modelKey)) return false;
     }
     const left = candidate.handler ? (remainingDiscoveries.get(candidate.handler) ?? 0) : 0;
     if (candidate.handler && left > 0) {

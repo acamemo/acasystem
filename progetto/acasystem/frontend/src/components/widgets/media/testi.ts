@@ -22,6 +22,10 @@ export const testi = {
   gruppoVuotoNota: 'Aggiungi i lettori nelle impostazioni del widget.',
   nonDisponibile: 'Non disponibile',
   apriDettagli: (nome: string) => `${nome}, apri i dettagli`,
+  // A TV that only Cast shows (no native integration of its brand yet).
+  collegaTv: (marca: string) => `Collega la TV ${marca} per accenderla e usare il telecomando.`,
+  collegaTvAzione: 'Collega la TV',
+  chiudi: 'Chiudi',
 
   inRiproduzione: 'In riproduzione',
   inPausa: 'In pausa',

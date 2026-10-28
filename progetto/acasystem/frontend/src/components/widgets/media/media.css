@@ -61,6 +61,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* The buttons under the «Collega la TV» message of a Cast-only TV. */
+  .aca-media-hint-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
 
   /* Plain button holding the name and title: the keyboard way into the details. */
   .aca-media-open {

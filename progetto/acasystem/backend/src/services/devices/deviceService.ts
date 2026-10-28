@@ -726,18 +726,32 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
   /** What hides a candidate: devices already in HA and discoveries HA already offers. */
   const readTvExclusions = async (token: string) =>
     ctx.adapter.withWs(token, async (api) => {
-      const [devices, flows] = await Promise.all([api.devices(), api.flowsInProgress()]);
-      const configuredMacs = new Set(devices.flatMap((device) => device.macs));
+      const [devices, flows, entries] = await Promise.all([
+        api.devices(),
+        api.flowsInProgress(),
+        api.entries(),
+      ]);
+      const domainOfEntry = new Map(entries.map((entry) => [entry.entryId, entry.domain]));
+      const configuredMacs = new Set<string>();
       const configuredModels = new Set<string>();
+      const castOnlyMacs = new Set<string>();
+      const castOnlyModels = new Set<string>();
       for (const device of devices) {
+        // A television that HA knows only through Google Cast (the auto-added entry) is not
+        // «already configured»: it has no remote and no real power. It hides only a Cast candidate.
+        const domains = device.entryIds.flatMap((id) => domainOfEntry.get(id) ?? []);
+        const castOnly = domains.length > 0 && domains.every((domain) => domain === 'cast');
+        const macs = castOnly ? castOnlyMacs : configuredMacs;
+        const models = castOnly ? castOnlyModels : configuredModels;
+        device.macs.forEach((mac) => macs.add(mac));
         const brand = brandKeyOfMaker(device.manufacturer);
-        if (brand && device.model) configuredModels.add(`${brand}|${device.model.toLowerCase()}`);
+        if (brand && device.model) models.add(`${brand}|${device.model.toLowerCase()}`);
       }
       const discoveredByHandler = new Map<string, number>();
       for (const flow of pickDiscovered(flows)) {
         discoveredByHandler.set(flow.handler, (discoveredByHandler.get(flow.handler) ?? 0) + 1);
       }
-      return { configuredMacs, configuredModels, discoveredByHandler };
+      return { configuredMacs, configuredModels, castOnlyMacs, castOnlyModels, discoveredByHandler };
     });
 
   /** The input that fills the address of the first step; null when the person must do it. */

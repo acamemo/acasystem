@@ -12,6 +12,7 @@ import {
   type DiscoveredDevice,
 } from '@/utils/devices/classify';
 import { recommendedBrands } from '@/utils/devices/recommendedBrands';
+import { alikeTvIds } from '@/utils/devices/tvBrand';
 import { DetailsBody, Section } from '../shared/details';
 import { Notice } from '../shared/UtilityCard';
 import { UtilityIcon } from '../shared/UtilityIcon';
@@ -85,10 +86,13 @@ function FoundRow({
 function TvRow({
   tv,
   canConnect,
+  alike,
   onConnect,
 }: {
   tv: TvInReteDto;
   canConnect: boolean;
+  /** Other TVs have a name like this one: the model is always shown. */
+  alike: boolean;
   onConnect: () => void;
 }) {
   return (
@@ -99,7 +103,9 @@ function TvRow({
           {tv.name}
         </Body>
         <Caption className="utility-truncate">
-          {tv.model && !tv.name.includes(tv.model) ? `${tv.brand} · ${tv.model}` : tv.brand}
+          {tv.model && (alike || !tv.name.includes(tv.model))
+            ? `${tv.brand} · ${tv.model}`
+            : tv.brand}
         </Caption>
         {!tv.collegabile && tv.motivo && <Caption>{tv.motivo}</Caption>}
       </span>
@@ -159,6 +165,8 @@ interface Adding {
   tvId?: string;
   startDomain?: string;
   guideFor?: string;
+  /** The television the request goes to, said by the steps of its connection. */
+  deviceName?: string;
   family: DeviceFamily | null;
 }
 
@@ -209,6 +217,8 @@ export function DeviceFinder({
   const state = useUnboundDevices(family);
   // The flow is open: a discovery to take over, a television, a brand, or the catalogue.
   const [adding, setAdding] = useState<Adding | null>(null);
+  // Several TVs of the brand that was tapped: none is picked for the person.
+  const [choose, setChoose] = useState<string | null>(null);
   const [working, setWorking] = useState<ReadonlySet<string>>(new Set());
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
   const filter = { family, ...(handlers ? { handlers } : {}) };
@@ -244,6 +254,7 @@ export function DeviceFinder({
           {...(adding.tvId ? { tvId: adding.tvId } : {})}
           {...(adding.startDomain ? { startDomain: adding.startDomain } : {})}
           {...(adding.guideFor ? { guideFor: adding.guideFor } : {})}
+          {...(adding.deviceName ? { deviceName: adding.deviceName } : {})}
           family={adding.family}
           onExit={() => {
             setAdding(null);
@@ -262,6 +273,7 @@ export function DeviceFinder({
   // «Televisori in rete» appears only when there is one to connect; errors are said by the
   // section below, which reads the same service.
   const tvList = tvs.status === 'ready' && tvs.tvs.length > 0 ? tvs.tvs : null;
+  const alikeIds = alikeTvIds(tvList ?? []);
 
   let network: ReactNode = null;
   if (found.status === 'unavailable') {
@@ -372,27 +384,44 @@ export function DeviceFinder({
       found.status === 'ready'
         ? found.devices.find((device) => device.addable && device.handler === brand.handler)
         : undefined;
-    // A television of this brand that Home Assistant saw: the tap connects that one.
-    const seen =
+    // A television of this brand that Home Assistant saw: the tap connects it, but only when it
+    // is the only one; with two or more the person picks one from «Televisori in rete».
+    const seenOfBrand =
       !discovered && tvs.status === 'ready'
-        ? tvs.tvs.find((tv) => tv.collegabile && tv.handler === brand.handler)
-        : undefined;
+        ? tvs.tvs.filter((tv) => tv.collegabile && tv.handler === brand.handler)
+        : [];
+    const seen = seenOfBrand.length === 1 ? seenOfBrand[0] : undefined;
+    const several = seenOfBrand.length > 1;
     const name = discovered?.name ?? seen?.name;
     return (
       <li key={brand.handler}>
         <ChoiceRow
           title={brand.label}
           {...(name ? { subtitle: `Trovata in rete: ${name}` } : {})}
+          {...(several ? { subtitle: `${seenOfBrand.length} TV trovate in rete` } : {})}
           disabled={Flow === null}
-          onClick={() =>
+          onClick={() => {
+            setChoose(null);
+            if (several) {
+              setChoose(
+                `Ci sono ${seenOfBrand.length} TV ${brand.label} in rete: tocca quella da collegare.`
+              );
+              return;
+            }
             setAdding(
               discovered
                 ? { flowId: discovered.flowId, guideFor: brand.handler, family }
                 : seen
-                  ? { flowId: null, tvId: seen.id, guideFor: brand.handler, family }
+                  ? {
+                      flowId: null,
+                      tvId: seen.id,
+                      guideFor: brand.handler,
+                      deviceName: seen.name,
+                      family,
+                    }
                   : { flowId: null, startDomain: brand.handler, guideFor: brand.handler, family }
-            )
-          }
+            );
+          }}
         />
       </li>
     );
@@ -407,20 +436,28 @@ export function DeviceFinder({
       )}
       {tvList && (
         <Section title="Televisori in rete" icon="tv">
+          {choose && (
+            <Notice icon="info" live>
+              {choose}
+            </Notice>
+          )}
           <ul className="utility-stack" aria-label="Televisori trovati in rete">
             {tvList.map((tv) => (
               <TvRow
                 key={tv.id}
                 tv={tv}
                 canConnect={Flow !== null}
-                onConnect={() =>
+                alike={alikeIds.has(tv.id)}
+                onConnect={() => {
+                  setChoose(null);
                   setAdding({
                     flowId: null,
                     tvId: tv.id,
                     ...(tv.handler ? { guideFor: tv.handler } : {}),
+                    deviceName: tv.name,
                     family: 'tv',
-                  })
-                }
+                  });
+                }}
               />
             ))}
           </ul>

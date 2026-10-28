@@ -15,6 +15,7 @@ export function DiscoveredAddFlow({
   tvId = null,
   startDomain = null,
   guideFor = null,
+  deviceName = null,
   family,
   onExit,
   onDone,
@@ -26,6 +27,7 @@ export function DiscoveredAddFlow({
       tvId={tvId}
       startDomain={startDomain}
       guideFor={guideFor}
+      deviceName={deviceName}
       onExit={onExit}
       onDone={() => undefined}
       onEntryDone={onDone}

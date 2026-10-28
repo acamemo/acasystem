@@ -660,3 +660,128 @@ describe('Non trovi il tuo dispositivo?: prima il tipo, poi la marca', () => {
     );
   });
 });
+
+describe('Televisori LG: Cast da solo e più televisori della stessa marca', () => {
+  const lgTv = (overrides: Partial<ReturnType<typeof tvDto>> = {}) =>
+    tvDto({
+      id: 'lg-ua',
+      brandKey: 'lg',
+      brand: 'LG',
+      name: '[LG] webOS TV UA751C0LA',
+      model: 'UA751C0LA',
+      handler: 'webostv',
+      conferma: 'consenti',
+      ...overrides,
+    });
+  const lgNano = () => lgTv({ id: 'lg-nano', name: '[LG] webOS TV NANO81T6A', model: 'NANO81T6A' });
+
+  /** The screen with an LG that HA added only through Google Cast. */
+  const screenWithCastLg = () => {
+    const conn = fakeConnection({
+      'config/device_registry/list': () => [
+        { id: 'tv-cast', name: '[LG] webOS TV UA751C0LA', manufacturer: 'LG', model: 'UA751C0LA' },
+      ],
+      'config/entity_registry/list': () => [
+        { entity_id: 'media_player.lg_cast', device_id: 'tv-cast', platform: 'cast' },
+      ],
+    });
+    return render(
+      <PageProvider>
+        <WidgetRuntimeProvider
+          value={createFixtureRuntime({
+            entities: fixtureEntities([
+              fixtureEntity('media_player.lg_cast', 'off', {
+                friendly_name: '[LG] webOS TV UA751C0LA',
+              }),
+            ]),
+            conn: conn.conn,
+          })}
+        >
+          <AddWidgetRequestProvider value={requestAdd}>
+            <AddSheetRequestProvider value={requestSheet}>
+              <DiscoveredFlowProvider value={DiscoveredAddFlow}>
+                <DiscoveryScreen open onClose={onClose} pageId="home" />
+              </DiscoveredFlowProvider>
+            </AddSheetRequestProvider>
+          </AddWidgetRequestProvider>
+        </WidgetRuntimeProvider>
+      </PageProvider>
+    );
+  };
+
+  it('«Collegati» offre «Collega come TV LG» al posto di «Crea il widget» e collega quella TV', async () => {
+    withFound();
+    fake.on('GET /tv-in-rete', () => ({ body: { tvs: [lgTv(), lgNano()] } }));
+    fake.on('POST /tv-in-rete/:id/collega', () => ({ status: 201, body: samsungPinForm() }));
+    screenWithCastLg();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Collegati (1)' }));
+    expect(screen.queryByRole('button', { name: /^Crea il widget/ })).toBeNull();
+    // The tiles tell the two LG apart by model, though the model is in the name.
+    await screen.findByRole('button', { name: /^Collega \[LG\] webOS TV NANO81T6A/ }, REVEAL_WAIT);
+    const connect = screen.getByRole('button', {
+      name: 'Collega come TV LG: [LG] webOS TV UA751C0LA',
+    });
+    fireEvent.click(connect);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Sono davanti alla TV, continua' }));
+    // The TV of the same model is connected, not the other one, and the step says which one.
+    await waitFor(() => expect(fake.callsTo('POST /tv-in-rete/lg-ua/collega')).toHaveLength(1));
+    expect(fake.callsTo('POST /tv-in-rete/lg-nano/collega')).toHaveLength(0);
+    expect(
+      await screen.findByText('Il codice compare sulla TV «[LG] webOS TV UA751C0LA».')
+    ).toBeInTheDocument();
+  });
+
+  it('mentre la TV risponde, nome della TV sopra il testo e nessun quadrato grigio', async () => {
+    withFound();
+    fake.on('GET /tv-in-rete', () => ({ body: { tvs: [lgTv(), lgNano()] } }));
+    fake.on('POST /tv-in-rete/:id/collega', () => ({ status: 201, body: samsungConfirmForm() }));
+    // The answer of the step stays open while the person accepts on the TV.
+    fake.on('POST /flussi/:id', () => new Promise(() => undefined));
+    screenOf();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Collega \[LG\] webOS TV UA751C0LA/ }, REVEAL_WAIT)
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Sono davanti alla TV, continua' }));
+
+    expect(
+      await screen.findByText('Accetta la richiesta sulla TV «[LG] webOS TV UA751C0LA».')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Accetta la richiesta sulla TV con il telecomando/)
+    ).toBeInTheDocument();
+    // Two empty grey squares (skeleton rows) used to be drawn above the text.
+    expect(document.querySelector('.aca-device-pairing .aca-skeleton')).toBeNull();
+  });
+
+  it('con due LG in rete la marca non ne sceglie una: chiede quale', async () => {
+    withFound();
+    fake.on('GET /tv-in-rete', () => ({ body: { tvs: [lgTv(), lgNano()] } }));
+    fake.on('POST /tv-in-rete/:id/collega', () => ({ status: 201, body: samsungPinForm() }));
+    screenOf();
+
+    const grid = await screen.findByRole('list', { name: 'Dispositivi da collegare' });
+    await within(grid).findByRole('button', { name: /UA751C0LA/ }, REVEAL_WAIT);
+    await within(grid).findByRole('button', { name: /NANO81T6A/ }, REVEAL_WAIT);
+    expect(within(grid).getByText('UA751C0LA')).toBeInTheDocument();
+    expect(within(grid).getByText('NANO81T6A')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Non trovi il tuo dispositivo?' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Televisori' }));
+    fireEvent.click(
+      within(screen.getByRole('list', { name: 'Marche consigliate' })).getByRole('button', {
+        name: 'LG',
+      })
+    );
+
+    expect(
+      await screen.findByText('Ci sono 2 TV LG in rete: tocca quella da collegare.')
+    ).toBeInTheDocument();
+    expect(header(/^Da collegare/)).toHaveAttribute('aria-expanded', 'true');
+    expect(fake.callsTo('POST /tv-in-rete/lg-ua/collega')).toHaveLength(0);
+    expect(fake.callsTo('POST /tv-in-rete/lg-nano/collega')).toHaveLength(0);
+    expect(fake.callsTo('POST /flussi')).toHaveLength(0);
+  });
+});

@@ -14,6 +14,8 @@ export interface DiscoveredFlowProps {
   startDomain?: string | null;
   /** Integration whose guide is shown before the flow starts (P-6). */
   guideFor?: string | null;
+  /** Name of the television the request goes to: the steps of the TV say it (several of a brand). */
+  deviceName?: string | null;
   family: DeviceFamily | null;
   /** The person left; an open flow has been cancelled. */
   onExit: () => void;

@@ -82,6 +82,9 @@ export const deviceTexts = {
   pinChecking: 'Controllo il codice…',
   consentAsk: 'Accetta la richiesta sulla TV con il telecomando.',
   consentWaiting: 'Accetta la richiesta sulla TV con il telecomando. Aspetto la tua risposta…',
+  // Which TV the request went to, when several of the same brand are on the network.
+  requestOnTv: (name: string) => `Accetta la richiesta sulla TV «${name}».`,
+  codeOnTv: (name: string) => `Il codice compare sulla TV «${name}».`,
 
   // Televisions seen on the network (F5).
   tvSection: 'Televisori in rete',

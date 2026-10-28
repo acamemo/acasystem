@@ -153,6 +153,9 @@ export interface DiscoveredDevice {
   platform?: string;
   /** Remote of a television, attached here instead of being a device of its own. */
   remoteId?: string;
+  /** Maker and model of the device in the registry, when it has them. */
+  manufacturer?: string;
+  model?: string;
 }
 
 export interface ClassifyInput {
@@ -217,7 +220,11 @@ function familyOf(
       candidate.platform === 'sonos' || isSonosMediaEntity(entities[candidate.entityId])
   );
   if (sonos.length > 0) return { family: 'sonos', picked: sonos };
-  const tv = players.filter(isTv);
+  // A native TV entity (webostv, samsungtv...) wins over a Cast one of the same device: Cast has
+  // no remote and its «turn on» starts the Home Assistant app on the TV.
+  const tv = players
+    .filter(isTv)
+    .sort((a, b) => Number(a.platform === 'cast') - Number(b.platform === 'cast'));
   if (tv.length > 0) return { family: 'tv', picked: tv.slice(0, 1) };
   if (players.length > 0) return { family: 'media', picked: players };
   // The first domain present gives the family, so the order is the main function of a device with
@@ -300,6 +307,10 @@ export function classifyDevices({
       primaryEntityId,
       ...(found.picked[0]?.platform ? { platform: found.picked[0].platform } : {}),
       ...(remote ? { remoteId: remote } : {}),
+      ...(text(device.manufacturer).trim()
+        ? { manufacturer: text(device.manufacturer).trim() }
+        : {}),
+      ...(text(device.model).trim() ? { model: text(device.model).trim() } : {}),
     });
   }
 

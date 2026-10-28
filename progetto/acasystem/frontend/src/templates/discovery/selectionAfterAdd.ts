@@ -19,6 +19,9 @@ export async function selectionAfterAdd(
     deviceId: entry.device?.id ?? null,
     entityIds: entry.entities,
     mediaPlayerEntityId: entry.mediaPlayerEntityId,
+    domain: entry.domain,
+    manufacturer: entry.device?.manufacturer ?? null,
+    title: entry.title,
   };
   let selection: AddWidgetSelection | null = null;
   try {

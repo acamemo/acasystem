@@ -1,6 +1,7 @@
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useConfirmedCommand, useNow, useServiceActions } from '../../hooks/commands';
+import { useCastPowerGuard } from '../../hooks/useCastPowerGuard';
 import { useMediaControls } from '../../hooks/useMediaControls';
 import { useTvAppLaunch } from '../../hooks/useTvAppLaunch';
 import { useTvChannel } from '../../hooks/useTvChannel';
@@ -37,11 +38,14 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
   const media = useMediaControls(view.displayId);
   const now = useNow(1000, view.isPlaying);
   // An app tapped with the TV off switches it on first (power key pending), then opens.
-  const appLaunch = useTvAppLaunch(view.isOn, runtime.callService, () =>
-    power.request(true, () =>
+  const castGuard = useCastPowerGuard(config.castBrand);
+  const appLaunch = useTvAppLaunch(view.isOn, runtime.callService, () => {
+    // A Cast-only TV is not switched on from here: the message says how to connect it.
+    if (castGuard.block()) return undefined;
+    return power.request(true, () =>
       runtime.callService('media_player', 'turn_on', { entity_id: mediaPlayerId })
-    )
-  );
+    );
+  });
 
   const controlMedia = (action: string) =>
     runtime.callService('media_player', action, {
@@ -56,6 +60,7 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
 
   const togglePower = () => {
     if (view.unavailable) return;
+    if (castGuard.block()) return;
     const off = tvPowerOffCall(view, mediaPlayerId, config.remoteId);
     power.request(!power.value, () =>
       power.value
@@ -95,6 +100,7 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
     runtime,
     config,
     mediaPlayerId,
+    castGuard,
     view,
     actions,
     playing,

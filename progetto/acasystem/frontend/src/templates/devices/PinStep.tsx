@@ -18,6 +18,7 @@ export function PinStep({
   spec,
   busy,
   extraError,
+  deviceName,
   onSubmit,
   onExit,
 }: {
@@ -25,6 +26,8 @@ export function PinStep({
   spec: PinSpec;
   busy: boolean;
   extraError: StepError | null;
+  /** The television the code comes from, when several of the brand are on the network. */
+  deviceName?: string | null;
   onSubmit: (input: Record<string, unknown>) => void;
   onExit: () => void;
 }) {
@@ -76,6 +79,7 @@ export function PinStep({
           {error.message}
         </Notice>
       ))}
+      {deviceName && <Caption as="p">{deviceTexts.codeOnTv(deviceName)}</Caption>}
       <Body>{deviceTexts.pinGuide}</Body>
       <Field
         ref={inputRef}
@@ -124,12 +128,15 @@ export function TvConsentStep({
   form,
   busy,
   extraError,
+  deviceName,
   onSubmit,
   onExit,
 }: {
   form: FlowFormDto;
   busy: boolean;
   extraError: StepError | null;
+  /** The television the request went to, when several of the brand are on the network. */
+  deviceName?: string | null;
   onSubmit: () => void;
   onExit: () => void;
 }) {
@@ -152,9 +159,12 @@ export function TvConsentStep({
           {error.message}
         </Notice>
       ))}
+      {deviceName && (
+        <Body className="aca-device-pairing__text">{deviceTexts.requestOnTv(deviceName)}</Body>
+      )}
       {busy ? (
         <>
-          <Skeleton rows={2} label={deviceTexts.consentWaiting} />
+          {/* No skeleton rows: in this centred column they collapsed into two grey squares. */}
           <Body role="status" aria-live="polite" className="aca-device-pairing__text">
             {deviceTexts.consentWaiting}
           </Body>

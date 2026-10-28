@@ -12,7 +12,10 @@ import type { DiscoveredDeviceDto, EntryDto, TvInReteDto } from '@/@types/device
 import type { AddWidgetSelection } from '@/@types/launcher';
 import { ignoreDiscovered, toDeviceError } from '@/api/devicesApi';
 import { BrandLogo } from '@/components/widgets/utilities/discover/BrandLogo';
-import { useConnectedDevices } from '@/components/widgets/utilities/discover/useConnectedDevices';
+import {
+  useConnectedDevices,
+  type ConnectedDevice,
+} from '@/components/widgets/utilities/discover/useConnectedDevices';
 import {
   DISCOVERED_POLL_MS,
   SERVICE_NOT_ACTIVE,
@@ -35,6 +38,12 @@ import {
   type DeviceFamily,
 } from '@/utils/devices/classify';
 import { recommendedBrands } from '@/utils/devices/recommendedBrands';
+import {
+  alikeTvIds,
+  nativeTvBrand,
+  sameTvModel,
+  type NativeTvBrand,
+} from '@/utils/devices/tvBrand';
 import { usePresence } from '../sheets/parts/hooks';
 import { RepairServiceNotice } from '@/components/widgets/utilities/discover/RepairServiceNotice';
 import { oneWidgetPerDevice, selectionAfterAdd } from './selectionAfterAdd';
@@ -112,6 +121,8 @@ type View =
       startDomain?: string;
       /** Integration whose guide is shown before the flow starts. */
       guideFor?: string;
+      /** The television the request goes to, said by the steps of its connection. */
+      deviceName?: string;
     };
 
 /** One tile of «Da collegare»: a discovery of Home Assistant, or a television seen on the network. */
@@ -161,16 +172,21 @@ function DeviceTile({
 function TvTile({
   tv,
   disabled,
+  alike,
   onOpen,
 }: {
   tv: TvInReteDto;
   disabled: boolean;
+  /** Other TVs have a name like this one: the model is shown even when the name holds it. */
+  alike: boolean;
   onOpen: () => void;
 }) {
-  // Only what the name does not already say («Samsung UE50J6200» needs no «Samsung» under it).
+  // Only what the name does not already say («Samsung UE50J6200» needs no «Samsung» under it);
+  // TVs that look alike always show their model, the only thing that tells them apart.
   const parts = [tv.brand, tv.model].filter(
     (part): part is string =>
-      Boolean(part) && !tv.name.toLowerCase().includes(String(part).toLowerCase())
+      Boolean(part) &&
+      ((alike && part === tv.model) || !tv.name.toLowerCase().includes(String(part).toLowerCase()))
   );
   const caption = parts.join(' · ');
   return (
@@ -249,6 +265,9 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
   const tvs = useTvsOnNetwork(!open || view.kind === 'flow');
   const seenTvs = tvs.status === 'ready' ? tvs.tvs.filter((tv) => tv.collegabile) : [];
   const tvKey = seenTvs.map((tv) => `tv-${tv.id}`).join(' ');
+  const alike = alikeTvIds(seenTvs);
+  // Several TVs of one brand: nothing is guessed, the person picks one from «Da collegare».
+  const [choose, setChoose] = useState<string | null>(null);
   // The search ends as soon as a read brings nothing new: skeleton tiles left on would say that
   // more devices are coming (the user, 2026-10-28). With nothing found yet it waits for the
   // whole window, since a Home Assistant just installed may still be searching.
@@ -290,7 +309,19 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
   const toConnectKeys = toConnect.map((item) => item.key);
   const visibleKeys = useRevealed(toConnectKeys, reducedMotion);
   const shownTiles = toConnect.filter((item) => visibleKeys.has(item.key));
-  const linked = connected.status === 'ready' ? connected.devices : [];
+  const allLinked = connected.status === 'ready' ? connected.devices : [];
+  // A TV that only Cast shows is the same TV as its native device when both are there: one row.
+  const linked = allLinked.filter(
+    (device) =>
+      !(
+        device.family === 'tv' &&
+        device.platform === 'cast' &&
+        allLinked.some(
+          (other) =>
+            other.family === 'tv' && other.platform !== 'cast' && sameTvModel(device, other)
+        )
+      )
+  );
   const linkedIds = new Set(linked.map((device) => device.deviceId));
   const waiting = unplaced.filter((item) => !item.deviceId || !linkedIds.has(item.deviceId));
   const linkedCount = linked.length + waiting.length;
@@ -401,6 +432,7 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
   const connect = (item: Candidate) => {
     setError(null);
     setHiddenName(null);
+    setChoose(null);
     setView(
       item.kind === 'flow'
         ? { kind: 'flow', flowId: item.device.flowId, family: item.device.family }
@@ -409,6 +441,36 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
             flowId: null,
             tvId: item.tv.id,
             ...(item.tv.handler ? { guideFor: item.tv.handler } : {}),
+            deviceName: item.tv.name,
+            family: 'tv',
+          }
+    );
+  };
+
+  /**
+   * «Collega come TV {Marca}» of a TV that HA knows only through Cast: the TV of the same model
+   * among «Televisori in rete» is connected like its tile does; without one the brand starts.
+   */
+  const connectCast = (device: ConnectedDevice, brand: NativeTvBrand) => {
+    setError(null);
+    setChoose(null);
+    const same = seenTvs.filter((tv) => tv.handler === brand.handler && sameTvModel(tv, device));
+    const seen = same.length === 1 ? same[0] : undefined;
+    setView(
+      seen
+        ? {
+            kind: 'flow',
+            flowId: null,
+            tvId: seen.id,
+            guideFor: brand.handler,
+            deviceName: seen.name,
+            family: 'tv',
+          }
+        : {
+            kind: 'flow',
+            flowId: null,
+            startDomain: brand.handler,
+            guideFor: brand.handler,
             family: 'tv',
           }
     );
@@ -433,23 +495,39 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
   /** A recommended brand: take over its discovery, else connect a television seen, else start it. */
   const startBrand = (handler: string, family: DeviceFamily) => {
     setError(null);
+    setChoose(null);
     const discovered =
       found.status === 'ready'
         ? found.devices.find((device) => device.addable && device.handler === handler)
         : undefined;
-    const seen = discovered ? undefined : seenTvs.find((tv) => tv.handler === handler);
+    const seenOfBrand = discovered ? [] : seenTvs.filter((tv) => tv.handler === handler);
+    if (seenOfBrand.length > 1) {
+      // Two TVs of the brand: taking the first would send the request to the wrong TV.
+      const label = seenOfBrand[0]?.brand ?? 'TV';
+      setChoose(`Ci sono ${seenOfBrand.length} TV ${label} in rete: tocca quella da collegare.`);
+      setSection('da-collegare');
+      return;
+    }
+    const seen = seenOfBrand[0];
     setView(
       discovered
         ? { kind: 'flow', flowId: discovered.flowId, guideFor: handler, family: discovered.family }
         : seen
-          ? { kind: 'flow', flowId: null, tvId: seen.id, guideFor: handler, family: 'tv' }
+          ? {
+              kind: 'flow',
+              flowId: null,
+              tvId: seen.id,
+              guideFor: handler,
+              deviceName: seen.name,
+              family: 'tv',
+            }
           : { kind: 'flow', flowId: null, startDomain: handler, guideFor: handler, family }
     );
   };
 
   let body;
   if (view.kind === 'flow' && Flow) {
-    const { flowId, family, tvId, startDomain, guideFor } = view;
+    const { flowId, family, tvId, startDomain, guideFor, deviceName } = view;
     body = (
       <DetailsBody label="Aggiungi un dispositivo">
         <Flow
@@ -457,6 +535,7 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
           {...(tvId ? { tvId } : {})}
           {...(startDomain ? { startDomain } : {})}
           {...(guideFor ? { guideFor } : {})}
+          {...(deviceName ? { deviceName } : {})}
           family={family}
           onExit={() => {
             setView({ kind: 'list' });
@@ -486,6 +565,11 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
             />
           )}
           {serverMessage && <Notice icon="warning">{serverMessage}</Notice>}
+          {choose && (
+            <Notice icon="info" live>
+              {choose}
+            </Notice>
+          )}
           {error && (
             <Notice tone="danger" icon="warning" live>
               {error}
@@ -530,7 +614,12 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
                         </Button>
                       </>
                     ) : (
-                      <TvTile tv={item.tv} disabled={!Flow} onOpen={() => connect(item)} />
+                      <TvTile
+                        tv={item.tv}
+                        disabled={!Flow}
+                        alike={alike.has(item.tv.id)}
+                        onOpen={() => connect(item)}
+                      />
                     )}
                   </li>
                 ))}
@@ -622,34 +711,52 @@ function DiscoverySession({ open, onClose, pageId, searchWindow }: SessionProps)
             <Notice icon="info">Nessun dispositivo collegato.</Notice>
           ) : (
             <ul className="discovery-list" aria-label="Dispositivi collegati">
-              {linked.map((device) => (
-                <li key={device.deviceId} className="discovery-row">
-                  <BrandLogo handler={device.platform ?? ''} family={device.family} size="md" />
-                  <Body as="span" size="sm" className="discovery-row__name">
-                    {device.name}
-                  </Body>
-                  {device.bound ? (
-                    <Caption tone="active">Nel widget</Caption>
-                  ) : (
-                    <Button
-                      variant="control"
-                      size="sm"
-                      disabled={!requestAdd || requested.has(device.deviceId)}
-                      aria-label={`Crea il widget: ${device.name}`}
-                      onClick={() => {
-                        setRequested((previous) => new Set(previous).add(device.deviceId));
-                        createWidget({
-                          type: device.widgetType,
-                          entityIds: device.entityIds,
-                          ...(device.remoteId ? { remoteId: device.remoteId } : {}),
-                        });
-                      }}
-                    >
-                      Crea il widget
-                    </Button>
-                  )}
-                </li>
-              ))}
+              {linked.map((device) => {
+                // A Cast-only TV of a brand with its own integration has no remote and no real
+                // power: it is connected properly instead of getting a widget.
+                const castBrand =
+                  device.family === 'tv' && device.platform === 'cast'
+                    ? nativeTvBrand(device.manufacturer, device.name)
+                    : null;
+                return (
+                  <li key={device.deviceId} className="discovery-row">
+                    <BrandLogo handler={device.platform ?? ''} family={device.family} size="md" />
+                    <Body as="span" size="sm" className="discovery-row__name">
+                      {device.name}
+                    </Body>
+                    {castBrand ? (
+                      <Button
+                        variant="control"
+                        size="sm"
+                        disabled={!Flow}
+                        aria-label={`Collega come TV ${castBrand.label}: ${device.name}`}
+                        onClick={() => connectCast(device, castBrand)}
+                      >
+                        Collega come TV {castBrand.label}
+                      </Button>
+                    ) : device.bound ? (
+                      <Caption tone="active">Nel widget</Caption>
+                    ) : (
+                      <Button
+                        variant="control"
+                        size="sm"
+                        disabled={!requestAdd || requested.has(device.deviceId)}
+                        aria-label={`Crea il widget: ${device.name}`}
+                        onClick={() => {
+                          setRequested((previous) => new Set(previous).add(device.deviceId));
+                          createWidget({
+                            type: device.widgetType,
+                            entityIds: device.entityIds,
+                            ...(device.remoteId ? { remoteId: device.remoteId } : {}),
+                          });
+                        }}
+                      >
+                        Crea il widget
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
               {waiting.map((item) => (
                 <li key={item.key} className="discovery-row">
                   <BrandLogo handler="" family={null} size="md" />

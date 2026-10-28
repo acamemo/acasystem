@@ -41,6 +41,8 @@ export interface AddDeviceFlowProps {
    * the request appears on the television as soon as the pairing begins.
    */
   guideFor?: string | null;
+  /** The television the request goes to; its steps say which one (optional, other callers omit it). */
+  deviceName?: string | null;
 }
 
 /**
@@ -66,6 +68,7 @@ function RunningFlow({
   onEntryDone,
   tvId = null,
   startDomain = null,
+  deviceName = null,
   guided,
 }: Omit<AddDeviceFlowProps, 'guideFor'> & {
   /** The guide was read: the steps with nothing to fill in go on by themselves. */
@@ -182,6 +185,7 @@ function RunningFlow({
           spec={pin}
           busy={state.busy}
           extraError={extra}
+          deviceName={deviceName}
           onSubmit={flow.answer}
           onExit={flow.exit}
         />
@@ -191,6 +195,7 @@ function RunningFlow({
           form={form}
           busy={state.busy}
           extraError={extra}
+          deviceName={deviceName}
           onSubmit={() => flow.answer({})}
           onExit={flow.exit}
         />
@@ -199,6 +204,7 @@ function RunningFlow({
           form={form}
           busy={state.busy}
           extraError={extra}
+          deviceName={deviceName}
           onSubmit={() => flow.answer({})}
           onExit={flow.exit}
         />

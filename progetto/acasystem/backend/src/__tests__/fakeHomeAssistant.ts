@@ -386,6 +386,40 @@ export class FakeHomeAssistant {
     );
   }
 
+  /** A TV that HA added by itself through Google Cast (no native integration), like an LG webOS TV. */
+  seedCastTv(options: { model: string; name: string; mac?: string | null }): FakeEntry {
+    const entry: FakeEntry = {
+      entry_id: entryId(),
+      domain: 'cast',
+      title: options.name,
+      loadedAt: Date.now() + this.knobs.loadDelayMs,
+      host: null,
+      mac: null,
+    };
+    this.entries.push(entry);
+    const device: FakeDevice = {
+      id: randomUUID().replaceAll('-', ''),
+      name: options.name,
+      name_by_user: null,
+      manufacturer: 'LG',
+      model: options.model,
+      area_id: null,
+      primary_config_entry: entry.entry_id,
+      connections: options.mac ? [['mac', options.mac]] : [],
+      serial_number: '',
+    };
+    this.devices.push(device);
+    this.entities.push({
+      entity_id: `media_player.${options.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+      platform: 'cast',
+      device_id: device.id,
+      config_entry_id: entry.entry_id,
+      hidden_by: null,
+      disabled_by: null,
+    });
+    return entry;
+  }
+
   /** A Wake on LAN entry that already exists, as if configured before. */
   seedWakeOnLan(mac: string): FakeEntry {
     return this.createWolEntry(mac);

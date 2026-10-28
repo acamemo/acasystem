@@ -4,6 +4,7 @@ import type { TvKind } from '../model/tv';
 import { CommandStatus } from '../parts/Controls';
 import { TvAppsSection, TvInputsSection, TvSoundSection } from '../parts/tv/TvChoices';
 import { TvFace } from '../parts/tv/TvFace';
+import { TvLinkHint } from '../parts/tv/TvLinkHint';
 import { TvPlayer } from '../parts/tv/TvPlayer';
 import { TvRemote } from '../parts/tv/TvRemote';
 import { TvSteps } from '../parts/tv/TvSteps';
@@ -23,6 +24,7 @@ export function TvConsole({ kind, ...props }: WidgetDetailsProps & { kind: TvKin
     <ConsoleColumns
       main={
         <>
+          <TvLinkHint guard={tv.castGuard} />
           <section className="aca-media-section" aria-label={tv.view.deviceName}>
             <TvFace
               tv={tv}

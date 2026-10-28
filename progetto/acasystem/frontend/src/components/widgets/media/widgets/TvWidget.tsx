@@ -1,9 +1,11 @@
 import { Caption, Display, IconText, Text } from '@/components/primitives';
+import { castOnlyBrand, nativeCounterpart, type NativeTvBrand } from '@/utils/devices/tvBrand';
 import type { CardSettings } from '@/@types/dashboard';
 import type { EntityMap } from '@/@types/ha';
 import type { WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useConfirmedCommand } from '../hooks/commands';
+import { useCastPowerGuard } from '../hooks/useCastPowerGuard';
 import { useTvChannel } from '../hooks/useTvChannel';
 import { useTvVolume } from '../hooks/useTvVolume';
 import { readString, resolveImage, stringList } from '../model/entity';
@@ -11,6 +13,7 @@ import { pairedRemoteId, resolveTv, tvPowerOffCall, type TvKind, type TvView } f
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
 import { TvFace, TvHeadContent, TvPowerKey, TvVolumeKey } from '../parts/tv/TvFace';
+import { TvLinkHint } from '../parts/tv/TvLinkHint';
 import {
   OpenButton,
   WidgetLoading,
@@ -25,20 +28,34 @@ export interface TvConfig {
   linkedMediaPlayers: string[];
   /** Apple TV `tapAction: toggle`: a tap on the widget switches the TV on or off. */
   tapToggle: boolean;
+  /**
+   * The brand of a TV that is bound to its Google Cast player with no native one of the same TV
+   * in Home Assistant: power there only starts the Cast app, so it is not sent (null otherwise).
+   */
+  castBrand: NativeTvBrand | null;
 }
 
 /**
  * Widget settings of a TV. Without a configured remote, the remote HA created with the TV (same
  * object id: `media_player.x` → `remote.x`, as samsungtv and androidtv_remote do) is used, so a
  * Samsung added by hand still switches off with KEY_POWER and shows its remote (2026-10-27).
+ *
+ * A widget bound to the Cast player of a branded TV (an LG that HA added through Google Cast)
+ * uses the native player of the same TV (webostv...) as soon as there is one: state, power and
+ * remote. It is resolved here at every render, not saved in the settings of the widget.
  */
-export const readTvConfig = (settings: CardSettings, entities?: EntityMap): TvConfig => ({
-  mediaPlayerId: readString(settings.mediaPlayerId),
-  remoteId:
-    readString(settings.remoteId) || pairedRemoteId(readString(settings.mediaPlayerId), entities),
-  linkedMediaPlayers: stringList(settings.linkedMediaPlayers),
-  tapToggle: settings.tapAction === 'toggle',
-});
+export const readTvConfig = (settings: CardSettings, entities?: EntityMap): TvConfig => {
+  const configured = readString(settings.mediaPlayerId);
+  const native = entities ? nativeCounterpart(configured, entities) : null;
+  const mediaPlayerId = native ?? configured;
+  return {
+    mediaPlayerId,
+    remoteId: readString(settings.remoteId) || pairedRemoteId(mediaPlayerId, entities),
+    linkedMediaPlayers: stringList(settings.linkedMediaPlayers),
+    tapToggle: settings.tapAction === 'toggle',
+    castBrand: native ? null : castOnlyBrand(entities?.[configured]),
+  };
+};
 
 export function tvStatus(view: TvView): string {
   if (view.unavailable) return testi.nonDisponibile;
@@ -69,6 +86,7 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
   const power = useConfirmedCommand(view.isOn, { ignoreWhilePending: true });
   const volume = useTvVolume(kind, view, config.mediaPlayerId, Boolean(config.remoteId));
   const channel = useTvChannel(kind, view, config.remoteId);
+  const castGuard = useCastPowerGuard(config.castBrand);
 
   if (!runtime.entitiesLoaded)
     return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
@@ -81,6 +99,7 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
   const openDetails = () => runtime.openDetails(id);
   const togglePower = () => {
     if (editMode || view.unavailable) return;
+    if (castGuard.block()) return;
     const off = tvPowerOffCall(view, config.mediaPlayerId, config.remoteId);
     power.request(!power.value, () =>
       power.value
@@ -144,7 +163,9 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
 
   const art = picture ?? logo;
   let content;
-  if (compact) {
+  if (castGuard.shown) {
+    content = <TvLinkHint guard={castGuard} />;
+  } else if (compact) {
     content = (
       <>
         <Artwork

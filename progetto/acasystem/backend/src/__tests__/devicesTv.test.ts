@@ -253,6 +253,40 @@ describe('the classification of what HA saw', () => {
   });
 });
 
+describe('a television known only through Google Cast', () => {
+  const LG_UA = {
+    ...LG_SSDP,
+    ssdp_usn: 'uuid:lg-ua::urn:schemas-upnp-org:device:MediaRenderer:1',
+    ssdp_location: 'http://192.168.1.26:1/lg.xml',
+    upnp: {
+      ...LG_SSDP.upnp,
+      friendlyName: '[LG] webOS TV UA751C0LA',
+      modelName: 'UA751C0LA',
+      UDN: 'uuid:lg-ua',
+    },
+  };
+
+  it('is still offered with «Collega» when only the auto-added Cast entry exists', async () => {
+    const harness = await harnessFor({});
+    harness.fake.knobs.network.ssdp = [LG_UA];
+    harness.fake.seedCastTv({ model: 'UA751C0LA', name: '[LG] webOS TV UA751C0LA' });
+    await harness.module.start();
+
+    const tvs = await listTvs(harness);
+    expect(byBrand(tvs, 'lg')).toMatchObject({ model: 'UA751C0LA', handler: 'webostv', collegabile: true });
+  });
+
+  it('is hidden once the native webostv entry exists', async () => {
+    const harness = await harnessFor({});
+    harness.fake.knobs.network.ssdp = [LG_UA];
+    harness.fake.seedCastTv({ model: 'UA751C0LA', name: '[LG] webOS TV UA751C0LA' });
+    harness.fake.seedTv({ host: '192.168.1.26' });
+    await harness.module.start();
+
+    expect(await listTvs(harness)).toEqual([]);
+  });
+});
+
 describe('GET /tv-in-rete', () => {
   it('lists the televisions with brand, name, handler and what the TV will ask, without addresses', async () => {
     const harness = await harnessFor({});

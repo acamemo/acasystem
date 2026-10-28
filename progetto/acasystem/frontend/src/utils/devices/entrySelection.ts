@@ -4,6 +4,7 @@
  * the registries do not show it yet, the family the server gave for the integration decides.
  */
 import type { AddWidgetSelection } from '@/@types/launcher';
+import { nativeTvBrand } from './tvBrand';
 import {
   classifyDevices,
   FAMILY_WIDGET_TYPE,
@@ -17,6 +18,10 @@ export interface NewEntry {
   /** Visible entities of the entry. */
   entityIds: readonly string[];
   mediaPlayerEntityId: string | null;
+  /** Integration, maker and title of the entry: a Cast entry of a branded TV gets no widget. */
+  domain?: string;
+  manufacturer?: string | null;
+  title?: string;
 }
 
 export function selectionForNewEntry(
@@ -29,6 +34,15 @@ export function selectionForNewEntry(
       (entry.deviceId !== null && device.deviceId === entry.deviceId) ||
       device.entityIds.some((entityId) => entry.entityIds.includes(entityId))
   );
+  // A TV of a brand with its own integration that only Cast shows has no remote and no real
+  // power: no widget is made by itself for it, «Collegati» offers to connect it properly.
+  if (
+    found?.family === 'tv' &&
+    found.platform === 'cast' &&
+    nativeTvBrand(found.manufacturer, found.name)
+  ) {
+    return null;
+  }
   if (found) {
     return {
       type: found.widgetType,
@@ -37,6 +51,13 @@ export function selectionForNewEntry(
     };
   }
   if (!family) return null;
+  if (
+    family === 'tv' &&
+    entry.domain === 'cast' &&
+    nativeTvBrand(entry.manufacturer, entry.title)
+  ) {
+    return null;
+  }
   const entityIds =
     family === 'tv'
       ? entry.mediaPlayerEntityId

@@ -29,12 +29,15 @@ export function PairingStep({
   form,
   busy,
   extraError,
+  deviceName,
   onSubmit,
   onExit,
 }: {
   form: FlowFormDto;
   busy: boolean;
   extraError: { field: string | null; message: string } | null;
+  /** The television the request went to, when several of the brand are on the network. */
+  deviceName?: string | null;
   onSubmit: () => void;
   onExit: () => void;
 }) {
@@ -52,6 +55,9 @@ export function PairingStep({
             <Numeric>{left}</Numeric>
           </Body>
         </ProgressRing>
+        {deviceName && (
+          <Body className="aca-device-pairing__text">{deviceTexts.requestOnTv(deviceName)}</Body>
+        )}
         <Body role="status" aria-live="polite" className="aca-device-pairing__text">
           {left > 0 ? hint.look : deviceTexts.pairingWaiting}
         </Body>
@@ -74,6 +80,7 @@ export function PairingStep({
           {error.message}
         </Notice>
       ))}
+      {deviceName && <Body>{deviceTexts.requestOnTv(deviceName)}</Body>}
       {hint.needs && <Caption as="p">{hint.needs}</Caption>}
       <Body>{hint.intro(seconds)}</Body>
       <div className="aca-device-actions">
