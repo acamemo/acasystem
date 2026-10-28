@@ -25,9 +25,10 @@ import {
 } from './devicesFakeServer';
 
 /**
- * The power-on step (D1e, D-D5): the customer only asks for it and the server finds the MAC; the
- * installer can write it, and the broadcast address and port under «Avanzate». The MAC is never
- * sent by a customer, never shown again and never kept; the test of the TV asks first.
+ * The power-on step (D1e, D-D5): anyone only asks for it and the server finds the MAC; when Home
+ * Assistant does not know it the field «Indirizzo MAC della TV» appears, and the broadcast address
+ * and port are under «Avanzate». The MAC is never shown again and never kept; the test of the TV
+ * asks first.
  */
 
 let fake: FakeDevices;
@@ -37,13 +38,12 @@ const callService = vi.fn(async () => undefined);
 const MAC = '02:00:00:00:00:01';
 const WORKS = { entryId: 'entry1', configured: true, active: true, message: null };
 
-function mount(props: { isAdmin?: boolean; typedHost?: string | null } = {}) {
+function mount(props: { typedHost?: string | null } = {}) {
   return render(
     <WidgetRuntimeProvider value={createFixtureRuntime({ callService })}>
       <PowerStep
         entryId="entry1"
         mediaPlayerEntityId={TV_ENTITY}
-        isAdmin={props.isAdmin ?? false}
         typedHost={props.typedHost ?? TV_HOST}
         onFinished={onFinished}
       />
@@ -66,28 +66,56 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('the customer', () => {
+describe('the person', () => {
   it('sees the guide and no field for the MAC, and sends an empty body', async () => {
     fake.on('POST /accensione/:id', () => ({ body: WORKS }));
     mount();
     expect(screen.getByText(/sul televisore attiva l’accensione via rete/)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Indirizzo MAC')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Avanzate' })).toBeNull();
+    expect(screen.queryByLabelText('Indirizzo MAC della TV')).toBeNull();
     click('Attiva l’accensione');
     expect(await screen.findByText('Accensione: funziona')).toBeInTheDocument();
     expect(power()).toHaveLength(1);
     expect(power()[0]?.body).toEqual({});
   });
 
-  it('is told by the server that the installer must give the MAC, and can go on without it', async () => {
-    const message =
-      'Per accendere il televisore serve il suo indirizzo MAC, che Home Assistant non conosce. Lo inserisce l’installatore.';
-    fake.on('POST /accensione/:id', () => errorReply(409, 'MAC_REQUIRED', message));
+  it('gets the field «Indirizzo MAC della TV» when Home Assistant does not know the MAC', async () => {
+    let answers = 0;
+    fake.on('POST /accensione/:id', () => {
+      answers += 1;
+      return answers === 1
+        ? errorReply(409, 'MAC_REQUIRED', 'Per accendere il televisore serve il suo indirizzo MAC.')
+        : { body: WORKS };
+    });
     mount();
     click('Attiva l’accensione');
-    expect(await screen.findByRole('alert')).toHaveTextContent(message);
-    // Still no field to type it in: it is the installer's.
-    expect(screen.queryByLabelText('Indirizzo MAC')).toBeNull();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Scrivi qui l’indirizzo MAC');
+    const field = screen.getByLabelText('Indirizzo MAC della TV');
+    expect(
+      screen.getByText('Sulla TV: Impostazioni › Rete › Stato della rete.')
+    ).toBeInTheDocument();
+
+    // Empty and wrong values are stopped before the server.
+    click('Attiva l’accensione');
+    expect(await screen.findByText('Compila questo campo.')).toBeInTheDocument();
+    fireEvent.change(field, { target: { value: '02:00:00:00:00' } });
+    click('Attiva l’accensione');
+    expect(await screen.findByText(/L’indirizzo MAC non è valido/)).toBeInTheDocument();
+    expect(power()).toHaveLength(1);
+
+    // Dashes, no separators and lower case are accepted and sent as AA:BB:CC:DD:EE:FF.
+    fireEvent.change(field, { target: { value: 'a0-b1-c2-d3-e4-f6' } });
+    click('Attiva l’accensione');
+    expect(await screen.findByText('Accensione: funziona')).toBeInTheDocument();
+    expect(power()).toHaveLength(2);
+    expect(power()[1]?.body).toEqual({ mac: 'A0:B1:C2:D3:E4:F6' });
+    expect(document.body.textContent).not.toContain('A0:B1:C2:D3:E4:F6');
+  });
+
+  it('can go on without the MAC', async () => {
+    fake.on('POST /accensione/:id', () => errorReply(409, 'MAC_REQUIRED', 'Serve il MAC.'));
+    mount();
+    click('Attiva l’accensione');
+    await screen.findByLabelText('Indirizzo MAC della TV');
     click('Salta');
     expect(onFinished).toHaveBeenCalledTimes(1);
   });
@@ -168,12 +196,15 @@ describe('the test of the TV', () => {
   });
 });
 
-describe('the installer', () => {
+describe('under «Avanzate»', () => {
   it('writes the MAC, which is checked before it is sent', async () => {
     fake.on('POST /accensione/:id', () => ({ body: WORKS }));
-    mount({ isAdmin: true });
-    const field = screen.getByLabelText('Indirizzo MAC');
-    expect(screen.getByText('Lo trovi nel menu Rete del televisore.')).toBeInTheDocument();
+    mount();
+    click('Avanzate');
+    const field = screen.getByLabelText('Indirizzo MAC della TV');
+    expect(
+      screen.getByText('Sulla TV: Impostazioni › Rete › Stato della rete.')
+    ).toBeInTheDocument();
 
     fireEvent.change(field, { target: { value: '02:00:00:00:00' } });
     click('Attiva l’accensione');
@@ -190,14 +221,15 @@ describe('the installer', () => {
     fireEvent.change(field, { target: { value: MAC } });
     click('Attiva l’accensione');
     expect(await screen.findByText('Accensione: funziona')).toBeInTheDocument();
-    expect(power()[0]?.body).toEqual({ mac: MAC });
+    // The broadcast address proposed from the address of the TV goes with it.
+    expect(power()[0]?.body).toEqual({ mac: MAC, broadcastAddress: '192.168.1.255' });
     // Gone from the screen once it is sent.
     expect(document.body.textContent).not.toContain(MAC);
   });
 
   it('proposes the broadcast address of the network of the TV, under «Avanzate» only', async () => {
     fake.on('POST /accensione/:id', () => ({ body: WORKS }));
-    mount({ isAdmin: true, typedHost: '192.168.1.26' });
+    mount({ typedHost: '192.168.1.26' });
     expect(screen.queryByLabelText('Indirizzo di broadcast')).toBeNull();
     const toggle = screen.getByRole('button', { name: 'Avanzate' });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -209,7 +241,7 @@ describe('the installer', () => {
     expect(screen.getByLabelText('Indirizzo di broadcast')).toHaveValue('192.168.1.255');
     expect(screen.getByLabelText('Porta')).toHaveValue('');
 
-    fireEvent.change(screen.getByLabelText('Indirizzo MAC'), { target: { value: MAC } });
+    fireEvent.change(screen.getByLabelText('Indirizzo MAC della TV'), { target: { value: MAC } });
     fireEvent.change(screen.getByLabelText('Porta'), { target: { value: '9' } });
     click('Attiva l’accensione');
     await screen.findByText('Accensione: funziona');
@@ -220,17 +252,18 @@ describe('the installer', () => {
     });
   });
 
-  it('sends no broadcast address or port when «Avanzate» stays closed', async () => {
+  it('sends no broadcast address or port when they are empty', async () => {
     fake.on('POST /accensione/:id', () => ({ body: WORKS }));
-    mount({ isAdmin: true, typedHost: '192.168.1.26' });
-    fireEvent.change(screen.getByLabelText('Indirizzo MAC'), { target: { value: MAC } });
+    mount({ typedHost: 'tv.casa' });
+    click('Avanzate');
+    fireEvent.change(screen.getByLabelText('Indirizzo MAC della TV'), { target: { value: MAC } });
     click('Attiva l’accensione');
     await screen.findByText('Accensione: funziona');
     expect(power()[0]?.body).toEqual({ mac: MAC });
   });
 
   it('proposes nothing when the address typed is not a plain IPv4, and refuses wrong values', async () => {
-    mount({ isAdmin: true, typedHost: 'tv.casa' });
+    mount({ typedHost: 'tv.casa' });
     click('Avanzate');
     expect(screen.getByLabelText('Indirizzo di broadcast')).toHaveValue('');
     fireEvent.change(screen.getByLabelText('Indirizzo di broadcast'), {
@@ -245,7 +278,7 @@ describe('the installer', () => {
 
   it('may leave the MAC empty to let the server take it from Home Assistant', async () => {
     fake.on('POST /accensione/:id', () => ({ body: WORKS }));
-    mount({ isAdmin: true });
+    mount();
     click('Attiva l’accensione');
     await screen.findByText('Accensione: funziona');
     expect(power()[0]?.body).toEqual({});
@@ -255,10 +288,11 @@ describe('the installer', () => {
     fake.on('POST /accensione/:id', () =>
       errorReply(400, 'INVALID_INPUT', 'I dati inseriti non sono validi.', { field: 'mac' })
     );
-    mount({ isAdmin: true });
-    fireEvent.change(screen.getByLabelText('Indirizzo MAC'), { target: { value: MAC } });
+    mount();
+    click('Avanzate');
+    fireEvent.change(screen.getByLabelText('Indirizzo MAC della TV'), { target: { value: MAC } });
     click('Attiva l’accensione');
-    const field = screen.getByLabelText('Indirizzo MAC');
+    const field = screen.getByLabelText('Indirizzo MAC della TV');
     await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
     expect(screen.getByText('I dati inseriti non sono validi.')).toBeInTheDocument();
   });
@@ -274,8 +308,9 @@ describe('nothing is kept, nothing is said', () => {
       vi.spyOn(console, level).mockImplementation(() => undefined)
     );
     fake.on('POST /accensione/:id', () => ({ body: WORKS }));
-    mount({ isAdmin: true });
-    fireEvent.change(screen.getByLabelText('Indirizzo MAC'), { target: { value: MAC } });
+    mount();
+    click('Avanzate');
+    fireEvent.change(screen.getByLabelText('Indirizzo MAC della TV'), { target: { value: MAC } });
     click('Attiva l’accensione');
     await screen.findByText('Accensione: funziona');
     for (const spy of [...stores, ...consoles]) expect(spy).not.toHaveBeenCalled();

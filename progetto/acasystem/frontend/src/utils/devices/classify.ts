@@ -149,6 +149,8 @@ export interface DiscoveredDevice {
   entityIds: string[];
   /** The entity that stands for the device (the one a widget is linked to). */
   primaryEntityId: string;
+  /** Integration of that entity (`hue`, `cast`...): the brand of the logo of the device. */
+  platform?: string;
   /** Remote of a television, attached here instead of being a device of its own. */
   remoteId?: string;
 }
@@ -218,12 +220,15 @@ function familyOf(
   const tv = players.filter(isTv);
   if (tv.length > 0) return { family: 'tv', picked: tv.slice(0, 1) };
   if (players.length > 0) return { family: 'media', picked: players };
+  // The first domain present gives the family, so the order is the main function of a device with
+  // several: a camera comes before the light, the cover and the lock, because a camera with a
+  // floodlight or a siren (Reolink) is a camera with extras, not a light (REP-20261028-003).
   const direct: [string, DeviceFamily][] = [
     ['climate', 'climate'],
+    ['camera', 'camera'],
     ['light', 'light'],
     ['cover', 'cover'],
     ['lock', 'lock'],
-    ['camera', 'camera'],
     ['vacuum', 'vacuum'],
     ['lawn_mower', 'mower'],
     ['fan', 'fan'],
@@ -293,6 +298,7 @@ export function classifyDevices({
       widgetType: FAMILY_WIDGET_TYPE[found.family],
       entityIds,
       primaryEntityId,
+      ...(found.picked[0]?.platform ? { platform: found.picked[0].platform } : {}),
       ...(remote ? { remoteId: remote } : {}),
     });
   }

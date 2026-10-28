@@ -120,6 +120,8 @@ export interface DeviceFlow {
   discardOpen: () => void;
   retry: () => void;
   restart: () => void;
+  /** Checks the service again from the start (after «Ripara il servizio»). */
+  recheck: () => void;
   /** Cancels the open flow, if any, then calls `onExit`. */
   exit: () => void;
   refreshEntry: () => void;
@@ -136,6 +138,7 @@ export function useDeviceFlow(
   startDomain: string | null = null
 ): DeviceFlow {
   const [state, setState] = useState<DeviceFlowState>(INITIAL);
+  const [checkTick, setCheckTick] = useState(0);
   const flowIdRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
   const mountedRef = useRef(false);
@@ -315,7 +318,7 @@ export function useDeviceFlow(
       if (flowId && !inFlightRef.current) void cancelFlow(flowId).catch(() => undefined);
       abortRef.current?.abort();
     };
-  }, [kind, discoveredFlowId, tvId, startDomain]);
+  }, [kind, discoveredFlowId, tvId, startDomain, checkTick]);
 
   const start = useCallback(
     (handler: string) =>
@@ -367,6 +370,11 @@ export function useDeviceFlow(
       openFlow: null,
     }));
   }, [discoveredFlowId, tvId]);
+
+  const recheck = useCallback(() => {
+    setState((previous) => ({ ...previous, phase: 'checking', message: null }));
+    setCheckTick((value) => value + 1);
+  }, []);
 
   const discardOpen = useCallback(() => {
     const open = state.openFlow;
@@ -457,7 +465,8 @@ export function useDeviceFlow(
   // A progress or an external step: the flow is read every few seconds until HA moves on (the
   // task ended, or the person finished on the page of the maker). The same step again changes
   // nothing on screen; a few failed reads in a row end the wait.
-  const waitingStepId = state.phase === 'progress' || state.phase === 'external' ? state.step?.stepId : null;
+  const waitingStepId =
+    state.phase === 'progress' || state.phase === 'external' ? state.step?.stepId : null;
   useEffect(() => {
     if (!waitingStepId) return undefined;
     let cancelled = false;
@@ -517,9 +526,22 @@ export function useDeviceFlow(
       discardOpen,
       retry,
       restart,
+      recheck,
       exit,
       refreshEntry,
     }),
-    [state, typedHost, start, answer, resume, discardOpen, retry, restart, exit, refreshEntry]
+    [
+      state,
+      typedHost,
+      start,
+      answer,
+      resume,
+      discardOpen,
+      retry,
+      restart,
+      recheck,
+      exit,
+      refreshEntry,
+    ]
   );
 }

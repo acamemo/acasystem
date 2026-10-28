@@ -80,7 +80,7 @@ export function DiscoverDetails({ id, onClose }: WidgetDetailsProps) {
 
   return (
     <DeviceFinder
-      label="Rileva dispositivi"
+      label="Trova dispositivi"
       Flow={Flow}
       onUse={requestAdd ? add : null}
       onFlowDone={(entry, family) => void finishAdding(entry, family)}

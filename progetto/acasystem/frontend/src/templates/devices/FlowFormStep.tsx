@@ -1,11 +1,31 @@
-import { useState, type FormEvent } from 'react';
-import { Button, Caption, Field, Icon } from '@/components/primitives';
+import { Fragment, useId, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { toDeviceError } from '@/api/devicesApi';
+import { Button, Caption, Field, Heading, Icon } from '@/components/primitives';
 import type { FlowErrorDto, FlowFieldDto, FlowFormDto } from '@/@types/devices';
 import { ChoiceGroup, FormRow, Notice, ToggleRow } from '../sheets/parts/Form';
 import { deviceTexts } from './deviceTexts';
+import { QrCode } from './QrCode';
+import { MAX_FILE_BYTES, uploadFlowFile } from './uploadFlowFile';
+
+/** Texts of the file and QR code fields (REP-20261028-004, T7). */
+const fieldTexts = {
+  chooseFile: 'Scegli il file',
+  changeFile: 'Cambia file',
+  noFile: 'Nessun file scelto.',
+  fileTooBig: 'Il file è troppo grande (massimo 10 MB).',
+  qrLabel: 'Codice QR da inquadrare con il telefono',
+} as const;
 
 type Value = string | boolean | string[];
 type Values = Record<string, Value>;
+
+/** Up to this many choices are buttons; a longer list (countries) is typed and picked. */
+const MAX_BUTTON_CHOICES = 8;
+
+/** A single choice drawn as a text field with suggestions: a long list, or one with its own value. */
+const isCombo = (field: FlowFieldDto): boolean =>
+  field.kind === 'select' &&
+  (field.allowCustom === true || (field.options?.length ?? 0) > MAX_BUTTON_CHOICES);
 
 const initialValue = (field: FlowFieldDto): Value => {
   switch (field.kind) {
@@ -13,8 +33,12 @@ const initialValue = (field: FlowFieldDto): Value => {
       return typeof field.default === 'boolean' ? field.default : false;
     case 'multiselect':
       return [];
-    default:
-      return field.default === undefined ? '' : String(field.default);
+    default: {
+      if (field.default === undefined) return '';
+      const text = String(field.default);
+      // A combo shows the name of the choice, not its code.
+      return isCombo(field) ? (field.options?.find((o) => o.value === text)?.label ?? text) : text;
+    }
   }
 };
 
@@ -39,6 +63,9 @@ export function buildInput(fields: readonly FlowFieldDto[], values: Values): Bui
     switch (field.kind) {
       case 'boolean':
         input[field.name] = raw === true;
+        break;
+      case 'qr':
+        // Only shown: nothing is answered for it.
         break;
       case 'multiselect': {
         const list = Array.isArray(raw) ? raw : [];
@@ -67,7 +94,12 @@ export function buildInput(fields: readonly FlowFieldDto[], values: Values): Bui
       }
       default: {
         // text, password and select; a password is sent as it was typed.
-        const text = typeof raw === 'string' ? (field.kind === 'password' ? raw : raw.trim()) : '';
+        const typed = typeof raw === 'string' ? (field.kind === 'password' ? raw : raw.trim()) : '';
+        // A combo sends the value of the choice whose name was typed, or what was typed.
+        const text = isCombo(field)
+          ? (field.options?.find((o) => o.label.toLowerCase() === typed.toLowerCase())?.value ??
+            typed)
+          : typed;
         if (text) input[field.name] = text;
         else if (field.required) errors[field.name] = deviceTexts.required;
       }
@@ -94,16 +126,22 @@ function TextRow({
   onChange: (value: string) => void;
 }) {
   const [shown, setShown] = useState(false);
+  const listId = useId();
   const numeric = field.kind === 'integer' || field.kind === 'number';
   const password = field.kind === 'password';
+  const combo = isCombo(field);
   return (
+    <>
     <FormRow label={field.label} {...(field.hint ? { hint: field.hint } : {})}>
       {({ labelId, hintId }) => (
         <Field
           label={field.label}
           aria-labelledby={labelId}
           {...(hintId ? { 'aria-describedby': hintId } : {})}
-          type={password && !shown ? 'password' : numeric ? 'number' : 'text'}
+            type={
+              password && !shown ? 'password' : numeric ? 'number' : (field.inputType ?? 'text')
+            }
+            {...(combo ? { list: listId } : {})}
           {...(numeric
             ? {
                 step: field.kind === 'integer' ? 1 : 'any',
@@ -129,16 +167,95 @@ function TextRow({
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => setShown((visible) => !visible)}
                   >
-                    <Icon
-                      name={shown ? 'eyeSlash' : 'eye'}
-                      className="aca-field__action-icon"
-                    />
+                      <Icon name={shown ? 'eyeSlash' : 'eye'} className="aca-field__action-icon" />
                   </button>
                 ),
               }
             : {})}
           onChange={(event) => onChange(event.target.value)}
         />
+      )}
+    </FormRow>
+      {combo && (
+        <datalist id={listId}>
+          {(field.options ?? []).map((option) => (
+            <option key={option.value} value={option.label} />
+          ))}
+        </datalist>
+      )}
+    </>
+  );
+}
+
+/**
+ * A file field: the file is sent to the server at once (it passes it to Home Assistant) and the
+ * answer of the step carries the id it gets back. Shows the name of the chosen file.
+ */
+function FileRow({
+  field,
+  flowId,
+  fileName,
+  busy,
+  error,
+  onUploaded,
+}: {
+  field: FlowFieldDto;
+  flowId: string;
+  fileName: string | undefined;
+  busy: boolean;
+  error: string | undefined;
+  onUploaded: (fileId: string, fileName: string) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const pick = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Cleared so that the same file can be chosen again after a failure.
+    event.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      setProblem(fieldTexts.fileTooBig);
+      return;
+    }
+    setUploading(true);
+    setProblem(null);
+    try {
+      const uploaded = await uploadFlowFile(flowId, field.name, file);
+      onUploaded(uploaded.fileId, file.name);
+    } catch (failure) {
+      setProblem(toDeviceError(failure).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const shown = problem ?? error;
+  return (
+    <FormRow label={field.label} {...(field.hint ? { hint: field.hint } : {})}>
+      {() => (
+        <>
+          <input
+            ref={input}
+            type="file"
+            hidden
+            tabIndex={-1}
+            {...(field.accept ? { accept: field.accept } : {})}
+            onChange={(event) => void pick(event)}
+          />
+          <Caption as="p">{fileName ?? fieldTexts.noFile}</Caption>
+          <Button
+            variant="secondary"
+            size="md"
+            loading={uploading}
+            disabled={busy}
+            onClick={() => input.current?.click()}
+          >
+            {fileName ? fieldTexts.changeFile : fieldTexts.chooseFile}
+          </Button>
+          {shown && <Notice tone="danger">{shown}</Notice>}
+        </>
       )}
     </FormRow>
   );
@@ -165,6 +282,8 @@ export function FlowFormStep({
 }) {
   const [values, setValues] = useState<Values>(() => initialValues(form.fields));
   const [local, setLocal] = useState<Record<string, string>>({});
+  /** Names of the files already sent, by field (the value is their id). */
+  const [fileNames, setFileNames] = useState<Record<string, string>>({});
   const confirmation = form.fields.length === 0;
 
   const set = (name: string, value: Value) => {
@@ -197,19 +316,31 @@ export function FlowFormStep({
     onSubmit(built.input);
   };
 
-  return (
-    <form className="aca-device-flow" onSubmit={submit} noValidate>
-      {general.map((error) => (
-        <Notice key={error.message} tone="danger">
-          {error.message}
-        </Notice>
-      ))}
-      {confirmation && !form.description && <Caption as="p">{deviceTexts.confirmHint}</Caption>}
-
-      {form.fields.map((field) => {
+  const renderField = (field: FlowFieldDto) => {
         const error = errorOf(field.name);
         const value = values[field.name];
         switch (field.kind) {
+      case 'qr':
+        return field.qr ? (
+          <div key={field.name}>
+            <QrCode data={field.qr.data} level={field.qr.level} label={fieldTexts.qrLabel} />
+          </div>
+        ) : null;
+      case 'file':
+        return (
+          <FileRow
+            key={field.name}
+            field={field}
+            flowId={form.flowId}
+            fileName={typeof value === 'string' && value ? fileNames[field.name] : undefined}
+            busy={busy}
+            error={error}
+            onUploaded={(fileId, name) => {
+              set(field.name, fileId);
+              setFileNames((previous) => ({ ...previous, [field.name]: name }));
+            }}
+          />
+        );
           case 'boolean':
             return (
               <ToggleRow
@@ -222,6 +353,18 @@ export function FlowFormStep({
               />
             );
           case 'select':
+        if (isCombo(field)) {
+          return (
+            <TextRow
+              key={field.name}
+              field={field}
+              value={typeof value === 'string' ? value : ''}
+              busy={busy}
+              error={error}
+              onChange={(next) => set(field.name, next)}
+            />
+          );
+        }
             return (
               <ChoiceGroup<string>
                 key={field.name}
@@ -278,6 +421,29 @@ export function FlowFormStep({
               />
             );
         }
+  };
+
+  return (
+    <form className="aca-device-flow" onSubmit={submit} noValidate>
+      {general.map((error) => (
+        <Notice key={error.message} tone="danger">
+          {error.message}
+        </Notice>
+      ))}
+      {confirmation && !form.description && <Caption as="p">{deviceTexts.confirmHint}</Caption>}
+
+      {form.fields.map((field, index) => {
+        const previous = form.fields[index - 1];
+        return (
+          <Fragment key={field.name}>
+            {field.section && field.section !== previous?.section && (
+              <Heading level={3} size="sm">
+                {field.sectionLabel ?? field.section}
+              </Heading>
+            )}
+            {renderField(field)}
+          </Fragment>
+        );
       })}
 
       <div className="aca-device-actions">

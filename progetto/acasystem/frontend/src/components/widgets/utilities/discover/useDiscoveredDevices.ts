@@ -20,12 +20,15 @@ export interface DeviceFilter {
 export type DiscoveredDevicesState =
   | { status: 'loading' }
   /** The service is off or Home Assistant is down: `message` is the server's Italian sentence. */
-  | { status: 'unavailable'; message: string | null }
+  | { status: 'unavailable'; message: string | null; code: string | null }
   | { status: 'ready'; devices: DiscoveredDeviceDto[] };
+
+/** The code that shows «Ripara il servizio» instead of a sentence. */
+export const SERVICE_NOT_ACTIVE = 'SERVICE_NOT_ACTIVE';
 
 /** Codes whose message tells the person something useful (the rest is a network hiccup). */
 const SHOWN_CODES = new Set([
-  'SERVICE_NOT_ACTIVE',
+  SERVICE_NOT_ACTIVE,
   'FEATURE_UNAVAILABLE',
   'HA_UNREACHABLE',
   'HA_NOT_READY',
@@ -41,7 +44,9 @@ const SHOWN_CODES = new Set([
  */
 export function useDiscoveredDevices(
   paused = false,
-  filter: DeviceFilter = {}
+  filter: DeviceFilter = {},
+  /** Faster than the usual 15 s while a screen waits for the first devices (the search window). */
+  pollMs = DISCOVERED_POLL_MS
 ): DiscoveredDevicesState & {
   /** Takes a device off the list (ignored, or taken over by this tablet). */
   remove: (flowId: string) => void;
@@ -66,6 +71,7 @@ export function useDiscoveredDevices(
         setState({
           status: 'unavailable',
           message: info.code && SHOWN_CODES.has(info.code) ? info.message : null,
+          code: info.code,
         });
       })
       .finally(() => {
@@ -83,9 +89,9 @@ export function useDiscoveredDevices(
   useEffect(() => {
     if (!visible || paused) return undefined;
     read();
-    const timer = setInterval(read, DISCOVERED_POLL_MS);
+    const timer = setInterval(read, pollMs);
     return () => clearInterval(timer);
-  }, [paused, read, tick, visible]);
+  }, [paused, pollMs, read, tick, visible]);
 
   const remove = useCallback((flowId: string) => {
     setState((previous) =>

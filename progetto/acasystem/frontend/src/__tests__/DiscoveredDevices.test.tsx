@@ -189,13 +189,14 @@ describe('«Trovati in rete»: the section', () => {
     ).toBeInTheDocument();
   });
 
-  it('says "servizio non attivo" in the words of the server, and keeps the other list', async () => {
-    const message =
-      'Servizio non attivo. La configurazione dei dispositivi da Acasystem è spenta: chiedi all’installatore di attivarla.';
-    fake.on('GET /scoperti', () => errorReply(503, 'SERVICE_NOT_ACTIVE', message));
+  it('says the service is off with «Ripara il servizio», and keeps the other list', async () => {
+    fake.on('GET /scoperti', () => errorReply(503, 'SERVICE_NOT_ACTIVE', 'Servizio non attivo.'));
     details();
 
-    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Il servizio dei dispositivi non è attivo.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ripara il servizio' })).toBeEnabled();
     expect(screen.getByRole('heading', { name: 'Trovati in rete' })).toBeInTheDocument();
     expect(await screen.findByRole('group', { name: 'Luci' })).toHaveTextContent('Lampada studio');
   });

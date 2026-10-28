@@ -39,6 +39,8 @@ export { Popover } from './components/Popover';
 export { useScrollLock } from './components/scrollLock';
 export { PanelPresence } from './components/PanelPresence';
 export { Skeleton } from './components/Skeleton';
+export { Disclosure, DisclosureGroup } from './components/Disclosure';
+export type { DisclosureGroupProps, DisclosureProps } from './components/Disclosure';
 export { Toggle } from './components/Toggle';
 export { Segmented } from './components/Segmented';
 export { Field } from './components/Field';

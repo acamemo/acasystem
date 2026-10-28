@@ -5,7 +5,9 @@
  * with OAuth, like the other backend calls. Nothing is stored in the browser and nothing is
  * logged: the answers carry the addresses the person typed.
  */
+import { getStoredAuthMethod, getValidatedHomeAssistantRequestHeadersAsync } from './apiAuth';
 import { backendRequest } from './backendClient';
+import type { IgnoredDeviceDto, RepairResultDto } from '@/@types/discovery';
 import type {
   AreaDto,
   CatalogDto,
@@ -158,7 +160,7 @@ export async function getPower(entryId: string): Promise<PowerStatusDto> {
   return as<PowerStatusDto>(await backendRequest(`${BASE}/accensione/${segment(entryId)}`));
 }
 
-/** The customer sends an empty body; only an installer sends `mac` and the broadcast values. */
+/** The person may send an empty body, or the TV's `mac` and the broadcast values. */
 export async function setupPower(
   entryId: string,
   body: PowerSetupBody = {}
@@ -169,6 +171,21 @@ export async function setupPower(
       body: JSON_BODY(body),
     })
   );
+}
+
+/**
+ * «Ripara il servizio»: the server tries again to activate the device service (any signed-in
+ * user can ask). `active` tells whether it works now; `message` says why when it does not.
+ */
+export async function repairService(): Promise<RepairResultDto> {
+  const body = await backendRequest(`${BASE}/servizio/ripara`, { method: 'POST' });
+  return {
+    active: isObject(body) && body.active === true,
+    message:
+      isObject(body) && typeof body.message === 'string' && body.message.trim()
+        ? body.message
+        : GENERIC_DEVICE_ERROR,
+  };
 }
 
 const readString = (value: unknown): string | null =>
@@ -199,3 +216,37 @@ export function toDeviceError(error: unknown): DeviceErrorInfo {
 /** True when the call was cancelled by the screen itself (AbortController). */
 export const isAbortError = (error: unknown): boolean =>
   isObject(error) && error.name === 'AbortError';
+
+/** Discoveries the person ignored, to be restored from «Dispositivi trovati». */
+export async function listIgnored(signal?: AbortSignal): Promise<IgnoredDeviceDto[]> {
+  const body = await backendRequest(`${BASE}/scoperti/ignorati`, signal ? { signal } : {});
+  return isObject(body) && Array.isArray(body.devices) ? as<IgnoredDeviceDto[]>(body.devices) : [];
+}
+
+/** Takes a device off the ignored list: it comes back among those to connect when found again. */
+export async function restoreIgnored(entryId: string): Promise<void> {
+  await backendRequest(`${BASE}/scoperti/ignorati/${segment(entryId)}/ripristina`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * The logo of a brand (`GET /dispositivi/loghi/:domain`, `?tema=scuro` for the dark variant) as an
+ * image; null when the server has none (404) or the call fails. The logo goes through Acasystem so
+ * that the browser never contacts a third party. It uses the same token and the same single retry
+ * after a 401 with OAuth as `backendRequest`, which only reads JSON.
+ */
+export async function fetchBrandLogo(domain: string, dark: boolean): Promise<Blob | null> {
+  const path = `${BASE}/loghi/${segment(domain)}${dark ? '?tema=scuro' : ''}`;
+  const send = async (forceRefreshOAuth: boolean) =>
+    fetch(`./api${path}`, {
+      headers: { ...(await getValidatedHomeAssistantRequestHeadersAsync({ forceRefreshOAuth })) },
+    });
+  try {
+    let response = await send(false);
+    if (response.status === 401 && getStoredAuthMethod() === 'oauth') response = await send(true);
+    return response.ok ? await response.blob() : null;
+  } catch {
+    return null;
+  }
+}

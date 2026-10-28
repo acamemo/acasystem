@@ -337,3 +337,41 @@ describe('entità e dispositivi già in un widget', () => {
     expect(rest.map((item) => item.deviceId)).toEqual(['nuova']);
   });
 });
+
+describe('dispositivo con più funzioni', () => {
+  it('una Reolink (videocamera, faro, sensore di movimento, interruttore) è una videocamera', () => {
+    const found = classify(
+      [device('reolink', 'Reolink Giardino')],
+      [
+        registered('light.giardino_faro', 'reolink', 'reolink'),
+        registered('camera.giardino_fluida', 'reolink', 'reolink'),
+        registered('binary_sensor.giardino_movimento', 'reolink', 'reolink', {
+          original_device_class: 'motion',
+        }),
+        registered('switch.giardino_sirena', 'reolink', 'reolink'),
+      ],
+      [
+        fixtureEntity('light.giardino_faro', 'off'),
+        fixtureEntity('camera.giardino_fluida', 'idle'),
+        fixtureEntity('binary_sensor.giardino_movimento', 'off', { device_class: 'motion' }),
+        fixtureEntity('switch.giardino_sirena', 'off'),
+      ]
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({
+      family: 'camera',
+      widgetType: 'camera',
+      entityIds: ['camera.giardino_fluida'],
+      platform: 'reolink',
+    });
+  });
+
+  it('una luce senza videocamera resta una luce', () => {
+    const [found] = classify(
+      [device('d1', 'Faro')],
+      [registered('light.faro', 'd1', 'tuya')],
+      [fixtureEntity('light.faro', 'off')]
+    );
+    expect(found?.family).toBe('light');
+  });
+});

@@ -16,7 +16,8 @@ import { DetailsBody, Section } from '../shared/details';
 import { Notice } from '../shared/UtilityCard';
 import { UtilityIcon } from '../shared/UtilityIcon';
 import { FAMILY_ICON } from './familyIcon';
-import { useDiscoveredDevices } from './useDiscoveredDevices';
+import { RepairServiceNotice } from './RepairServiceNotice';
+import { SERVICE_NOT_ACTIVE, useDiscoveredDevices } from './useDiscoveredDevices';
 import { useTvsOnNetwork } from './useTvsOnNetwork';
 import { useUnboundDevices } from './useUnboundDevices';
 
@@ -264,11 +265,18 @@ export function DeviceFinder({
 
   let network: ReactNode = null;
   if (found.status === 'unavailable') {
-    network = found.message ? <Notice icon="warning">{found.message}</Notice> : null;
+    network =
+      found.code === SERVICE_NOT_ACTIVE ? (
+        <RepairServiceNotice onRepaired={found.refresh} />
+      ) : found.message ? (
+        <Notice icon="warning">{found.message}</Notice>
+      ) : null;
   } else if (found.status === 'ready') {
     network =
       found.devices.length === 0 ? (
-        compact ? null : <Notice icon="ok">Nessun dispositivo nuovo trovato in rete.</Notice>
+        compact ? null : (
+          <Notice icon="ok">Nessun dispositivo nuovo trovato in rete.</Notice>
+        )
       ) : (
         <ul className="utility-stack" aria-label="Dispositivi trovati in rete">
           {found.devices.map((device) => (
@@ -424,7 +432,10 @@ export function DeviceFinder({
         </Section>
       )}
       {body && (
-        <Section title={compact ? 'Già in Home Assistant' : 'Pronti da aggiungere'} icon="widgetAdd">
+        <Section
+          title={compact ? 'Già in Home Assistant' : 'Pronti da aggiungere'}
+          icon="widgetAdd"
+        >
           {body}
         </Section>
       )}

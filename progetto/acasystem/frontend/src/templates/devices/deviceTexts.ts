@@ -30,8 +30,7 @@ export const deviceTexts = {
 
   // Checks and states of the service.
   checking: 'Controllo Home Assistant…',
-  featureUnavailable:
-    'Su questo sistema non è possibile aggiungere dispositivi da qui. Chiedi all’installatore.',
+  featureUnavailable: 'Su questo sistema non è possibile aggiungere dispositivi da qui.',
   haUnreachable: 'Home Assistant non è raggiungibile. Controlla che sia acceso e riprova tra poco.',
   pendingFlow: 'Hai un’aggiunta in sospeso.',
   pendingFlowHint: 'Puoi riprenderla da dove eri arrivato oppure annullarla e ricominciare.',
@@ -43,7 +42,7 @@ export const deviceTexts = {
   searchLabel: 'Cerca un’integrazione',
   searchPlaceholder: 'Cerca per nome',
   addRow: 'Aggiungi',
-  requiresInstaller: 'Richiede l’installatore',
+  notAvailableHere: 'Non disponibile da qui',
   catalogLoading: 'Cerco le integrazioni…',
   catalogEmpty: 'Nessuna integrazione trovata.',
   catalogShown: (shown: number, total: number) =>
@@ -56,8 +55,7 @@ export const deviceTexts = {
   // Steps of a flow.
   progressWaiting: 'Attendo Home Assistant…',
   openMakerPage: 'Apri la pagina del produttore',
-  externalWaiting:
-    'Quando hai finito sul sito del produttore, torna qui: continuo da solo.',
+  externalWaiting: 'Quando hai finito sul sito del produttore, torna qui: continuo da solo.',
   showPassword: 'Mostra il testo',
   hidePassword: 'Nascondi il testo',
   unsupportedStep: 'Questo dispositivo non si può ancora aggiungere da Acasystem.',
@@ -112,8 +110,9 @@ export const deviceTexts = {
   powerEnable: 'Attiva l’accensione',
   powerWorks: 'Accensione: funziona',
   powerInactive: 'L’accensione da spento non è attiva.',
-  powerMacLabel: 'Indirizzo MAC',
-  powerMacHint: 'Lo trovi nel menu Rete del televisore.',
+  powerMacLabel: 'Indirizzo MAC della TV',
+  powerMacHint: 'Sulla TV: Impostazioni › Rete › Stato della rete.',
+  powerMacNeeded: 'Scrivi qui l’indirizzo MAC della TV e tocca di nuovo «Attiva l’accensione».',
   powerMacInvalid: 'L’indirizzo MAC non è valido. Per esempio 02:00:00:00:00:01.',
   powerAdvanced: 'Avanzate',
   powerBroadcastLabel: 'Indirizzo di broadcast',
@@ -202,7 +201,8 @@ export const PAIRING_HINTS: Readonly<Record<string, PairingHint>> = {
   },
   braviatv: {
     ...TV_PAIRING,
-    needs: 'Sul televisore attiva «Controllo remoto»: Impostazioni › Rete › Impostazioni dispositivo remoto.',
+    needs:
+      'Sul televisore attiva «Controllo remoto»: Impostazioni › Rete › Impostazioni dispositivo remoto.',
     guide: {
       what: 'Sul televisore compare un codice.',
       codes: 'Un solo codice, di 4 cifre.',
@@ -232,7 +232,8 @@ export const PAIRING_HINTS: Readonly<Record<string, PairingHint>> = {
   roku: {
     ...TV_PAIRING,
     // No guide: nothing happens on the Roku, so a screen before the flow would only be a tap more.
-    needs: 'Se il Roku rifiuta, attiva «Accesso alla rete»: Impostazioni › Sistema › Avanzate › Controllo da app mobili.',
+    needs:
+      'Se il Roku rifiuta, attiva «Accesso alla rete»: Impostazioni › Sistema › Avanzate › Controllo da app mobili.',
   },
 };
 
@@ -304,6 +305,13 @@ export function isValidMac(value: string): boolean {
   const hex = text.replace(/[:.-]/g, '').toLowerCase();
   if (hex === '000000000000') return false;
   return Number.parseInt(hex.slice(0, 2), 16) % 2 === 0;
+}
+
+/** `aa-bb-cc-dd-ee-ff`, `aabbccddeeff` or dotted becomes `AA:BB:CC:DD:EE:FF`; null when invalid. */
+export function normalizeMac(value: string): string | null {
+  if (!isValidMac(value)) return null;
+  const hex = value.trim().replace(/[:.-]/g, '').toUpperCase();
+  return hex.match(/.{2}/g)?.join(':') ?? null;
 }
 
 export const isValidIpv4 = (value: string): boolean => parseIpv4(value) !== null;

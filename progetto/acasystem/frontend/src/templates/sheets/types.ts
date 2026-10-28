@@ -21,7 +21,9 @@ export interface AddWidgetSheetProps {
   initialType?: string;
   /**
    * With `initialType`, types that need no choice (to-do list, car, spacer) are added at once,
-   * without showing the sheet.
+   * without showing the sheet. With `initialSelection` the widget of the device is added at once
+   * too (the automatic widget of «Dispositivi trovati»): the sheet stays hidden while the
+   * selection is set and shows itself only if the selection is not enough to add.
    */
   autoAdd?: boolean;
   /**

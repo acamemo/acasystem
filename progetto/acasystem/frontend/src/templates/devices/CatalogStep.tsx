@@ -45,7 +45,7 @@ function CatalogRow({
           <Icon name="add" size="md" />
         </>
       ) : (
-        <Caption>{deviceTexts.requiresInstaller}</Caption>
+        <Caption>{deviceTexts.notAvailableHere}</Caption>
       )}
     </Button>
   );

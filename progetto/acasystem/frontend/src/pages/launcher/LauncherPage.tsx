@@ -182,6 +182,7 @@ export function LauncherPage({
         detailsWidgetId={detailsWidgetId}
         onCloseDetails={closeDetails}
         isWidgetHidden={isWidgetHidden}
+        discoveryOnFirstOpen
       />
     ),
     [

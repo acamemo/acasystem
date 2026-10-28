@@ -24,12 +24,18 @@ import { findWidgetDefinition } from '@/components/widgets/registry';
 import type { AddWidgetSelection, CellRect, LauncherLayout, WidgetRuntime } from '@/@types/launcher';
 import { usePages } from '@/hooks/context';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
-import { AddWidgetRequestProvider } from '@/hooks/launcher/AddWidgetRequestContext';
+import {
+  AddSheetRequestProvider,
+  AddWidgetRequestProvider,
+  type AddWidgetRequestOptions,
+} from '@/hooks/launcher/AddWidgetRequestContext';
 import { DiscoveredFlowProvider } from '@/hooks/launcher/DiscoveredFlowContext';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import type { LauncherController } from '@/hooks/launcher/useLauncherController';
 import { useWidgetController } from '@/hooks/launcher/useWidgetController';
 import { useEditHint } from '@/hooks/launcher/useEditHint';
+import { DiscoveryScreenProvider } from '@/hooks/launcher/DiscoveryScreenContext';
+import { useDiscoveryScreen } from '@/hooks/launcher/useDiscoveryScreen';
 import { useHeldAfterFrames } from '@/hooks/launcher/useHeldAfterFrames';
 import { holdTouchOnPage } from '@/hooks/launcher/gestures';
 import { createLauncherSelection, type WidgetRef } from '@/hooks/launcher/useLauncherSelection';
@@ -64,6 +70,7 @@ import { PAGE_KIND_LABEL, displayLabel } from '@/utils/launcher/pageIdentity';
 import type { StatusChip } from '@/utils/launcher/statusChips';
 import { AppShell } from '../app-shell/AppShell';
 import { DiscoveredAddFlow } from '../devices/DiscoveredAddFlow';
+import { DiscoveryScreen } from '../discovery/DiscoveryScreen';
 import { AddWidgetSheet, WidgetSettingsSheet } from '../sheets';
 import { CategoryPageSheet } from '../sheets/CategoryPageSheet';
 import { isCategoryWidgetUnbound } from '../sheets/categoryPages';
@@ -105,6 +112,11 @@ export interface LauncherScreenProps {
   isWidgetHidden?: (pageId: string, widgetId: string) => boolean;
   /** Definition lookup; the registry by default (the preview adds placeholder widgets). */
   findDefinition?: DefinitionResolver;
+  /**
+   * Shows «Dispositivi trovati» by itself at the first opening of the app on this device
+   * (REP-20261028-003). The app turns it on; previews and tests leave it off.
+   */
+  discoveryOnFirstOpen?: boolean;
 }
 
 type SheetState =
@@ -244,6 +256,7 @@ export function LauncherScreen({
   onCloseDetails,
   isWidgetHidden,
   findDefinition = findWidgetDefinition,
+  discoveryOnFirstOpen = false,
 }: LauncherScreenProps) {
   const reducedMotion = useReducedMotion();
   // The page in the centre and the overview are read from `live`; everything else, and the
@@ -1046,11 +1059,25 @@ export function LauncherScreen({
     },
     []
   );
-  /** «Rileva dispositivi»: the add sheet on the type of a device, with the device selected. */
+  /**
+   * «Rileva dispositivi» and «Dispositivi trovati»: the add sheet on the type of a device, with
+   * the device selected. `auto` adds the widget with no sheet, at the first free place of the
+   * page (as «Aggiungi widget» of the pages view does).
+   */
   const requestAddWidget = useCallback(
-    (pageId: string, selection: AddWidgetSelection) => openAddWidget(pageId, undefined, selection),
+    (pageId: string, selection: AddWidgetSelection, options?: AddWidgetRequestOptions) => {
+      if (options?.auto) {
+        addDestination.current = pageId;
+        lastAdded.current = null;
+        setSheet({ type: 'add', pageId, ahead: true, auto: true, initialSelection: selection });
+        return;
+      }
+      openAddWidget(pageId, undefined, selection);
+    },
     [openAddWidget]
   );
+  /** «Scegli il widget» of «Dispositivi trovati»: the sheet on the types, nothing chosen. */
+  const requestAddSheet = useCallback((pageId: string) => openAddWidget(pageId), [openAddWidget]);
   /** «Aggiungi widget» of the pages view: the same sheet as a free cell, with no cell chosen. */
   const openAddWidgetAhead = useCallback((pageId: string) => {
     addDestination.current = pageId;
@@ -1948,6 +1975,10 @@ export function LauncherScreen({
   const pageCount = entries.length;
   const connectionProblem = connection.phase === 'error';
   const editHint = useEditHint(screenVisible && !editMode && !controller.layout.locked && !undo);
+  // «Dispositivi trovati»: by itself once, when the launcher is ready; then from the widget types.
+  const discovery = useDiscoveryScreen(
+    discoveryOnFirstOpen && screenVisible && runtime.entitiesLoaded
+  );
   const stepPage = useCallback(
     (direction: -1 | 1) => {
       const next = currentPage + direction;
@@ -2051,7 +2082,9 @@ export function LauncherScreen({
     <LauncherProvider value={live}>
       <WidgetRuntimeProvider value={runtime}>
         <AddWidgetRequestProvider value={requestAddWidget}>
+        <AddSheetRequestProvider value={requestAddSheet}>
         <DiscoveredFlowProvider value={DiscoveredAddFlow}>
+        <DiscoveryScreenProvider value={discovery.show}>
         <LauncherUiContext.Provider value={ui}>
           <LauncherDragContext.Provider value={drag.session}>
             <LauncherEdgePageContext.Provider value={edgePageId}>
@@ -2346,6 +2379,12 @@ export function LauncherScreen({
               }
             />
           </LauncherUiContext.Provider>
+          <DiscoveryScreen
+            open={discovery.open}
+            onClose={discovery.close}
+            pageId={addTargetPageId || firstWidgetPageId || 'home'}
+            searchWindow={discovery.first}
+          />
           <CategoryPageSheet
             open={categoryPageOpen}
             onClose={() => setCategoryPageOpen(false)}
@@ -2372,7 +2411,9 @@ export function LauncherScreen({
             }
           />
         </LauncherUiContext.Provider>
+        </DiscoveryScreenProvider>
         </DiscoveredFlowProvider>
+        </AddSheetRequestProvider>
         </AddWidgetRequestProvider>
       </WidgetRuntimeProvider>
     </LauncherProvider>

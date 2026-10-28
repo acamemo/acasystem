@@ -4,29 +4,28 @@ import type { PowerSetupBody, PowerStatusDto } from '@/@types/devices';
 import { setupPower, toDeviceError } from '@/api/devicesApi';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { FormRow, InlineConfirm, Notice, SheetSection } from '../sheets/parts/Form';
-import { broadcastFor, deviceTexts, isValidIpv4, isValidMac } from './deviceTexts';
+import { broadcastFor, deviceTexts, isValidIpv4, normalizeMac } from './deviceTexts';
 
 /** The only fields of the request the screen can point at. */
-const ADMIN_FIELDS = new Set(['mac', 'broadcastAddress', 'broadcastPort']);
+const POWER_FIELDS = new Set(['mac', 'broadcastAddress', 'broadcastPort']);
 
 /**
  * Power-on from off (D1e, D-D5): the server writes an automation in Home Assistant that sends the
- * wake-up packet when the TV is asked to turn on. A customer only taps «Attiva l'accensione» and
- * sends an empty body: the MAC comes from Home Assistant, and when it has none the server says the
- * installer must give it. An administrator can write the MAC and, under «Avanzate», the broadcast
- * address (proposed from the address of the TV just typed, in memory only) and the port. The MAC
- * is never shown again after it is sent: the server does not return it.
+ * wake-up packet when the TV is asked to turn on. Anyone taps «Attiva l'accensione» and sends an
+ * empty body: the MAC comes from Home Assistant. When it has none (`MAC_REQUIRED`) the field
+ * «Indirizzo MAC della TV» appears, with where to find it on the TV; the MAC is checked, written
+ * as `AA:BB:CC:DD:EE:FF` and sent. Under «Avanzate» anyone can also write the MAC beforehand, the
+ * broadcast address (proposed from the address of the TV just typed, in memory only) and the
+ * port. The MAC is never shown again after it is sent: the server does not return it.
  */
 export function PowerStep({
   entryId,
   mediaPlayerEntityId,
-  isAdmin,
   typedHost,
   onFinished,
 }: {
   entryId: string;
   mediaPlayerEntityId: string | null;
-  isAdmin: boolean;
   /** The address typed in the first step; used only to propose the broadcast address. */
   typedHost: string | null;
   onFinished: () => void;
@@ -34,6 +33,8 @@ export function PowerStep({
   const runtime = useWidgetRuntime();
   const [mac, setMac] = useState('');
   const [advanced, setAdvanced] = useState(false);
+  /** Home Assistant does not know the MAC of this TV: the field is shown. */
+  const [needsMac, setNeedsMac] = useState(false);
   const [broadcast, setBroadcast] = useState(() =>
     typedHost ? (broadcastFor(typedHost) ?? '') : ''
   );
@@ -46,14 +47,20 @@ export function PowerStep({
   const [asking, setAsking] = useState(false);
   const [trial, setTrial] = useState<'idle' | 'sent' | 'failed'>('idle');
 
+  const macShown = needsMac || advanced;
+
   const submit = () => {
     if (busy) return;
     const body: PowerSetupBody = {};
     const found: Record<string, string> = {};
-    if (isAdmin) {
+    if (macShown) {
       if (mac.trim()) {
-        if (isValidMac(mac)) body.mac = mac.trim();
+        const normal = normalizeMac(mac);
+        if (normal) body.mac = normal;
         else found.mac = deviceTexts.powerMacInvalid;
+      } else if (needsMac) {
+        found.mac = deviceTexts.required;
+      }
       }
       if (advanced) {
         if (broadcast.trim()) {
@@ -69,7 +76,6 @@ export function PowerStep({
           }
         }
       }
-    }
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -81,10 +87,13 @@ export function PowerStep({
       .catch((failure: unknown) => {
         const info = toDeviceError(failure);
         const field =
-          info.code === 'INVALID_INPUT' && info.field && ADMIN_FIELDS.has(info.field)
+          info.code === 'INVALID_INPUT' && info.field && POWER_FIELDS.has(info.field)
             ? info.field
             : null;
-        if (field) setErrors({ [field]: info.message });
+        if (info.code === 'MAC_REQUIRED') {
+          setNeedsMac(true);
+          setProblem(deviceTexts.powerMacNeeded);
+        } else if (field) setErrors({ [field]: info.message });
         else setProblem(info.message);
         setRetryable(info.code === 'ENTRY_NOT_READY' || info.status === 0 || info.status === 504);
       })
@@ -141,8 +150,7 @@ export function PowerStep({
         <Body size="sm">{deviceTexts.powerGuide}</Body>
         {problem && <Notice tone="danger">{problem}</Notice>}
 
-        {isAdmin && (
-          <>
+        {macShown && (
             <FormRow label={deviceTexts.powerMacLabel} hint={deviceTexts.powerMacHint}>
               {({ labelId, hintId }) => (
                 <Field
@@ -160,6 +168,7 @@ export function PowerStep({
                 />
               )}
             </FormRow>
+        )}
             <Button
               variant="control"
               size="md"
@@ -201,8 +210,6 @@ export function PowerStep({
                 </FormRow>
               </>
             )}
-          </>
-        )}
       </SheetSection>
 
       <div className="aca-device-actions">

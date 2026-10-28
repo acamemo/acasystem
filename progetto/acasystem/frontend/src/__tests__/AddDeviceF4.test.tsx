@@ -20,6 +20,7 @@ vi.mock('@/api/apiAuth', () => ({
   notifyHomeAssistantApiUnauthorized: auth.unauthorized,
 }));
 
+import type { FlowFormDto } from '@/@types/devices';
 import type { EntityMap } from '@/@types/ha';
 import type { AddWidgetSelection, LauncherApi, LauncherLayout } from '@/@types/launcher';
 import { DiscoverDetails } from '@/components/widgets/utilities/discover/DiscoverDetails';
@@ -176,6 +177,141 @@ describe('a generic form drawn from the server’s fields', () => {
     );
     expect(screen.getByText('L’indirizzo non è valido.')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Non riesco a collegarmi.');
+  });
+});
+
+// --- Sections, long choices and typed fields (REP-20261028-003, S1b) ---------------------------
+
+describe('a form with sections, a long list of choices and typed fields', () => {
+  const onSubmit = vi.fn();
+
+  const countries = ['IT', 'FR', 'DE', 'ES', 'PT', 'AT', 'CH', 'GB', 'US', 'NL'].map((value) => ({
+    value,
+    label: { IT: 'Italia', FR: 'Francia', DE: 'Germania' }[value] ?? value,
+  }));
+
+  const rich = (): FlowFormDto => ({
+    type: 'form',
+    flowId: 'flow-rich',
+    handler: 'acme',
+    stepId: 'user',
+    title: 'Aggiungi Acme',
+    description: null,
+    waitSeconds: null,
+    errors: [],
+    fields: [
+      { name: 'site', kind: 'text', required: true, label: 'Sito', inputType: 'url' },
+      { name: 'mail', kind: 'text', required: false, label: 'E-mail', inputType: 'email' },
+      { name: 'country', kind: 'select', required: true, label: 'Paese', options: countries },
+      {
+        name: 'zone',
+        kind: 'select',
+        required: false,
+        label: 'Zona',
+        allowCustom: true,
+        options: [{ value: 'a', label: 'Zona A' }],
+      },
+      {
+        name: 'advanced.port',
+        kind: 'integer',
+        required: false,
+        label: 'Porta',
+        min: 1,
+        max: 65535,
+        section: 'advanced',
+        sectionLabel: 'Opzioni avanzate',
+      },
+      {
+        name: 'advanced.verify',
+        kind: 'boolean',
+        required: false,
+        label: 'Verifica il certificato',
+        section: 'advanced',
+        sectionLabel: 'Opzioni avanzate',
+      },
+    ],
+  });
+
+  const mount = (form: FlowFormDto = rich()) =>
+    render(
+      <FlowFormStep
+        form={form}
+        busy={false}
+        extraError={null}
+        onSubmit={onSubmit}
+        onExit={vi.fn()}
+      />
+    );
+
+  beforeEach(() => onSubmit.mockClear());
+
+  it('asks the keyboard of an address and of an e-mail', () => {
+    mount();
+    expect(screen.getByLabelText('Sito')).toHaveAttribute('type', 'url');
+    expect(screen.getByLabelText('E-mail')).toHaveAttribute('type', 'email');
+  });
+
+  it('writes the name of a section once, above its first field', () => {
+    mount();
+    expect(screen.getAllByRole('heading', { name: 'Opzioni avanzate' })).toHaveLength(1);
+    expect(screen.getByLabelText('Porta')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Verifica il certificato' })).toBeInTheDocument();
+  });
+
+  it('sends the fields of a section under their flat names', () => {
+    mount();
+    fireEvent.change(screen.getByLabelText('Sito'), { target: { value: 'https://acme.test' } });
+    fireEvent.change(screen.getByLabelText('Paese'), { target: { value: 'Italia' } });
+    fireEvent.change(screen.getByLabelText('Porta'), { target: { value: '8080' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'Verifica il certificato' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
+    expect(onSubmit).toHaveBeenCalledWith({
+      site: 'https://acme.test',
+      country: 'IT',
+      'advanced.port': 8080,
+      'advanced.verify': true,
+    });
+  });
+
+  it('suggests the choices of a long list by name and sends the code of the one typed', () => {
+    const { container } = mount();
+    const suggestions = [...container.querySelectorAll('datalist option')].map((node) =>
+      node.getAttribute('value')
+    );
+    expect(suggestions).toEqual(expect.arrayContaining(['Italia', 'Francia', 'Germania', 'Zona A']));
+    expect(screen.getByLabelText('Paese')).toHaveAttribute('list');
+    // Not buttons: a list of ten would crowd a tablet.
+    expect(screen.queryByRole('button', { name: 'Francia' })).not.toBeInTheDocument();
+  });
+
+  it('sends a value of the person’s own when the choice takes one', () => {
+    mount();
+    fireEvent.change(screen.getByLabelText('Sito'), { target: { value: 'https://acme.test' } });
+    fireEvent.change(screen.getByLabelText('Paese'), { target: { value: 'francia' } });
+    fireEvent.change(screen.getByLabelText('Zona'), { target: { value: 'Cucina' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ country: 'FR', zone: 'Cucina' })
+    );
+
+    onSubmit.mockClear();
+    fireEvent.change(screen.getByLabelText('Zona'), { target: { value: 'Zona A' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ zone: 'a' }));
+  });
+
+  it('stops on an empty required choice, and starts a default on its name', () => {
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
+    expect(screen.getAllByText('Compila questo campo.')).toHaveLength(2);
+    expect(onSubmit).not.toHaveBeenCalled();
+    cleanup();
+
+    const withDefault = rich();
+    const country = withDefault.fields.find((field) => field.name === 'country');
+    if (country) country.default = 'DE';
+    mount(withDefault);
+    expect(screen.getByLabelText('Paese')).toHaveValue('Germania');
   });
 });
 

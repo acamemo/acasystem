@@ -1,26 +1,35 @@
 import type { ReactNode } from 'react';
 import { Body, Caption } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
+import { useDiscoveryScreenOpener } from '@/hooks/launcher/DiscoveryScreenContext';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { CardMessage, CardSkeleton, Chip, IconWell, UtilityCard } from '../shared/UtilityCard';
 import { UtilityIcon } from '../shared/UtilityIcon';
 import { FAMILY_ICON } from './familyIcon';
-import { useUnboundDevices } from './useUnboundDevices';
+import { useDiscoveredDevices } from './useDiscoveredDevices';
+import { useTvsOnNetwork } from './useTvsOnNetwork';
 
-export const DISCOVER_NAME = 'Rileva dispositivi';
+export const DISCOVER_NAME = 'Trova dispositivi';
 
 /** How many devices a card taller than one row names. */
 const NAMED_DEVICES = 3;
 
-/** Count of the devices of Home Assistant not yet in a widget, with the first ones (`rileva_card_*`). */
+/**
+ * «Trova dispositivi» (`rileva_card_*`): how many devices are waiting to be connected, counted
+ * like «Da collegare» of the screen it opens (what Home Assistant found, and the televisions it
+ * saw), so the card and the screen never give two different numbers (critique of 2026-10-28).
+ */
 export function DiscoverWidget({ id, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
-  const state = useUnboundDevices();
+  const showDiscovery = useDiscoveryScreenOpener();
+  const found = useDiscoveredDevices();
+  const tvs = useTvsOnNetwork();
   const row = size.h <= 1;
   const card = (children: ReactNode) => (
     <UtilityCard
       openLabel={`${DISCOVER_NAME}, apri l’elenco`}
-      onOpen={() => runtime.openDetails(id)}
+      // The screen over the launcher; without a launcher (previews) the old details open.
+      onOpen={() => (showDiscovery ? showDiscovery() : runtime.openDetails(id))}
       editMode={editMode}
       row={row}
     >
@@ -28,19 +37,34 @@ export function DiscoverWidget({ id, size, editMode }: WidgetProps) {
     </UtilityCard>
   );
 
-  if (state.status === 'loading') {
+  if (found.status === 'loading') {
     return card(<CardSkeleton label={`Caricamento di ${DISCOVER_NAME}…`} />);
   }
-  if (state.status === 'error') {
+  if (found.status === 'unavailable') {
+    // The screen says why and offers «Ripara il servizio»; the card only invites the tap.
     return card(
-      <CardMessage icon="warning" title={DISCOVER_NAME} detail="Home Assistant non risponde" />
+      <CardMessage icon="warning" title={DISCOVER_NAME} detail="Tocca per vedere che cosa fare" />
     );
   }
-  const { devices } = state;
-  if (devices.length === 0) {
+  const names = [
+    // Only what can be connected now, as «Da collegare» of the screen.
+    ...found.devices
+      .filter((device) => device.addable)
+      .map((device) => ({
+        key: device.flowId,
+        name: device.name,
+        icon: device.family ? FAMILY_ICON[device.family] : ('wifi' as const),
+      })),
+    ...(tvs.status === 'ready'
+      ? tvs.tvs
+          .filter((tv) => tv.collegabile)
+          .map((tv) => ({ key: tv.id, name: tv.name, icon: FAMILY_ICON.tv }))
+      : []),
+  ];
+  if (names.length === 0) {
     return card(<CardMessage icon="ok" title={DISCOVER_NAME} detail="Nessun dispositivo nuovo" />);
   }
-  const count = `${devices.length} ${devices.length === 1 ? 'dispositivo' : 'dispositivi'}`;
+  const count = `${names.length} da collegare`;
   if (row) {
     return card(
       <>
@@ -49,7 +73,7 @@ export function DiscoverWidget({ id, size, editMode }: WidgetProps) {
           <Body as="span" size="sm" tone="ink" className="utility-truncate">
             {DISCOVER_NAME}
           </Body>
-          <Caption className="utility-truncate">{count} da aggiungere</Caption>
+          <Caption className="utility-truncate">{count}</Caption>
         </div>
       </>
     );
@@ -62,18 +86,18 @@ export function DiscoverWidget({ id, size, editMode }: WidgetProps) {
           <Body as="span" size="md" tone="ink" className="utility-truncate">
             {DISCOVER_NAME}
           </Body>
-          <Caption className="utility-truncate">{count} da aggiungere</Caption>
+          <Caption className="utility-truncate">Pronti da collegare</Caption>
         </div>
         <div className="utility-head__aside">
-          <Chip tone="active" label={`${devices.length} da aggiungere`}>
-            {devices.length}
+          <Chip tone="active" label={count}>
+            {names.length}
           </Chip>
         </div>
       </div>
       <ul className="utility-stack utility-grow" aria-label="Primi dispositivi">
-        {devices.slice(0, NAMED_DEVICES).map((device) => (
-          <li key={device.deviceId} className="aca-icon-text">
-            <UtilityIcon name={FAMILY_ICON[device.family]} size="sm" />
+        {names.slice(0, NAMED_DEVICES).map((device) => (
+          <li key={device.key} className="aca-icon-text">
+            <UtilityIcon name={device.icon} size="sm" />
             <Caption className="utility-truncate">{device.name}</Caption>
           </li>
         ))}

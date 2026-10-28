@@ -61,6 +61,12 @@ export function AddWidgetSheet({
   const [finderHandled, setFinderHandled] = useState(false);
 
   const [wasOpen, setWasOpen] = useState(open);
+  // Opened with a device and `autoAdd`: the sheet stays hidden until the widget is added.
+  // 'waiting': the selection is not in place yet; 'ready': it is, and the widget can be added.
+  type AutoSelect = false | 'waiting' | 'ready';
+  const wantsAutoSelect = (): AutoSelect =>
+    open && autoAdd && Boolean(initialSelection) ? 'waiting' : false;
+  const [autoSelect, setAutoSelect] = useState<AutoSelect>(wantsAutoSelect);
 
   // Every opening starts again from the types, with nothing selected.
   if (open !== wasOpen) {
@@ -69,6 +75,7 @@ export function AddWidgetSheet({
       setStep('type');
       setRooms(EMPTY_ROOMS);
     }
+    setAutoSelect(wantsAutoSelect());
   }
 
   /** Persists the page list like the legacy flow, then hands the new card ids to the launcher. */
@@ -142,7 +149,11 @@ export function AddWidgetSheet({
   useEffect(() => {
     if (!open || !initialSelection) return;
     const item = ADD_WIDGET_TYPES.find((candidate) => candidate.type === initialSelection.type);
-    if (!item) return;
+    if (!item) {
+      // No such type: nothing to add by itself, the person chooses.
+      setAutoSelect(false);
+      return;
+    }
     chooseType(item);
     setSelectionPending(initialSelection);
     // Only on opening: the selection is the one the sheet was opened with.
@@ -166,6 +177,7 @@ export function AddWidgetSheet({
       addCard.setSelectedEntities(entityIds);
     }
     setSelectionPending(null);
+    setAutoSelect((state) => (state ? 'ready' : state));
     // The setters of the hook are stable; only the type and the pending selection matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectionPending, open, addCard.addCardType]);
@@ -304,9 +316,20 @@ export function AddWidgetSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPending, open, entry]);
 
+  // The same for a device chosen in «Dispositivi trovati»: once its selection is in place the
+  // widget is added; if that is not enough to add, the sheet shows itself to finish by hand.
+  useEffect(() => {
+    if (autoSelect !== 'ready' || !open || !initialSelection) return;
+    if (!entry || entry.type !== initialSelection.type) return;
+    setAutoSelect(false);
+    if (canAdd) submit();
+    // submit reads the state of this render, where the selection is in place.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSelect, open, selectionPending, entry, canAdd]);
+
   return (
     <Sheet
-      open={open && !autoPending}
+      open={open && !autoPending && !autoSelect}
       onClose={onClose}
       title="Aggiungi un widget"
       description={

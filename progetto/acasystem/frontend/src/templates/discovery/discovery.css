@@ -1,0 +1,188 @@
+/*
+ * «Dispositivi trovati» (REP-20261028-003): layout only. Colours, materials and type come from the
+ * --aca-* tokens and the primitives. The motion here is opacity alone: no shadow and no background
+ * moves (the Lenovo Tab M11 lags on shadow raster).
+ */
+@layer components {
+  /* A large sheet: wider than the usual 40rem, so the grid has room on a tablet in landscape. */
+  .aca-sheet.aca-discovery {
+    max-width: 56rem;
+  }
+  /*
+   * A fixed height, not a floor: an empty section («Collegati (0)») must not shrink the sheet and
+   * move it under the finger (critique of 2026-10-28, 158 px on a phone with a floor only). Longer
+   * content scrolls inside; the face keeps its own cap on short screens (Sheet).
+   */
+  .aca-sheet.aca-discovery .aca-sheet__body {
+    height: min(32rem, 62dvh);
+  }
+  /* Full width inside its section, which lines its other items up at the start. */
+  .discovery-grid--brands {
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    justify-self: stretch;
+  }
+  .aca-m.discovery-tile.discovery-tile--brand {
+    aspect-ratio: auto;
+    min-height: 6.5rem;
+  }
+  /* On a line of its own, under the grid and its status line. */
+  .aca-m.discovery-elsewhere {
+    display: flex;
+    width: fit-content;
+    margin-top: 0.75rem;
+  }
+  .discovery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+  }
+  @media (min-width: 40rem) {
+    .discovery-grid {
+      grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    }
+  }
+  /* «Nascondi» goes under the tile, with its word: in the corner it would cover the logo. */
+  .discovery-grid__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .aca-m.discovery-tile__hide {
+    justify-self: center;
+  }
+  .discovery-hidden {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  /* Square tile: the logo over the name and the model. */
+  .aca-m.discovery-tile {
+    --aca-pad: 0.75em;
+    --aca-radius: var(--aca-radius-rounded);
+    width: 100%;
+    aspect-ratio: 1;
+  }
+  .aca-m.discovery-tile > .aca-m__outer > .aca-m__face > .discovery-tile__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35em;
+    height: 100%;
+    min-width: 0;
+    text-align: center;
+  }
+  .discovery-tile__name {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
+  }
+  .discovery-tile__model {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .aca-m.discovery-tile:disabled .discovery-tile__model {
+    white-space: normal;
+  }
+  .discovery-logo {
+    flex: none;
+    object-fit: contain;
+  }
+  .discovery-logo--md {
+    width: 1.75em;
+    height: 1.75em;
+  }
+  .discovery-logo--lg {
+    width: 2.75em;
+    height: 2.75em;
+  }
+
+  /* A found device enters with a short fade. */
+  .discovery-enter {
+    animation: discovery-fade-in var(--aca-dur-fade-in, 180ms) var(--aca-motion-ease-out, ease-out)
+      both;
+  }
+  @keyframes discovery-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* Skeleton tile of the search: the pulse is the opacity, nothing else. */
+  .discovery-skeleton {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--aca-radius-rounded);
+    background: color-mix(in oklab, var(--aca-ink-muted) 22%, transparent);
+    animation: discovery-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes discovery-pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .discovery-enter,
+    .discovery-skeleton {
+      animation: none;
+    }
+  }
+
+  .discovery-list {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .discovery-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.375rem 0.25rem;
+  }
+  .discovery-row > :is(.discovery-logo, .aca-icon) {
+    flex: none;
+  }
+  .discovery-row__text {
+    display: grid;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .discovery-row > .discovery-row__name {
+    flex: 1 1 auto;
+  }
+  .discovery-row__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .discovery-row > :is(.aca-m, .aca-type--caption) {
+    flex: none;
+  }
+
+  .discovery-later {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .discovery-empty {
+    display: grid;
+    justify-items: start;
+    gap: 0.75rem;
+  }
+}

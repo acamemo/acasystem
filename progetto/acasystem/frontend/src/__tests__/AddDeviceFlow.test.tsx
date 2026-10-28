@@ -93,9 +93,8 @@ afterEach(() => {
 });
 
 describe('the service is not there', () => {
-  it('says so in the words of the server, asks nothing else and offers only «Esci»', async () => {
-    const message =
-      'Servizio non attivo. La configurazione dei dispositivi da Acasystem è spenta: chiedi all’installatore di attivarla.';
+  it('says it plainly, offers «Ripara il servizio» and «Esci», and asks nothing else', async () => {
+    const message = 'Servizio non attivo. La configurazione dei dispositivi da Acasystem è spenta.';
     fake = installFakeDevices({
       status: statusDto({
         service: { state: 'inactive', active: false, message },
@@ -103,10 +102,16 @@ describe('the service is not there', () => {
       }),
     });
     mount();
-    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Il servizio dei dispositivi non è attivo.')
+    ).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/installatore/i);
     expect(fake.callsTo('GET /catalogo')).toHaveLength(0);
     expect(fake.callsTo('GET /flussi')).toHaveLength(0);
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Esci']);
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
+      'Ripara il servizio',
+      'Esci',
+    ]);
     click('Esci');
     expect(onExit).toHaveBeenCalledTimes(1);
   });
@@ -141,7 +146,7 @@ describe('the catalogue', () => {
     expect(screen.getByText('Consigliati per questo widget')).toBeInTheDocument();
     const other = await screen.findByRole('button', { name: /hue/ });
     expect(other).toBeEnabled();
-    expect(other).not.toHaveTextContent('Richiede l’installatore');
+    expect(other).not.toHaveTextContent('Non disponibile da qui');
     // The recommended row comes before the list, and appears once.
     expect(
       recommended.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING

@@ -82,7 +82,7 @@ export const utilityWidgets: WidgetDefinition[] = [
   },
   {
     type: 'rileva',
-    label: 'Rileva dispositivi',
+    label: 'Trova dispositivi',
     icon: icon('wifi'),
     sizes: { min: { w: 2, h: 2 }, max: { w: 4, h: 4 }, default: { w: 2, h: 2 } },
     matches: (id) => id.startsWith('rileva_card_'),

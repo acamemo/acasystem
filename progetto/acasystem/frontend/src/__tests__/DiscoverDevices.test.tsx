@@ -12,12 +12,26 @@ import { DiscoverWidget } from '@/components/widgets/utilities/discover/Discover
 import { findWidgetDefinition } from '@/components/widgets/registry';
 import { PageProvider } from '@/hooks/context/PageContext';
 import { AddWidgetRequestProvider } from '@/hooks/launcher/AddWidgetRequestContext';
+import { DiscoveryScreenProvider } from '@/hooks/launcher/DiscoveryScreenContext';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { AddWidgetSheet } from '@/templates/sheets';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
+import { discoveredDto, installFakeDevices, tvDto } from './devicesFakeServer';
 import { fakeConnection } from './UtilityHarness';
+
+const auth = vi.hoisted(() => ({
+  headers: vi.fn(() => Promise.resolve({ Authorization: 'Bearer test' })),
+  method: vi.fn(() => 'oauth'),
+  unauthorized: vi.fn((message: string) => Object.assign(new Error(message), { status: 401 })),
+}));
+
+vi.mock('@/api/apiAuth', () => ({
+  getValidatedHomeAssistantRequestHeadersAsync: auth.headers,
+  getStoredAuthMethod: auth.method,
+  notifyHomeAssistantApiUnauthorized: auth.unauthorized,
+}));
 
 const layout = {
   version: 1,
@@ -86,7 +100,7 @@ const wrap = (node: ReactNode, state: EntityMap = entities(), conn = connection(
 beforeEach(seed);
 afterEach(cleanup);
 
-describe('widget «Rileva dispositivi»', () => {
+describe('widget «Trova dispositivi»', () => {
   it('è nel registro con le misure del piano', () => {
     const definition = findWidgetDefinition('rileva_card_1', {});
     expect(definition?.type).toBe('rileva');
@@ -97,7 +111,17 @@ describe('widget «Rileva dispositivi»', () => {
     });
   });
 
-  it('mostra il conteggio e i primi dispositivi non ancora in un widget', async () => {
+  it('conta i dispositivi da collegare come la schermata, televisori in rete compresi', async () => {
+    const fake = installFakeDevices();
+    fake.on('GET /scoperti', () => ({
+      body: {
+        devices: [
+          discoveredDto({ flowId: 'f1', name: 'Reolink ingresso', family: 'camera' }),
+          discoveredDto({ flowId: 'f2', name: 'Philips Hue', family: 'light' }),
+        ],
+      },
+    }));
+    fake.on('GET /tv-in-rete', () => ({ body: { tvs: [tvDto({ name: 'Samsung salotto' })] } }));
     render(
       wrap(
         <DiscoverWidget
@@ -109,11 +133,43 @@ describe('widget «Rileva dispositivi»', () => {
         />
       )
     );
-    expect(await screen.findByText('2 dispositivi da aggiungere')).toBeInTheDocument();
-    const list = screen.getByRole('list', { name: 'Primi dispositivi' });
-    expect(list).toHaveTextContent('LG webOS TV');
-    expect(list).toHaveTextContent('Lampada studio');
-    expect(list).not.toHaveTextContent('Luce cucina');
+    const list = await screen.findByRole('list', { name: 'Primi dispositivi' });
+    await waitFor(() => expect(list).toHaveTextContent('Samsung salotto'));
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(list).toHaveTextContent('Reolink ingresso');
+    expect(list).toHaveTextContent('Philips Hue');
+    vi.unstubAllGlobals();
+  });
+
+  it('al tocco apre la schermata «Trova dispositivi» del launcher', async () => {
+    const show = vi.fn();
+    const openDetails = vi.fn();
+    render(
+      <PageProvider>
+        <WidgetRuntimeProvider
+          value={createFixtureRuntime({
+            entities: entities(),
+            conn: connection().conn,
+            openDetails,
+          })}
+        >
+          <DiscoveryScreenProvider value={show}>
+            <DiscoverWidget
+              id="rileva_card_1"
+              settingsKey="home::rileva_card_1"
+              settings={{}}
+              size={{ w: 2, h: 2 }}
+              editMode={false}
+            />
+          </DiscoveryScreenProvider>
+        </WidgetRuntimeProvider>
+      </PageProvider>
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Trova dispositivi, apri l’elenco/ })
+    );
+    expect(show).toHaveBeenCalledTimes(1);
+    expect(openDetails).not.toHaveBeenCalled();
   });
 
   it('mentre i dati arrivano mostra il caricamento, non «nessun dispositivo»', () => {
@@ -133,11 +189,11 @@ describe('widget «Rileva dispositivi»', () => {
       </PageProvider>
     );
     expect(screen.queryByText('Nessun dispositivo nuovo')).toBeNull();
-    expect(screen.getByText('Caricamento di Rileva dispositivi…')).toBeInTheDocument();
+    expect(screen.getByText('Caricamento di Trova dispositivi…')).toBeInTheDocument();
   });
 });
 
-describe('Details di «Rileva dispositivi»', () => {
+describe('Details di «Trova dispositivi»', () => {
   const launcher = { layout } as unknown as LauncherApi;
 
   const details = (

@@ -14,6 +14,7 @@ import { NameRoomStep } from './NameRoomStep';
 import { PairingStep } from './PairingStep';
 import { PinStep, TvConsentStep } from './PinStep';
 import { PowerStep } from './PowerStep';
+import { RepairServiceNotice } from '@/components/widgets/utilities/discover/RepairServiceNotice';
 import { useDeviceFlow, type DeviceKind } from './useDeviceFlow';
 import { useEntityPresence } from './useEntityPresence';
 import './devices.css';
@@ -84,11 +85,12 @@ function RunningFlow({
   const title =
     state.phase === 'form' && state.form
       ? state.form.title
-      : state.step && (state.phase === 'menu' || state.phase === 'progress' || state.phase === 'external')
+      : state.step &&
+          (state.phase === 'menu' || state.phase === 'progress' || state.phase === 'external')
         ? state.step.title
         : state.phase === 'created' && ready
-        ? stageTitle(stage)
-        : deviceTexts.addDevice;
+          ? stageTitle(stage)
+          : deviceTexts.addDevice;
 
   // The focus follows the step, so a screen reader announces where the person is.
   const stepKey = `${state.phase}:${state.form?.stepId ?? state.step?.stepId ?? ''}:${stage}`;
@@ -121,7 +123,11 @@ function RunningFlow({
     case 'unavailable':
       body = (
         <div className="aca-device-flow">
-          <Notice tone="danger">{state.message ?? deviceTexts.featureUnavailable}</Notice>
+          {state.status && state.status.homeAssistant.reachable && !state.status.service.active ? (
+            <RepairServiceNotice onRepaired={flow.recheck} />
+          ) : (
+            <Notice tone="danger">{state.message ?? deviceTexts.featureUnavailable}</Notice>
+          )}
           {exitRow()}
         </div>
       );
@@ -156,14 +162,7 @@ function RunningFlow({
     }
 
     case 'catalog':
-      body = (
-        <CatalogStep
-          kind={kind}
-          busy={state.busy}
-          onStart={flow.start}
-          onExit={flow.exit}
-        />
-      );
+      body = <CatalogStep kind={kind} busy={state.busy} onStart={flow.start} onExit={flow.exit} />;
       break;
 
     case 'form': {
@@ -234,8 +233,7 @@ function RunningFlow({
 
     case 'progress': {
       const step = state.step;
-      body =
-        step?.type === 'progress' ? <ProgressStep step={step} onExit={flow.exit} /> : null;
+      body = step?.type === 'progress' ? <ProgressStep step={step} onExit={flow.exit} /> : null;
       break;
     }
 
@@ -308,7 +306,6 @@ function RunningFlow({
             key={entry.entryId}
             entry={entry}
             kind={kind}
-            isAdmin={state.status?.user.isAdmin === true}
             typedHost={flow.typedHost()}
             onStage={setStage}
             onDone={onDone}
@@ -359,7 +356,6 @@ const stageTitle = (stage: string): string => {
 function CreatedStages({
   entry,
   kind,
-  isAdmin,
   typedHost,
   onStage,
   onDone,
@@ -367,7 +363,6 @@ function CreatedStages({
 }: {
   entry: EntryDto;
   kind: DeviceKind;
-  isAdmin: boolean;
   typedHost: string | null;
   onStage: (stage: string) => void;
   onDone: (mediaPlayerEntityId: string | null) => void;
@@ -399,7 +394,6 @@ function CreatedStages({
       <PowerStep
         entryId={entry.entryId}
         mediaPlayerEntityId={entry.mediaPlayerEntityId}
-        isAdmin={isAdmin}
         typedHost={typedHost}
         onFinished={() => setPowerDone(true)}
       />

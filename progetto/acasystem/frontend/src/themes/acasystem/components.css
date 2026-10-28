@@ -652,6 +652,88 @@
     }
   }
 
+  /*
+   * Disclosure: sections of an accordion, one open at a time. Flat on purpose (a hairline, no
+   * shadow): the height goes from 0 to the content with grid-template-rows, which moves no
+   * shadow and costs the tablet nothing to raster.
+   */
+  .aca-disclosure + .aca-disclosure {
+    border-top: 1px solid color-mix(in oklab, var(--aca-ink-muted) 24%, transparent);
+  }
+  .aca-disclosure__heading {
+    margin: 0;
+  }
+  .aca-disclosure__trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    min-height: var(--aca-control-height);
+    margin: 0;
+    padding: 0 0.25em;
+    border: 0;
+    background: transparent;
+    color: var(--aca-ink-solid);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .aca-disclosure__trigger:is(:hover, .is-hover) {
+      color: var(--k2-accent, var(--aca-blue));
+    }
+  }
+  .aca-disclosure__trigger:is(:focus-visible, .is-focus) {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 2px;
+    border-radius: var(--aca-radius-rounded);
+  }
+  .aca-disclosure__title {
+    flex: 0 1 auto;
+    min-width: 0;
+    color: inherit;
+  }
+  .aca-disclosure__count {
+    flex: 1 1 auto;
+    color: var(--aca-ink-muted);
+  }
+  .aca-disclosure__chevron {
+    flex: none;
+    margin-left: auto;
+    transition: transform 200ms var(--aca-motion-ease-out, ease-out);
+  }
+  .aca-disclosure[data-open] .aca-disclosure__chevron {
+    transform: rotate(180deg);
+  }
+  .aca-disclosure__panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition:
+      grid-template-rows 200ms var(--aca-motion-ease-out, ease-out),
+      visibility 0s linear 200ms;
+  }
+  .aca-disclosure[data-open] > .aca-disclosure__panel {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+  .aca-disclosure__inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Room inside the clipped box for the focus ring and the relief of the controls. */
+  .aca-disclosure__content {
+    padding: 0.5em 0.5em 0.75em;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-disclosure__panel,
+    .aca-disclosure__chevron {
+      transition: none;
+    }
+  }
+
   /* Sheet: bottom sheet on a native modal <dialog> (top layer, focus, Escape). */
   .aca-sheet {
     position: fixed;

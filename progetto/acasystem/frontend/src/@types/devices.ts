@@ -8,7 +8,20 @@
 import type { DeviceFamily } from '@/utils/devices/classify';
 
 export type FlowFieldKind =
-  'text' | 'password' | 'integer' | 'number' | 'boolean' | 'select' | 'multiselect';
+  | 'text'
+  | 'password'
+  | 'integer'
+  | 'number'
+  | 'boolean'
+  | 'select'
+  | 'multiselect'
+  /** A file picked on this device; the answer is the id the server got from HA for it. */
+  | 'file'
+  /** A QR code to scan: shown, never answered. */
+  | 'qr';
+
+/** Error correction of a QR code: low, medium, quartile, high. */
+export type QrLevel = 'L' | 'M' | 'Q' | 'H';
 
 export interface FlowFieldDto {
   name: string;
@@ -19,9 +32,21 @@ export interface FlowFieldDto {
   default?: string | number | boolean;
   /** A text field that takes several lines. */
   multiline?: boolean;
+  /** A text field for an address, an e-mail or a phone number (the keyboard it asks for). */
+  inputType?: 'url' | 'email' | 'tel';
+  /** A choice that also takes a value of the person's own. */
+  allowCustom?: boolean;
+  /** Section the field belongs to: `name` is then `section.field`. */
+  section?: string;
+  sectionLabel?: string;
+  sectionRequired?: boolean;
   min?: number;
   max?: number;
   options?: { value: string; label: string }[];
+  /** `file`: what the picker accepts (HTML `accept`). */
+  accept?: string;
+  /** `qr`: the text to draw and the error correction HA asked for. */
+  qr?: { data: string; level: QrLevel };
 }
 
 export interface FlowErrorDto {

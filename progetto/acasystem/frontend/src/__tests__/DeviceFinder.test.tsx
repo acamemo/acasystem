@@ -92,7 +92,10 @@ let fake: FakeDevices;
 const seed = () => {
   localStorage.clear();
   localStorage.setItem(LAUNCHER_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
-  localStorage.setItem('tunet_pages_config', JSON.stringify({ header: [], pages: ['home'], home: [] }));
+  localStorage.setItem(
+    'tunet_pages_config',
+    JSON.stringify({ header: [], pages: ['home'], home: [] })
+  );
 };
 
 const onUse = vi.fn();
@@ -217,7 +220,9 @@ describe('the screen of a family', () => {
     expect(screen.queryByText('Lampada studio')).toBeNull();
     expect(within(ready).getByText('Usa questo')).toBeInTheDocument();
 
-    const titles = screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent);
+    const titles = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((heading) => heading.textContent);
     expect(titles).toEqual([
       'Televisori in rete',
       'Trovati in rete',
@@ -230,7 +235,9 @@ describe('the screen of a family', () => {
       'listitem'
     );
     expect(brands).toHaveLength(BRAND_LABELS.length);
-    brands.forEach((row, index) => expect(row.textContent).toMatch(new RegExp(`^${BRAND_LABELS[index] ?? ''}`)));
+    brands.forEach((row, index) =>
+      expect(row.textContent).toMatch(new RegExp(`^${BRAND_LABELS[index] ?? ''}`))
+    );
   });
 
   it('says plainly that nothing is there and keeps the brands and «Altra marca»', async () => {
@@ -247,12 +254,14 @@ describe('the screen of a family', () => {
     expect(screen.getByRole('button', { name: /Altra marca/ })).toBeEnabled();
   });
 
-  it('says the reason of the server when the service is off, and still offers the brands', async () => {
-    const message = 'Servizio non attivo. Chiedi all’installatore di attivarlo.';
-    fake.on('GET /scoperti', () => errorReply(503, 'SERVICE_NOT_ACTIVE', message));
+  it('says the service is off with «Ripara il servizio», and still offers the brands', async () => {
+    fake.on('GET /scoperti', () => errorReply(503, 'SERVICE_NOT_ACTIVE', 'Servizio non attivo.'));
     finder({}, fixtureEntities([]));
 
-    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Il servizio dei dispositivi non è attivo.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ripara il servizio' })).toBeEnabled();
     expect(screen.getByRole('list', { name: 'Marche consigliate' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Altra marca/ })).toBeEnabled();
   });
@@ -311,7 +320,9 @@ describe('a recommended brand', () => {
     expect(fake.callsTo('POST /flussi')).toHaveLength(0);
 
     click(GUIDE);
-    await waitFor(() => expect(fake.callsTo('POST /tv-in-rete/lg00000000000001/collega')).toHaveLength(1));
+    await waitFor(() =>
+      expect(fake.callsTo('POST /tv-in-rete/lg00000000000001/collega')).toHaveLength(1)
+    );
     expect(fake.callsTo('POST /flussi')).toHaveLength(0);
     expect(fake.callsTo('GET /catalogo')).toHaveLength(0);
   });
@@ -332,7 +343,9 @@ describe('a recommended brand', () => {
     expect(fake.callsTo('POST /scoperti')).toHaveLength(0);
 
     click(GUIDE);
-    await waitFor(() => expect(fake.callsTo('POST /scoperti/found-samsung/aggiungi')).toHaveLength(1));
+    await waitFor(() =>
+      expect(fake.callsTo('POST /scoperti/found-samsung/aggiungi')).toHaveLength(1)
+    );
     // No address to write: the integration is not started again from the brand.
     expect(fake.callsTo('POST /flussi')).toHaveLength(0);
     expect(fake.callsTo('POST /tv-in-rete')).toHaveLength(0);

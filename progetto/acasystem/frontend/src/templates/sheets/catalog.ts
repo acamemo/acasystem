@@ -32,6 +32,14 @@ export interface AddWidgetType {
 
 export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   {
+    type: 'rileva',
+    label: 'Trova dispositivi',
+    icon: 'wifi',
+    flow: 'simple',
+    sample: { id: 'rileva_card_esempio', settings: {} },
+    hint: 'Cerca i dispositivi in rete e li collega: un tocco e li aggiungi.',
+  },
+  {
     type: 'sensor',
     label: 'Sensori e comandi',
     icon: 'activity',
@@ -187,14 +195,6 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
     flow: 'room',
     sample: { id: 'room_card_esempio', settings: { areaId: 'esempio' } },
     hint: 'Ogni stanza nasce da un’area di Home Assistant con le sue entità.',
-  },
-  {
-    type: 'rileva',
-    label: 'Rileva dispositivi',
-    icon: 'wifi',
-    flow: 'simple',
-    sample: { id: 'rileva_card_esempio', settings: {} },
-    hint: 'Elenca i dispositivi di Home Assistant che non sono ancora in un widget: un tocco e li aggiungi.',
   },
   {
     type: 'cover_clock',
