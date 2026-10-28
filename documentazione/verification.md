@@ -1503,3 +1503,28 @@ Fonte: [REP-20261023-003](reports/REP-20261023-003-piano-aggiungi-dispositivi.md
 - **Non eseguiti:** accesso e prova nell'app (servono le credenziali dell'utente), prova sul Tab M11, collegamento di una TV vera dal widget TV, utente non amministratore, e2e. I testi della guida (numero e lunghezza dei codici) vengono dallo studio T0 e non sono provati su una TV.
 - **Prova reale (2026-10-27/28 notte, Tab M11 su `:3013` via USB):** la Samsung UE50J6200 è stata ricollegata con il PIN dal flusso nuovo (voce creata alle 00:26:47); l'utente lo giudica «abbastanza semplice». I tasti del telecomando arrivano a HA ma la TV li ignora, anche dopo ricarica, riavvio e nuovo abbinamento ([ISSUE-126](project-status.md)). Volume e muto funzionano. Trovato un difetto di T5: la marca non usa le scoperte di HA. Evidenza: ascolto in sola lettura degli eventi `call_service`, `state_changed` e delle voci di HA; il registro dettagliato di HA non è leggibile (404).
 - **Correzione di T5 (2026-10-28):** la riga della marca usa anche le scoperte di HA. Typecheck, lint, tipografia (0 su 603) e colori (0 su 411) superati; suite completa con `npx vitest run --maxWorkers=4`: 232 file e 3447 test superati. Interfaccia di `:3013` ricostruita e server riavviato. La prova sul tablet non è ancora rifatta.
+
+## 2026-10-28 — Audit CSS/UI e refactor a parità di aspetto e animazioni (REP-20261028-001)
+
+- **Partenza:** commit `4c223d3`. Riferimento misurato su quella build prima delle modifiche: suite completa 3447/3447, typecheck, lint, tipografia e colori superati (`backup/css-refactor/baseline/`).
+- **Controlli dopo il refactor** (albero di lavoro non committato, Windows 11, Node 24.14.0): `npm run typecheck`, `npm run lint`, `npm run lint:typography` (0 su 604) e `npm run lint:theme-colors` (0 su 412) superati. Suite completa con `npx vitest run --maxWorkers=3`: 3450/3450 (3447 più 3 nuovi). Una prima esecuzione aveva dato 1 fallimento, `MetalMaterial` UI-003, perché le primitive importavano `utils/classes`: è stato corretto spostando `classes()` in `components/primitives/classes.ts`.
+- **Confronto visivo e degli stili** (Chromium senza GPU, server isolato con dati finti, orologio fermo; strumenti in `progetto/acasystem/frontend/.tmp/css-refactor/`, fuori da Git):
+  - due esecuzioni della build di partenza: 182/182 istantanee identiche al pixel; il rumore è la larghezza di testi legati all'ora in 2 istantanee;
+  - build con le modifiche CSS senza la rinuncia ai livelli: 188/188 istantanee identiche al pixel e negli stili calcolati; cambiano solo i 3 `@keyframes` toccati di proposito (`aca-pulse`, `aca-ctl-pending` unito, `k2-wave` fuori dal bundle dell'app);
+  - con la rinuncia ai livelli: cambia `will-change` dove previsto, e c'è antialiasing diverso su testi e ombre dei pulsanti interessati, non visibile nei confronti affiancati;
+  - build finale con il refactor TS, confrontata con la build delle sole modifiche CSS: 188/188 identiche al pixel; 6 differenze di larghezza in un'etichetta oraria, cioè il rumore noto.
+- **Tab M11 via USB** (Chrome 156, 1280×665 DPR 1.5; server isolato con una pagina di 12 widget; A/B alternato base-nuova-base-nuova, 3 giri per 9 animazioni):
+  - livelli del compositore: 86→79 a riposo, 99→92 in modifica, 149→143 nella vista pagine;
+  - passata leggera (solo rAF): fotogrammi oltre 33 e 50 ms e fotogramma massimo entro la variazione tra le due passate di base, in tutti gli scenari;
+  - passata con tracciamento: GPU, raster e stile/layout/disegno entro il rumore, con un picco isolato di 1,18 s al primo scorrimento della prima passata nuova, non ripetuto.
+- **Rilevatori:** `impeccable detect`: 2 rilievi prima e dopo (bordo laterale del menu di Casa 3D e curva elastica della nuvoletta, entrambi voluti); `design-taste lint --app`: avvisi da 323 a 296, errori 87 invariati (sfumature e ombre dello stile Kit 2).
+- **Non eseguiti:** prova col dito sul tablet; telefono reale; TalkBack; misura della pressione dei pulsanti nelle barre e nei fogli; banco (nessun aggiornamento); e2e `isolated-browser.check.mjs`, sostituito dal confronto delle istantanee.
+
+## 2026-10-28 — Backend e funzioni collegate a HA (REP-20261028-002)
+
+- **Backend:** typecheck e lint superati. `npx vitest run`: 33 file, 526 passati e 1 saltato (partenza: 523 e 1). Ci sono 4 test nuovi per S1, S2, S3 e S8; il test di S8, eseguito sul codice di partenza, fallisce con 500. È stato tolto 1 test che copriva solo codice morto.
+- **Contro l'HA reale del PC** (container `homeassistant`, 2026.9.4), backend nuovo su `127.0.0.1:3041` senza credenziali: health 200; proxy dei provider 200; percorso non ammesso 404; tunnel WebSocket `auth_required` e poi `auth_invalid` con un token falso; token falso sulle API 401 in 77 ms; login avviato e chiuso senza compilare il modulo.
+- **Frontend:** typecheck, lint, tipografia e colori superati; 232 file e 3450/3450.
+- **Collaudo `e2e/isolated-browser.check.mjs`** (aggiornato in due passi superati dall'interfaccia), sulla build di partenza e su quella nuova: 240 viste, dettagli da tastiera, preferenze conservate, gesto con 1-2 comandi e conferma, movimento ridotto; nessun errore di pagina.
+- **Ricerca:** note di HA 2026.10 e blog del registro dispositivi (2026-08-19), consultati il 2026-10-28. Nessuna rottura per le API usate; le note di 2026.11 non erano ancora pubblicate.
+- **Non eseguiti:** prove con l'account dell'utente, identità di servizio, dispositivi reali, banco.
