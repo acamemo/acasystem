@@ -10,20 +10,18 @@ import { afterNextFrame } from '@/utils/launcher/afterFrame';
 
 /**
  * Hash routes of the app: the launcher (default), the Sistema page, the house (Casa 3D, ADR-0014 R1:
- * `#/casa`, and `#/casa/piantina` for the editor of the plan to come) and the UI kit preview.
+ * `#/casa`, and `#/casa/piantina` for the editor of the plan to come). The demo mode (`#/mockup`) uses these same
+ * routes over a simulated Home Assistant (see `api/demoSource.ts`).
  */
 export const ROUTES = {
   launcher: '/',
   system: '/sistema',
   casa: CASA_ROUTE,
   casaPlan: CASA_PLAN_ROUTE,
-  uiKit: '/ui-kit',
   // Development only (ISSUE-091): the address is not even in the production bundle.
   casa3dProva: import.meta.env.DEV ? '/casa3d-prova' : '',
 } as const;
 
-// Prototypes in preview (REP-20261007-004), loaded only when the page is opened.
-const UiKitPage = lazy(() => import('@/pages/ui-kit/UiKitPage'));
 // The house at full screen (ADR-0014, R1): the launcher's bundle carries only the route.
 const CasaScreen = lazy(() => import('@/casa3d/CasaScreen'));
 // Development page of Casa 3D (ADR-0014, T3): not linked anywhere, reached by its address only,
@@ -123,17 +121,6 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
     []
   );
 
-  // The UI kit page shows static prototypes: no connection or launcher needed.
-  if (location.pathname === ROUTES.uiKit || location.pathname === '/kit') {
-    return (
-      <div className="aca-app-root">
-        <Suspense fallback={null}>
-          <UiKitPage />
-        </Suspense>
-      </div>
-    );
-  }
-
   if (showConnect) {
     return (
       <div className="aca-app-root">
@@ -170,7 +157,6 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
           <Route path={ROUTES.system} element={null} />
           <Route path={ROUTES.casa} element={null} />
           <Route path={ROUTES.casaPlan} element={null} />
-          <Route path={ROUTES.uiKit} element={null} />
           <Route path="*" element={<Navigate to={ROUTES.launcher} replace />} />
         </Routes>
       </div>

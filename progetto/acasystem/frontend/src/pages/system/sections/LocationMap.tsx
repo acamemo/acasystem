@@ -5,6 +5,7 @@
  */
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { getDemoSource } from '@/api/demoSource';
 import 'leaflet/dist/leaflet.css';
 
 export interface LatLon {
@@ -40,7 +41,9 @@ export default function LocationMap({ value, zoom, onChange, disabled = false }:
     if (!host.current) return undefined;
     const instance = L.map(host.current, { zoomControl: true, attributionControl: true });
     instance.setView([value.lat, value.lon], zoom);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Demo mode: a plain tile, so the map asks nothing of OpenStreetMap.
+    const tiles = getDemoSource()?.mapTileUrl ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    L.tileLayer(tiles, {
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(instance);

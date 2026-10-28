@@ -9,6 +9,7 @@
  * salvati da Tunet (`ha_url`, `ha_fallback_url`) sono ignorati e rimossi.
  */
 import { Auth, type AuthData } from 'home-assistant-js-websocket';
+import { getDemoSource } from '@/api/demoSource';
 import { getHassUrl } from '@/api/haUrl';
 import { clearOAuthTokens, loadTokens, saveTokens } from '@/api/oauthStorage';
 import { isNonEmptyString } from '@/validators/guards';
@@ -76,6 +77,8 @@ export function persistSessionTokens(tokens: AuthData | null): void {
 
 /** Auth di HAWS per la sessione salvata: rinnova i token sullo stesso hassUrl e li salva. */
 export function createSessionAuth(hassUrl: string = getHassUrl()): Auth | null {
+  const demo = getDemoSource();
+  if (demo) return demo.auth;
   const tokens = loadSessionTokens(hassUrl);
   return tokens ? new Auth(tokens, persistSessionTokens) : null;
 }
@@ -138,6 +141,7 @@ export function forgetAccessMethod(): void {
 
 /** Il browser ha credenziali per collegarsi: il token a lunga durata o una sessione valida. */
 export function hasStoredCredentials(): boolean {
+  if (getDemoSource()) return true;
   return readAccessMethod() === 'token' ? Boolean(readKioskToken()) : hasSessionTokens();
 }
 

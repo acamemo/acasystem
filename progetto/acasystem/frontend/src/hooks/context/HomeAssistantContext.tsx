@@ -24,6 +24,7 @@ import type {
 } from '@/@types/dashboard';
 import type { HaConfig, HaUser } from '@/@types/ha';
 import { clearOAuthTokens } from '@/api/oauthStorage';
+import { getDemoSource } from '@/api/demoSource';
 import { HOME_ASSISTANT_API_UNAUTHORIZED_EVENT, setOAuthAuthProvider } from '@/api/apiAuth';
 import { getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
 import { createSessionAuth } from '@/api/haSession';
@@ -366,7 +367,9 @@ export const HomeAssistantProvider = ({ children, config }: HomeAssistantProvide
 
     async function connect(sessionAuth: Auth) {
       try {
-        const connInstance = await createConnection({ auth: sessionAuth });
+        // Demo mode: the simulated connection stands in for the WebSocket.
+        const connInstance =
+          getDemoSource()?.conn ?? (await createConnection({ auth: sessionAuth }));
         if (!isCurrentAttempt()) {
           connInstance.close();
           return;

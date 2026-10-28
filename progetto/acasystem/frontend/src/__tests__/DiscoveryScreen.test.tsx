@@ -744,13 +744,19 @@ describe('Televisori LG: Cast da solo e più televisori della stessa marca', () 
     fireEvent.click(
       await screen.findByRole('button', { name: /^Collega \[LG\] webOS TV UA751C0LA/ }, REVEAL_WAIT)
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Sono davanti alla TV, continua' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sono davanti alla TV, continua' }, REVEAL_WAIT)
+    );
 
     expect(
-      await screen.findByText('Accetta la richiesta sulla TV «[LG] webOS TV UA751C0LA».')
+      await screen.findByText(
+        'Accetta la richiesta sulla TV «[LG] webOS TV UA751C0LA».',
+        {},
+        REVEAL_WAIT
+      )
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(/Accetta la richiesta sulla TV con il telecomando/)
+      await screen.findByText(/Accetta la richiesta sulla TV con il telecomando/, {}, REVEAL_WAIT)
     ).toBeInTheDocument();
     // Two empty grey squares (skeleton rows) used to be drawn above the text.
     expect(document.querySelector('.aca-device-pairing .aca-skeleton')).toBeNull();

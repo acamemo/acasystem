@@ -6,7 +6,7 @@
  * logged: the answers carry the addresses the person typed.
  */
 import { getStoredAuthMethod, getValidatedHomeAssistantRequestHeadersAsync } from './apiAuth';
-import { backendRequest } from './backendClient';
+import { backendRequest, getBackendOverride } from './backendClient';
 import type { IgnoredDeviceDto, RepairResultDto } from '@/@types/discovery';
 import type {
   AreaDto,
@@ -238,6 +238,12 @@ export async function restoreIgnored(entryId: string): Promise<void> {
  */
 export async function fetchBrandLogo(domain: string, dark: boolean): Promise<Blob | null> {
   const path = `${BASE}/loghi/${segment(domain)}${dark ? '?tema=scuro' : ''}`;
+  // Demo mode: the facade answers inside the browser (the demo has no logos).
+  const override = getBackendOverride();
+  if (override) {
+    const answer = await override({ method: 'GET', path, body: null });
+    return answer.status === 200 && answer.blob ? answer.blob : null;
+  }
   const send = async (forceRefreshOAuth: boolean) =>
     fetch(`./api${path}`, {
       headers: { ...(await getValidatedHomeAssistantRequestHeadersAsync({ forceRefreshOAuth })) },

@@ -3,6 +3,7 @@ import type { Translate } from '@/@types/dashboard';
 import type { EntityLike, EntityLikeMap, HaMessageConnection, ServiceData } from '@/@types/ha';
 import { ENTITY_UPDATE_THRESHOLD, MEDIA_TIMEOUT } from '@/utils/config/constants';
 import { callService as haCallService } from '@/api';
+import { getDemoSource } from '@/api/demoSource';
 import { logger } from '@/utils/logger';
 import { useToast } from '@/hooks/context/ToastContext';
 import { toDate } from '@/validators/guards';
@@ -45,6 +46,9 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }: EntityHe
   const getEntityImageUrl = useCallback(
     (rawUrl: string | null | undefined): string | null => {
       if (!rawUrl) return null;
+      // Demo mode: the pictures are drawn in the browser, nothing is asked of Home Assistant.
+      const demo = getDemoSource();
+      if (demo) return demo.imageUrl(rawUrl);
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) return rawUrl;
       return `${activeUrl.replace(/\/$/, '')}${rawUrl}`;
     },

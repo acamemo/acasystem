@@ -6,6 +6,7 @@
  * `src/app.tsx` re-exports it as the app root.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getDemoSource } from '@/api/demoSource';
 import { hasStoredCredentials, hasSessionTokens } from '@/api/haSession';
 import { requestTokensFromOtherTabs, subscribeToOAuthTokenChanges } from '@/api/oauthStorage';
 import {
@@ -69,6 +70,8 @@ export function App() {
   );
 
   const openLogin = useCallback(() => {
+    // Demo mode has no sign-in to change: the login page would ask the network for a session.
+    if (getDemoSource()) return;
     setHydrate(false);
     setLogin({ open: true, returnable: hasStoredCredentials() });
   }, []);

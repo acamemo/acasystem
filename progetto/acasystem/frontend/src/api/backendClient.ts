@@ -26,6 +26,33 @@ interface RequestControl {
   authHeadersOverride?: HomeAssistantRequestHeaders | null;
 }
 
+/**
+ * Demo mode (`#/mockup`, REP-20261028-005): while an override is set, every call of the backend
+ * is answered by it inside the browser, with no request and no credentials. It is set only by the
+ * demo page and cleared when the page is left; the normal app never sets it.
+ */
+export interface BackendOverrideRequest {
+  method: string;
+  /** Path after `./api`, query string included. */
+  path: string;
+  body: string | null;
+}
+export interface BackendOverrideResponse {
+  status: number;
+  body: unknown;
+  /** An image answer (the logos); none in the demo. */
+  blob?: Blob;
+}
+export type BackendOverride = (request: BackendOverrideRequest) => Promise<BackendOverrideResponse>;
+
+let backendOverride: BackendOverride | null = null;
+
+export function setBackendOverride(next: BackendOverride | null): void {
+  backendOverride = next;
+}
+
+export const getBackendOverride = (): BackendOverride | null => backendOverride;
+
 const createApiError = (message: string, status: number, body: UnknownRecord): ApiError =>
   Object.assign(new Error(message), { status, body });
 
@@ -35,6 +62,16 @@ export async function backendRequest(
   options: BackendRequestInit = {},
   { retryOnOAuthUnauthorized = true, authHeadersOverride = null }: RequestControl = {}
 ): Promise<unknown> {
+  if (backendOverride) {
+    const answer = await backendOverride({
+      method: options.method ?? 'GET',
+      path,
+      body: typeof options.body === 'string' ? options.body : null,
+    });
+    if (answer.status >= 200 && answer.status < 300) return answer.body;
+    const failure: UnknownRecord = isObject(answer.body) ? answer.body : {};
+    throw createApiError(String(failure.error || `API error ${answer.status}`), answer.status, failure);
+  }
   const authHeaders = authHeadersOverride ?? (await getValidatedHomeAssistantRequestHeadersAsync());
   const mergedHeaders = {
     'Content-Type': 'application/json',

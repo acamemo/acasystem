@@ -1,0 +1,38 @@
+/* Demo mode (#/mockup, REP-20261028-005): the slim bar over the real app. */
+
+@layer components {
+  /*
+   * In the top-left corner: the page indicator sits in the middle of the top edge and the gear at
+   * the right, so the bar covers neither. On a narrow screen the label gives way to the buttons.
+   */
+  .aca-mockup-bar {
+    position: fixed;
+    z-index: var(--aca-z-overlay);
+    top: max(var(--aca-space-1), env(safe-area-inset-top, 0px));
+    left: var(--aca-space-3);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aca-space-3);
+    max-width: calc(100vw - var(--aca-space-6));
+    padding: 2px 2px 2px var(--aca-space-4);
+    border-radius: var(--aca-radius-pill);
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow-card);
+  }
+
+  .aca-mockup-bar__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The Materials page covers the app and scrolls, under the bar. */
+  .aca-mockup-materials {
+    position: fixed;
+    z-index: calc(var(--aca-z-overlay) - 1);
+    inset: 0;
+    overflow: auto;
+    background: var(--aca-page);
+  }
+}
