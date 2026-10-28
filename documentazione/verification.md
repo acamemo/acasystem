@@ -1528,3 +1528,16 @@ Fonte: [REP-20261023-003](reports/REP-20261023-003-piano-aggiungi-dispositivi.md
 - **Collaudo `e2e/isolated-browser.check.mjs`** (aggiornato in due passi superati dall'interfaccia), sulla build di partenza e su quella nuova: 240 viste, dettagli da tastiera, preferenze conservate, gesto con 1-2 comandi e conferma, movimento ridotto; nessun errore di pagina.
 - **Ricerca:** note di HA 2026.10 e blog del registro dispositivi (2026-08-19), consultati il 2026-10-28. Nessuna rottura per le API usate; le note di 2026.11 non erano ancora pubblicate.
 - **Non eseguiti:** prove con l'account dell'utente, identità di servizio, dispositivi reali, banco.
+
+## 2026-10-28 — «Dispositivi trovati» S1-S4 (REP-20261028-003)
+
+- **Backend:** typecheck e lint superati; `npx vitest run` 35 file, 583 passati e 1 saltato.
+- **Frontend:** typecheck, lint, tipografia, colori e build superati. Suite completa: 3489/3491 alla prima esecuzione; corretto `:hover` della nuova `Disclosure` (test `MetalMaterial`), `ConsolePrimitive` passato da solo; file toccati poi verdi.
+- **Browser con HA simulato** (copia temporanea del banco isolato su `:3013`, 1280×665 e 390×844): prima apertura con scheletro, arrivi progressivi, pannello del dispositivo, fisarmonica esclusiva, nessuno sbordamento, flag di prima apertura, riapertura dalla tendina.
+- **Non eseguiti:** loghi e ripristino su HA reale, flusso LG con identità di servizio, Tab M11.
+
+## 2026-10-28 — Tutti fanno tutto (REP-20261028-004)
+
+- **Backend:** typecheck e lint superati; `npx vitest run` 37 file, 617 passati e 1 saltato.
+- **Frontend:** typecheck, lint, tipografia, colori e build superati; suite completa 3511/3519, gli 8 falliti passano rilanciati da soli (257/257).
+- **Non eseguiti:** percorso HA OS con il token del Supervisor; attivazione con il proprietario sull'istanza `:3004` (in attesa del suo accesso).
