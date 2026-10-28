@@ -1,8 +1,7 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Button } from '@/components/primitives';
 import { TearCalendar } from '@/components/system/tear-calendar/TearCalendar';
-import StateMatrix from '@/pages/kit/StateMatrix';
 import { contrast, kitSurfaces, tokenRgb } from './kitColors';
 
 /**
@@ -137,22 +136,6 @@ describe('K21: variante danger del Button', () => {
     for (const [, , body] of danger) {
       expect(body).not.toMatch(/box-shadow|clip-path|--aca-m-socket|--aca-led|opacity/);
     }
-  });
-
-  it('compare nella matrice degli stati con riposo, hover, click, focus, disabilitato e caricamento', () => {
-    render(<StateMatrix />);
-    const row = screen.getByRole('region', { name: 'Azione distruttiva' });
-    const buttons = within(row).getAllByRole('button', { name: 'Rimuovi' });
-    expect(buttons).toHaveLength(6);
-    for (const button of buttons) expect(button).toHaveClass('aca-m--danger');
-    expect(within(row).getAllByText('Non previsto')).toHaveLength(2);
-    const cell = (state: string) =>
-      row.querySelector(`[data-state="${state}"] button`) as HTMLButtonElement;
-    expect(cell('hover')).toHaveClass('is-hover');
-    expect(cell('active')).toHaveClass('is-active');
-    expect(cell('focus')).toHaveClass('is-focus');
-    expect(cell('disabled')).toBeDisabled();
-    expect(cell('loading')).toHaveAttribute('aria-busy', 'true');
   });
 });
 

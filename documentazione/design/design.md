@@ -20,7 +20,7 @@ La fase 1 minima è Home Assistant personalizzato graficamente, con Tunet come p
 
 **Rettifica umana successiva:** calendario, data, orologio e meteo mantengono i design già realizzati della Copertina. La scheda Widget esclude i cinque tipi `calendar`, `cover_calendar`, `cover_clock`, `weather` e `cover_weather` e mostra 20 proposte residue, senza modificare il catalogo applicativo. Gli originali restano nella sezione Copertina dei Prototipi; non sono proposte da rifare.
 
-Su richiesta umana, la scheda «Widget» del kit presenta tutti i 25 tipi del catalogo in card di altezza 28 rem, con superficie soft UI e primitive dei prototipi Principale e Temperatura: pulsanti tondi, tessere, slider orizzontali e termometro a colonna. Ogni tipo ha contenuti dimostrativi distinti e controlli in memoria; i filtri seguono le categorie del vassoio. Sono **proposte da valutare**, non una direzione approvata né modifiche ai widget operativi. Realizzazione e verifiche in [REP-20261014-002](../reports/REP-20261014-002-design-widget-kit.md). Anteprima `#/ui-kit?tab=widgets`.
+Su richiesta umana, la scheda «Widget» del kit presenta tutti i 25 tipi del catalogo in card di altezza 28 rem, con superficie soft UI e primitive dei prototipi Principale e Temperatura: pulsanti tondi, tessere, slider orizzontali e termometro a colonna. Ogni tipo ha contenuti dimostrativi distinti e controlli in memoria; i filtri seguono le categorie del vassoio. Sono **proposte da valutare**, non una direzione approvata né modifiche ai widget operativi. Realizzazione e verifiche in [REP-20261014-002](../reports/REP-20261014-002-design-widget-kit.md). Annotazione 2026-10-28: la scheda e la pagina `#/ui-kit` sono state tolte (decisione M-1 di [REP-20261028-005](../reports/REP-20261028-005-piano-mockup.md)); le proposte restano nella storia Git e quanto serve si rifà sui widget veri, visibili in `#/mockup`.
 
 ### Etichette delle tessere (2026-10-14)
 
@@ -73,7 +73,7 @@ Il colore non è mai l'unico segnale: restano la profondità, il LED e il testo.
 **Stati.** Riposo, hover, click, focus (anello blu), selezione, disabilitato, caricamento, errore e «richiesto vs confermato» (`pending`) su interruttore e cursore.
 - Interruttore con etichette «Acceso»/«Spento».
 - Sheet (foglio dal basso) e Popover; scala semantica degli z-index.
-- Matrice completa nella pagina di prova `frontend/kit.html`.
+- Riferimento della base grafica: sezione «Materiali» di `#/mockup` (pagina Kit 2). La matrice Metallo di `frontend/kit.html` è stata tolta il 2026-10-28 ([REP-20261028-005](../reports/REP-20261028-005-piano-mockup.md)).
 
 **Interfaccia «OS».** Barra di stato nella fascia in basso, con ora, connessione, Sistema, chip e «Modifica» (dal 2026-10-14, [ADR-0013](../decisions/ADR-0013-barra-unica.md); in precedenza in alto); copertina con calendario a strappo ([UI-008](componenti/originali/UI-008-calendario-strappo.txt)) e orologio; pagine di widget a celle stile Android, modificabili con pressione lunga; swipe tra le pagine con l'indicatore a pallina ([UI-009](componenti/originali/UI-009-indicatore-pallina.txt)); dettagli dei dispositivi in fogli; Sistema come pagina intera. Il pannello Aspetto non esiste più.
 

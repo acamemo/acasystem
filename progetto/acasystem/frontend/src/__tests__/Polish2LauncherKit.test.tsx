@@ -1,6 +1,5 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import StateMatrix from '@/pages/kit/StateMatrix';
 
 /**
  * REP-20261007-001, second round, R-05: the «pozzetto tenue» of the free cells is a modifier of
@@ -119,23 +118,5 @@ describe('soft well of the kit (.aca-m--well-soft)', () => {
       /\.aca-launcher-cell[^{}]*\.aca-m__face\s*\{[^}]*(box-shadow|background-image|clip-path|font-size)/
     );
     expect(launcher).not.toMatch(/\.aca-launcher-cell[^{}]*::after/);
-  });
-
-  it('has its row in the state matrix: rest, hover, click, focus and disabled', () => {
-    render(<StateMatrix />);
-    const row = screen.getByRole('region', { name: 'Pozzetto tenue' });
-    const buttons = within(row).getAllByRole('button', { name: 'Aggiungi un widget' });
-    expect(buttons).toHaveLength(5);
-    for (const button of buttons) {
-      expect(button).toHaveClass('aca-m', 'aca-m--static', 'aca-m--well-soft');
-      expect(button).not.toHaveClass('aca-m--well');
-    }
-    expect(within(row).getAllByText('Non previsto')).toHaveLength(3);
-    const cell = (state: string) =>
-      row.querySelector(`[data-state="${state}"] button`) as HTMLButtonElement;
-    expect(cell('hover')).toHaveClass('is-hover');
-    expect(cell('active')).toHaveClass('is-active');
-    expect(cell('focus')).toHaveClass('is-focus');
-    expect(cell('disabled')).toBeDisabled();
   });
 });

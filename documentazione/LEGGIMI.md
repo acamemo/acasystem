@@ -61,7 +61,7 @@ Le categorie sono Luci e comandi (5 widget), Clima e meteo (3), Sicurezza (3), M
 
 ## Banco e verifiche disponibili
 
-- Launcher: [localhost:3002](http://localhost:3002/#/). Galleria: [UI kit / Widget](http://localhost:3002/#/ui-kit?tab=widgets).
+- Launcher: [localhost:3002](http://localhost:3002/#/). Anteprima con l'app vera su un Home Assistant finto: [Mockup](http://localhost:3002/#/mockup) (al posto di `#/ui-kit`, `#/kit` e `#/ui`, tolti il 2026-10-28).
 - Ultimo stato verificato: container `aca-tunet-tunet-1` healthy, immagine `aca-system:0.9.9` (ripristino alla 0.9.8 in infrastructure.md), volume conservato `aca-tunet_tunet-data`. Hash, procedure, copie a freddo e limiti del ripristino in [infrastructure.md](infrastructure.md) e nel report 009. Home Assistant non aggiornato o ricreato.
 - Test frontend completo ripetuto nel report 010: 150/150 file, 1858/1858 test; backend 141/141.
 - Typecheck, lint, tipografia/colori, formattazione e build superati. Warning preesistente del chunk hls registrato. Test Vitest con massimo quattro worker; browser separato dai test e senza GPU sul PC.
@@ -85,7 +85,7 @@ Stati e condizioni di chiusura restano nel [registro dei problemi](project-statu
 
 Il monorepo è in [progetto/acasystem](../progetto/acasystem), con workspace frontend/backend. Consultare soltanto i file pertinenti al nuovo incarico.
 
-- Kit: [WidgetDesignGallery.tsx](../progetto/acasystem/frontend/src/pages/ui-kit/WidgetDesignGallery.tsx), [WidgetDesignSpecimen.tsx](../progetto/acasystem/frontend/src/pages/ui-kit/WidgetDesignSpecimen.tsx), [widgetDesignModel.ts](../progetto/acasystem/frontend/src/pages/ui-kit/widgetDesignModel.ts), [WidgetDesignChart.tsx](../progetto/acasystem/frontend/src/pages/ui-kit/WidgetDesignChart.tsx), [GestureControl.tsx](../progetto/acasystem/frontend/src/pages/ui-kit/GestureControl.tsx).
+- Kit: la pagina `ui-kit` con la galleria dei 25 widget è stata tolta il 2026-10-28 (REP-20261028-005); il riferimento della base grafica è `pages/kit2/Kit2Page.tsx`, dentro `#/mockup`.
 - Categorie/griglie/associazione: [categoryPages.ts](../progetto/acasystem/frontend/src/templates/sheets/categoryPages.ts), [categoryPageGrid.ts](../progetto/acasystem/frontend/src/templates/sheets/categoryPageGrid.ts), [CategoryBindingSection.tsx](../progetto/acasystem/frontend/src/templates/sheets/CategoryBindingSection.tsx), [CategoryWidgetContent.tsx](../progetto/acasystem/frontend/src/templates/launcher/CategoryWidgetContent.tsx), [useLauncherController.ts](../progetto/acasystem/frontend/src/hooks/launcher/useLauncherController.ts), [LauncherPage.tsx](../progetto/acasystem/frontend/src/pages/launcher/LauncherPage.tsx).
 - Vassoio/drag: [WidgetTray.tsx](../progetto/acasystem/frontend/src/components/system/edit/WidgetTray.tsx), [edit.css](../progetto/acasystem/frontend/src/components/system/edit/edit.css), [useWidgetDrag.ts](../progetto/acasystem/frontend/src/hooks/launcher/useWidgetDrag.ts). Su touch l'aggiunta trascinata parte verticalmente; movimento iniziale orizzontale scorre la fila.
 - Ordine dei layer CSS della build: [frontend/index.html](../progetto/acasystem/frontend/index.html). Strumenti e schermate del tablet: `backup/strumenti-tablet/`, `backup/tablet-009/` e script collegati dal report 009.

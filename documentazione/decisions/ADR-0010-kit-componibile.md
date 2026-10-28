@@ -42,3 +42,5 @@ Una correzione su una famiglia vale per tutti gli elementi che la usano. Durante
 ## Verifiche e revisione
 
 Esiti in REP-20261007-006. Rivedere quando la migrazione dell'app rimuove gli alias.
+
+Annotazione 2026-10-28: la matrice del kit Metallo (`kit.html`, `pages/kit`) è stata tolta; i temi Metallo restano nel codice. Vedi [REP-20261028-005](../reports/REP-20261028-005-piano-mockup.md).

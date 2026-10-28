@@ -43,7 +43,7 @@ npm run typecheck      controlli TypeScript
 npm run lint           ESLint
 ```
 
-Pagina di prova del kit, solo in sviluppo: `http://127.0.0.1:5173/kit.html`.
+Pagina di prova con l'app e un Home Assistant finto: `http://127.0.0.1:5173/#/mockup` (le pagine `kit.html`, `launcher.html` e `preview-*.html` sono state tolte il 2026-10-28).
 
 Home Assistant sta dietro Acasystem (ADR-0009). Il browser parla solo con il server Acasystem, che inoltra a Home Assistant le richieste sotto `/ha`: HTTP in streaming e WebSocket, solo i percorsi usati dal frontend. L'accesso avviene con la pagina Acasystem (utente e password di Home Assistant).
 
