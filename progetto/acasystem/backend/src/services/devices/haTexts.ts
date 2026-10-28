@@ -17,6 +17,14 @@ export interface StepTranslations {
   data: Record<string, string>;
   dataDescription: Record<string, string>;
   menuOptions: Record<string, string>;
+  /** Texts of the sections (`expandable`) of the step, by section name. */
+  sections: Record<string, SectionTranslations>;
+}
+
+export interface SectionTranslations {
+  name?: string;
+  data: Record<string, string>;
+  dataDescription: Record<string, string>;
 }
 
 export interface HandlerTranslations {
@@ -30,6 +38,7 @@ const emptyStep = (): StepTranslations => ({
   data: {},
   dataDescription: {},
   menuOptions: {},
+  sections: {},
 });
 
 const MAX_KEYS = 4000;
@@ -60,6 +69,13 @@ export const parseTranslations = (handler: string, raw: unknown): HandlerTransla
         step.dataDescription[rest[3] ?? ''] = value;
       else if (rest.length === 4 && rest[2] === 'menu_options')
         step.menuOptions[rest[3] ?? ''] = value;
+      else if (rest[2] === 'sections' && rest.length >= 5) {
+        const section = (step.sections[rest[3] ?? ''] ??= { data: {}, dataDescription: {} });
+        if (rest.length === 5 && rest[4] === 'name') section.name = value;
+        else if (rest.length === 6 && rest[4] === 'data') section.data[rest[5] ?? ''] = value;
+        else if (rest.length === 6 && rest[4] === 'data_description')
+          section.dataDescription[rest[5] ?? ''] = value;
+      }
     } else if (rest.length === 2 && rest[0] === 'error') {
       parsed.errors[rest[1] ?? ''] = value;
     } else if (rest.length === 2 && rest[0] === 'abort') {

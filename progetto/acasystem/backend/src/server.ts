@@ -54,7 +54,15 @@ export const createApp = ({
   devices: deviceOptions = {},
 }: CreateAppOptions = {}): Express => {
   const app = express();
-  const homeAssistantAuth = createHomeAssistantAuthMiddleware();
+  // An administrator who opens Acasystem lends the device facade the means to activate its
+  // service identity (REP-20261028-004, T1); `devices` is created below, hence the lookup.
+  const homeAssistantAuth = createHomeAssistantAuthMiddleware({
+    onAdministrator: ({ user, accessToken }) =>
+      (app.locals.devices as DeviceModule | undefined)?.keeper.offerAdmin({
+        token: accessToken,
+        user: { id: user.id, name: user.name },
+      }),
+  });
   app.disable('x-powered-by');
   app.use(securityHeaders);
 

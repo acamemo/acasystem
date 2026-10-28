@@ -184,6 +184,10 @@ export interface FakeKnobs {
   network: { ssdp: unknown[]; zeroconf: unknown[]; dhcp: unknown[] };
   /** Sources whose subscription answers `unknown_command` (an HA without it). */
   networkMissing: ('ssdp' | 'zeroconf' | 'dhcp')[];
+  /** `brands/access_token` answers `unknown_command` (an HA older than 2026.3). */
+  brandsMissing: boolean;
+  /** The content type the brands proxy answers (HA: always `image/png`). */
+  brandsContentType: string;
 }
 
 const BASE_FEATURES = 1028;
@@ -225,6 +229,8 @@ export class FakeHomeAssistant {
     translations: {},
     network: { ssdp: [], zeroconf: [], dhcp: [] },
     networkMissing: [],
+    brandsMissing: false,
+    brandsContentType: 'image/png',
   };
 
   users = new Map<string, FakeUser>();
@@ -244,8 +250,21 @@ export class FakeHomeAssistant {
   scriptedHandlers = new Map<string, { steps: ScriptedStep[]; entry: ScriptedEntry }>();
   /** Answers received by the scripted flows (what Acasystem sent to HA, step by step). */
   received: { flowId: string; stepId: string; body: Record<string, unknown> }[] = [];
+  /** Integration names `manifest/list` answers with, by domain. */
+  manifestNames: Record<string, string> = {};
+  /** Serial ports `usb/list_serial_ports` answers with (T7). */
+  serialPorts: Record<string, unknown>[] = [];
+  /** Files received by `POST /api/file_upload`: the name and the size of the file part. */
+  uploads: { fileId: string; filename: string; size: number }[] = [];
   /** Discoveries ignored through `config_entries/ignore_flow`. */
   ignored: { flowId: string; title: string }[] = [];
+
+  /** Logos the brands proxy has, by `domain/image` (`webostv/icon.png`). */
+  brandImages = new Map<string, Buffer>();
+  /** Tokens of the brands proxy that HA accepts (the current one and the one before). */
+  private brandsTokens: string[] = [];
+  /** The proxy refuses every token it gave (a rotation the facade cannot catch up with). */
+  refuseBrandsTokens = false;
 
   url = '';
   port = 0;
@@ -328,6 +347,37 @@ export class FakeHomeAssistant {
     this.scriptedHandlers.set(handler, options);
   }
 
+  /** A discovery that somebody ignored: a config entry with the source `ignore`. */
+  seedIgnoredEntry(domain: string, title: string): FakeEntry {
+    const entry: FakeEntry = {
+      entry_id: entryId(),
+      domain,
+      title,
+      loadedAt: 0,
+      host: null,
+      mac: null,
+      source: 'ignore',
+    };
+    this.entries.push(entry);
+    return entry;
+  }
+
+  /** A logo the brands proxy serves. */
+  seedBrandImage(domain: string, image: string, data: Buffer): void {
+    this.brandImages.set(`${domain}/${image}`, data);
+  }
+
+  /** HA rotates the brands token: a new current one; `keepPrevious` false drops the old one too. */
+  rotateBrandsToken(keepPrevious = true): string {
+    const token = randomBytes(16).toString('hex');
+    this.brandsTokens = [...(keepPrevious ? this.brandsTokens.slice(-1) : []), token];
+    return token;
+  }
+
+  private currentBrandsToken(): string {
+    return this.brandsTokens.at(-1) ?? this.rotateBrandsToken();
+  }
+
   /** A TV that was already added, as it would be after the flow. */
   seedTv(options: { host?: string; mac?: string | null } = {}): FakeEntry {
     return this.createTvEntry(
@@ -350,8 +400,16 @@ export class FakeHomeAssistant {
         res.end('{"message":"fake error"}');
       });
     });
-    const wsServer = new WebSocketServer({ server, path: '/api/websocket' });
-    wsServer.on('connection', (socket) => this.handleSocket(socket));
+    // `/api/websocket` is HA itself; `/core/websocket` is the Supervisor proxy to Core of HA OS.
+    const wsServer = new WebSocketServer({ server });
+    wsServer.on('connection', (socket, request) => {
+      const path = new URL(request.url ?? '/', 'http://fake').pathname;
+      if (path !== '/api/websocket' && path !== '/core/websocket') {
+        socket.close();
+        return;
+      }
+      this.handleSocket(socket);
+    });
 
     await new Promise<void>((resolve, reject) => {
       server.once('error', reject);
@@ -408,7 +466,8 @@ export class FakeHomeAssistant {
 
   private async handleHttp(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', 'http://fake');
-    const path = url.pathname;
+    // The Supervisor proxy to Core of HA OS: `/core/api/...` is `/api/...` of HA.
+    const path = url.pathname.replace(/^\/core(?=\/api\/)/, '');
     const method = req.method ?? 'GET';
     const raw = await readBody(req);
     const contentType = req.headers['content-type'] ?? '';
@@ -428,6 +487,53 @@ export class FakeHomeAssistant {
     })();
 
     const auth = this.userForToken(this.bearer(req), ['access', 'llat']);
+
+    // The brands proxy: a token in the query or a Bearer token; 403 without either, as HA does.
+    const brandMatch = /^\/api\/brands\/integration\/([a-z0-9_]+)\/([a-z0-9_@.]+)$/.exec(path);
+    if (method === 'GET' && brandMatch) {
+      this.calls.push({
+        via: 'rest',
+        route: 'GET /api/brands/integration/{domain}/{image}',
+        target: `${brandMatch[1]}/${brandMatch[2]}`,
+        userId: auth?.user.id ?? null,
+        tokenKind: auth?.info.kind ?? null,
+      });
+      const token = url.searchParams.get('token');
+      if (!auth && (this.refuseBrandsTokens || !(token && this.brandsTokens.includes(token)))) {
+        res.statusCode = 403;
+        return void res.end();
+      }
+      const image = this.brandImages.get(`${brandMatch[1]}/${brandMatch[2]}`);
+      if (!image) {
+        res.statusCode = 404;
+        return void res.end();
+      }
+      res.statusCode = 200;
+      res.setHeader('Content-Type', this.knobs.brandsContentType);
+      return void res.end(image);
+    }
+
+    // The upload of a `file` selector (T7): multipart with one part named `file`.
+    if (method === 'POST' && path === '/api/file_upload') {
+      const filename = /filename="([^"]*)"/.exec(raw)?.[1] ?? null;
+      const mine = auth ? true : false;
+      this.calls.push({
+        via: 'rest',
+        route: 'POST /api/file_upload',
+        userId: auth?.user.id ?? null,
+        tokenKind: auth?.info.kind ?? null,
+      });
+      if (!mine || !contentType.startsWith('multipart/form-data') || !filename) {
+        res.statusCode = mine ? 400 : 401;
+        return void res.end();
+      }
+      const fileId = `${this.uploads.length + 1}`.padStart(32, 'a');
+      this.uploads.push({ fileId, filename, size: raw.length });
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      return void res.end(JSON.stringify({ file_id: fileId }));
+    }
+
     const send = (status: number, body: unknown) => {
       const target = /\/(?:flow|entry|config|login_flow)\/([A-Za-z0-9_-]+)$/.exec(path)?.[1];
       this.calls.push({
@@ -1371,6 +1477,21 @@ export class FakeHomeAssistant {
         return { resources };
       }
 
+      case 'usb/list_serial_ports':
+        admin();
+        return this.serialPorts;
+
+      case 'brands/access_token':
+        if (this.knobs.brandsMissing) throw new Error('unknown_command');
+        return { token: this.currentBrandsToken() };
+
+      case 'manifest/list': {
+        const asked = Array.isArray(message.integrations) ? message.integrations : [];
+        return asked
+          .filter((domain): domain is string => typeof domain === 'string')
+          .filter((domain) => this.manifestNames[domain])
+          .map((domain) => ({ domain, name: this.manifestNames[domain] }));
+      }
       case 'config_entries/ignore_flow': {
         admin();
         const flow = this.flows.get(text('flow_id'));

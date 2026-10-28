@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { vi } from 'vitest';
 import type { HomeAssistantUser } from '../@types/homeAssistant.ts';
+import { createHomeAssistantAuthMiddleware } from '../middlewares/homeAssistantAuth.ts';
 import { openDatabase } from '../models/database.ts';
 import type { SqliteDatabase } from '../models/database.ts';
 import { createDevicesRouter } from '../routes/devices.ts';
@@ -15,8 +16,8 @@ import { FakeHomeAssistant } from './fakeHomeAssistant.ts';
 
 /**
  * Test rig for the device facade: a fake HA, an in-memory database, a temporary secret file
- * and the real router behind a stub of the Home Assistant authentication (the user comes from
- * the `x-test-user` header). Everything the browser would see, every log line and every
+ * and the real router behind the real authentication middleware (each test user has a bearer
+ * token that a stub validator maps to the user; the installer's is a real admin token of the fake HA). Everything the browser would see, every log line and every
  * console message is recorded so the tests can search it for values that must not leak.
  */
 
@@ -50,12 +51,19 @@ export interface Harness {
   serviceUserId: string;
   /** Everything sent to the browser (status line, headers, body) as text. */
   transcript: string[];
+  /** The bearer token the harness sends for this user (what the server sees as the access token). */
+  accessTokenOf(user: TestUser): string;
   /** Log lines of the facade plus every console message. */
   logs: string[];
   request(
     path: string,
-    options?: { method?: string; user?: TestUser | null; body?: unknown }
+    options?: { method?: string; user?: TestUser | null; body?: unknown; raw?: Buffer }
   ): Promise<ApiResult>;
+  /** A GET whose answer is a file (a logo): status, headers and the bytes. */
+  requestBinary(
+    path: string,
+    options?: { user?: TestUser | null }
+  ): Promise<{ status: number; headers: Headers; data: Buffer }>;
   /** A new module on the same database, secret and HA: what a restart of the backend does. */
   restartBackend(options?: DeviceModuleOptions): DeviceModule;
   close(): Promise<void>;
@@ -68,6 +76,11 @@ export interface HarnessOptions {
   fake?: FakeHomeAssistant;
   /** Requests per minute allowed by the router limiter. Default: very high. */
   rateLimitMax?: number;
+  /**
+   * An administrator's request lends its token to the keeper, as in the real app (server.ts).
+   * Off by default so a test that looks at an inactive service is not changed by the installer.
+   */
+  adminActivates?: boolean;
 }
 
 const FAST: DeviceModuleOptions = {
@@ -90,6 +103,8 @@ export const createHarness = async (options: HarnessOptions = {}): Promise<Harne
   const database = openDatabase(':memory:');
   const transcript: string[] = [];
   const logs: string[] = [];
+  // The real authentication middleware runs behind the harness: it reads this URL.
+  vi.stubEnv('TUNET_INTERNAL_HA_URL', fake.url);
 
   const consoleSpies = (['log', 'info', 'warn', 'error'] as const).map((method) =>
     vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
@@ -100,6 +115,8 @@ export const createHarness = async (options: HarnessOptions = {}): Promise<Harne
   const moduleOptions = (extra: DeviceModuleOptions = {}): DeviceModuleOptions => ({
     ...FAST,
     haUrls: () => [fake.url],
+    // No Supervisor unless the test asks for it: the environment of the machine must not matter.
+    supervisor: null,
     secretPath: () => secretPath,
     log: (line) => logs.push(line),
     ...options.module,
@@ -130,13 +147,40 @@ export const createHarness = async (options: HarnessOptions = {}): Promise<Harne
 
   let current = module;
   let router = createDevicesRouter(current);
+
+  // Each test user has an access token. The installer's is a real administrator of the fake HA
+  // (created on first use), so the token the server sees can activate the service.
+  const accessTokens = new Map<TestUser, string>();
+  const tokenOf = (name: TestUser): string => {
+    let token = accessTokens.get(name);
+    if (!token) {
+      token =
+        name === 'installer'
+          ? fake.addUser({ name: 'Installatore', isAdmin: true }).token
+          : `test-token-${name}`;
+      accessTokens.set(name, token);
+    }
+    return token;
+  };
+  const userOfToken = (token: string): HomeAssistantUser | null => {
+    for (const [name, candidate] of accessTokens) if (candidate === token) return USERS[name];
+    return null;
+  };
+  const authentication = createHomeAssistantAuthMiddleware({
+    validateHomeAssistantUser: async ({ accessToken }) => {
+      const user = userOfToken(accessToken);
+      if (!user) throw new Error('unknown test token');
+      return user;
+    },
+    onAdministrator: ({ user, accessToken }) => {
+      if (options.adminActivates) {
+        current.keeper.offerAdmin({ token: accessToken, user: { id: user.id, name: user.name } });
+      }
+    },
+  });
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
-    const name = req.get('x-test-user') as TestUser | undefined;
-    if (name && USERS[name]) req.authenticatedHaUser = USERS[name];
-    next();
-  });
+  app.use('/api/dispositivi', authentication);
   // The router is looked up on every request so `restartBackend` swaps the module under it.
   app.use('/api/dispositivi', (req, res, next) => router(req, res, next));
 
@@ -155,16 +199,19 @@ export const createHarness = async (options: HarnessOptions = {}): Promise<Harne
     serviceToken,
     serviceUserId: service.user.id,
     transcript,
+    accessTokenOf: tokenOf,
     logs,
 
-    async request(path, { method = 'GET', user = 'customer', body } = {}) {
+    async request(path, { method = 'GET', user = 'customer', body, raw } = {}) {
       const headers: Record<string, string> = {};
-      if (user) headers['x-test-user'] = user;
+      if (user) headers.authorization = `Bearer ${tokenOf(user)}`;
       if (body !== undefined) headers['content-type'] = 'application/json';
+      if (raw !== undefined) headers['content-type'] = 'application/octet-stream';
       const response = await fetch(`${baseUrl}/api/dispositivi${path}`, {
         method,
         headers,
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        ...(raw !== undefined ? { body: new Uint8Array(raw) } : {}),
       });
       const text = await response.text();
       transcript.push(
@@ -177,6 +224,17 @@ export const createHarness = async (options: HarnessOptions = {}): Promise<Harne
         parsed = { raw: text };
       }
       return { status: response.status, body: parsed, headers: response.headers };
+    },
+
+    async requestBinary(path, { user = 'customer' } = {}) {
+      const headers: Record<string, string> = {};
+      if (user) headers.authorization = `Bearer ${tokenOf(user)}`;
+      const response = await fetch(`${baseUrl}/api/dispositivi${path}`, { headers });
+      return {
+        status: response.status,
+        headers: response.headers,
+        data: Buffer.from(await response.arrayBuffer()),
+      };
     },
 
     restartBackend(extra) {

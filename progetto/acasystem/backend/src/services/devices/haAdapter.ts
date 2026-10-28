@@ -48,6 +48,24 @@ export interface HaEntity {
   disabledBy: string | null;
 }
 
+/** An entity of the registry as the `entity` selector of a flow lists it (REP-20261028-004, T7). */
+export interface HaEntityChoice {
+  entityId: string;
+  /** Integration that owns it (`platform` of the registry). */
+  platform: string;
+  name: string | null;
+  deviceClass: string | null;
+}
+
+/** A serial port as `usb/list_serial_ports` reports it. */
+export interface HaSerialPort {
+  device: string;
+  description: string | null;
+  manufacturer: string | null;
+  /** Integrations HA matched to the port by vendor and product id. */
+  matchingIntegrations: string[];
+}
+
 export interface HaArea {
   id: string;
   name: string;
@@ -123,6 +141,10 @@ export interface HaWsApi {
   entities(): Promise<HaEntity[]>;
   updateEntity(entityId: string, changes: { hiddenBy: 'user' | null }): Promise<void>;
   areas(): Promise<HaArea[]>;
+  /** The visible entities of the registry, for the `entity` selector of a flow. */
+  entityChoices(): Promise<HaEntityChoice[]>;
+  /** The serial ports HA sees (`usb/list_serial_ports`, no usage), for the `serial_port` selector. */
+  serialPorts(): Promise<HaSerialPort[]>;
   createArea(name: string): Promise<HaArea>;
   validateConfig(config: {
     triggers: unknown[];
@@ -146,16 +168,26 @@ export interface HaWsApi {
   ignoreFlow(flowId: string, title: string): Promise<void>;
   /** Flows in progress other than the ones opened by a person (`source` is not `user`). */
   flowsInProgress(): Promise<HaProgressFlow[]>;
+  /** Display names of integrations by domain, from their manifests (`manifest/list`). */
+  integrationNames(domains: readonly string[]): Promise<Record<string, string>>;
   /**
    * The list of devices HA sees on the network for one source: the first event of its
    * `subscribe_discovery` subscription of the source, which is closed again. Read-only; HA does the scan.
    */
   networkDevices(source: HaNetworkDevice['source']): Promise<HaNetworkDevice[]>;
+  /** Token of the brands proxy of HA (`brands/access_token`); it rotates every 30 minutes. */
+  brandsToken(): Promise<string>;
   /**
    * Italian texts of the configuration flows of one integration (`frontend/get_translations`,
    * category `config`): the raw `result`, read by `parseTranslations` (haTexts.ts).
    */
   translations(handler: string): Promise<unknown>;
+}
+
+/** A logo as HA served it. */
+export interface HaBrandImage {
+  contentType: string;
+  data: Buffer;
 }
 
 export interface HaAdapter {
@@ -172,7 +204,21 @@ export interface HaAdapter {
   flowStep(token: string, flowId: string, input: Record<string, unknown>): Promise<unknown>;
   /** Cancels a flow; true if HA had it, false if it was already gone. */
   flowCancel(token: string, flowId: string): Promise<boolean>;
+  /** Uploads a file for a `file` selector of a flow (`POST /api/file_upload`); returns `file_id`. */
+  uploadFile(token: string, filename: string, contentType: string, data: Buffer): Promise<string>;
   removeEntry(token: string, entryId: string): Promise<boolean>;
+  /**
+   * The image of an integration (`icon.png`, `dark_icon.png`) through the brands proxy of HA, or
+   * null when HA has none, the answer is not an image or it is larger than `maxBytes`. The
+   * brands token is kept and renewed once when HA refuses it; a refusal of the brands token is
+   * never reported as a refusal of the service token.
+   */
+  brandImage(
+    token: string,
+    domain: string,
+    image: string,
+    maxBytes: number
+  ): Promise<HaBrandImage | null>;
   automationExists(token: string, automationId: string): Promise<boolean>;
   automationPut(token: string, automationId: string, body: Record<string, unknown>): Promise<void>;
   automationDelete(token: string, automationId: string): Promise<boolean>;
@@ -197,6 +243,9 @@ export interface HaAdapterOptions {
   callTimeoutMs: number;
   flowStepTimeoutMs: number;
 }
+
+/** The brands token is renewed by HA every 30 minutes and the previous one stays valid. */
+const BRANDS_TOKEN_MS = 20 * 60_000;
 
 /** How long to wait for the first event of a discovery subscription (F5: at most 3 seconds). */
 const DISCOVERY_WAIT_MS = 3_000;
@@ -458,6 +507,38 @@ const createWsApi = (
   async areas() {
     return compact(asArray(await send(HA_CALLS.areasList)).map(parseArea));
   },
+  async entityChoices() {
+    return compact(
+      asArray(await send(HA_CALLS.entitiesList)).map((value): HaEntityChoice | null => {
+        if (!isRecord(value) || value.hidden_by || value.disabled_by) return null;
+        const entityId = asString(value.entity_id);
+        if (!entityId) return null;
+        return {
+          entityId,
+          platform: asString(value.platform) ?? '',
+          name: asString(value.name) ?? asString(value.original_name),
+          deviceClass: asString(value.device_class) ?? asString(value.original_device_class),
+        };
+      })
+    );
+  },
+  async serialPorts() {
+    return compact(
+      asArray(await send(HA_CALLS.serialPorts)).map((value): HaSerialPort | null => {
+        if (!isRecord(value)) return null;
+        const device = asString(value.device);
+        if (!device) return null;
+        return {
+          device,
+          description: asString(value.description),
+          manufacturer: asString(value.manufacturer),
+          matchingIntegrations: asArray(value.matching_integrations).filter(
+            (item): item is string => typeof item === 'string'
+          ),
+        };
+      })
+    );
+  },
   async createArea(name) {
     const area = parseArea(await send(HA_CALLS.areasCreate, { name }));
     if (!area) throw protocolError();
@@ -523,6 +604,16 @@ const createWsApi = (
   async flowsInProgress() {
     return compact(asArray(await send(HA_CALLS.flowList)).map(parseProgressFlow));
   },
+  async integrationNames(domains) {
+    const names: Record<string, string> = {};
+    for (const manifest of asArray(await send(HA_CALLS.manifestList, { integrations: domains }))) {
+      if (!isRecord(manifest)) continue;
+      const domain = asString(manifest.domain);
+      const name = asString(manifest.name);
+      if (domain && name) names[domain] = name;
+    }
+    return names;
+  },
   async networkDevices(source) {
     const call =
       source === 'ssdp'
@@ -538,6 +629,12 @@ const createWsApi = (
       }
     }
     return found;
+  },
+  async brandsToken() {
+    const result = requireRecord(await send(HA_CALLS.brandsToken));
+    const token = asString(result.token);
+    if (!token) throw protocolError();
+    return token;
   },
   async translations(handler) {
     return send(HA_CALLS.translations, {
@@ -611,6 +708,16 @@ export const createHaAdapter = ({
 
   const flowParams = (flowId: string) => ({ flow_id: flowId });
 
+  let brandsToken: { value: string; at: number } | null = null;
+  const readBrandsToken = async (token: string, renew: boolean): Promise<string> => {
+    if (!renew && brandsToken && Date.now() - brandsToken.at < BRANDS_TOKEN_MS) {
+      return brandsToken.value;
+    }
+    const value = await wsApi((run) => withSession(token, run)).brandsToken();
+    brandsToken = { value, at: Date.now() };
+    return value;
+  };
+
   return {
     readVersion: () => transport.readVersion(callTimeoutMs),
     ws: (token) => wsApi((run) => withSession(token, run)),
@@ -670,8 +777,54 @@ export const createHaAdapter = ({
     flowCancel: (token, flowId) =>
       swallowNotFound(() => rest(HA_CALLS.flowCancel, { token, params: flowParams(flowId) })),
 
+    async uploadFile(token, filename, contentType, data) {
+      const { body } = await rest(HA_CALLS.fileUpload, {
+        token,
+        multipart: { field: 'file', filename, contentType, data },
+        timeoutMs: flowStepTimeoutMs,
+      });
+      const fileId = isRecord(body) ? asString(body.file_id) : null;
+      if (!fileId) throw protocolError();
+      return fileId;
+    },
+
     removeEntry: (token, entryId) =>
       swallowNotFound(() => rest(HA_CALLS.entryRemove, { token, params: { entry_id: entryId } })),
+
+    async brandImage(token, domain, image, maxBytes) {
+      for (const renew of [false, true]) {
+        let brands: string;
+        try {
+          brands = await readBrandsToken(token, renew);
+        } catch (error) {
+          // An HA without the brands proxy: no logos, nothing else wrong.
+          if (isHaError(error) && error.kind === 'protocol') return null;
+          throw error;
+        }
+        try {
+          const response = await transport.restBinary(HA_CALLS.brandImage, {
+            params: { domain, image },
+            // `placeholder=no`: a missing logo is a 404, not HA's placeholder picture.
+            query: { token: brands, placeholder: 'no' },
+            timeoutMs: callTimeoutMs,
+            maxBytes,
+          });
+          return /^image\//i.test(response.contentType)
+            ? { contentType: response.contentType, data: response.data }
+            : null;
+        } catch (error) {
+          if (!isHaError(error)) throw error;
+          if (error.kind === 'not_found' || error.kind === 'protocol') return null;
+          // The brands token expired: renew it once. Still refused after that: no logo.
+          if (error.kind === 'unauthorized' || error.kind === 'forbidden') {
+            if (renew) return null;
+            continue;
+          }
+          throw error;
+        }
+      }
+      return null;
+    },
 
     automationExists: (token, automationId) =>
       swallowNotFound(() => rest(HA_CALLS.automationGet, { token, params: { id: automationId } })),

@@ -2,6 +2,7 @@ import { POWER_AUTOMATION_ID_PREFIX } from '../../config/devices.ts';
 import { powerTriggerFormsFor } from '../../config/homeAssistantApiCatalog.ts';
 import type { PowerTriggerForm } from '../../config/homeAssistantApiCatalog.ts';
 import { macDigits, normalizeMacAddress } from '../../helpers/macAddress.ts';
+import { classifyTvs } from './tvClassify.ts';
 import { normalizeBroadcastAddress, normalizePort } from '../../helpers/network.ts';
 import type { PowerLinkRow } from '../../models/deviceModel.ts';
 import { DeviceError } from './deviceErrors.ts';
@@ -23,16 +24,16 @@ import type { HaDevice, HaWsApi } from './haAdapter.ts';
  *
  * The recipe is a closed model: the body of the automation is built here from ids that this
  * server read from the registries of HA, never from the browser. The id of the automation has
- * a fixed prefix. The MAC comes from HA (when its device registry has one) or from the
- * installer; it is passed to HA and forgotten: it is not stored, logged or returned.
+ * a fixed prefix. The MAC comes, in this order, from the person (any user may send it), from the
+ * device registry of HA, or from what HA saw on the network (an LG television with a MAC on the
+ * DHCP list, when it is the only one); it is passed to HA and forgotten: it is not stored, logged
+ * or returned.
  */
 
 export interface PowerOptions {
-  /** Installer only. */
+  /** Sent by the person when HA and the network do not give it. */
   mac?: string | undefined;
-  /** Installer only. */
   broadcastAddress?: string | undefined;
-  /** Installer only. */
   broadcastPort?: number | undefined;
 }
 
@@ -43,7 +44,7 @@ export interface PowerStatusDto {
   active: boolean | null;
   message: string | null;
   /** Where the MAC came from for this call; the value is never returned. */
-  macSource?: 'home_assistant' | 'installer';
+  macSource?: 'home_assistant' | 'network' | 'user';
 }
 
 export interface PowerRecipe {
@@ -90,6 +91,25 @@ export const buildPowerAutomation = (model: AutomationModel): Record<string, unk
 /** MAC known to HA for this device (device registry `connections`); null if HA has none. */
 const macFromHomeAssistant = (device: HaDevice | undefined): string | null =>
   device?.macs[0] ?? null;
+
+/**
+ * MAC of the LG television among the devices HA saw on the network (DHCP gives the MAC, SSDP the
+ * description): used only when exactly one LG television shows a MAC that no device in the
+ * registry has. Two candidates are never guessed between.
+ */
+const macFromNetwork = async (api: HaWsApi, devices: readonly HaDevice[]): Promise<string | null> => {
+  const lists = await Promise.allSettled([api.networkDevices('ssdp'), api.networkDevices('dhcp')]);
+  const seen = lists.flatMap((list) => (list.status === 'fulfilled' ? list.value : []));
+  const known = new Set(devices.flatMap((device) => device.macs));
+  const macs = new Set(
+    classifyTvs(seen).flatMap((candidate) =>
+      candidate.brandKey === 'lg' && candidate.mac && !known.has(candidate.mac)
+        ? [candidate.mac]
+        : []
+    )
+  );
+  return macs.size === 1 ? ([...macs][0] ?? null) : null;
+};
 
 export const createPowerRecipe = (ctx: DeviceContext): PowerRecipe => {
   /** Waits until the media player of the TV shows the turn-on feature. */
@@ -230,13 +250,6 @@ export const createPowerRecipe = (ctx: DeviceContext): PowerRecipe => {
         },
         (token, audit) =>
           exclusive(webostvEntryId, async () => {
-            // MAC and broadcast overrides are the installer's: a customer gets the MAC from HA.
-            const overrides =
-              options.mac !== undefined ||
-              options.broadcastAddress !== undefined ||
-              options.broadcastPort !== undefined;
-            if (overrides && !user.isAdmin) throw new DeviceError('REQUIRES_INSTALLER');
-
             const suppliedMac = options.mac === undefined ? null : normalizeMacAddress(options.mac);
             if (options.mac !== undefined && !suppliedMac)
               throw new DeviceError('INVALID_INPUT', { field: 'mac' });
@@ -284,7 +297,7 @@ export const createPowerRecipe = (ctx: DeviceContext): PowerRecipe => {
 
               // 3. Wake on LAN entry: reuse the one in the link, else create it (needs the MAC).
               const link = ctx.model.links.get(webostvEntryId);
-              let macSource: 'home_assistant' | 'installer' | undefined;
+              let macSource: PowerStatusDto['macSource'];
               let wolEntryId: string | null = null;
               if (
                 link &&
@@ -295,14 +308,21 @@ export const createPowerRecipe = (ctx: DeviceContext): PowerRecipe => {
                 wolEntryId = link.wol_entry_id;
               }
               if (!wolEntryId) {
-                const mac = suppliedMac ?? macFromHomeAssistant(tvDevice);
+                const fromHa = macFromHomeAssistant(tvDevice);
+                const mac = suppliedMac ?? fromHa ?? (await macFromNetwork(api, devices));
                 if (!mac) throw new DeviceError('MAC_REQUIRED');
-                macSource = suppliedMac ? 'installer' : 'home_assistant';
+                macSource = suppliedMac ? 'user' : fromHa ? 'home_assistant' : 'network';
                 wolEntryId = await createWakeOnLanEntry(token, api, mac, {
                   broadcastAddress: broadcastAddress ?? undefined,
                   broadcastPort: broadcastPort ?? undefined,
                 });
-                if (audit) audit.code = suppliedMac ? 'mac_from_installer' : 'mac_from_ha';
+                if (audit) {
+                  audit.code = suppliedMac
+                    ? 'mac_from_user'
+                    : fromHa
+                      ? 'mac_from_ha'
+                      : 'mac_from_network';
+                }
               }
 
               const wol = await waitForEntry(

@@ -44,7 +44,7 @@ const TV_BRANDS = {
     handler: null,
     confirmation: 'nessuno',
     reason:
-      "Il Fire TV si collega solo dopo aver attivato il debug ADB nelle impostazioni della TV: chiedi all'installatore.",
+      'Il Fire TV si collega solo dopo aver attivato il debug ADB nelle impostazioni della TV. Attivalo e riprova.',
   },
 } as const satisfies Record<string, TvBrand>;
 

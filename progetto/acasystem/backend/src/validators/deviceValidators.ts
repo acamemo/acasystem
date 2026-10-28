@@ -47,6 +47,18 @@ export const validateEntryId = (value: unknown): string => {
   return value;
 };
 
+export const validateLogoDomain = (value: unknown): string => {
+  if (typeof value !== 'string' || !HANDLER.test(value)) throw invalid('domain');
+  return value;
+};
+
+export const validateLogoDark = (raw: unknown): boolean => {
+  const query = isRecord(raw) ? raw : {};
+  if (query.tema === undefined) return false;
+  if (query.tema !== 'scuro' && query.tema !== 'chiaro') throw invalid('tema');
+  return query.tema === 'scuro';
+};
+
 export const validateDeviceId = (value: unknown): string => {
   if (typeof value !== 'string' || !DEVICE_ID.test(value))
     throw new DeviceError('DEVICE_NOT_FOUND');
@@ -155,4 +167,18 @@ export const validatePowerBody = (raw: unknown): PowerOptions => {
     options.broadcastPort = port;
   }
   return options;
+};
+
+// --- Upload of a file for a `file` field of a flow (REP-20261028-004, T7) ----------------------
+
+const UPLOAD_FIELD = /^[A-Za-z0-9_.-]{1,64}$/;
+
+/** `?campo=<field>&nome=<file name>` of `POST /flussi/:flowId/file`; the name is cleaned later. */
+export const validateFileUploadQuery = (query: unknown): { field: string; fileName: string } => {
+  const source = body(query);
+  const field = source.campo;
+  if (typeof field !== 'string' || !UPLOAD_FIELD.test(field)) throw invalid('campo');
+  const name = source.nome;
+  if (name !== undefined && (typeof name !== 'string' || name.length > 255)) throw invalid('nome');
+  return { field, fileName: typeof name === 'string' ? name : 'file' };
 };

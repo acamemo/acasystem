@@ -10,7 +10,7 @@ export const DEVICE_ERROR_DEFINITIONS = {
   SERVICE_NOT_ACTIVE: {
     status: 503,
     message:
-      "Servizio non attivo. La configurazione dei dispositivi da Acasystem è spenta: chiedi all'installatore di attivarla.",
+      'Il servizio dei dispositivi non è attivo. Tocca «Ripara il servizio».',
   },
   HA_UNREACHABLE: {
     status: 503,
@@ -22,18 +22,21 @@ export const DEVICE_ERROR_DEFINITIONS = {
   },
   HA_NOT_READY: {
     status: 503,
-    message: "Home Assistant non è ancora stato configurato. Serve l'installatore.",
+    message:
+      'Home Assistant non è ancora pronto. Crea il primo account di Home Assistant dalla prima schermata dell’app, poi torna qui.',
   },
   HA_INCOMPATIBLE: {
     status: 503,
-    message: "Questa versione di Home Assistant non risponde come previsto. Serve l'installatore.",
+    message:
+      'Questa versione di Home Assistant non risponde come previsto. Aggiorna Acasystem e riprova.',
   },
   FEATURE_UNAVAILABLE: {
     status: 503,
     message:
-      "Su questo sistema non è possibile aggiungere dispositivi da qui. Chiedi all'installatore.",
+      'Su questo sistema non è possibile aggiungere dispositivi da qui. Riprova più tardi o dopo un aggiornamento di Acasystem.',
   },
-  REQUIRES_INSTALLER: { status: 403, message: "Richiede l'installatore." },
+  // The code keeps its old name (the app reads it); the message never names anybody.
+  REQUIRES_INSTALLER: { status: 403, message: 'Non si può fare da qui.' },
   FORBIDDEN: { status: 403, message: 'Non puoi usare questo elemento.' },
   FLOW_NOT_FOUND: {
     status: 404,
@@ -63,19 +66,20 @@ export const DEVICE_ERROR_DEFINITIONS = {
   UNSUPPORTED_STEP: {
     status: 422,
     message:
-      "Questo dispositivo non si può ancora aggiungere da Acasystem. Chiedi all'installatore.",
+      'Questo dispositivo non si può ancora aggiungere da Acasystem. Riprova dopo un aggiornamento dell’app.',
   },
   TV_NOT_FOUND: {
     status: 404,
     message: "Questo televisore non si trova più in rete. Aggiorna l'elenco.",
   },
   ENTRY_NOT_FOUND: { status: 404, message: 'Dispositivo non trovato.' },
+  LOGO_NOT_FOUND: { status: 404, message: 'Logo non disponibile.' },
   DEVICE_NOT_FOUND: { status: 404, message: 'Dispositivo non trovato.' },
   AREA_NOT_FOUND: { status: 404, message: 'Stanza non trovata.' },
   MAC_REQUIRED: {
     status: 409,
     message:
-      "Per accendere il televisore serve il suo indirizzo MAC, che Home Assistant non conosce. Lo inserisce l'installatore.",
+      "Per accendere il televisore serve il suo indirizzo MAC e non l'ho trovato. Inseriscilo (si legge nelle impostazioni di rete del televisore) e riprova.",
   },
   ENTRY_NOT_READY: {
     status: 409,
@@ -83,12 +87,12 @@ export const DEVICE_ERROR_DEFINITIONS = {
   },
   HA_REFUSED: {
     status: 502,
-    message: "Home Assistant ha rifiutato l'operazione. Riprova o chiedi all'installatore.",
+    message: "Home Assistant ha rifiutato l'operazione. Riprova tra poco.",
   },
   AREA_EXISTS: { status: 409, message: 'Esiste già una stanza con questo nome.' },
   RECIPE_FAILED: {
     status: 502,
-    message: "Non sono riuscito a configurare l'accensione. Riprova o chiedi all'installatore.",
+    message: "Non sono riuscito a configurare l'accensione. Riprova.",
   },
   NOT_FOUND: { status: 404, message: 'Percorso non trovato.' },
   BAD_REQUEST: { status: 400, message: 'Richiesta non valida.' },

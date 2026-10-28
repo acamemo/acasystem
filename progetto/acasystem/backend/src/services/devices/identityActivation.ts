@@ -10,7 +10,7 @@ import {
 } from '../../config/devices.ts';
 import { readDataDir } from '../../config/env.ts';
 import { isKnownHaVersion } from '../../config/homeAssistantApiCatalog.ts';
-import type { ActionLog } from './actionLog.ts';
+import type { ActionLog, ActionSource } from './actionLog.ts';
 import type { HaAdapter, HaAdminUser, HaLoginStep } from './haAdapter.ts';
 import { isHaError } from './haTransport.ts';
 import { normalizeFlowResult } from './flowModel.ts';
@@ -24,7 +24,10 @@ import type { ServiceIdentityStore } from './serviceIdentity.ts';
  *
  * What it does, in order:
  * 1. if a working identity already exists, it stops (idempotent);
- * 2. the owner logs in (password, and a verification code if HA asks for one);
+ * 2. the owner logs in (password, and a verification code if HA asks for one). When the caller
+ *    passes an `admin` session instead (REP-20261028-004: the Supervisor token of HA OS, or the
+ *    access token of an administrator who is using Acasystem), there is no login: steps 3-7 are
+ *    the same, only the administrative commands of step 3 go through that session;
  * 3. the user "Acasystem (servizio)" is created (administrators group, `local_only`), or the
  *    existing one is reused (found by its login name; a user with that display name and a
  *    different login name is never touched); a suspended user is not reactivated unless
@@ -55,11 +58,30 @@ export interface ActivationPrompter {
   say(line: string): void;
 }
 
+/**
+ * An administrator session that is not the owner's login: the token and the adapter whose
+ * transport reaches HA with it (the Supervisor proxy, or the normal URL for an admin's own token).
+ * Used only for the administrative commands of step 3 and never stored or logged.
+ */
+export interface AdminSession {
+  adapter: HaAdapter;
+  token: string;
+  /** Person behind the session, for the registry; null for the Supervisor. */
+  user: { id: string; name: string } | null;
+}
+
 export interface ActivationDeps {
+  /** HA as the service user will use it: login, token, test flow. */
   adapter: HaAdapter;
   store: ServiceIdentityStore;
   actions: ActionLog;
-  prompter: ActivationPrompter;
+  /** Asks for the owner's credentials. Not needed with `admin`. */
+  prompter?: ActivationPrompter;
+  /** Run without the owner's login, with this administrator session. */
+  admin?: AdminSession;
+  /** Registry fields of this run. Default `cli` and `service.activate`. */
+  source?: ActionSource;
+  action?: string;
   /** Reactivate the service user if it is suspended in HA. */
   reactivate?: boolean;
   /** Create a new token even if the current one works. */
@@ -181,6 +203,9 @@ export const activateServiceIdentity = async ({
   store,
   actions,
   prompter,
+  admin,
+  source = 'cli',
+  action = 'service.activate',
   reactivate = false,
   rotate = false,
   allowSecretInDataDir = readAllowSecretInDataDir(),
@@ -194,13 +219,14 @@ export const activateServiceIdentity = async ({
   /** Ids of the long-lived tokens created by this run and not saved (to delete on failure). */
   let unsavedTokenIds: string[] = [];
   let serviceAccessToken: string | null = null;
-  let ownerUser: { id: string; name: string } | null = null;
+  let ownerUser: { id: string; name: string } | null = admin?.user ?? null;
+  const say = (line: string) => prompter?.say(line);
 
   const finish = (outcome: ActivationResult): ActivationResult => {
     actions.record({
       user: ownerUser,
-      source: 'cli',
-      action: 'service.activate',
+      source,
+      action,
       outcome: outcome.ok ? 'ok' : 'error',
       code: outcome.code,
     });
@@ -223,7 +249,7 @@ export const activateServiceIdentity = async ({
       if (current.state === 'unreachable') {
         return finish(result(false, 'ha_unreachable', 'Home Assistant non è raggiungibile.'));
       }
-      prompter.say('Il servizio salvato non funziona più: lo ricreo.');
+      say('Il servizio salvato non funziona più: lo ricreo.');
     }
 
     // The secret must not end up in the volume that is copied with the data (ADR-0022, point 3).
@@ -237,7 +263,7 @@ export const activateServiceIdentity = async ({
           )
         );
       }
-      prompter.say(
+      say(
         'Attenzione: l’accesso del servizio sarà nel volume dei dati: non copiare quel volume senza trattarlo come un segreto.'
       );
     }
@@ -253,7 +279,9 @@ export const activateServiceIdentity = async ({
     }
 
     const haVersion = await adapter.readVersion().catch(() => null);
-    if (!isKnownHaVersion(haVersion) && !allowUnverifiedVersion) {
+    // An automatic run still tries on a version nobody verified (T8): the test flow of step 6
+    // proves the result, and a failure goes to the registry and is retried at the next check.
+    if (!admin && !isKnownHaVersion(haVersion) && !allowUnverifiedVersion) {
       return finish(
         result(
           false,
@@ -263,34 +291,44 @@ export const activateServiceIdentity = async ({
       );
     }
 
-    // 2. Owner login. The credentials stay in these variables and nowhere else.
-    prompter.say(
-      `Questo comando crea in Home Assistant l’utente «${DEVICE_SERVICE_USER_NAME}», che Acasystem usa solo per aggiungere e configurare dispositivi.`
-    );
-    prompter.say('Servono le credenziali del proprietario di Home Assistant. Non vengono salvate.');
-    const ownerName = (await prompter.ask('Utente proprietario: ')).trim();
-    const ownerPassword = await prompter.askHidden('Password: ');
-    if (!ownerName || !ownerPassword) {
-      return finish(result(false, 'cancelled', 'Operazione annullata: credenziali non inserite.'));
-    }
-
-    const ownerSession = await login(adapter, clientId, ownerName, ownerPassword, () =>
-      prompter.askHidden('Codice di verifica: ')
-    );
-    refreshTokensToRevoke.push(ownerSession.refreshToken);
-
-    const owner = await adapter.ws(ownerSession.accessToken).currentUser();
-    ownerUser = { id: owner.id, name: owner.name };
-    if (!owner.isAdmin) {
-      return finish(
-        result(false, 'not_admin', 'Serve il proprietario o un amministratore di Home Assistant.')
+    // 2. Administrator session: the owner's login, or the one the caller passed in.
+    // The credentials stay in these variables and nowhere else.
+    let adminAdapter = adapter;
+    let adminToken: string;
+    if (admin) {
+      adminAdapter = admin.adapter;
+      adminToken = admin.token;
+    } else {
+      if (!prompter) throw new Error('activation needs a prompter or an admin session');
+      prompter.say(
+        `Questo comando crea in Home Assistant l’utente «${DEVICE_SERVICE_USER_NAME}», che Acasystem usa solo per aggiungere e configurare dispositivi.`
       );
+      prompter.say('Servono le credenziali del proprietario di Home Assistant. Non vengono salvate.');
+      const ownerName = (await prompter.ask('Utente proprietario: ')).trim();
+      const ownerPassword = await prompter.askHidden('Password: ');
+      if (!ownerName || !ownerPassword) {
+        return finish(result(false, 'cancelled', 'Operazione annullata: credenziali non inserite.'));
+      }
+
+      const ownerSession = await login(adapter, clientId, ownerName, ownerPassword, () =>
+        prompter.askHidden('Codice di verifica: ')
+      );
+      refreshTokensToRevoke.push(ownerSession.refreshToken);
+
+      const owner = await adapter.ws(ownerSession.accessToken).currentUser();
+      ownerUser = { id: owner.id, name: owner.name };
+      if (!owner.isAdmin) {
+        return finish(
+          result(false, 'not_admin', 'Serve il proprietario o un amministratore di Home Assistant.')
+        );
+      }
+      adminToken = ownerSession.accessToken;
     }
 
     // 3-4. The service user and its random password.
     const password = randomPassword();
-    const serviceUser = await adapter.withWs(
-      ownerSession.accessToken,
+    const serviceUser = await adminAdapter.withWs(
+      adminToken,
       async (api): Promise<HaAdminUser> => {
         const users = await api.adminUsers();
         // Found by login name. By display name only a user with no login name at all (one this

@@ -1,7 +1,9 @@
 import { isRecord } from '../../helpers/objects.ts';
 import { asString } from '../../helpers/text.ts';
+import { countryOptions } from './countries.ts';
+import { EXTRA_TEXTS, entityLookup, fileAccept, qrConfig, stringList } from './flowExtras.ts';
 import { italianText } from './haTexts.ts';
-import type { HandlerTranslations, StepTranslations } from './haTexts.ts';
+import type { HandlerTranslations, SectionTranslations, StepTranslations } from './haTexts.ts';
 import {
   FLOW_STEP_FALLBACKS,
   STEP_TEXTS,
@@ -24,7 +26,20 @@ import {
  */
 
 export type FlowFieldKind =
-  'text' | 'password' | 'integer' | 'number' | 'boolean' | 'select' | 'multiselect';
+  | 'text'
+  | 'password'
+  | 'integer'
+  | 'number'
+  | 'boolean'
+  | 'select'
+  | 'multiselect'
+  /** A file the person picks; the answer is the id HA gave to the upload (`file` selector). */
+  | 'file'
+  /** A picture to scan (`qr_code` selector): shown, never answered. */
+  | 'qr';
+
+/** Error correction of a QR code, as the letter the encoder takes. */
+export type QrLevel = 'L' | 'M' | 'Q' | 'H';
 
 export interface FlowFieldDto {
   name: string;
@@ -35,10 +50,48 @@ export interface FlowFieldDto {
   default?: string | number | boolean;
   /** A text field that takes several lines. */
   multiline?: boolean;
+  /** A text field for an address, an e-mail or a phone number (the keyboard and the format). */
+  inputType?: 'url' | 'email' | 'tel';
+  /** A choice that also takes a value of the person's own (HA `custom_value`). */
+  allowCustom?: boolean;
+  /**
+   * Section (HA `expandable`) the field belongs to. `name` is then `section.field`; the answer is
+   * nested again when it is sent to HA.
+   */
+  section?: string;
+  sectionLabel?: string;
+  /** The section itself is required: it is sent even if every field of it is left empty. */
+  sectionRequired?: boolean;
   min?: number;
   max?: number;
   options?: { value: string; label: string }[];
+  /** `file`: what the picker accepts (HTML `accept`: `.json,image/*`). */
+  accept?: string;
+  /** `qr`: the text to encode and the error correction HA asked for. */
+  qr?: { data: string; level: QrLevel };
 }
+
+/**
+ * What the server has to look up in HA to give a field its choices (serial ports, entities):
+ * kept next to the constants, never sent to the browser.
+ */
+export interface EntityFilter {
+  domains: string[];
+  integrations: string[];
+  deviceClasses: string[];
+}
+
+export type FlowLookup =
+  | { field: string; type: 'serial_port'; recommended: string[] }
+  | {
+      field: string;
+      type: 'entity';
+      /** Alternatives (any may match); empty means no filter. Each one needs all its parts. */
+      filters: EntityFilter[];
+      /** The only entities allowed, when the flow named them. */
+      include: string[] | null;
+      exclude: string[];
+    };
 
 export interface FlowErrorDto {
   /** Field the error belongs to; null for an error of the whole step. */
@@ -111,8 +164,14 @@ export interface FlowCreatedDto {
 export type FlowOpenStepDto = FlowFormDto | FlowMenuDto | FlowProgressDto | FlowExternalDto;
 export type FlowTerminalDto = FlowAbortDto | FlowCreatedDto;
 
-/** Values HA wants in every answer of a step (`constant` fields): kept here, never drawn. */
-export type FlowConstants = Record<string, string | number | boolean>;
+/**
+ * Values HA wants in every answer of a step (`constant` fields): kept here, never drawn. A
+ * constant inside a section is kept as an object under the name of the section.
+ */
+export type FlowConstants = Record<
+  string,
+  string | number | boolean | Record<string, string | number | boolean>
+>;
 
 export type NormalizedFlow =
   | {
@@ -121,6 +180,8 @@ export type NormalizedFlow =
       stepId: string;
       dto: FlowOpenStepDto;
       constants: FlowConstants;
+      /** Choices to look up in HA before the step is shown (see `flowExtras.ts`). */
+      lookups?: FlowLookup[];
     }
   /** `external_done` and `progress_done`: HA has the next step ready; read the flow again. */
   | { outcome: 'continue'; flowId: string }
@@ -138,6 +199,9 @@ const primitive = (value: unknown): string | number | boolean | undefined =>
   typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
     ? value
     : undefined;
+
+/** Choices of one field. A longer list is cut; the server validates against what was sent. */
+const MAX_OPTIONS = 500;
 
 const optionList = (value: unknown): { value: string; label: string }[] | null => {
   const items = Array.isArray(value) ? value : isRecord(value) ? Object.entries(value) : null;
@@ -158,7 +222,7 @@ const optionList = (value: unknown): { value: string; label: string }[] | null =
       return null;
     }
   }
-  return options.slice(0, 100);
+  return options.slice(0, MAX_OPTIONS);
 };
 
 const finiteNumber = (value: unknown): number | undefined =>
@@ -173,51 +237,86 @@ interface TextContext {
 }
 
 type FieldResult =
-  | { kind: 'field'; field: FlowFieldDto }
+  | { kind: 'field'; field: FlowFieldDto; lookup?: FlowLookup }
   | { kind: 'constant'; name: string; value: string | number | boolean }
   | null;
 
-const MAX_FIELDS = 40;
+const FIELD_NAME = /^[A-Za-z0-9_.-]{1,64}$/;
 
-/** One entry of `data_schema`, or null when its type is not one Acasystem can draw. */
-const normalizeField = (field: unknown, texts: TextContext): FieldResult => {
+/** A section (`expandable`) a field sits in: its name and the texts HA has for it. */
+interface SectionScope {
+  name: string;
+  label: string;
+  required: boolean;
+  ha: SectionTranslations | undefined;
+}
+
+/** `string` fields carry a `format` when the schema used `vol.Email` or `vol.Url`. */
+const INPUT_TYPES: Readonly<Record<string, FlowFieldDto['inputType']>> = {
+  email: 'email',
+  url: 'url',
+  fqdnurl: 'url',
+  tel: 'tel',
+};
+
+/**
+ * One entry of `data_schema`, or null when its type is not one Acasystem can draw. Inside a
+ * section (`scope`) the name of the field is `section.field`.
+ */
+const normalizeField = (field: unknown, texts: TextContext, scope?: SectionScope): FieldResult => {
   if (!isRecord(field)) return null;
-  const name = asString(field.name);
-  if (!name || !/^[A-Za-z0-9_.-]{1,64}$/.test(name)) return null;
+  const inner = asString(field.name);
+  if (!inner || !FIELD_NAME.test(inner)) return null;
+  const name = scope ? `${scope.name}.${inner}` : inner;
 
-  if (field.type === 'constant') {
-    const value = primitive(field.value);
+  const selector = isRecord(field.selector) ? field.selector : null;
+  const [selectorType] = selector ? Object.keys(selector) : [];
+  const config: Record<string, unknown> =
+    selector && selectorType && isRecord(selector[selectorType]) ? selector[selectorType] : {};
+
+  if (field.type === 'constant' || selectorType === 'constant') {
+    const value = primitive(field.type === 'constant' ? field.value : config.value);
     return value === undefined ? null : { kind: 'constant', name, value };
   }
 
-  const own = texts.own?.fields?.[name];
+  const own = texts.own?.fields?.[inner];
+  const haLabel = scope ? scope.ha?.data[inner] : texts.ha?.data[inner];
+  const haHint = scope ? scope.ha?.dataDescription[inner] : texts.ha?.dataDescription[inner];
   const result: FlowFieldDto = {
     name,
     kind: 'text',
     required: field.required === true,
-    label:
-      own?.label ??
-      italianText(texts.ha?.data[name], texts.placeholders) ??
-      genericFieldLabel(name),
+    label: own?.label ?? italianText(haLabel, texts.placeholders) ?? genericFieldLabel(inner),
   };
-  const hint = own?.hint ?? italianText(texts.ha?.dataDescription[name], texts.placeholders);
+  const hint = own?.hint ?? italianText(haHint, texts.placeholders);
   if (hint) result.hint = hint;
+  if (scope) {
+    result.section = scope.name;
+    result.sectionLabel = scope.label;
+    if (scope.required) result.sectionRequired = true;
+  }
   const fallback = primitive(field.default);
   if (fallback !== undefined) result.default = fallback;
+  // A value HA suggests (the one a discovery already knows) is shown as the default.
+  const description = isRecord(field.description) ? field.description : null;
+  const suggested = description ? primitive(description.suggested_value) : undefined;
+  if (result.default === undefined && suggested !== undefined) result.default = suggested;
 
-  const selector = isRecord(field.selector) ? field.selector : null;
   if (selector) {
-    const [selectorType] = Object.keys(selector);
-    const config = selectorType && isRecord(selector[selectorType]) ? selector[selectorType] : {};
     switch (selectorType) {
-      case 'text':
-        result.kind = isRecord(config) && config.type === 'password' ? 'password' : 'text';
-        if (isRecord(config) && config.multiline === true) result.multiline = true;
+      case 'text': {
+        // A list of texts is not drawn; one text is, with the keyboard of its type.
+        if (config.multiple === true) return null;
+        result.kind = config.type === 'password' ? 'password' : 'text';
+        const inputType = typeof config.type === 'string' ? INPUT_TYPES[config.type] : undefined;
+        if (inputType) result.inputType = inputType;
+        if (config.multiline === true) result.multiline = true;
         return { kind: 'field', field: result };
+      }
       case 'number': {
         result.kind = 'number';
-        const min = isRecord(config) ? finiteNumber(config.min) : undefined;
-        const max = isRecord(config) ? finiteNumber(config.max) : undefined;
+        const min = finiteNumber(config.min);
+        const max = finiteNumber(config.max);
         if (min !== undefined) result.min = min;
         if (max !== undefined) result.max = max;
         return { kind: 'field', field: result };
@@ -226,10 +325,54 @@ const normalizeField = (field: unknown, texts: TextContext): FieldResult => {
         result.kind = 'boolean';
         return { kind: 'field', field: result };
       case 'select': {
-        const options = isRecord(config) ? optionList(config.options) : null;
+        const options = optionList(config.options);
         if (!options) return null;
-        result.kind = isRecord(config) && config.multiple === true ? 'multiselect' : 'select';
-        result.options = options;
+        result.kind = config.multiple === true ? 'multiselect' : 'select';
+        result.options = readableOptions(options);
+        if (config.custom_value === true) result.allowCustom = true;
+        return { kind: 'field', field: result };
+      }
+      case 'country': {
+        const allowed = Array.isArray(config.countries)
+          ? config.countries.filter((code): code is string => typeof code === 'string')
+          : null;
+        result.kind = 'select';
+        result.options = countryOptions(allowed, config.no_sort !== true);
+        return { kind: 'field', field: result };
+      }
+      // The four selectors below get their choices or their picture in `flowExtras.ts`.
+      case 'serial_port': {
+        result.kind = 'select';
+        result.options = [];
+        // HA lets the person type a path when the port is not listed.
+        result.allowCustom = true;
+        result.hint ??= EXTRA_TEXTS.serialPortHint;
+        return {
+          kind: 'field',
+          field: result,
+          lookup: { field: name, type: 'serial_port', recommended: stringList(config.extra_recommended_domains) },
+        };
+      }
+      case 'entity': {
+        const entity = entityLookup(name, config);
+        if (!entity) return null;
+        result.kind = config.multiple === true ? 'multiselect' : 'select';
+        result.options = entity.options;
+        return { kind: 'field', field: result, lookup: entity.lookup };
+      }
+      case 'file': {
+        const accept = fileAccept(config.accept);
+        if (accept === null) return null;
+        result.kind = 'file';
+        if (accept) result.accept = accept;
+        return { kind: 'field', field: result };
+      }
+      case 'qr_code': {
+        const qr = qrConfig(config);
+        if (!qr) return null;
+        result.kind = 'qr';
+        result.qr = qr;
+        result.required = false;
         return { kind: 'field', field: result };
       }
       default:
@@ -238,9 +381,12 @@ const normalizeField = (field: unknown, texts: TextContext): FieldResult => {
   }
 
   switch (field.type) {
-    case 'string':
+    case 'string': {
       result.kind = 'text';
+      const inputType = typeof field.format === 'string' ? INPUT_TYPES[field.format] : undefined;
+      if (inputType) result.inputType = inputType;
       return { kind: 'field', field: result };
+    }
     case 'integer':
     case 'float': {
       result.kind = field.type === 'integer' ? 'integer' : 'number';
@@ -258,12 +404,80 @@ const normalizeField = (field: unknown, texts: TextContext): FieldResult => {
       const options = optionList(field.options);
       if (!options) return null;
       result.kind = field.type === 'select' ? 'select' : 'multiselect';
-      result.options = options;
+      result.options = readableOptions(options);
       return { kind: 'field', field: result };
     }
     default:
       return null;
   }
+};
+
+/**
+ * A choice that HA translates by key (`translation_key`) reaches us as its bare value
+ * («auto_off»): shown as a readable word. A label HA sent is kept as it is.
+ */
+const readableOptions = (
+  options: { value: string; label: string }[]
+): { value: string; label: string }[] =>
+  options.map((option) =>
+    option.label === option.value && /^[a-z][a-z0-9_]*$/.test(option.value)
+      ? { value: option.value, label: humanizeName(option.value) }
+      : option
+  );
+
+type SchemaResult =
+  | { ok: true; fields: FlowFieldDto[]; constants: FlowConstants; lookups: FlowLookup[] }
+  | { ok: false };
+
+/**
+ * The fields of a whole `data_schema`. A section (`expandable`) is flattened into its fields,
+ * marked with the section; sections do not nest in HA, so a section inside one is refused.
+ */
+const normalizeSchema = (schema: readonly unknown[], texts: TextContext): SchemaResult => {
+  const fields: FlowFieldDto[] = [];
+  const constants: FlowConstants = {};
+  const lookups: FlowLookup[] = [];
+
+  const take = (entry: unknown, scope?: SectionScope): boolean => {
+    const field = normalizeField(entry, texts, scope);
+    if (!field) return false;
+    if (field.kind === 'field') {
+      fields.push(field.field);
+      if (field.lookup) lookups.push(field.lookup);
+    } else if (scope) {
+      const inner = field.name.slice(scope.name.length + 1);
+      const group = constants[scope.name];
+      constants[scope.name] = { ...(typeof group === 'object' ? group : {}), [inner]: field.value };
+    } else {
+      constants[field.name] = field.value;
+    }
+    return true;
+  };
+
+  for (const entry of schema) {
+    if (!isRecord(entry) || entry.type !== 'expandable') {
+      if (!take(entry)) return { ok: false };
+      continue;
+    }
+
+    const name = asString(entry.name);
+    if (!name || !FIELD_NAME.test(name) || !Array.isArray(entry.schema)) return { ok: false };
+    const ha = texts.ha?.sections[name];
+    const scope: SectionScope = {
+      name,
+      label: italianText(ha?.name, texts.placeholders) ?? genericFieldLabel(name),
+      required: entry.required === true,
+      ha,
+    };
+    const before = fields.length;
+    for (const inner of entry.schema) {
+      if (isRecord(inner) && inner.type === 'expandable') return { ok: false };
+      if (!take(inner, scope)) return { ok: false };
+    }
+    // A required section with nothing to ask is still sent, empty.
+    if (scope.required && fields.length === before && !(name in constants)) constants[name] = {};
+  }
+  return { ok: true, fields, constants, lookups };
 };
 
 const normalizeErrors = (
@@ -337,22 +551,16 @@ export const normalizeFlowResult = (
     if (!flowId || !stepId) return unsupported(flowId, 'missing_step');
 
     const texts = textsFor(stepId);
-    const schema = Array.isArray(raw.data_schema) ? raw.data_schema : [];
-    if (schema.length > MAX_FIELDS) return unsupported(flowId, 'too_many_fields');
-    const fields: FlowFieldDto[] = [];
-    const constants: FlowConstants = {};
-    for (const entry of schema) {
-      const field = normalizeField(entry, texts);
-      if (!field) return unsupported(flowId, 'unsupported_field');
-      if (field.kind === 'constant') constants[field.name] = field.value;
-      else fields.push(field.field);
-    }
+    const schema = normalizeSchema(Array.isArray(raw.data_schema) ? raw.data_schema : [], texts);
+    if (!schema.ok) return unsupported(flowId, 'unsupported_field');
+    const { fields, constants, lookups } = schema;
 
     return {
       outcome: 'step',
       flowId,
       stepId,
       constants,
+      lookups,
       dto: {
         type: 'form',
         flowId,

@@ -327,9 +327,18 @@ describe('normalizeFlowResult', () => {
       flowId: 'flow1',
       reason: 'unsupported_field',
     });
+    // A section is flattened into its fields (REP-20261028-003, S1b); a nested one is refused.
     expect(
       normalizeFlowResult(
-        form({ data_schema: [{ type: 'expandable', name: 'section', schema: [] }] }),
+        form({
+          data_schema: [
+            {
+              type: 'expandable',
+              name: 'section',
+              schema: [{ type: 'expandable', name: 'inner', schema: [] }],
+            },
+          ],
+        }),
         'webostv'
       )
     ).toMatchObject({ outcome: 'unsupported' });

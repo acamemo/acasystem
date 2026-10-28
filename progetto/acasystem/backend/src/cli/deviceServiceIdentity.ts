@@ -125,7 +125,7 @@ if (isMainModule) {
     (code) => process.exit(code),
     () => {
       // The message of an unexpected error is not printed: it could name an address.
-      console.error('Errore imprevisto. Riprova; se si ripete, avvisa l’installatore.');
+      console.error('Errore imprevisto. Riprova; se si ripete, controlla che Home Assistant sia acceso e raggiungibile.');
       process.exit(1);
     }
   );

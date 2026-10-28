@@ -4,6 +4,7 @@ import {
   isKnownHaVersion,
   isVerifiedHaVersion,
 } from '../../config/homeAssistantApiCatalog.ts';
+import { DEVICE_ERROR_DEFINITIONS } from './deviceErrors.ts';
 import type { HaAdapter } from './haAdapter.ts';
 import { isHaError } from './haTransport.ts';
 import type { IdentityStatus, ServiceIdentity } from './serviceIdentity.ts';
@@ -19,7 +20,9 @@ import type { IdentityStatus, ServiceIdentity } from './serviceIdentity.ts';
  * that could not run while the identity was active is cached only for a short time. The
  * report is also dropped when the identity changes (state or token), so a service that has
  * just been activated is checked before any write. A version of HA that is neither verified
- * nor compared with the source keeps the writes off until the installer allows them on purpose.
+ * nor compared with the source no longer keeps the writes off: the probes above prove that the
+ * routes answer as expected, and an update of HA at a customer must not switch the functions
+ * off with nobody on site (REP-20261028-004, T8). The version stays in the report and the log.
  */
 
 export type ProbeResult = 'pass' | 'fail' | 'skipped';
@@ -60,7 +63,7 @@ export interface CompatibilityOptions {
 const UNREACHABLE_CACHE_MS = 5_000;
 
 const GENERIC_CUSTOMER_MESSAGE =
-  "Su questo sistema non è possibile aggiungere dispositivi da qui. Chiedi all'installatore.";
+  'Su questo sistema non è possibile aggiungere dispositivi da qui. Riprova più tardi o dopo un aggiornamento di Acasystem.';
 
 const identityKeyOf = (status: IdentityStatus): string =>
   `${status.state}:${status.fingerprint ?? '-'}`;
@@ -121,8 +124,7 @@ export const createCompatibilityChecker = ({
       report.probes['RD-01'] = 'fail';
     }
     if (report.onboarded === false) {
-      report.customerMessage =
-        "Home Assistant non è ancora stato configurato. Serve l'installatore.";
+      report.customerMessage = DEVICE_ERROR_DEFINITIONS.HA_NOT_READY.message;
       report.installerMessages.push(report.customerMessage);
       return report;
     }
@@ -171,7 +173,7 @@ export const createCompatibilityChecker = ({
     const flowsOk = listOk && report.probes['RD-03'] === 'pass';
     const versionOk = isKnownHaVersion(report.version) || allowUnverifiedVersion();
     report.features.catalog = listOk;
-    report.features.flows = flowsOk && versionOk;
+    report.features.flows = flowsOk;
     report.features.power = report.features.flows && report.probes['RD-07'] === 'pass';
 
     if (report.probes['RD-02'] === 'fail' || report.probes['RD-03'] === 'fail') {
@@ -186,9 +188,8 @@ export const createCompatibilityChecker = ({
         'Una sonda dei flussi (RD-02 o RD-03) non è riuscita a girare: aggiunta dei dispositivi spenta finché non riesce.'
       );
     } else if (!versionOk) {
-      report.customerMessage = GENERIC_CUSTOMER_MESSAGE;
       report.installerMessages.push(
-        `La versione ${report.version ?? 'sconosciuta'} di Home Assistant non è stata né provata né confrontata con Acasystem: l'aggiunta dei dispositivi e l'accensione sono spente. Con DEVICES_ALLOW_UNVERIFIED_HA_VERSION=1 si accendono a rischio dell'installatore.`
+        `La versione ${report.version ?? 'sconosciuta'} di Home Assistant non è stata né provata né confrontata con Acasystem; le sonde rispondono come previsto e le funzioni restano accese.`
       );
     } else if (report.probes['RD-07'] === 'fail') {
       report.installerMessages.push(

@@ -236,6 +236,13 @@ export const HA_CALLS = {
     evidence: 'unverified',
     checks: ['CT-12'],
   }),
+  // Names of integrations, for a discovered device whose flow gives none (REP-20261028-003).
+  manifestList: ws('manifest.list', 'manifest/list', {
+    haClass: 'INT',
+    permission: 'user',
+    evidence: 'unverified',
+    checks: ['CT-12'],
+  }),
   flowIgnore: ws('config_entries.ignore_flow', 'config_entries/ignore_flow', {
     haClass: 'INT',
     permission: 'admin',
@@ -285,6 +292,43 @@ export const HA_CALLS = {
     permission: 'user',
     evidence: 'unverified',
     checks: ['CT-13'],
+  }),
+
+  // Logos of the integrations, served by HA itself from its disk cache (HA 2026.3 brands proxy,
+  // components/brands/__init__.py). `brands/access_token` answers `{token}`; the token rotates
+  // every 30 minutes and the previous one stays valid until the next rotation. The image is
+  // read with `?token=` and `?placeholder=no` (without it HA answers a placeholder image
+  // instead of 404 for a missing logo). Read in the source of HA core (dev, 2026-10-28), not
+  // observed with a token on a running HA: the path answered 403 without a token on 2026.10.4.
+  brandsToken: ws('brands.access_token', 'brands/access_token', {
+    haClass: 'INT',
+    permission: 'user',
+    checks: ['CT-15'],
+  }),
+  brandImage: rest('brands.integration.image', 'GET', '/api/brands/integration/{domain}/{image}', {
+    haClass: 'INT',
+    permission: 'none',
+    checks: ['CT-15'],
+  }),
+
+  // --- Extra fields of the flows (REP-20261028-004, T7) ----------------------------------
+  // `serial_port` selector: the frontend of HA lists the ports with this command (admin only,
+  // `usb/list_serial_ports` in components/usb/__init__.py; frontend: src/data/usb.ts,
+  // ha-selector-serial-port.ts). Read in the source of HA core (dev, 2026-10-28), never run.
+  serialPorts: ws('usb.list_serial_ports', 'usb/list_serial_ports', {
+    haClass: 'INT',
+    permission: 'admin',
+    evidence: 'unverified',
+    checks: ['CT-16'],
+  }),
+  // `file` selector: the file goes to HA as multipart field `file`, HA answers `{file_id}` and
+  // the flow gets the id (components/file_upload/__init__.py, `FileUploadView`; frontend:
+  // src/data/file_upload.ts). Same reading as above.
+  fileUpload: rest('file_upload.upload', 'POST', '/api/file_upload', {
+    haClass: 'INT',
+    permission: 'user',
+    evidence: 'unverified',
+    checks: ['CT-16'],
   }),
 
   // --- Entries (H) -----------------------------------------------------------------------

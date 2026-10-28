@@ -158,6 +158,17 @@ describe('the list of discovered devices', () => {
     expect(devices[1]?.model).toBeNull();
   });
 
+  it('calls a device with no name after its integration, read once from HA', async () => {
+    const harness = await harnessFor({});
+    harness.fake.manifestNames = { reolink: 'Reolink' };
+    harness.fake.seedDiscovery(hue({ handler: 'reolink', name: undefined, model: undefined }));
+
+    expect((await listDiscovered(harness)).devices[0]?.name).toBe('Reolink');
+    harness.fake.resetCalls();
+    expect((await listDiscovered(harness)).devices[0]?.name).toBe('Reolink');
+    expect(harness.fake.callsFor('manifest/list')).toHaveLength(0);
+  });
+
   it('never shows an address or a MAC as the name of a device', async () => {
     const harness = await harnessFor({});
     harness.fake.seedDiscovery(samsung({ name: 'TV 192.168.1.77', model: '02:00:00:00:00:09' }));
@@ -205,7 +216,7 @@ describe('the list of discovered devices', () => {
     const list = await harness.request('/scoperti');
     expect(list.status).toBe(503);
     expect(list.body.code).toBe('SERVICE_NOT_ACTIVE');
-    expect(String(list.body.error)).toMatch(/^Servizio non attivo/);
+    expect(String(list.body.error)).toMatch(/^Il servizio dei dispositivi non è attivo/);
 
     const flowId = [...harness.fake.flows.keys()][0] ?? '';
     for (const action of ['aggiungi', 'ignora']) {

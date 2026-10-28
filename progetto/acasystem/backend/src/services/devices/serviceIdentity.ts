@@ -119,6 +119,8 @@ export interface ServiceIdentityOptions {
   now?: () => number;
   /** How long a probe result is trusted. Default 15 s. */
   cacheMs?: number;
+  /** Called when HA refused the token, or a call found the identity not active: the self-repair listens (T2). */
+  onRejected?: () => void;
 }
 
 const UNREACHABLE_CACHE_MS = 3_000;
@@ -130,6 +132,7 @@ export const createServiceIdentity = ({
   adapter,
   now = Date.now,
   cacheMs = 15_000,
+  onRejected,
 }: ServiceIdentityOptions): ServiceIdentity => {
   let cached: { key: string; status: IdentityStatus } | null = null;
 
@@ -185,7 +188,11 @@ export const createServiceIdentity = ({
     async requireToken() {
       const current = await status();
       if (current.state === 'unreachable') throw new DeviceError('HA_UNREACHABLE');
-      if (current.state !== 'active') throw new DeviceError('SERVICE_NOT_ACTIVE');
+      if (current.state !== 'active') {
+        // The self-repair looks at the identity as soon as somebody needs it (T2).
+        onRejected?.();
+        throw new DeviceError('SERVICE_NOT_ACTIVE');
+      }
 
       const loaded = store.load();
       if (!loaded.ok) throw new DeviceError('SERVICE_NOT_ACTIVE');
@@ -193,6 +200,7 @@ export const createServiceIdentity = ({
     },
 
     markRejected() {
+      onRejected?.();
       const loaded = store.load();
       if (!loaded.ok) {
         cached = null;

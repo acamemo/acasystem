@@ -148,10 +148,17 @@ const sendValidationFailure = (res: JsonResponse, error: unknown, haUrls: string
 
 export interface HomeAssistantAuthOptions {
   validateHomeAssistantUser?: HomeAssistantUserLoader;
+  /**
+   * Called when a request is authenticated with an HA access token of an administrator. The
+   * device facade uses it to activate its service identity by itself (REP-20261028-004, T1).
+   * The token is for that one use: the callee must not store or log it.
+   */
+  onAdministrator?: (session: { user: HomeAssistantUser; accessToken: string }) => void;
 }
 
 export const createHomeAssistantAuthMiddleware = ({
   validateHomeAssistantUser = resolveValidatedHomeAssistantUser,
+  onAdministrator,
 }: HomeAssistantAuthOptions = {}): HomeAssistantAuthMiddleware => {
   return async (req, res, next) => {
     const trustedSupervisorUser = getTrustedSupervisorUser(req);
@@ -186,6 +193,13 @@ export const createHomeAssistantAuthMiddleware = ({
       try {
         const user = await validateHomeAssistantUser({ haUrl, accessToken });
         req.authenticatedHaUser = user;
+        if (user.is_admin && onAdministrator) {
+          try {
+            onAdministrator({ user, accessToken });
+          } catch {
+            // The hook never decides whether the request goes on.
+          }
+        }
         next();
         return;
       } catch (error) {

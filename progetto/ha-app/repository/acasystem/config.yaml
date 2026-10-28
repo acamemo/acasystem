@@ -11,9 +11,13 @@ image: ghcr.io/acamemo/acasystem
 init: true
 startup: application
 boot: auto
-# Solo la lettura della porta di HA (GET /core/info); nessun token di HA all'app (ADR-0022).
+# hassio_api: lettura della porta di HA (GET /core/info).
+# homeassistant_api: il Supervisor dà all'app SUPERVISOR_TOKEN per il proxy verso Core
+# (http://supervisor/core/api, ws://supervisor/core/websocket). Serve SOLO a creare, rinnovare e
+# riattivare da sola l'utente «Acasystem (servizio)»; le operazioni passano da quell'utente
+# (ADR-0022, annotazione 2026-10-28; REP-20261028-004).
 hassio_api: true
-homeassistant_api: false
+homeassistant_api: true
 ingress: false
 ports:
   3002/tcp: 3002

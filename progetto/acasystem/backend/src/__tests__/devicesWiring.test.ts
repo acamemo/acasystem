@@ -107,12 +107,11 @@ describe('/api/dispositivi in the real app', () => {
     expect(ok.headers.get('cache-control')).toBe('no-store');
   });
 
-  it('knows the role of the user from HA, not from the browser', async () => {
-    const asInstaller = await api('/registro', installerToken);
-    expect(asInstaller.status).toBe(200);
-    const asTablet = await api('/registro', tabletToken);
-    expect(asTablet.status).toBe(403);
-    expect(await asTablet.json()).toMatchObject({ code: 'REQUIRES_INSTALLER' });
+  it('reads the role of the user from HA, not from the browser, and lets everybody use the registry', async () => {
+    expect((await api('/registro', installerToken)).status).toBe(200);
+    expect((await api('/registro', tabletToken)).status).toBe(200);
+    const asTablet = await api('/stato', tabletToken);
+    expect(await asTablet.json()).toMatchObject({ user: { isAdmin: false } });
   });
 
   it('adds a TV end to end with the tablet account, which is not an administrator', async () => {

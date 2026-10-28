@@ -18,6 +18,32 @@ export const DEVICE_SERVICE_TOKEN_NAME = 'Acasystem (servizio)';
 /** Lifespan of the long-lived token, in days (the Home Assistant profile page uses 3650). */
 export const DEVICE_SERVICE_TOKEN_LIFESPAN_DAYS = 3650;
 
+/** The token is renewed by the self-repair when it has fewer days than this left. */
+export const DEVICE_SERVICE_TOKEN_RENEW_BEFORE_DAYS = 30;
+
+/** How often the server checks the service identity and repairs it (REP-20261028-004, T2). */
+export const DEVICE_SERVICE_CHECK_INTERVAL_MS = 600_000;
+
+/**
+ * Access to Core through the Supervisor proxy of HA OS (REP-20261028-004, T1). Present only when
+ * Acasystem runs as the HA OS app with `homeassistant_api: true` (it is given SUPERVISOR_TOKEN).
+ * `ACASYSTEM_SUPERVISOR_URL` is the Supervisor address (default `http://supervisor`, as in
+ * detect-ha-url.mjs); the tests point it at the fake HA. Docs: contributors.home-assistant.io/
+ * apps/guides/communication/ (REST `<supervisor>/core/api/`, WebSocket `<supervisor>/core/websocket`).
+ */
+export interface SupervisorAccess {
+  /** Base URL of the proxy to Core, without `/api`: `http://supervisor/core`. */
+  coreUrl: string;
+  token: string;
+}
+
+export const readSupervisorAccess = (): SupervisorAccess | null => {
+  const token = process.env.SUPERVISOR_TOKEN?.trim();
+  if (!token) return null;
+  const base = (process.env.ACASYSTEM_SUPERVISOR_URL?.trim() || 'http://supervisor').replace(/\/+$/, '');
+  return { coreUrl: `${base}/core`, token };
+};
+
 /**
  * Integrations and domains that belong to Home Assistant itself (F4, ADR-0024 annotation of
  * 2026-10-27): the facade never lists, starts, shows, renames or removes anything of them. This
@@ -108,6 +134,8 @@ export const DEVICE_OPERATIONS = [
   'scoperti.leggi',
   'scoperti.aggiungi',
   'scoperti.ignora',
+  // Take an ignored discovery back: the ignore entry is removed and HA finds the device again.
+  'scoperti.ripristina',
   // Televisions that HA saw on the network and the one-tap connection of one (F5).
   'tv.leggi',
   'tv.collega',
@@ -115,11 +143,11 @@ export const DEVICE_OPERATIONS = [
 
 export type DeviceOperation = (typeof DEVICE_OPERATIONS)[number];
 
-/** Operations reserved to a Home Assistant administrator (the installer). */
-export const INSTALLER_ONLY_OPERATIONS: readonly DeviceOperation[] = [
-  'power.remove',
-  'action.list',
-];
+/**
+ * Operations reserved to a Home Assistant administrator. Empty on purpose (REP-20261028-004,
+ * "everybody can do everything"): the mechanism stays so a future restriction is one line.
+ */
+export const INSTALLER_ONLY_OPERATIONS: readonly DeviceOperation[] = [];
 
 /** Fixed prefix of the id of the power-on automations written by Acasystem (D1b). */
 export const POWER_AUTOMATION_ID_PREFIX = 'acasystem_accensione_';

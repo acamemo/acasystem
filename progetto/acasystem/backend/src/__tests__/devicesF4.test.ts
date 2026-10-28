@@ -798,7 +798,7 @@ describe('«Rimuovi dispositivo»', () => {
     );
   });
 
-  it('never touches a system integration or an entry made by hand in HA', async () => {
+  it('never touches a system integration, but removes an entry made by hand in HA', async () => {
     const harness = await harnessFor({});
     const seed = (domain: string, source: string) => {
       const id = `SEED${domain.toUpperCase()}${source.toUpperCase()}`.slice(0, 26);
@@ -821,15 +821,22 @@ describe('«Rimuovi dispositivo»', () => {
     const byHand = seed('hue', 'user');
     harness.fake.resetCalls();
 
-    for (const id of [...system, sneaky, byHand]) {
+    for (const id of [...system, sneaky]) {
       const refused = await harness.request(`/voci/${id}`, { method: 'DELETE' });
       expect(refused.status, id).toBe(403);
       expect(refused.body.code, id).toBe('REQUIRES_INSTALLER');
+      expect(refused.body.error, id).toBe('Questa voce fa parte di Home Assistant e non si rimuove.');
       const read = await harness.request(`/voci/${id}`);
       expect(read.status, `read ${id}`).toBe(403);
     }
     expect(harness.fake.callsFor(ENTRY_DELETE)).toHaveLength(0);
     expect(harness.fake.entries).toHaveLength(system.length + 2);
+
+    // The entry a person made by hand in HA is theirs to read and remove (T5).
+    expect((await harness.request(`/voci/${byHand}`)).status).toBe(200);
+    expect((await harness.request(`/voci/${byHand}`, { method: 'DELETE' })).status).toBe(200);
+    expect(harness.fake.callsFor(ENTRY_DELETE)).toHaveLength(1);
+    expect(harness.fake.entries).toHaveLength(system.length + 1);
 
     const registry = await harness.request('/registro', { user: 'installer' });
     expect(registry.body.actions).toEqual(

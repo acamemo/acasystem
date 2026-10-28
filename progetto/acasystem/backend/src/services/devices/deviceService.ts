@@ -1,6 +1,6 @@
 import { isRecord } from '../../helpers/objects.ts';
 import type { DeviceFlowRow } from '../../models/deviceModel.ts';
-import { isFacadeEntry, isStartableHandler, isSystemDomain, searchCatalog } from './catalog.ts';
+import { isStartableHandler, isSystemDomain, searchCatalog } from './catalog.ts';
 import type { CatalogEntryDto, CatalogItem } from './catalog.ts';
 import { DEVICE_ERROR_DEFINITIONS, DeviceError, describeForLog } from './deviceErrors.ts';
 import { authorizeOperation, runGuarded } from './deviceContext.ts';
@@ -12,9 +12,15 @@ import {
   waitForEntry,
 } from './entryTools.ts';
 import { HANDLER_NAMES, isAddableHandler } from '../../config/deviceFamilies.ts';
-import { pickDiscovered, toDiscoveredDto } from './discovered.ts';
-import type { DiscoveredDeviceDto } from './discovered.ts';
+import { pickDiscovered, pickIgnored, toDiscoveredDto, toIgnoredDto } from './discovered.ts';
+import type { DiscoveredDeviceDto, IgnoredDeviceDto } from './discovered.ts';
 import { buildFlowInput, buildGenericInput, buildMenuInput, hasInputRules } from './flowInput.ts';
+import {
+  MAX_UPLOAD_BYTES,
+  createUploadLedger,
+  fillLookups,
+  uploadFileName,
+} from './flowExtras.ts';
 import { flowErrorsFromBadRequest, normalizeFlowResult } from './flowModel.ts';
 import type {
   FlowAbortDto,
@@ -35,7 +41,7 @@ import {
 } from './tvClassify.ts';
 import type { TvCandidate, TvInReteDto } from './tvClassify.ts';
 import type { HandlerTranslations } from './haTexts.ts';
-import type { HaArea, HaDevice, HaEntry, HaNetworkDevice } from './haAdapter.ts';
+import type { HaArea, HaBrandImage, HaDevice, HaEntry, HaNetworkDevice } from './haAdapter.ts';
 import { isHaError } from './haTransport.ts';
 import { describeIdentityState } from './serviceIdentity.ts';
 import type { IdentityState } from './serviceIdentity.ts';
@@ -91,6 +97,10 @@ export interface DiscoveredListDto {
   devices: DiscoveredDeviceDto[];
 }
 
+export interface IgnoredListDto {
+  devices: IgnoredDeviceDto[];
+}
+
 export interface TvListDto {
   tvs: TvInReteDto[];
 }
@@ -109,6 +119,11 @@ export interface StatusDto {
     state: IdentityState;
     active: boolean;
     message: string | null;
+    /**
+     * True when «Ripara il servizio» can fix the service by itself for this person: the app runs
+     * on HA OS (Supervisor token), or the person is a Home Assistant administrator.
+     */
+    repairable: boolean;
     /** Installer only. */
     detail?: string;
     expiresAt?: string | null;
@@ -145,6 +160,17 @@ export interface DeviceService {
   startFlow(user: DeviceUser, handler: string): Promise<FlowResponseDto>;
   getFlow(user: DeviceUser, flowId: string): Promise<FlowResponseDto>;
   stepFlow(user: DeviceUser, flowId: string, input: unknown): Promise<FlowResponseDto>;
+  /**
+   * Sends a file for a `file` field of the step the flow is at to HA; the answer to the step
+   * then carries the returned id (REP-20261028-004, T7).
+   */
+  uploadFlowFile(
+    user: DeviceUser,
+    flowId: string,
+    field: string,
+    fileName: string,
+    data: Buffer
+  ): Promise<{ fileId: string; fileName: string }>;
   cancelFlow(user: DeviceUser, flowId: string): Promise<{ cancelled: true; pending: boolean }>;
   /** Devices that HA found on the network and nobody added yet (ADR-0024). */
   listDiscovered(user: DeviceUser): Promise<DiscoveredListDto>;
@@ -152,6 +178,12 @@ export interface DeviceService {
   addDiscovered(user: DeviceUser, flowId: string): Promise<FlowResponseDto>;
   /** «Non mi interessa»: HA ignores this discovery. */
   ignoreDiscovered(user: DeviceUser, flowId: string): Promise<{ ignored: true }>;
+  /** The discoveries that somebody ignored and HA still remembers. */
+  listIgnored(user: DeviceUser): Promise<IgnoredListDto>;
+  /** Takes an ignored discovery back: the ignore entry goes away and HA finds the device again. */
+  restoreIgnored(user: DeviceUser, entryId: string): Promise<{ restored: true }>;
+  /** The logo of an integration (the brands proxy of HA), cached; LOGO_NOT_FOUND when HA has none. */
+  logo(user: DeviceUser, domain: string, dark: boolean): Promise<HaBrandImage>;
   /** The televisions that HA saw on the network and nobody connected yet (F5). */
   listTvs(user: DeviceUser): Promise<TvListDto>;
   /** Starts the integration of the television and fills in its address: next step to answer. */
@@ -176,11 +208,20 @@ export interface DeviceService {
 const CATALOG_CACHE_MS = 600_000;
 /** The lists of the network that HA keeps are read at most this often (F5). */
 const TV_CACHE_MS = 30_000;
+/** Logos: a hit stays a day, a missing logo an hour; at most this many are kept. */
+const LOGO_HIT_MS = 86_400_000;
+const LOGO_MISS_MS = 3_600_000;
+const LOGO_CACHE_MAX = 300;
+const LOGO_MAX_BYTES = 512 * 1024;
 const NETWORK_SOURCES: readonly HaNetworkDevice['source'][] = ['ssdp', 'zeroconf', 'dhcp'];
 /** `external_done` and `progress_done` are read through at most this many times in a row. */
 const MAX_CONTINUE_HOPS = 3;
-/** Reasons for which the step needs the installer (a field Acasystem cannot draw). */
-const INSTALLER_REASONS: ReadonlySet<string> = new Set(['unsupported_field', 'too_many_fields']);
+/** Reasons for which the step cannot be shown (a field Acasystem cannot draw). */
+const INSTALLER_REASONS: ReadonlySet<string> = new Set(['unsupported_field']);
+const MESSAGE_FIELD_NOT_DRAWN =
+  "Questo dispositivo chiede un'informazione che l'app non sa ancora mostrare. Riprova dopo l'aggiornamento di Acasystem.";
+const MESSAGE_SYSTEM_ENTRY = 'Questa voce fa parte di Home Assistant e non si rimuove.';
+const MESSAGE_SYSTEM_HANDLER = 'Questa è un’integrazione di Home Assistant e non si aggiunge da qui.';
 
 /**
  * What the facade remembers of the step a flow is at, to validate the answer: the fields HA
@@ -210,7 +251,7 @@ export const messageForEntryState = (state: string): string | null => {
     case 'setup_error':
     case 'migration_error':
     case 'failed_unload':
-      return "Non è stato possibile avviare il dispositivo. Chiedi all'installatore.";
+      return 'Non è stato possibile avviare il dispositivo. Riprova tra poco; se resta così, rimuovilo e aggiungilo di nuovo.';
     default:
       return 'Il dispositivo si sta avviando. Aspetta qualche secondo.';
   }
@@ -236,7 +277,13 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
   let catalogCache: { items: CatalogItem[]; at: number } | null = null;
   const translationCache = createTranslationCache({ now: ctx.now });
   const flowSpecs = new Map<string, FlowSpec>();
+  /** Ids of the files each flow uploaded to HA: an answer may name only these. */
+  const uploads = createUploadLedger();
   let tvCache: { items: TvCandidate[]; at: number } | null = null;
+  /** Logos by `domain/variant`; `image` is null for a logo HA does not have. Oldest out first. */
+  const logoCache = new Map<string, { image: HaBrandImage | null; until: number }>();
+  /** Display names of integrations by domain; '' when HA gave none. */
+  const integrationNames = new Map<string, string>();
 
   /** Italian texts of HA for the handler of a result that is not the end of the flow; or null. */
   const translationsFor = async (
@@ -253,6 +300,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
     for (const flowId of flowSpecs.keys()) {
       if (!ctx.model.flows.get(flowId)) flowSpecs.delete(flowId);
     }
+    uploads.prune((flowId) => ctx.model.flows.get(flowId) !== undefined);
   };
 
   const specOf = (step: Extract<NormalizedFlow, { outcome: 'step' }>): FlowSpec => ({
@@ -266,14 +314,13 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
   // --- Entries -----------------------------------------------------------------------------
 
   /**
-   * True for an entry the facade may show, rename and remove: not a system integration, and
-   * either one of the facade's own domains, a discovered device that was added, or an entry the
-   * registry of actions records as created from Acasystem (F4: any domain). An entry an
-   * installer made by hand in HA with the source `user` stays out.
+   * True for an entry the facade may show, rename and remove: anything but the integrations of
+   * Home Assistant itself and the "ignored discovery" records. Entries made by hand in HA are
+   * included (REP-20261028-004, T5: everybody can do everything). The Wake on LAN entry of a TV
+   * recipe is touchable here too, but `removeEntry` keeps it protected.
    */
   const canTouchEntry = (entry: HaEntry): boolean =>
-    !isSystemDomain(entry.domain) &&
-    (isFacadeEntry(entry) || ctx.model.actions.createdEntry(entry.entryId));
+    !isSystemDomain(entry.domain) && entry.source !== 'ignore';
 
   /**
    * Description of a config entry the facade may show; `wait` waits for the `loaded` state.
@@ -303,7 +350,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
       if (!entry) throw new DeviceError('ENTRY_NOT_FOUND');
       // Entries of system integrations, and the ones made by hand in HA, are not exposed.
       if (isSystemDomain(entry.domain) || (!options.justCreated && !canTouchEntry(entry))) {
-        throw new DeviceError('REQUIRES_INSTALLER');
+        throw new DeviceError('REQUIRES_INSTALLER', { message: MESSAGE_SYSTEM_ENTRY });
       }
 
       const dto: EntryDto = {
@@ -490,12 +537,14 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
       if (row) flowSpecs.delete(row.flow_id);
       if (audit) audit.code = normalized.reason;
       // A field Acasystem cannot draw is for the installer; anything else is a step it cannot read.
-      throw new DeviceError(
-        INSTALLER_REASONS.has(normalized.reason) ? 'REQUIRES_INSTALLER' : 'UNSUPPORTED_STEP'
-      );
+      throw INSTALLER_REASONS.has(normalized.reason)
+        ? new DeviceError('REQUIRES_INSTALLER', { message: MESSAGE_FIELD_NOT_DRAWN })
+        : new DeviceError('UNSUPPORTED_STEP');
     }
 
     if (normalized.outcome === 'step') {
+      // Serial ports and entities are looked up in HA before the form is shown.
+      normalized = await fillLookups(ctx.adapter, token, normalized);
       const now = ctx.now();
       if (row) {
         ctx.model.flows.updateStep(
@@ -622,7 +671,9 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
       const hand = buildFlowInput(row.handler, stepId, input);
       built = hand.ok ? { ok: true, input: { ...known?.constants, ...hand.input } } : hand;
     } else if (known?.kind === 'form') {
-      built = buildGenericInput(known.fields, known.constants, input);
+      built = buildGenericInput(known.fields, known.constants, input, (fileId) =>
+        uploads.has(flowId, fileId)
+      );
     } else {
       // A step this server does not know how to answer is never improvised.
       await cancelUnsupported(token, flowId, row);
@@ -722,6 +773,8 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
   const service: DeviceService = {
     async status(user) {
       authorizeOperation('status.read', user);
+      // Somebody looks at the service: on HA OS a service that is off is repaired in background.
+      ctx.pokeService?.();
       const identity = await ctx.identity.status();
       const report = await ctx.compat.get();
       const active = identity.state === 'active';
@@ -736,7 +789,12 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
       const open = active && report.reachable && report.onboarded !== false;
       const dto: StatusDto = {
         user: { isAdmin: user.isAdmin },
-        service: { state: identity.state, active, message: customerMessage },
+        service: {
+          state: identity.state,
+          active,
+          message: customerMessage,
+          repairable: ctx.repairAvailable?.(user) ?? false,
+        },
         homeAssistant: { reachable: report.reachable, onboarded: report.onboarded },
         features: {
           catalog: open && report.features.catalog,
@@ -809,7 +867,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           outcome: 'denied',
           code: 'REQUIRES_INSTALLER',
         });
-        throw new DeviceError('REQUIRES_INSTALLER');
+        throw new DeviceError('REQUIRES_INSTALLER', { message: MESSAGE_SYSTEM_HANDLER });
       }
 
       return runGuarded(
@@ -867,6 +925,39 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
       );
     },
 
+    async uploadFlowFile(user, flowId, field, fileName, data) {
+      return runGuarded(
+        ctx,
+        user,
+        'flow.step',
+        { feature: 'flows', mutation: true, audit: { action: 'flow.file' } },
+        async (token, audit) => {
+          const row = await loadOwnFlow(user, flowId);
+          if (audit) audit.domain = row.handler;
+          if (ctx.busyFlows.has(flowId)) throw new DeviceError('FLOW_BUSY');
+          // Only for a `file` field of the step the flow is at now.
+          const spec = flowSpecs.get(flowId);
+          const known =
+            spec?.kind === 'form' && spec.stepId === row.step_id
+              ? spec.fields.some((item) => item.name === field && item.kind === 'file')
+              : false;
+          if (!known || data.length < 1 || data.length > MAX_UPLOAD_BYTES || !uploads.canAdd(flowId)) {
+            throw new DeviceError('INVALID_INPUT', { field });
+          }
+
+          const cleanName = uploadFileName(fileName);
+          const fileId = await ctx.adapter.uploadFile(
+            token,
+            cleanName,
+            'application/octet-stream',
+            data
+          );
+          uploads.add(flowId, fileId);
+          return { fileId, fileName: cleanName };
+        }
+      );
+    },
+
     async cancelFlow(user, flowId) {
       return runGuarded(
         ctx,
@@ -898,12 +989,35 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
 
     async listDiscovered(user) {
       return runGuarded(ctx, user, 'scoperti.leggi', { feature: 'flows' }, async (token) => {
-        const found = pickDiscovered(await ctx.adapter.ws(token).flowsInProgress());
+        const api = ctx.adapter.ws(token);
+        const found = pickDiscovered(await api.flowsInProgress());
+        // A flow that names no device is called after its integration («Reolink», «Matter»…);
+        // the names are read once per domain and kept, the list is read every few seconds.
+        const unnamed = [
+          ...new Set(
+            found
+              .filter((flow) => !flow.name && !HANDLER_NAMES[flow.handler])
+              .map((flow) => flow.handler)
+              .filter((handler) => !integrationNames.has(handler))
+          ),
+        ];
+        if (unnamed.length > 0) {
+          try {
+            const names = await api.integrationNames(unnamed);
+            for (const handler of unnamed) integrationNames.set(handler, names[handler] ?? '');
+          } catch {
+            // Without the names the generic one stays; asked again on the next read.
+          }
+        }
         return {
           devices: found.map((flow) => {
             const row = ctx.model.flows.get(flow.flowId);
             const takenByOther = row?.status === 'open' && row.ha_user_id !== user.id;
-            return toDiscoveredDto(flow, takenByOther);
+            return toDiscoveredDto(
+              flow,
+              takenByOther,
+              integrationNames.get(flow.handler) || undefined
+            );
           }),
         };
       });
@@ -928,7 +1042,9 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           );
           if (!found) throw new DeviceError('FLOW_NOT_FOUND');
           if (audit) audit.domain = found.handler;
-          if (!isAddableHandler(found.handler)) throw new DeviceError('REQUIRES_INSTALLER');
+          if (!isAddableHandler(found.handler)) {
+            throw new DeviceError('REQUIRES_INSTALLER', { message: MESSAGE_SYSTEM_HANDLER });
+          }
           // Two taps on the same discovery (two people, two tablets) take it in turn: the
           // second would otherwise insert the same flow again and fail (REP-20261028-002, S8).
           if (ctx.busyFlows.has(flowId)) throw new DeviceError('FLOW_BUSY');
@@ -958,7 +1074,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
             const normalized = normalizeFlowResult(raw, found.handler);
             if (normalized.outcome === 'unsupported') {
               if (audit) audit.code = normalized.reason;
-              throw new DeviceError('REQUIRES_INSTALLER');
+              throw new DeviceError('REQUIRES_INSTALLER', { message: MESSAGE_FIELD_NOT_DRAWN });
             }
 
             return await settleFlowResult(token, user, found.handler, raw, existing, audit);
@@ -1005,6 +1121,65 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           return { ignored: true as const };
         }
       );
+    },
+
+    async listIgnored(user) {
+      return runGuarded(ctx, user, 'scoperti.leggi', { feature: 'flows' }, async (token) => ({
+        devices: pickIgnored(await ctx.adapter.ws(token).entries()).map(toIgnoredDto),
+      }));
+    },
+
+    async restoreIgnored(user, entryId) {
+      return runGuarded(
+        ctx,
+        user,
+        'scoperti.ripristina',
+        {
+          feature: 'flows',
+          mutation: true,
+          audit: { action: 'scoperti.ripristina', entryId },
+        },
+        async (token, audit) => {
+          const entry = (await ctx.adapter.ws(token).entries()).find(
+            (candidate) => candidate.entryId === entryId
+          );
+          // Only an ignore entry: this route never removes a device that is set up.
+          if (!entry || entry.source !== 'ignore' || !isAddableHandler(entry.domain)) {
+            throw new DeviceError('ENTRY_NOT_FOUND');
+          }
+          if (audit) audit.domain = entry.domain;
+          if (!(await ctx.adapter.removeEntry(token, entryId))) {
+            throw new DeviceError('ENTRY_NOT_FOUND');
+          }
+          return { restored: true as const };
+        }
+      );
+    },
+
+    async logo(user, domain, dark) {
+      return runGuarded(ctx, user, 'scoperti.leggi', { feature: 'flows' }, async (token) => {
+        const key = `${domain}/${dark ? 'dark' : 'light'}`;
+        const cached = logoCache.get(key);
+        if (cached && cached.until > ctx.now()) {
+          if (!cached.image) throw new DeviceError('LOGO_NOT_FOUND');
+          return cached.image;
+        }
+
+        // The dark variant first, then the normal one (HA itself falls back the same way).
+        let image: HaBrandImage | null = null;
+        for (const file of dark ? ['dark_icon.png', 'icon.png'] : ['icon.png']) {
+          image = await ctx.adapter.brandImage(token, domain, file, LOGO_MAX_BYTES);
+          if (image) break;
+        }
+        logoCache.delete(key);
+        logoCache.set(key, { image, until: ctx.now() + (image ? LOGO_HIT_MS : LOGO_MISS_MS) });
+        if (logoCache.size > LOGO_CACHE_MAX) {
+          const oldest = logoCache.keys().next().value;
+          if (oldest !== undefined) logoCache.delete(oldest);
+        }
+        if (!image) throw new DeviceError('LOGO_NOT_FOUND');
+        return image;
+      });
     },
 
     async listTvs(user) {
@@ -1083,11 +1258,15 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
           );
           if (!entry) throw new DeviceError('ENTRY_NOT_FOUND');
           if (audit) audit.domain = entry.domain;
-          // System integrations, entries made by hand in HA, and the Wake on LAN entry that a TV
-          // recipe needs (the recipe goes first, through the TV) are not removed from here.
-          if (!canTouchEntry(entry)) throw new DeviceError('REQUIRES_INSTALLER');
+          // System integrations and the Wake on LAN entry that a TV recipe needs (the recipe
+          // goes first, through the TV) are not removed from here.
+          if (!canTouchEntry(entry)) {
+            throw new DeviceError('REQUIRES_INSTALLER', { message: MESSAGE_SYSTEM_ENTRY });
+          }
           if (ctx.model.links.list().some((link) => link.wol_entry_id === entryId)) {
-            throw new DeviceError('REQUIRES_INSTALLER');
+            throw new DeviceError('REQUIRES_INSTALLER', {
+              message: 'Questa voce serve ad accendere un televisore: rimuovi il televisore e sparisce da sola.',
+            });
           }
 
           // A TV with a power-on recipe: the automation and the Wake on LAN entry go with it.
@@ -1126,7 +1305,7 @@ export const createDeviceService = (ctx: DeviceContext): DeviceService => {
               entries.find((entry) => entry.entryId === entryId)
             );
             if (owners.some((entry) => entry === undefined || !canTouchEntry(entry))) {
-              throw new DeviceError('REQUIRES_INSTALLER');
+              throw new DeviceError('REQUIRES_INSTALLER', { message: MESSAGE_SYSTEM_ENTRY });
             }
             const domains = owners.map((entry) => entry?.domain);
             if (audit) {

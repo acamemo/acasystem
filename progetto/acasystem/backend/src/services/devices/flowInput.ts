@@ -1,5 +1,6 @@
 import { isRecord } from '../../helpers/objects.ts';
 import { normalizeDeviceHost } from '../../helpers/network.ts';
+import { FILE_ID } from './flowExtras.ts';
 import type { FlowConstants, FlowFieldDto } from './flowModel.ts';
 
 /**
@@ -7,8 +8,9 @@ import type { FlowConstants, FlowFieldDto } from './flowModel.ts';
  * - hand-written rules for the steps we know well (the LG TV of D1, the integrations that HA
  *   discovers, F2 and F3, ADR-0024): they refine the texts and normalise values (address, PIN);
  * - the rules derived from the `data_schema` that HA itself sent for the step (F4): text,
- *   password, integer, number, boolean, select and multiple choice, with their ranges and
- *   options (`buildGenericInput`).
+ *   password, integer, number, boolean, select (also with a value of the person's own) and
+ *   multiple choice, with their ranges and options; the fields of a section are nested again
+ *   (`buildGenericInput`).
  * The body sent to HA is rebuilt here from validated values: a key that is not listed is
  * refused (not dropped), and a step with neither source cannot be answered at all, so the flow
  * is cancelled. Values are normalised and never logged.
@@ -197,11 +199,15 @@ const numberFor = (field: FlowFieldDto, value: unknown): number | null => {
 const optionFor = (field: FlowFieldDto, value: unknown): string | null => {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const text = String(value);
-  return field.options?.some((option) => option.value === text) ? text : null;
+  if (field.options?.some((option) => option.value === text)) return text;
+  // A choice that takes a value of its own (HA `custom_value`): any plain text.
+  return field.allowCustom ? textFor({ ...field, kind: 'text' }, text) : null;
 };
 
 const isEmptyValue = (value: unknown): boolean =>
   isEmpty(value) || (Array.isArray(value) && value.length === 0);
+
+type InputValue = string | number | boolean | string[];
 
 /**
  * The answer of a step built from the fields HA declared for it. Same contract as
@@ -211,8 +217,12 @@ const isEmptyValue = (value: unknown): boolean =>
 export const buildGenericInput = (
   fields: readonly FlowFieldDto[],
   constants: FlowConstants,
-  raw: unknown
-): { ok: true; input: Record<string, string | number | boolean | string[]> } | { ok: false; field: string | null } => {
+  raw: unknown,
+  /** True for the id of a file this flow uploaded (`file` fields); without it none is accepted. */
+  isUploaded: (fileId: string) => boolean = () => false
+):
+  | { ok: true; input: Record<string, InputValue | Record<string, InputValue>> }
+  | { ok: false; field: string | null } => {
   if (raw !== undefined && raw !== null && (!isRecord(raw) || Array.isArray(raw))) {
     return { ok: false, field: null };
   }
@@ -222,8 +232,31 @@ export const buildGenericInput = (
     if (!fields.some((field) => field.name === key)) return { ok: false, field: key };
   }
 
-  const input: Record<string, string | number | boolean | string[]> = { ...constants };
+  // The constants of a section are copied too: the step keeps its own.
+  const input: Record<string, InputValue | Record<string, InputValue>> = Object.fromEntries(
+    Object.entries(constants).map(([name, value]) => [
+      name,
+      typeof value === 'object' ? { ...value } : value,
+    ])
+  );
+  /** Where a field's value goes: the answer, or the object of its section. */
+  const put = (field: FlowFieldDto, value: InputValue): void => {
+    if (!field.section) {
+      input[field.name] = value;
+      return;
+    }
+    const group = input[field.section];
+    const target: Record<string, InputValue> =
+      typeof group === 'object' && !Array.isArray(group) ? group : {};
+    target[field.name.slice(field.section.length + 1)] = value;
+    input[field.section] = target;
+  };
   for (const field of fields) {
+    // A QR code is only shown: HA ignores any value for it, so none is sent.
+    if (field.kind === 'qr') {
+      if (!isEmptyValue(source[field.name])) return { ok: false, field: field.name };
+      continue;
+    }
     const value = source[field.name];
     if (isEmptyValue(value) && field.kind !== 'boolean') {
       // A required field with a default is left to HA, which fills it.
@@ -237,19 +270,27 @@ export const buildGenericInput = (
           if (value === undefined || value === null) continue;
           return { ok: false, field: field.name };
         }
-        input[field.name] = value;
+        put(field, value);
         break;
       case 'integer':
       case 'number': {
         const number = numberFor(field, value);
         if (number === null) return { ok: false, field: field.name };
-        input[field.name] = number;
+        put(field, number);
+        break;
+      }
+      case 'file': {
+        // The id HA gave to an upload of this flow, nothing else.
+        if (typeof value !== 'string' || !FILE_ID.test(value) || !isUploaded(value)) {
+          return { ok: false, field: field.name };
+        }
+        put(field, value);
         break;
       }
       case 'select': {
         const option = optionFor(field, value);
         if (option === null) return { ok: false, field: field.name };
-        input[field.name] = option;
+        put(field, option);
         break;
       }
       case 'multiselect': {
@@ -262,14 +303,20 @@ export const buildGenericInput = (
           if (option === null) return { ok: false, field: field.name };
           if (!chosen.includes(option)) chosen.push(option);
         }
-        input[field.name] = chosen;
+        put(field, chosen);
         break;
       }
       default: {
         const text = textFor(field, value);
         if (text === null) return { ok: false, field: field.name };
-        input[field.name] = text;
+        put(field, text);
       }
+    }
+  }
+  // A required section is sent even when every field of it was left out.
+  for (const field of fields) {
+    if (field.section && field.sectionRequired && !(field.section in input)) {
+      input[field.section] = {};
     }
   }
   return { ok: true, input };

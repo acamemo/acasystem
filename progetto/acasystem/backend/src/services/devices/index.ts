@@ -4,7 +4,9 @@ import {
   readDeviceFlowStepTimeoutMs,
   readDeviceFlowTtlMs,
   readDeviceServiceSecretPath,
+  readSupervisorAccess,
 } from '../../config/devices.ts';
+import type { SupervisorAccess } from '../../config/devices.ts';
 import { getHomeAssistantUrlCandidates } from '../../middlewares/homeAssistantAuth.ts';
 import { createSlidingWindowLimiter } from '../../helpers/slidingWindow.ts';
 import type { SqliteDatabase } from '../../models/database.ts';
@@ -23,6 +25,8 @@ import { createPowerRecipe } from './powerRecipe.ts';
 import type { PowerRecipe } from './powerRecipe.ts';
 import { createServiceIdentity, createServiceIdentityStore } from './serviceIdentity.ts';
 import type { ServiceIdentity } from './serviceIdentity.ts';
+import { createServiceKeeper } from './serviceKeeper.ts';
+import type { ServiceKeeper } from './serviceKeeper.ts';
 
 /**
  * Wiring of the device facade. `createDeviceModule` builds everything from the server
@@ -54,12 +58,23 @@ export interface DeviceModuleOptions {
   flowStartLimit?: { max: number; windowMs: number };
   /** Per-user limit on writes. Default 60 per minute. */
   mutationLimit?: { max: number; windowMs: number };
+  /**
+   * Supervisor proxy to Core (HA OS). Default: SUPERVISOR_TOKEN and ACASYSTEM_SUPERVISOR_URL;
+   * `null` switches it off.
+   */
+  supervisor?: SupervisorAccess | null;
+  /** How often the service identity is checked and repaired. Default 10 minutes. */
+  serviceCheckIntervalMs?: number;
+  /** Pause between the quick checks after start-up while Core is not ready. Default 30 s. */
+  serviceQuickCheckMs?: number;
 }
 
 export interface DeviceModule {
   service: DeviceService;
   power: PowerRecipe;
   identity: ServiceIdentity;
+  /** Automatic activation and self-repair of the service identity. */
+  keeper: ServiceKeeper;
   compat: CompatibilityChecker;
   adapter: HaAdapter;
   context: DeviceContext;
@@ -88,10 +103,13 @@ export const createDeviceModule = (
   });
 
   const store = createServiceIdentityStore(options.secretPath ?? readDeviceServiceSecretPath);
+  // Late-bound: the keeper needs the context, which needs the identity.
+  let keeper: ServiceKeeper | null = null;
   const identity = createServiceIdentity({
     store,
     adapter,
     now,
+    onRejected: () => keeper?.noteRejected(),
     ...(options.identityCacheMs !== undefined ? { cacheMs: options.identityCacheMs } : {}),
   });
   const compat = createCompatibilityChecker({
@@ -130,6 +148,33 @@ export const createDeviceModule = (
     log,
   };
 
+  const supervisorAccess =
+    options.supervisor === undefined ? readSupervisorAccess() : options.supervisor;
+  keeper = createServiceKeeper(context, {
+    supervisor: supervisorAccess
+      ? {
+          token: supervisorAccess.token,
+          adapter: createHaAdapter({
+            transport: createHaTransport({
+              baseUrls: () => [supervisorAccess.coreUrl],
+              wsPath: '/websocket',
+            }),
+            callTimeoutMs: options.callTimeoutMs ?? readDeviceCallTimeoutMs(),
+            flowStepTimeoutMs: options.flowStepTimeoutMs ?? readDeviceFlowStepTimeoutMs(),
+          }),
+        }
+      : null,
+    ...(options.serviceCheckIntervalMs !== undefined
+      ? { checkIntervalMs: options.serviceCheckIntervalMs }
+      : {}),
+    ...(options.serviceQuickCheckMs !== undefined
+      ? { quickCheckMs: options.serviceQuickCheckMs }
+      : {}),
+  });
+  const activeKeeper = keeper;
+  context.repairAvailable = (user) => activeKeeper.canRepairAutomatically(user);
+  context.pokeService = () => activeKeeper.poke();
+
   const service = createDeviceService(context);
   const power = createPowerRecipe(context);
 
@@ -139,6 +184,7 @@ export const createDeviceModule = (
     service,
     power,
     identity,
+    keeper: activeKeeper,
     compat,
     adapter,
     context,
@@ -157,11 +203,13 @@ export const createDeviceModule = (
       } catch (error) {
         log(`[devices] start-up failed: ${describeForLog(error)}`);
       }
+      await activeKeeper.start();
     },
 
     stop() {
       if (timer) clearInterval(timer);
       timer = null;
+      activeKeeper.stop();
     },
   };
 };

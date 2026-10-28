@@ -44,6 +44,10 @@ export interface DeviceContext {
   now(): number;
   delay(ms: number): Promise<void>;
   log(line: string): void;
+  /** Set after the keeper exists: can this user's «Ripara il servizio» fix things by itself? */
+  repairAvailable?: (user: DeviceUser) => boolean;
+  /** Set after the keeper exists: somebody looks at the service state, repair it if you can. */
+  pokeService?: () => void;
 }
 
 /** What the registry should say about the call, filled in by the operation as it learns more. */

@@ -5,8 +5,9 @@ import {
   isAddableHandler,
 } from '../../config/deviceFamilies.ts';
 import type { DeviceFamily } from '../../config/deviceFamilies.ts';
+import { displayText } from '../../helpers/text.ts';
 import { DEVICE_ERROR_DEFINITIONS } from './deviceErrors.ts';
-import type { HaProgressFlow } from './haAdapter.ts';
+import type { HaEntry, HaProgressFlow } from './haAdapter.ts';
 
 /**
  * The devices that Home Assistant found on the network and has not been told about yet
@@ -28,6 +29,14 @@ export interface DiscoveredDeviceDto {
   reason?: string;
 }
 
+/** A discovery that somebody ignored: HA keeps it as a config entry with the source `ignore`. */
+export interface IgnoredDeviceDto {
+  entryId: string;
+  handler: string;
+  name: string;
+  family: DeviceFamily | null;
+}
+
 export const OTHER_PERSON_REASON = 'Aggiunta già in corso da un altro utente.';
 
 /** True for an origin that HA uses when it discovers a device (never `user`, `reauth`...). */
@@ -43,20 +52,36 @@ export const whyNotAddable = (flow: Pick<HaProgressFlow, 'handler' | 'stepId'>):
 
 export const toDiscoveredDto = (
   flow: HaProgressFlow,
-  takenByOther: boolean
+  takenByOther: boolean,
+  /** The integration's own name, for a flow that names no device (HA's manifest). */
+  integrationName?: string
 ): DiscoveredDeviceDto => {
   const reason = whyNotAddable(flow) ?? (takenByOther ? OTHER_PERSON_REASON : null);
   return {
     flowId: flow.flowId,
     handler: flow.handler,
     source: flow.source,
-    name: flow.name ?? HANDLER_NAMES[flow.handler] ?? 'Dispositivo trovato in rete',
+    name:
+      flow.name ?? HANDLER_NAMES[flow.handler] ?? integrationName ?? 'Dispositivo trovato in rete',
     model: flow.model,
     family: familyOfHandler(flow.handler),
     addable: reason === null,
     ...(reason ? { reason } : {}),
   };
 };
+
+/** The ignored discoveries among the entries, in a stable order (handler, then entry). */
+export const pickIgnored = (entries: readonly HaEntry[]): HaEntry[] =>
+  entries
+    .filter((entry) => entry.source === 'ignore' && isAddableHandler(entry.domain))
+    .sort((a, b) => a.domain.localeCompare(b.domain) || a.entryId.localeCompare(b.entryId));
+
+export const toIgnoredDto = (entry: HaEntry): IgnoredDeviceDto => ({
+  entryId: entry.entryId,
+  handler: entry.domain,
+  name: displayText(entry.title, 80) ?? HANDLER_NAMES[entry.domain] ?? entry.domain,
+  family: familyOfHandler(entry.domain),
+});
 
 /** The discoveries among the flows in progress, in a stable order (family, then name). */
 export const pickDiscovered = (flows: readonly HaProgressFlow[]): HaProgressFlow[] =>

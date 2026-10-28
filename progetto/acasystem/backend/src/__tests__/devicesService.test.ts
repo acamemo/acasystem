@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { writeFileSync } from 'node:fs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { CANARY, createHarness, everythingVisible } from './devicesHarness.ts';
 import type { Harness, HarnessOptions } from './devicesHarness.ts';
 
@@ -54,7 +54,7 @@ describe('the service identity: no identity, no function', () => {
       features: { catalog: false, flows: false, power: false },
     });
     expect(String((status.body.service as { message: string }).message)).toContain(
-      'Servizio non attivo'
+      'Tocca «Ripara il servizio»'
     );
 
     const attempts = [
@@ -66,7 +66,7 @@ describe('the service identity: no identity, no function', () => {
     for (const attempt of attempts) {
       expect(attempt.status).toBe(503);
       expect(attempt.body.code).toBe('SERVICE_NOT_ACTIVE');
-      expect(String(attempt.body.error)).toContain('Servizio non attivo');
+      expect(String(attempt.body.error)).toContain('Ripara il servizio');
     }
     expect(harness.fake.callsFor(FLOW_START)).toHaveLength(0);
     expect(harness.fake.calls.filter((call) => call.tokenKind === 'llat')).toHaveLength(0);
@@ -237,7 +237,7 @@ describe('the service identity: no identity, no function', () => {
     });
     expect(result.status).toBe(503);
     expect(result.body.code).toBe('HA_NOT_READY');
-    expect(String(result.body.error)).toContain('non è ancora stato configurato');
+    expect(String(result.body.error)).toContain('Crea il primo account di Home Assistant');
   });
 
   it('uses the service identity for every administrator call, never another token', async () => {
@@ -305,7 +305,7 @@ describe('the closed list', () => {
         expect(refused.status).toBe(403);
         expect(refused.body).toMatchObject({
           code: 'REQUIRES_INSTALLER',
-          error: "Richiede l'installatore.",
+          error: 'Questa è un’integrazione di Home Assistant e non si aggiunge da qui.',
         });
       }
     }
@@ -463,14 +463,14 @@ describe('the closed list', () => {
     expect((await harness.request('/flussi/bad id!', { method: 'DELETE' })).status).toBe(404);
   });
 
-  it('reserves the registry and the removal of the recipe to the installer', async () => {
+  it('opens the registry and the removal of the recipe to everybody', async () => {
     const harness = await harnessFor({});
 
     const customer = await harness.request('/registro');
-    expect(customer.status).toBe(403);
-    expect(customer.body.code).toBe('REQUIRES_INSTALLER');
+    expect(customer.status).toBe(200);
+    // No recipe for this id: the answer is "not found", not "forbidden".
     expect((await harness.request('/accensione/ABCDEF1234', { method: 'DELETE' })).status).toBe(
-      403
+      404
     );
 
     const installer = await harness.request('/registro?limit=5', { user: 'installer' });
@@ -550,13 +550,13 @@ describe('names and rooms', () => {
     expect(result.body.code).toBe(code);
   });
 
-  it('does not touch devices that belong to other integrations', async () => {
+  it('does not touch devices that belong to the integrations of Home Assistant itself', async () => {
     const harness = await harnessFor({});
-    // A device of an integration outside the list, and a device shared with one.
+    // A device of a system integration.
     harness.fake.entries.push({
       entry_id: 'HUE0000001',
-      domain: 'hue',
-      title: 'Hue',
+      domain: 'hassio',
+      title: 'Supervisor',
       loadedAt: 0,
       host: null,
       mac: null,
@@ -578,7 +578,10 @@ describe('names and rooms', () => {
       body: { name: 'Nuovo' },
     });
     expect(result.status).toBe(403);
-    expect(result.body.code).toBe('REQUIRES_INSTALLER');
+    expect(result.body).toMatchObject({
+      code: 'REQUIRES_INSTALLER',
+      error: 'Questa voce fa parte di Home Assistant e non si rimuove.',
+    });
     expect(harness.fake.callsFor('config/device_registry/update')).toHaveLength(0);
 
     expect(
@@ -591,6 +594,37 @@ describe('names and rooms', () => {
     ).toBe(404);
     expect((await harness.request('/voci/HUE0000001')).status).toBe(403);
     expect((await harness.request('/voci/NOSUCHENTRY1')).status).toBe(404);
+  });
+
+  it('renames a device whose entry was made by hand in HA (T5)', async () => {
+    const harness = await harnessFor({});
+    harness.fake.entries.push({
+      entry_id: 'HUE0000002',
+      domain: 'hue',
+      title: 'Hue',
+      loadedAt: 0,
+      host: null,
+      mac: null,
+      source: 'user',
+    });
+    harness.fake.devices.push({
+      id: 'hue-device-2',
+      name: 'Lampada',
+      name_by_user: null,
+      manufacturer: 'Philips',
+      model: 'Bridge',
+      area_id: null,
+      primary_config_entry: 'HUE0000002',
+      connections: [],
+      serial_number: '',
+    });
+    expect((await harness.request('/voci/HUE0000002')).status).toBe(200);
+    const renamed = await harness.request('/dispositivi/hue-device-2', {
+      method: 'PATCH',
+      body: { name: 'Lampada del salotto' },
+    });
+    expect(renamed.status).toBe(200);
+    expect(renamed.body.name).toBe('Lampada del salotto');
   });
 
   it('keeps the Wake on LAN device out of sight: its name would carry the MAC', async () => {
@@ -645,8 +679,8 @@ describe('compatibility check with the Home Assistant in use', () => {
     const customer = await harness.request('/stato');
     expect(customer.body.warnings).toBeUndefined();
     expect((customer.body.homeAssistant as { version?: string }).version).toBeUndefined();
-    // A series nobody tried is not trusted: adding is off for the customer too.
-    expect(customer.body).toMatchObject({ features: { flows: false } });
+    // The probes passed: adding stays on, so an update of HA switches nothing off (T8).
+    expect(customer.body).toMatchObject({ features: { flows: true } });
   });
 
   it('switches adding off, with a message, when the flow handlers lack the listed integrations (RD-02)', async () => {
@@ -747,23 +781,14 @@ describe('compatibility check with the Home Assistant in use', () => {
     expect(power.body.code).toBe('FEATURE_UNAVAILABLE');
   });
 
-  it('keeps the writes off on a version that was neither verified nor compared, unless the installer allows them', async () => {
+  it('keeps the writes on for a version nobody verified when the probes pass (T8)', async () => {
     const harness = await harnessFor({});
     harness.fake.knobs.version = '2099.1.0';
     await harness.module.start();
 
     const status = await harness.request('/stato', { user: 'installer' });
-    expect(status.body).toMatchObject({ features: { catalog: true, flows: false, power: false } });
-    expect(JSON.stringify(status.body.warnings)).toContain('DEVICES_ALLOW_UNVERIFIED_HA_VERSION');
-    const refused = await harness.request('/flussi', {
-      method: 'POST',
-      body: { handler: 'webostv' },
-    });
-    expect(refused.status).toBe(503);
-    expect(harness.fake.callsFor(FLOW_START)).toHaveLength(0);
-
-    vi.stubEnv('DEVICES_ALLOW_UNVERIFIED_HA_VERSION', '1');
-    harness.module.compat.invalidate();
+    expect(status.body).toMatchObject({ features: { catalog: true, flows: true, power: true } });
+    expect(JSON.stringify(status.body.warnings)).toContain('le funzioni restano accese');
     const accepted = await harness.request('/flussi', {
       method: 'POST',
       body: { handler: 'webostv' },
@@ -809,7 +834,7 @@ describe('compatibility check with the Home Assistant in use', () => {
       homeAssistant: { onboarded: false },
       features: { catalog: false, flows: false, power: false },
     });
-    expect(JSON.stringify(status.body.warnings)).toContain('non è ancora stato configurato');
+    expect(JSON.stringify(status.body.warnings)).toContain('non è ancora pronto');
   });
 
   it('logs that HA is unreachable at start-up instead of failing', async () => {
@@ -870,7 +895,7 @@ describe('a TV that does not answer after pairing', () => {
 
     tv.forcedState = 'setup_error';
     expect(String((await harness.request(`/voci/${entryId}`)).body.message)).toContain(
-      "Chiedi all'installatore"
+      'rimuovilo e aggiungilo di nuovo'
     );
 
     tv.forcedState = 'loaded';

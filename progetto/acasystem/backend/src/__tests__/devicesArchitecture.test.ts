@@ -151,11 +151,12 @@ describe('the catalogue of Home Assistant calls', () => {
 });
 
 describe('the closed list of operations', () => {
-  it('has the operations of the plan and keeps the installer ones inside it', () => {
+  it('has the operations of the plan, and none is reserved to administrators', () => {
     expect(new Set(DEVICE_OPERATIONS).size).toBe(DEVICE_OPERATIONS.length);
     for (const operation of INSTALLER_ONLY_OPERATIONS)
       expect(DEVICE_OPERATIONS).toContain(operation);
-    expect(INSTALLER_ONLY_OPERATIONS).toEqual(['power.remove', 'action.list']);
+    // REP-20261028-004: everybody can do everything.
+    expect(INSTALLER_ONLY_OPERATIONS).toEqual([]);
   });
 
   it('is enforced by one guard that every operation of the service goes through', () => {
@@ -185,7 +186,11 @@ describe('the closed list of operations', () => {
       '/flussi/:flowId',
       '/flussi/:flowId',
       '/flussi/:flowId',
+      '/flussi/:flowId/file',
       '/scoperti',
+      '/scoperti/ignorati',
+      '/scoperti/ignorati/:entryId/ripristina',
+      '/loghi/:domain',
       '/scoperti/:flowId/aggiungi',
       '/scoperti/:flowId/ignora',
       '/tv-in-rete',
@@ -199,6 +204,7 @@ describe('the closed list of operations', () => {
       '/accensione/:entryId',
       '/accensione/:entryId',
       '/registro',
+      '/servizio/ripara',
     ]);
     const server = FILES.find((file) => file.name === 'server.ts')?.code ?? '';
     expect(server).toMatch(/app\.use\('\/api\/dispositivi', homeAssistantAuth,/);

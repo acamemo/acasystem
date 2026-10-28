@@ -53,16 +53,26 @@ export interface RestOptions {
   token?: string | undefined;
   /** Values for the `{name}` placeholders of the path. */
   params?: Record<string, string>;
+  /** Query string values (the token of the brands proxy). */
+  query?: Record<string, string>;
   /** JSON body. */
   body?: unknown;
   /** `application/x-www-form-urlencoded` body (token endpoints). */
   form?: Record<string, string>;
+  /** One file as `multipart/form-data` (the upload of a `file` selector of a flow). */
+  multipart?: { field: string; filename: string; contentType: string; data: Buffer };
   timeoutMs: number;
 }
 
 export interface RestResponse {
   status: number;
   body: unknown;
+}
+
+export interface RestBinaryResponse {
+  status: number;
+  contentType: string;
+  data: Buffer;
 }
 
 export interface WsCommandOptions {
@@ -85,6 +95,14 @@ export interface HaWsSession {
 
 export interface HaTransport {
   rest(call: HaRestCall, options: RestOptions): Promise<RestResponse>;
+  /**
+   * A GET that answers a file (an image). The body is read up to `maxBytes`; a larger one is a
+   * `protocol` error. Failures are classified like those of `rest`.
+   */
+  restBinary(
+    call: HaRestCall,
+    options: RestOptions & { maxBytes: number }
+  ): Promise<RestBinaryResponse>;
   openSession(token: string, timeoutMs: number): Promise<HaWsSession>;
   /** `ha_version` from the first WebSocket message, read before any login. */
   readVersion(timeoutMs: number): Promise<string | null>;
@@ -96,6 +114,11 @@ export interface HaTransportOptions {
   /** Called with the id of every call made; used by the tests to audit the traffic. */
   onCall?: (id: string) => void;
   fetchImpl?: typeof fetch;
+  /**
+   * Path of the WebSocket on the base URL. Default `/api/websocket`; the Supervisor proxy to
+   * Core uses `/websocket` (base `http://supervisor/core`).
+   */
+  wsPath?: string;
 }
 
 const MAX_WS_PAYLOAD_BYTES = 32 * 1024 * 1024;
@@ -132,6 +155,22 @@ const kindForStatus = (status: number): HaErrorKind => {
   return 'ha_error';
 };
 
+/** The body of a response up to `maxBytes`; null when it is larger. */
+const readLimited = async (response: Response, maxBytes: number): Promise<Buffer | null> => {
+  const declared = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) return null;
+  const chunks: Buffer[] = [];
+  let total = 0;
+  if (response.body) {
+    for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
+      total += chunk.byteLength;
+      if (total > maxBytes) return null;
+      chunks.push(Buffer.from(chunk));
+    }
+  }
+  return Buffer.concat(chunks);
+};
+
 const parseBody = async (response: Response): Promise<unknown> => {
   const text = await response.text();
   if (!text) return null;
@@ -143,8 +182,11 @@ const parseBody = async (response: Response): Promise<unknown> => {
   }
 };
 
-const wsUrlFor = (baseUrl: string): string =>
-  `${baseUrl.replace(/^http/i, 'ws')}${HA_WEBSOCKET_PATH}`;
+const queryOf = (query: Record<string, string> | undefined): string =>
+  query && Object.keys(query).length ? `?${new URLSearchParams(query).toString()}` : '';
+
+const wsUrlFor = (baseUrl: string, path: string): string =>
+  `${baseUrl.replace(/^http/i, 'ws')}${path}`;
 
 /** Error of a WebSocket `result` with `success: false`. */
 const wsCommandError = (error: unknown): HaError => {
@@ -183,12 +225,13 @@ const connect = (
   baseUrl: string,
   token: string | null,
   timeoutMs: number,
+  wsPath: string,
   onCall?: (id: string) => void
 ): Promise<HaWsSession> =>
   new Promise<HaWsSession>((resolve, reject) => {
     let socket: WebSocket;
     try {
-      socket = new WebSocket(wsUrlFor(baseUrl), {
+      socket = new WebSocket(wsUrlFor(baseUrl, wsPath), {
         handshakeTimeout: timeoutMs,
         maxPayload: MAX_WS_PAYLOAD_BYTES,
         followRedirects: false,
@@ -365,6 +408,7 @@ export const createHaTransport = ({
   baseUrls,
   onCall,
   fetchImpl = fetch,
+  wsPath = HA_WEBSOCKET_PATH,
 }: HaTransportOptions): HaTransport => {
   /**
    * Tries the configured URLs in order. The next URL is tried only when the call cannot have
@@ -401,8 +445,14 @@ export const createHaTransport = ({
         const headers: Record<string, string> = { Accept: 'application/json' };
         if (options.token) headers.Authorization = `Bearer ${options.token}`;
 
-        let body: string | undefined;
-        if (options.form) {
+        let body: string | FormData | undefined;
+        if (options.multipart) {
+          // The boundary header is set by fetch from the FormData.
+          const { field, filename, contentType, data } = options.multipart;
+          const formData = new FormData();
+          formData.append(field, new Blob([new Uint8Array(data)], { type: contentType }), filename);
+          body = formData;
+        } else if (options.form) {
           headers['Content-Type'] = 'application/x-www-form-urlencoded';
           body = new URLSearchParams(options.form).toString();
         } else if (options.body !== undefined) {
@@ -412,7 +462,7 @@ export const createHaTransport = ({
 
         let response: Response;
         try {
-          response = await fetchImpl(`${baseUrl}${fillPath(call.path, options.params)}`, {
+          response = await fetchImpl(`${baseUrl}${fillPath(call.path, options.params)}${queryOf(options.query)}`, {
             method: call.method,
             headers,
             ...(body !== undefined ? { body } : {}),
@@ -444,13 +494,52 @@ export const createHaTransport = ({
       });
     },
 
+    async restBinary(call, options) {
+      onCall?.(call.id);
+      return withBaseUrl(true, async (baseUrl) => {
+        const headers: Record<string, string> = { Accept: 'image/*' };
+        if (options.token) headers.Authorization = `Bearer ${options.token}`;
+
+        let response: Response;
+        let data: Buffer | null = null;
+        try {
+          response = await fetchImpl(
+            `${baseUrl}${fillPath(call.path, options.params)}${queryOf(options.query)}`,
+            {
+              method: call.method,
+              headers,
+              redirect: 'manual',
+              signal: AbortSignal.timeout(options.timeoutMs),
+            }
+          );
+          if (response.status === 200) data = await readLimited(response, options.maxBytes);
+          else await response.arrayBuffer().catch(() => undefined);
+        } catch (error) {
+          throw classifyNetworkError(error);
+        }
+
+        if (response.status >= 300 && response.status < 400) {
+          throw new HaError('protocol', { status: response.status });
+        }
+        if (response.status >= 400) {
+          throw new HaError(kindForStatus(response.status), { status: response.status });
+        }
+        if (!data) throw new HaError('protocol', { status: response.status });
+        return {
+          status: response.status,
+          contentType: response.headers.get('content-type') ?? '',
+          data,
+        };
+      });
+    },
+
     async openSession(token, timeoutMs) {
-      return withBaseUrl(true, (baseUrl) => connect(baseUrl, token, timeoutMs, onCall));
+      return withBaseUrl(true, (baseUrl) => connect(baseUrl, token, timeoutMs, wsPath, onCall));
     },
 
     async readVersion(timeoutMs) {
       onCall?.('ws.handshake');
-      const session = await withBaseUrl(true, (baseUrl) => connect(baseUrl, null, timeoutMs));
+      const session = await withBaseUrl(true, (baseUrl) => connect(baseUrl, null, timeoutMs, wsPath));
       const version = session.haVersion;
       session.close();
       return version;

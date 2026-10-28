@@ -1,9 +1,11 @@
-import type { Request, RequestHandler, Response } from 'express';
+import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'express';
 import { sendJsonError } from '../middlewares/errors.ts';
 import { DeviceError, describeForLog, isDeviceError } from '../services/devices/deviceErrors.ts';
 import type { DeviceUser } from '../services/devices/deviceContext.ts';
 import type { DeviceService } from '../services/devices/deviceService.ts';
 import type { PowerRecipe } from '../services/devices/powerRecipe.ts';
+import type { ServiceKeeper } from '../services/devices/serviceKeeper.ts';
+import { getBearerToken } from '../middlewares/homeAssistantAuth.ts';
 import {
   validateAreaBody,
   validateCatalogQuery,
@@ -12,6 +14,9 @@ import {
   validateEntryId,
   validateFlowId,
   validateLimitQuery,
+  validateLogoDark,
+  validateLogoDomain,
+  validateFileUploadQuery,
   validatePowerBody,
   validateStartFlowBody,
   validateStepBody,
@@ -31,10 +36,16 @@ export interface DevicesController {
   startFlow: RequestHandler;
   getFlow: RequestHandler;
   stepFlow: RequestHandler;
+  uploadFlowFile: RequestHandler;
+  /** Error handler of the upload route: a body over the limit is a JSON 413. */
+  uploadFlowFileErrors: ErrorRequestHandler;
   cancelFlow: RequestHandler;
   listDiscovered: RequestHandler;
   addDiscovered: RequestHandler;
   ignoreDiscovered: RequestHandler;
+  listIgnored: RequestHandler;
+  restoreIgnored: RequestHandler;
+  logo: RequestHandler;
   listTvs: RequestHandler;
   connectTv: RequestHandler;
   getEntry: RequestHandler;
@@ -46,6 +57,7 @@ export interface DevicesController {
   powerSetup: RequestHandler;
   powerRemove: RequestHandler;
   listActions: RequestHandler;
+  repairService: RequestHandler;
   notFound: RequestHandler;
 }
 
@@ -91,7 +103,8 @@ const route =
 
 export const createDevicesController = (
   service: DeviceService,
-  power: PowerRecipe
+  power: PowerRecipe,
+  keeper: ServiceKeeper
 ): DevicesController => ({
   status: route((_req, user) => service.status(user)),
 
@@ -110,6 +123,25 @@ export const createDevicesController = (
     service.stepFlow(user, validateFlowId(req.params.flowId), validateStepBody(req.body).input)
   ),
 
+  // The body is the file itself (raw bytes, see routes/devices.ts); the field and the name of the
+  // file travel in the query. The answer is the id to put in the answer of the step.
+  uploadFlowFile: route((req, user) => {
+    const flowId = validateFlowId(req.params.flowId);
+    const { field, fileName } = validateFileUploadQuery(req.query);
+    if (!Buffer.isBuffer(req.body)) throw new DeviceError('INVALID_INPUT', { field });
+    return service.uploadFlowFile(user, flowId, field, fileName, req.body);
+  }),
+
+  uploadFlowFileErrors: (error, _req, res, next) => {
+    const type =
+      typeof error === 'object' && error !== null ? (error as { type?: unknown }).type : undefined;
+    if (type === 'entity.too.large') {
+      sendJsonError(res, 413, 'Il file è troppo grande.', 'FILE_TOO_LARGE');
+      return;
+    }
+    next(error);
+  },
+
   cancelFlow: route((req, user) => service.cancelFlow(user, validateFlowId(req.params.flowId))),
 
   listDiscovered: route((_req, user) => service.listDiscovered(user)),
@@ -121,6 +153,41 @@ export const createDevicesController = (
   ignoreDiscovered: route((req, user) =>
     service.ignoreDiscovered(user, validateFlowId(req.params.flowId))
   ),
+
+  listIgnored: route((_req, user) => service.listIgnored(user)),
+
+  restoreIgnored: route((req, user) =>
+    service.restoreIgnored(user, validateEntryId(req.params.entryId))
+  ),
+
+  // The only answer that is not JSON: the picture, with a day of private cache. A missing logo
+  // is the usual JSON error, cached by the browser for an hour so the tiles do not ask again.
+  logo: async (req, res) => {
+    const user = readUser(req);
+    if (!user) {
+      sendJsonError(res, 401, 'Missing authenticated Home Assistant user');
+      return;
+    }
+    try {
+      const image = await service.logo(
+        user,
+        validateLogoDomain(req.params.domain),
+        validateLogoDark(req.query)
+      );
+      res.setHeader('Content-Type', image.contentType);
+      res.setHeader('Cache-Control', 'private, max-age=86400');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.status(200).send(image.data);
+    } catch (error) {
+      res.setHeader(
+        'Cache-Control',
+        isDeviceError(error) && error.code === 'LOGO_NOT_FOUND'
+          ? 'private, max-age=3600'
+          : 'no-store'
+      );
+      sendDeviceError(res, error);
+    }
+  },
 
   listTvs: route((_req, user) => service.listTvs(user)),
 
@@ -158,6 +225,12 @@ export const createDevicesController = (
   listActions: route((req, user) => ({
     actions: service.listActions(user, validateLimitQuery(req.query)),
   })),
+
+  // «Ripara il servizio»: every user. An administrator's own token (if the request has one) may
+  // be the means of the repair; it is used for this run only.
+  repairService: route((req, user) =>
+    keeper.repair(user, user.isAdmin ? getBearerToken(req) : null)
+  ),
 
   notFound: (_req, res) => {
     sendDeviceError(res, new DeviceError('NOT_FOUND'));

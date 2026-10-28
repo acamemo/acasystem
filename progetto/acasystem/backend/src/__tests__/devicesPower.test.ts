@@ -137,7 +137,7 @@ describe('setting up the power-on recipe', () => {
     );
   });
 
-  it('asks the installer for the MAC when HA has none, and never invents one', async () => {
+  it('asks the person for the MAC when HA and the network have none, and never invents one', async () => {
     const harness = await harnessFor({});
     const entryId = await addTv(harness);
     harness.fake.resetCalls();
@@ -145,7 +145,8 @@ describe('setting up the power-on recipe', () => {
     const result = await harness.request(`/accensione/${entryId}`, { method: 'POST', body: {} });
     expect(result.status).toBe(409);
     expect(result.body.code).toBe('MAC_REQUIRED');
-    expect(String(result.body.error)).toContain("Lo inserisce l'installatore");
+    expect(String(result.body.error)).toContain('Inseriscilo');
+    expect(String(result.body.error)).not.toMatch(/installatore/i);
     expect(harness.fake.entries.filter((entry) => entry.domain === 'wake_on_lan')).toHaveLength(0);
     expect(harness.fake.automations.size).toBe(0);
     expect(harness.fake.callsFor('POST /api/config/config_entries/flow')).toHaveLength(0);
@@ -154,22 +155,9 @@ describe('setting up the power-on recipe', () => {
     });
   });
 
-  it('takes the MAC from the installer only, and checks it', async () => {
+  it('takes the MAC from any user who sends it, and checks it', async () => {
     const harness = await harnessFor({});
     const entryId = await addTv(harness);
-
-    const byCustomer = await harness.request(`/accensione/${entryId}`, {
-      method: 'POST',
-      body: { mac: CANARY.mac },
-    });
-    expect(byCustomer.status).toBe(403);
-    expect(byCustomer.body.code).toBe('REQUIRES_INSTALLER');
-    const byCustomerBroadcast = await harness.request(`/accensione/${entryId}`, {
-      method: 'POST',
-      body: { broadcastAddress: '192.168.1.255' },
-    });
-    expect(byCustomerBroadcast.status).toBe(403);
-    expect(harness.fake.entries.filter((entry) => entry.domain === 'wake_on_lan')).toHaveLength(0);
 
     for (const [body, field] of [
       [{ mac: 'not a mac' }, 'mac'],
@@ -179,7 +167,6 @@ describe('setting up the power-on recipe', () => {
     ] as const) {
       const invalid = await harness.request(`/accensione/${entryId}`, {
         method: 'POST',
-        user: 'installer',
         body,
       });
       expect(invalid.status).toBe(400);
@@ -189,11 +176,10 @@ describe('setting up the power-on recipe', () => {
 
     const ok = await harness.request(`/accensione/${entryId}`, {
       method: 'POST',
-      user: 'installer',
       body: { mac: CANARY.mac.toUpperCase(), broadcastAddress: '192.168.1.255', broadcastPort: 9 },
     });
     expect(ok.status).toBe(200);
-    expect(ok.body).toMatchObject({ configured: true, active: true, macSource: 'installer' });
+    expect(ok.body).toMatchObject({ configured: true, active: true, macSource: 'user' });
     expect(harness.fake.entries.find((entry) => entry.domain === 'wake_on_lan')?.mac).toBe(
       CANARY.mac
     );
@@ -380,21 +366,14 @@ describe('state and removal of the recipe', () => {
     expect(harness.fake.automations.size).toBe(1);
   });
 
-  it('leaves the removal to the installer and removes everything the link records', async () => {
+  it('lets any user remove the recipe, and removes everything the link records', async () => {
     const harness = await harnessFor({});
     const entryId = await configured(harness);
     const wolEntryId = harness.fake.entries.find(
       (entry) => entry.domain === 'wake_on_lan'
     )?.entry_id;
 
-    const byCustomer = await harness.request(`/accensione/${entryId}`, { method: 'DELETE' });
-    expect(byCustomer.status).toBe(403);
-    expect(harness.fake.automations.size).toBe(1);
-
-    const removed = await harness.request(`/accensione/${entryId}`, {
-      method: 'DELETE',
-      user: 'installer',
-    });
+    const removed = await harness.request(`/accensione/${entryId}`, { method: 'DELETE' });
     expect(removed.status).toBe(200);
     expect(removed.body).toEqual({ removed: true });
     expect(harness.fake.automations.size).toBe(0);
@@ -406,10 +385,7 @@ describe('state and removal of the recipe', () => {
       n: 0,
     });
 
-    const again = await harness.request(`/accensione/${entryId}`, {
-      method: 'DELETE',
-      user: 'installer',
-    });
+    const again = await harness.request(`/accensione/${entryId}`, { method: 'DELETE' });
     expect(again.status).toBe(404);
     const registry = await harness.request('/registro', { user: 'installer' });
     expect(registry.body.actions).toEqual(
