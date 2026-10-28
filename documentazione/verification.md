@@ -1494,3 +1494,12 @@ Fonte: [REP-20261023-003](reports/REP-20261023-003-piano-aggiungi-dispositivi.md
 - `auth/delete_all_refresh_tokens` non è verificata (evidenza `unverified` nel catalogo).
 
 **Non eseguiti:** applicazione della patch a `progetto/acasystem`, costruzione dell'immagine, suite del frontend e suite completa del progetto, prova con HA 2026.9.4 o 2026.10.2 reale, registrazione delle fixture, prova su Linux.
+
+## 2026-10-27 — Flusso unico «Aggiungi un dispositivo» per famiglia, prima la TV (REP-20261027-003, T1-T6)
+
+- **Controlli locali** sull'albero di lavoro a partire da `ea77f46`, non committato, in `progetto/acasystem/frontend` (Windows 11): `npm run typecheck` (strict), `npm run lint`, `npm run lint:typography` (0 violazioni su 603 file) e `npm run lint:theme-colors` (0 su 411) superati.
+- **Test:** i 7 file dei dispositivi danno 124/124, con il nuovo `DeviceFinder.test.tsx`; la suite completa con `npx vitest run --maxWorkers=4` dà 232 file e 3446 test superati.
+- **Istanza di prova separata** su `127.0.0.1:3013`: interfaccia costruita nella cartella temporanea della sessione, copia dei dati di `:3007`, stessa copia di HA `acasystem-ha-s45`. Il registro del server dice «Home Assistant 2026.10.4: verified version, flows on».
+- **Non eseguiti:** accesso e prova nell'app (servono le credenziali dell'utente), prova sul Tab M11, collegamento di una TV vera dal widget TV, utente non amministratore, e2e. I testi della guida (numero e lunghezza dei codici) vengono dallo studio T0 e non sono provati su una TV.
+- **Prova reale (2026-10-27/28 notte, Tab M11 su `:3013` via USB):** la Samsung UE50J6200 è stata ricollegata con il PIN dal flusso nuovo (voce creata alle 00:26:47); l'utente lo giudica «abbastanza semplice». I tasti del telecomando arrivano a HA ma la TV li ignora, anche dopo ricarica, riavvio e nuovo abbinamento ([ISSUE-126](project-status.md)). Volume e muto funzionano. Trovato un difetto di T5: la marca non usa le scoperte di HA. Evidenza: ascolto in sola lettura degli eventi `call_service`, `state_changed` e delle voci di HA; il registro dettagliato di HA non è leggibile (404).
+- **Correzione di T5 (2026-10-28):** la riga della marca usa anche le scoperte di HA. Typecheck, lint, tipografia (0 su 603) e colori (0 su 411) superati; suite completa con `npx vitest run --maxWorkers=4`: 232 file e 3447 test superati. Interfaccia di `:3013` ricostruita e server riavviato. La prova sul tablet non è ancora rifatta.

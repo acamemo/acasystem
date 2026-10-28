@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TvInReteDto } from '@/@types/devices';
 import { listTvs } from '@/api/devicesApi';
 import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
+import type { DeviceFilter } from './useDiscoveredDevices';
 
 /** How often the list is read while the details are open: the server keeps it for 30 seconds. */
 export const TVS_POLL_MS = 30_000;
@@ -17,7 +18,10 @@ export type TvsOnNetworkState =
  * now and every 30 seconds while mounted and visible. A failure is not an error of the screen:
  * «Trovati in rete» already tells the person why the service is off, so this section just hides.
  */
-export function useTvsOnNetwork(paused = false): TvsOnNetworkState & { refresh: () => void } {
+export function useTvsOnNetwork(
+  paused = false,
+  filter: DeviceFilter = {}
+): TvsOnNetworkState & { refresh: () => void } {
   const visible = usePageVisible();
   const [state, setState] = useState<TvsOnNetworkState>({ status: 'loading' });
   const busyRef = useRef(false);
@@ -55,5 +59,18 @@ export function useTvsOnNetwork(paused = false): TvsOnNetworkState & { refresh: 
 
   const refresh = useCallback(() => setTick((value) => value + 1), []);
 
-  return { ...state, refresh };
+  // Every television is of the family `tv`; the handlers narrow them to the brands of the widget.
+  const { family, handlers } = filter;
+  const shown = useMemo<TvsOnNetworkState>(() => {
+    if (state.status !== 'ready') return state;
+    return {
+      status: 'ready',
+      tvs:
+        family && family !== 'tv'
+          ? []
+          : state.tvs.filter((tv) => !handlers || (tv.handler && handlers.includes(tv.handler))),
+    };
+  }, [family, handlers, state]);
+
+  return { ...shown, refresh };
 }

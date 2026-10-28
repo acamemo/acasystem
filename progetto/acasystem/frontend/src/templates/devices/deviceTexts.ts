@@ -74,6 +74,10 @@ export const deviceTexts = {
   pairingCountdown: 'Secondi rimasti per premere OK',
   pairingRetry: 'Riprova',
 
+  // What to know before the television is asked anything (P-6): the code appears at once.
+  guideTitle: 'Prima di cominciare',
+  guideContinue: 'Sono davanti alla TV, continua',
+
   // The code the television shows, and the request to accept (F5).
   pinGuide: 'Guarda la TV: compare un codice. Scrivilo qui.',
   pinLabel: 'Codice mostrato sul televisore',
@@ -152,24 +156,83 @@ export const RECOMMENDED_HANDLERS: Readonly<Partial<Record<DeviceKind, readonly 
 /**
  * What the person does on the device while it pairs, for the steps the server keeps open (the
  * TV asks for a confirmation on its screen). `needs` is a precondition, `intro` is shown before
- * «Avanti», `look` while the call is open.
+ * «Avanti», `look` while the call is open. `guide` is the screen shown before the flow starts,
+ * for the televisions that ask for a code or a confirmation as soon as the pairing begins: what
+ * happens on the TV and how many codes to expect.
  */
 export interface PairingHint {
   needs?: string;
   intro: (seconds: number) => string;
   look: string;
+  guide?: { what: string; codes: string };
 }
+
+/** The wording of the steps that wait on the television, for the brands with nothing special. */
+const TV_PAIRING = {
+  intro: (seconds: number) =>
+    `Premi Avanti e segui le istruzioni sul televisore. Hai ${seconds} secondi.`,
+  look: 'Guarda il televisore.',
+};
 
 export const PAIRING_HINTS: Readonly<Record<string, PairingHint>> = {
   webostv: {
     needs: deviceTexts.pairingNeeds,
     intro: deviceTexts.pairingIntro,
     look: deviceTexts.pairingLook,
+    guide: {
+      what: 'Sul televisore compare una finestra: scegli Sì con il telecomando.',
+      codes: 'Non c’è nessun codice da scrivere.',
+    },
   },
   samsungtv: {
     intro: (seconds) =>
       `Tieni in mano il telecomando. Premi Avanti: sul televisore comparirà una richiesta. Hai ${seconds} secondi per scegliere Consenti. Sui modelli più vecchi comparirà un codice.`,
     look: 'Guarda il televisore e scegli Consenti.',
+    guide: {
+      what: 'Sul televisore compare una richiesta: scegli Consenti entro 30 secondi. Sui modelli del 2014 e 2015 compare invece un codice.',
+      codes: 'Al massimo un codice di 4 cifre.',
+    },
+  },
+  androidtv_remote: {
+    ...TV_PAIRING,
+    guide: {
+      what: 'Il televisore si accende e mostra un codice sullo schermo.',
+      codes: 'Un codice di 6 caratteri, tra numeri e lettere.',
+    },
+  },
+  braviatv: {
+    ...TV_PAIRING,
+    needs: 'Sul televisore attiva «Controllo remoto»: Impostazioni › Rete › Impostazioni dispositivo remoto.',
+    guide: {
+      what: 'Sul televisore compare un codice.',
+      codes: 'Un solo codice, di 4 cifre.',
+    },
+  },
+  philips_js: {
+    ...TV_PAIRING,
+    guide: {
+      what: 'Sui televisori recenti compare un codice sullo schermo. Su quelli più vecchi non serve.',
+      codes: 'Al massimo un codice di 4 cifre.',
+    },
+  },
+  panasonic_viera: {
+    ...TV_PAIRING,
+    guide: {
+      what: 'Sui modelli con cifratura il televisore mostra un codice. Se lo scrivi sbagliato, ne compare uno nuovo.',
+      codes: 'Un codice di 4 cifre, nuovo a ogni errore.',
+    },
+  },
+  apple_tv: {
+    ...TV_PAIRING,
+    guide: {
+      what: 'La Apple TV mostra un codice, poi spesso un altro. Scrivi ogni codice appena compare, anche gli zeri all’inizio.',
+      codes: 'Di solito più di un codice, uno dopo l’altro.',
+    },
+  },
+  roku: {
+    ...TV_PAIRING,
+    // No guide: nothing happens on the Roku, so a screen before the flow would only be a tap more.
+    needs: 'Se il Roku rifiuta, attiva «Accesso alla rete»: Impostazioni › Sistema › Avanzate › Controllo da app mobili.',
   },
 };
 
@@ -188,6 +251,11 @@ export const HANDLER_HINTS: Readonly<Record<string, string>> = {
   webostv: 'Accetta la richiesta sulla TV.',
   samsungtv: 'Scegli Consenti sulla TV. I modelli più vecchi mostrano un codice.',
   androidtv_remote: 'Sulla TV compare un codice: scrivilo qui.',
+  braviatv: 'Sulla TV compare un codice: scrivilo qui. Serve «Controllo remoto» attivo.',
+  philips_js: 'Se la TV mostra un codice, scrivilo qui.',
+  panasonic_viera: 'Se la TV mostra un codice, scrivilo qui.',
+  apple_tv: 'Scrivi il codice che la Apple TV mostra. Può chiederne più di uno.',
+  roku: 'Nessuna azione sul dispositivo. Se rifiuta, attiva «Accesso alla rete» nel Roku.',
   cast: 'Nessuna azione sul dispositivo.',
   hue: 'Premi il pulsante del bridge, poi continua.',
   shelly: 'Nessuna azione sul dispositivo.',

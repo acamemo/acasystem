@@ -116,8 +116,11 @@ const details = (map: EntityMap = entities()) =>
 const withTvs = (...tvs: ReturnType<typeof tvDto>[]) =>
   fake.on('GET /tv-in-rete', () => ({ body: { tvs } }));
 
-const tap = async (name = 'Collega Televisore Samsung') =>
+// «Collega», then the guide before the television is asked anything (P-6).
+const tap = async (name = 'Collega Televisore Samsung') => {
   fireEvent.click(await screen.findByRole('button', { name }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Sono davanti alla TV, continua' }));
+};
 
 beforeEach(() => {
   localStorage.clear();

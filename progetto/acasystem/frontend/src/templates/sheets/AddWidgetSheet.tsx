@@ -12,8 +12,9 @@ import {
   type AddWidgetType,
 } from './catalog';
 import { cardSettingsKey } from './cardKeys';
+import { DeviceFinder } from '@/components/widgets/utilities/discover/DeviceFinder';
 import { AddDeviceEntry } from '../devices/AddDeviceEntry';
-import { AddDeviceFlow } from '../devices/AddDeviceFlow';
+import { DiscoveredAddFlow } from '../devices/DiscoveredAddFlow';
 import { EntityPicker, PickRow, entityName } from './parts/EntityPicker';
 import { ChoiceGroup, Notice } from './parts/Form';
 import { usePresence } from './parts/hooks';
@@ -25,6 +26,9 @@ import './sheets.css';
 type Step = 'type' | 'details' | 'device';
 
 const EMPTY_ROOMS: RoomSelection = { areas: [], entitiesById: {} };
+
+/** The Apple TV widget takes only the Apple TV integration. */
+const APPLE_TV_HANDLERS: readonly string[] = ['apple_tv'];
 
 /** Types added without any choice (their entities are chosen later in their settings). */
 const NO_CHOICE_FLOWS = new Set(['simple', 'spacer']);
@@ -53,6 +57,8 @@ export function AddWidgetSheet({
   const typesRef = useRef<HTMLDivElement>(null);
   const detailsRef = useRef<HTMLHeadingElement>(null);
   const lastTypeRef = useRef<string | null>(null);
+  // The person already went through «Aggiungi un dispositivo» for this type: the details stay.
+  const [finderHandled, setFinderHandled] = useState(false);
 
   const [wasOpen, setWasOpen] = useState(open);
 
@@ -113,6 +119,7 @@ export function AddWidgetSheet({
     addCard.setAddCardType(item.type);
     addCard.setSearchTerm('');
     setRooms(EMPTY_ROOMS);
+    setFinderHandled(false);
     setStep('details');
   };
 
@@ -184,6 +191,32 @@ export function AddWidgetSheet({
 
   const selectedCount = addCard.selectedEntities.length;
   const flow = entry?.flow;
+
+  // A television widget with no television to pick opens «Aggiungi un dispositivo» at once
+  // (P-1): the empty list would only send the person there.
+  const noTelevision =
+    step === 'details' &&
+    flow === 'tv' &&
+    !finderHandled &&
+    !initialSelection &&
+    runtime.entitiesLoaded &&
+    candidateEntityIds('tv', runtime.entities, new Set(pages.pagesConfig[pageId] ?? [])).length === 0;
+  const showFinder = step === 'device' || noTelevision;
+
+  /** The television the widget will show, in the Android TV or the Apple TV fields. */
+  const selectTelevision = (mediaId: string, remoteId?: string | null) => {
+    if (entry?.type === 'appletv') {
+      addCard.setSelectedAppleTVMediaId(mediaId);
+      if (remoteId !== undefined) addCard.setSelectedAppleTVRemoteId(remoteId);
+    } else {
+      addCard.setSelectedAndroidTVMediaId(mediaId);
+      if (remoteId !== undefined) addCard.setSelectedAndroidTVRemoteId(remoteId);
+    }
+  };
+  const leaveFinder = () => {
+    setFinderHandled(true);
+    setStep('details');
+  };
   let canAdd = false;
   let addLabel = 'Aggiungi il widget';
   switch (flow) {
@@ -246,7 +279,7 @@ export function AddWidgetSheet({
 
   // «Aggiungi un dispositivo» has its own buttons inside the flow: no footer.
   const footer =
-    step === 'device' ? undefined : step === 'type' ? (
+    showFinder ? undefined : step === 'type' ? (
       <Button variant="secondary" size="md" onClick={onClose}>
         Annulla
       </Button>
@@ -279,7 +312,7 @@ export function AddWidgetSheet({
       description={
         step === 'type'
           ? 'Scegli che cosa mostrare nella pagina.'
-          : step === 'device'
+          : showFinder
             ? 'Aggiungi il dispositivo a Home Assistant, poi collegalo al widget.'
             : 'Scegli che cosa mostra il widget.'
       }
@@ -308,19 +341,28 @@ export function AddWidgetSheet({
         </div>
       )}
 
-      {mounted && step === 'device' && (
-        <AddDeviceFlow
-          kind="tv"
-          onExit={() => setStep('details')}
-          onDone={(id) => {
-            // The new TV is the one to link: «Aggiungi il widget» is then ready.
-            if (id) addCard.setSelectedAndroidTVMediaId(id);
-            setStep('details');
+      {mounted && showFinder && (
+        <DeviceFinder
+          family="tv"
+          {...(entry?.type === 'appletv' ? { handlers: APPLE_TV_HANDLERS } : {})}
+          label="Aggiungi un dispositivo"
+          Flow={DiscoveredAddFlow}
+          onUse={(device) => {
+            // A television Home Assistant already has: it is the one to link.
+            selectTelevision(device.primaryEntityId, device.remoteId ?? null);
+            leaveFinder();
           }}
+          onFlowDone={(newEntry) => {
+            // The new TV is the one to link: «Aggiungi il widget» is then ready.
+            if (newEntry.mediaPlayerEntityId) selectTelevision(newEntry.mediaPlayerEntityId);
+            leaveFinder();
+          }}
+          // Opened by itself on an empty list, there is no list to go back to: back to the types.
+          onExit={() => (noTelevision ? setStep('type') : leaveFinder())}
         />
       )}
 
-      {mounted && step === 'details' && entry && (
+      {mounted && step === 'details' && !showFinder && entry && (
         <div className="aca-add-details">
           <div className="aca-add-details__head">
             <span className="aca-add-details__glyph" aria-hidden="true">
@@ -378,7 +420,7 @@ function DetailsBody({
   addCard: AddCardState;
   rooms: RoomSelection;
   onRooms: (next: RoomSelection | ((previous: RoomSelection) => RoomSelection)) => void;
-  /** Opens «Aggiungi un dispositivo»; offered to the Android TV widget only (REQ-18). */
+  /** Opens «Aggiungi un dispositivo»; offered to the television widgets (REQ-18). */
   onAddDevice: () => void;
 }) {
   const { entities, entitiesLoaded, conn } = useWidgetRuntime();
@@ -482,7 +524,7 @@ function DetailsBody({
             loading={loading}
             emptyText="Nessun lettore multimediale trovato."
           />
-          {entry.type === 'androidtv' && <AddDeviceEntry onClick={onAddDevice} />}
+          <AddDeviceEntry onClick={onAddDevice} />
           <EntityPicker
             label="Telecomando, facoltativo"
             entities={entities}

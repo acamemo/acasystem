@@ -5,12 +5,16 @@ import { useState } from 'react';
 import { RoomPicker, type RoomSelection } from './RoomPicker';
 import { BINDING_KEYS } from './categoryPages';
 import { candidateEntityIds } from './catalog';
+import { DeviceFinder } from '@/components/widgets/utilities/discover/DeviceFinder';
 import { AddDeviceEntry } from '../devices/AddDeviceEntry';
-import { AddDeviceFlow } from '../devices/AddDeviceFlow';
+import { DiscoveredAddFlow } from '../devices/DiscoveredAddFlow';
 import { RemoveDevice } from '../devices/RemoveDevice';
 import { deviceTexts } from '../devices/deviceTexts';
 import { EntitySelect } from './parts/EntityPicker';
 import { SheetSection } from './parts/Form';
+
+/** The Apple TV widget takes only the Apple TV integration. */
+const APPLE_TV_HANDLERS: readonly string[] = ['apple_tv'];
 
 export function CategoryBindingSection({
   settings,
@@ -44,19 +48,26 @@ export function CategoryBindingSection({
       : typeof settings[key] === 'string'
         ? (settings[key] as string)
         : null;
-  // A new TV can be added from here (REQ-18, D-D2): the way in is the Android TV widget.
-  const canAddDevice = type === 'androidtv';
+  // A new TV can be added from here (REQ-18, D-D2): the way in is the television widgets.
+  const canAddDevice = type === 'androidtv' || type === 'appletv';
   const link = (id: string | null) => save(key, multiple ? (id ? [id] : []) : id);
   if (canAddDevice && adding) {
     return (
       <SheetSection title="Dispositivo">
-        <AddDeviceFlow
-          kind="tv"
-          onExit={() => setAdding(false)}
-          onDone={(id) => {
-            if (id) link(id);
+        <DeviceFinder
+          family="tv"
+          {...(type === 'appletv' ? { handlers: APPLE_TV_HANDLERS } : {})}
+          label="Aggiungi un dispositivo"
+          Flow={DiscoveredAddFlow}
+          onUse={(device) => {
+            link(device.primaryEntityId);
             setAdding(false);
           }}
+          onFlowDone={(entry) => {
+            if (entry.mediaPlayerEntityId) link(entry.mediaPlayerEntityId);
+            setAdding(false);
+          }}
+          onExit={() => setAdding(false)}
         />
       </SheetSection>
     );

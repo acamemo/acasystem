@@ -10,6 +10,10 @@ export interface DiscoveredFlowProps {
   flowId: string | null;
   /** A television seen on the network (F5): «Collega» starts its integration with one tap. */
   tvId?: string | null;
+  /** A recommended brand: its integration starts at once, no catalogue. */
+  startDomain?: string | null;
+  /** Integration whose guide is shown before the flow starts (P-6). */
+  guideFor?: string | null;
   family: DeviceFamily | null;
   /** The person left; an open flow has been cancelled. */
   onExit: () => void;

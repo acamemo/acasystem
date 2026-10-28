@@ -1,10 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DiscoveredDeviceDto } from '@/@types/devices';
 import { listDiscovered, toDeviceError } from '@/api/devicesApi';
 import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
+import type { DeviceFamily } from '@/utils/devices/classify';
 
 /** How often the list is read while the details are open: Home Assistant finds nothing faster. */
 export const DISCOVERED_POLL_MS = 15_000;
+
+/**
+ * What a screen of «Aggiungi un dispositivo» is about: the family of the widget that opened it
+ * and, when the widget takes only some brands, the integrations it accepts. Without a family
+ * everything is shown.
+ */
+export interface DeviceFilter {
+  family?: DeviceFamily | null;
+  handlers?: readonly string[];
+}
 
 export type DiscoveredDevicesState =
   | { status: 'loading' }
@@ -28,7 +39,10 @@ const SHOWN_CODES = new Set([
  * error of the screen: the section says why (service off) or stays quiet (network), and the list
  * of the devices already in Home Assistant keeps working without it.
  */
-export function useDiscoveredDevices(paused = false): DiscoveredDevicesState & {
+export function useDiscoveredDevices(
+  paused = false,
+  filter: DeviceFilter = {}
+): DiscoveredDevicesState & {
   /** Takes a device off the list (ignored, or taken over by this tablet). */
   remove: (flowId: string) => void;
   refresh: () => void;
@@ -86,5 +100,17 @@ export function useDiscoveredDevices(paused = false): DiscoveredDevicesState & {
 
   const refresh = useCallback(() => setTick((value) => value + 1), []);
 
-  return { ...state, remove, refresh };
+  const { family, handlers } = filter;
+  const shown = useMemo<DiscoveredDevicesState>(() => {
+    if (state.status !== 'ready') return state;
+    return {
+      status: 'ready',
+      devices: state.devices.filter(
+        (device) =>
+          (!family || device.family === family) && (!handlers || handlers.includes(device.handler))
+      ),
+    };
+  }, [family, handlers, state]);
+
+  return { ...shown, remove, refresh };
 }

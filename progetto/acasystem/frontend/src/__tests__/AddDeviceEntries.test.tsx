@@ -33,9 +33,10 @@ import {
 } from './devicesFakeServer';
 
 /**
- * The two ways into «Aggiungi un dispositivo» (REQ-18, D-D2): «Collega» of the Android TV widget
- * and «Aggiungi un widget» → Android TV. The row is offered to that widget only; the flow lives in
- * the same sheet, with no second dialog; at its end the new TV is the one linked or selected.
+ * The two ways into «Aggiungi un dispositivo» (REQ-18, D-D2): «Collega» of the television widgets
+ * and «Aggiungi un widget» → Android TV or Apple TV. The row opens the screen of the family
+ * (`DeviceFinder`); the flow lives in the same sheet, with no second dialog; at its end the new
+ * TV is the one linked or selected.
  */
 
 let fake: FakeDevices;
@@ -46,7 +47,7 @@ const otherTv = () => fixtureEntity('media_player.salotto', 'idle', { friendly_n
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 
-/** Drives the flow from the catalogue to «Fine»: the entry is created with no name or power step. */
+/** Drives the flow from the brand of the finder to «Fine»: the entry is created with no name or power step. */
 async function addTvToTheEnd() {
   let answers = 0;
   fake.on('POST /flussi/:id', () => {
@@ -55,13 +56,14 @@ async function addTvToTheEnd() {
       body: answers === 1 ? pairingForm() : createdDto(entryDto({ device: null, power: null })),
     };
   });
-  fireEvent.click(await screen.findByRole('button', { name: 'Aggiungi: Televisore LG (webOS)' }));
+  // The LG brand of the finder, then the guide before the television is asked anything.
+  fireEvent.click(await screen.findByRole('button', { name: 'LG' }));
+  click('Sono davanti alla TV, continua');
   fireEvent.change(await screen.findByLabelText('Indirizzo del televisore'), {
     target: { value: TV_HOST },
   });
   click('Avanti');
-  await screen.findByText(/Hai 10 secondi per premere OK/);
-  click('Avanti');
+  // The guide was read: the pairing step, which has no fields, starts by itself.
 }
 
 beforeEach(() => {
@@ -80,9 +82,11 @@ describe('«Collega» of the Android TV widget', () => {
   const section = (entities: EntityMap, save = vi.fn(), type = 'androidtv', loaded = true) => {
     const runtime = createFixtureRuntime({ entities, entitiesLoaded: loaded });
     const view = render(
-      <WidgetRuntimeProvider value={runtime}>
-        <CategoryBindingSection settings={{ categoryWidgetType: type }} save={save} />
-      </WidgetRuntimeProvider>
+      <PageProvider>
+        <WidgetRuntimeProvider value={runtime}>
+          <CategoryBindingSection settings={{ categoryWidgetType: type }} save={save} />
+        </WidgetRuntimeProvider>
+      </PageProvider>
     );
     return { ...view, save, runtime };
   };
@@ -109,8 +113,13 @@ describe('«Collega» of the Android TV widget', () => {
     expect(screen.getByText('Attendo i dispositivi di Home Assistant.')).toBeInTheDocument();
   });
 
-  it('is offered to the Android TV only: not to the Apple TV, the light or the room', () => {
-    for (const type of ['appletv', 'light', 'media', 'climate']) {
+  it('is offered to the Android TV and the Apple TV, not to the light, the player or the climate', () => {
+    for (const type of ['androidtv', 'appletv']) {
+      const { unmount } = section(fixtureEntities([otherTv()]), vi.fn(), type);
+      expect(screen.getByRole('button', { name: new RegExp(ADD_ROW) }), type).toBeInTheDocument();
+      unmount();
+    }
+    for (const type of ['light', 'media', 'climate']) {
       const { unmount } = section(fixtureEntities([otherTv()]), vi.fn(), type);
       expect(screen.queryByRole('button', { name: new RegExp(ADD_ROW) }), type).toBeNull();
       unmount();
@@ -120,7 +129,7 @@ describe('«Collega» of the Android TV widget', () => {
   it('draws the flow in place of the list, and «Esci» goes back to the list without linking', async () => {
     const { save } = section(fixtureEntities([otherTv()]));
     click(new RegExp(ADD_ROW));
-    expect(await screen.findByText('Consigliati per questo widget')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Marche consigliate' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dispositivo da collegare/ })).toBeNull();
     expect(document.querySelectorAll('dialog')).toHaveLength(0);
     click('Esci');
@@ -135,15 +144,17 @@ describe('«Collega» of the Android TV widget', () => {
     function Host() {
       const [entities, setEntities] = useState<EntityMap>(fixtureEntities([otherTv()]));
       return (
-        <WidgetRuntimeProvider value={createFixtureRuntime({ entities })}>
-          <button
-            type="button"
-            onClick={() => setEntities(fixtureEntities([otherTv(), tvEntity()]))}
-          >
-            Arriva dal vivo
-          </button>
-          <CategoryBindingSection settings={{ categoryWidgetType: 'androidtv' }} save={save} />
-        </WidgetRuntimeProvider>
+        <PageProvider>
+          <WidgetRuntimeProvider value={createFixtureRuntime({ entities })}>
+            <button
+              type="button"
+              onClick={() => setEntities(fixtureEntities([otherTv(), tvEntity()]))}
+            >
+              Arriva dal vivo
+            </button>
+            <CategoryBindingSection settings={{ categoryWidgetType: 'androidtv' }} save={save} />
+          </WidgetRuntimeProvider>
+        </PageProvider>
       );
     }
     render(<Host />);
@@ -226,13 +237,16 @@ describe('«Aggiungi un widget»', () => {
   const chooseType = (type: string) =>
     fireEvent.click(document.querySelector<HTMLElement>(`[data-widget-type="${type}"]`)!);
 
-  it('offers the row in the Android TV details, not in the Apple TV, light or room ones', () => {
+  it('offers the row in the Android TV and Apple TV details, not in the light or room ones', () => {
     open();
-    for (const type of ['appletv', 'light', 'media', 'sensor']) {
+    for (const type of ['light', 'media', 'sensor']) {
       chooseType(type);
       expect(screen.queryByRole('button', { name: new RegExp(ADD_ROW) }), type).toBeNull();
       click('Indietro');
     }
+    chooseType('appletv');
+    expect(screen.getByRole('button', { name: new RegExp(ADD_ROW) })).toBeInTheDocument();
+    click('Indietro');
     chooseType('androidtv');
     expect(screen.getByRole('button', { name: new RegExp(ADD_ROW) })).toBeInTheDocument();
     // After the media player list, where the new TV would be.
@@ -245,7 +259,7 @@ describe('«Aggiungi un widget»', () => {
     open();
     chooseType('androidtv');
     click(new RegExp(ADD_ROW));
-    expect(await screen.findByText('Consigliati per questo widget')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Marche consigliate' })).toBeInTheDocument();
     expect(document.querySelectorAll('dialog')).toHaveLength(1);
     expect(screen.queryByRole('button', { name: 'Aggiungi il widget' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Indietro' })).toBeNull();
@@ -258,7 +272,7 @@ describe('«Aggiungi un widget»', () => {
     open();
     chooseType('androidtv');
     click(new RegExp(ADD_ROW));
-    await screen.findByText('Consigliati per questo widget');
+    await screen.findByRole('heading', { name: 'Marche consigliate' });
     click('Esci');
     const add = await screen.findByRole('button', { name: 'Aggiungi il widget' });
     expect(add).toBeDisabled();
@@ -290,7 +304,8 @@ describe('«Aggiungi un widget»', () => {
     const view = open();
     chooseType('androidtv');
     click(new RegExp(ADD_ROW));
-    fireEvent.click(await screen.findByRole('button', { name: 'Aggiungi: Televisore LG (webOS)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'LG' }));
+    click('Sono davanti alla TV, continua');
     await screen.findByLabelText('Indirizzo del televisore');
     view.unmount();
     await waitFor(() => expect(fake.callsTo('DELETE /flussi/flow1')).toHaveLength(1));

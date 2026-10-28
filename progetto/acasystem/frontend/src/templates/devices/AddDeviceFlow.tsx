@@ -6,8 +6,9 @@ import { pinSpecFor } from '@/utils/devices/pinSpec';
 import type { EntryDto } from '@/@types/devices';
 import { Notice } from '../sheets/parts/Form';
 import { CatalogStep } from './CatalogStep';
-import { deviceTexts, HANDLER_HINTS } from './deviceTexts';
+import { deviceTexts, HANDLER_HINTS, PAIRING_HINTS } from './deviceTexts';
 import { FlowFormStep } from './FlowFormStep';
+import { GuideStep } from './GuideStep';
 import { ExternalStep, MenuStep, ProgressStep } from './FlowOtherSteps';
 import { NameRoomStep } from './NameRoomStep';
 import { PairingStep } from './PairingStep';
@@ -32,6 +33,13 @@ export interface AddDeviceFlowProps {
   onEntryDone?: (entry: EntryDto) => void;
   /** A television seen on the network (F5): its flow is started by the server in one tap. */
   tvId?: string | null;
+  /** Start this integration at once, skipping the catalogue (a recommended brand). */
+  startDomain?: string | null;
+  /**
+   * Integration whose guide is shown before anything is asked of the server (P-6): the code or
+   * the request appears on the television as soon as the pairing begins.
+   */
+  guideFor?: string | null;
 }
 
 /**
@@ -40,16 +48,31 @@ export interface AddDeviceFlowProps {
  * lives inside the sheet that opened it, with its own buttons; it never opens a second dialog.
  * Order after the entry is created: name and room, power-on from off, then the end.
  */
-export function AddDeviceFlow({
+export function AddDeviceFlow({ guideFor = null, ...props }: AddDeviceFlowProps) {
+  const [guided, setGuided] = useState(false);
+  const hint = guideFor ? PAIRING_HINTS[guideFor] : undefined;
+  if (hint?.guide && !guided) {
+    return <GuideStep hint={hint} onContinue={() => setGuided(true)} onExit={props.onExit} />;
+  }
+  return <RunningFlow {...props} guided={Boolean(hint?.guide)} />;
+}
+
+function RunningFlow({
   kind,
   onDone,
   onExit,
   discoveredFlowId = null,
   onEntryDone,
   tvId = null,
-}: AddDeviceFlowProps) {
-  const flow = useDeviceFlow(kind, onExit, discoveredFlowId, tvId);
+  startDomain = null,
+  guided,
+}: Omit<AddDeviceFlowProps, 'guideFor'> & {
+  /** The guide was read: the steps with nothing to fill in go on by themselves. */
+  guided: boolean;
+}) {
+  const flow = useDeviceFlow(kind, onExit, discoveredFlowId, tvId, startDomain);
   const discovered = discoveredFlowId !== null || tvId !== null;
+  const preparing = discovered || startDomain !== null;
   const { state } = flow;
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [stage, setStage] = useState('');
@@ -90,7 +113,7 @@ export function AddDeviceFlow({
       body = (
         <Skeleton
           rows={3}
-          label={discovered ? deviceTexts.discoveredLoading : deviceTexts.checking}
+          label={preparing ? deviceTexts.discoveredLoading : deviceTexts.checking}
         />
       );
       break;
@@ -163,7 +186,7 @@ export function AddDeviceFlow({
           onSubmit={flow.answer}
           onExit={flow.exit}
         />
-      ) : tvId !== null && form.fields.length === 0 ? (
+      ) : (tvId !== null || startDomain !== null || guided) && form.fields.length === 0 ? (
         <TvConsentStep
           key={`${form.flowId}:${form.stepId}`}
           form={form}

@@ -131,7 +131,9 @@ export function useDeviceFlow(
   /** A flow Home Assistant opened by itself: taken over instead of starting from the catalogue. */
   discoveredFlowId: string | null = null,
   /** A television seen on the network (F5): the server starts its flow and fills the address. */
-  tvId: string | null = null
+  tvId: string | null = null,
+  /** An integration started at once (a recommended brand): no catalogue, no resume. */
+  startDomain: string | null = null
 ): DeviceFlow {
   const [state, setState] = useState<DeviceFlowState>(INITIAL);
   const flowIdRef = useRef<string | null>(null);
@@ -275,8 +277,9 @@ export function useDeviceFlow(
           setState((previous) => ({ ...previous, status, phase: 'unavailable', message }));
           return;
         }
-        // A discovered device goes straight to its flow: no catalogue, no resume.
-        if (discoveredFlowId || tvId) {
+        // A discovered device goes straight to its flow: no catalogue, no resume. A flow already
+        // open for the integration is found by the start itself (FLOW_ALREADY_OPEN).
+        if (discoveredFlowId || tvId || startDomain) {
           setState((previous) => ({ ...previous, status }));
           return;
         }
@@ -312,7 +315,7 @@ export function useDeviceFlow(
       if (flowId && !inFlightRef.current) void cancelFlow(flowId).catch(() => undefined);
       abortRef.current?.abort();
     };
-  }, [kind, discoveredFlowId, tvId]);
+  }, [kind, discoveredFlowId, tvId, startDomain]);
 
   const start = useCallback(
     (handler: string) =>
@@ -438,6 +441,13 @@ export function useDeviceFlow(
     run('start', (signal) => addDiscovered(discoveredFlowId, signal), takeOver);
   }, [discoveredFlowId, run, tvId]);
   const takenRef = useRef(false);
+  // A recommended brand: its integration is started once the service answered.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (!startDomain || !state.status || startedRef.current) return;
+    startedRef.current = true;
+    start(startDomain);
+  }, [start, startDomain, state.status]);
   useEffect(() => {
     if ((!discoveredFlowId && !tvId) || !state.status || takenRef.current) return;
     takenRef.current = true;

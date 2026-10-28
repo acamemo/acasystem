@@ -4,7 +4,11 @@ import { getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
 import { usePages } from '@/hooks/context';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { boundDeviceIds, boundEntityIds, unboundDevices } from '@/utils/devices/bound';
-import { classifyDevices, type DiscoveredDevice } from '@/utils/devices/classify';
+import {
+  classifyDevices,
+  type DeviceFamily,
+  type DiscoveredDevice,
+} from '@/utils/devices/classify';
 import { identifyActionFor, type IdentifyAction } from '@/utils/devices/identify';
 
 interface Registries {
@@ -29,7 +33,7 @@ export type UnboundDevicesState =
  * read again when the number of entities changes (a device was added to Home Assistant); the
  * widgets of every page come from the page configuration.
  */
-export function useUnboundDevices(): UnboundDevicesState {
+export function useUnboundDevices(family: DeviceFamily | null = null): UnboundDevicesState {
   const { conn, entities, entitiesLoaded } = useWidgetRuntime();
   const { pagesConfig, cardSettings } = usePages();
   const [registries, setRegistries] = useState<Registries | 'error' | null>(null);
@@ -71,7 +75,7 @@ export function useUnboundDevices(): UnboundDevicesState {
       found,
       boundEntityIds(pagesConfig, cardSettings),
       boundDeviceIds(pagesConfig, cardSettings, entityDevice)
-    );
+    ).filter((device) => !family || device.family === family);
     const identify = new Map<string, IdentifyAction>();
     for (const device of devices) {
       const action = identifyActionFor(entitiesOfDevice.get(device.deviceId) ?? [], entities);
@@ -87,5 +91,5 @@ export function useUnboundDevices(): UnboundDevicesState {
       }
     }
     return { status: 'ready', devices, identify, unreachable };
-  }, [conn, entities, entitiesLoaded, registries, pagesConfig, cardSettings]);
+  }, [conn, entities, entitiesLoaded, family, registries, pagesConfig, cardSettings]);
 }
