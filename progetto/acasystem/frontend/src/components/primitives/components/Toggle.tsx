@@ -1,6 +1,7 @@
 import type { ComponentPropsWithRef } from 'react';
 import { Icon } from './Icon';
 import type { MaterialSize } from './Material';
+import { classes } from '../classes';
 
 export type ToggleProps = Omit<
   ComponentPropsWithRef<'button'>,
@@ -53,14 +54,12 @@ export function Toggle({
       aria-checked={checked}
       aria-busy={pending || undefined}
       aria-invalid={error || undefined}
-      className={[
+      className={classes(
         'aca-toggle',
         size !== 'inherit' && `aca-toggle--${size}`,
         compact && 'aca-toggle--compact',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
       {...props}
     >
       <span className="aca-toggle__track" aria-hidden="true">

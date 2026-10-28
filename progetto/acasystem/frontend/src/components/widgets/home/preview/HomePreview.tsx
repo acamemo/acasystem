@@ -208,8 +208,8 @@ function PreviewFrame({ editMode, children }: { editMode: boolean; children: Rea
   return (
     <Surface
       behavior="static"
-      className="home-preview__frame aca-m--fill"
-      contentClassName="home-preview__frame-content"
+      className="widget-preview__frame aca-m--fill"
+      contentClassName="widget-preview__frame-content"
       inert={editMode || undefined}
     >
       {children}
@@ -309,7 +309,7 @@ export function HomePreview() {
           <Heading level={2} size="lg">
             {section.title}
           </Heading>
-          <div className="home-preview__grid">
+          <div className="widget-preview__grid home-preview__grid">
             {section.cases.map((item) => {
               const definition = definitionFor(item.id, item.settings);
               if (!definition) return null;
@@ -317,7 +317,7 @@ export function HomePreview() {
               return (
                 <figure
                   key={item.id}
-                  className="home-preview__cell"
+                  className="widget-preview__cell home-preview__cell"
                   style={{
                     gridColumn: `span ${item.size.w}`,
                     gridRow: `span ${item.size.h}`,
@@ -338,7 +338,9 @@ export function HomePreview() {
                       />
                     </PreviewFrame>
                   </WidgetRuntimeProvider>
-                  <figcaption className="home-preview__note">{item.note}</figcaption>
+                  <figcaption className="widget-preview__note home-preview__note">
+                    {item.note}
+                  </figcaption>
                 </figure>
               );
             })}

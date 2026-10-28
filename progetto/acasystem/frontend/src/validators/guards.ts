@@ -15,10 +15,6 @@ export function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function isString(value: unknown): value is string {
-  return typeof value === 'string';
-}
-
 /** Stringa con almeno un carattere diverso dagli spazi. */
 export function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -28,26 +24,13 @@ export function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-export function isBoolean(value: unknown): value is boolean {
-  return value === true || value === false;
-}
-
 export function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
-}
-
-export function isUnknownArray(value: unknown): value is unknown[] {
-  return Array.isArray(value);
 }
 
 /** Restituisce la stringa così com'è oppure `undefined`. */
 export function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
-}
-
-/** Restituisce la stringa senza spazi esterni oppure `''`. */
-export function asTrimmedString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
 }
 
 /** Elementi stringa di un array; `[]` se il valore non è un array. */

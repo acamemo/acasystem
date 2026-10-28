@@ -1,6 +1,7 @@
 import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { Body, Caption } from '@/components/primitives';
 import '../utilities.css';
+import { classes } from '@/components/primitives/classes';
 
 /** Plain SVG charts (no chart library): bars and lines in the viewBox, labels in HTML. */
 
@@ -239,14 +240,12 @@ export function PriceBars({
     >
       {data.map((point, index) => {
         const y = scale.y(point.value);
-        const className = [
+        const className = classes(
           'utility-chart__bar',
           index === selectedIndex
             ? 'utility-chart__bar--selected'
-            : index === currentIndex && 'utility-chart__bar--current',
-        ]
-          .filter(Boolean)
-          .join(' ');
+            : index === currentIndex && 'utility-chart__bar--current'
+        );
         return (
           <rect
             key={`${point.start.getTime()}-${index}`}

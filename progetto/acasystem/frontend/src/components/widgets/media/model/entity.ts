@@ -28,11 +28,6 @@ export function attrNumber(entity: EntityLike | null | undefined, key: string): 
 export const attrBoolean = (entity: EntityLike | null | undefined, key: string): boolean =>
   entity?.attributes?.[key] === true;
 
-export function attrStringList(entity: EntityLike | null | undefined, key: string): string[] {
-  const raw = entity?.attributes?.[key];
-  return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string') : [];
-}
-
 export const stringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 

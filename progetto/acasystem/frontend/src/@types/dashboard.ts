@@ -2,14 +2,7 @@
  * Tipi di dominio della dashboard: configurazione salvata, contesti React e
  * contratti degli hook. Derivati dai typedef JSDoc di Tunet 1.22.1.
  */
-import type {
-  ComponentType,
-  CSSProperties,
-  Dispatch,
-  MutableRefObject,
-  ReactNode,
-  SetStateAction,
-} from 'react';
+import type { ComponentType, Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react';
 import type { Auth, Connection } from 'home-assistant-js-websocket';
 import type { EntityMap, HaConfig, HaUser } from './ha';
 import type { AdoptionSource, WidgetMemory } from '@/utils/launcher/deviceMemory';
@@ -338,39 +331,9 @@ export interface ToastContextValue {
 
 // ── Connessione e onboarding ────────────────────────────────────────────────
 
-export interface UseConnectionSetupDeps {
-  config: HomeAssistantConfig;
-  setConfig: (config: HomeAssistantConfig) => void;
-  connected: boolean;
-  showOnboarding: boolean;
-  setShowOnboarding: (show: boolean) => void;
-  showConfigModal: boolean;
-  setShowConfigModal: (show: boolean) => void;
-  t: Translate;
-}
-
 export interface ConnectionTestResult {
   success: boolean;
   message: string;
-}
-
-export interface UseConnectionSetupResult {
-  onboardingStep: number;
-  setOnboardingStep: Setter<number>;
-  onboardingUrlError: string;
-  setOnboardingUrlError: Setter<string>;
-  onboardingTokenError: string;
-  setOnboardingTokenError: Setter<string>;
-  testingConnection: boolean;
-  testConnection: () => Promise<void>;
-  connectionTestResult: ConnectionTestResult | null;
-  setConnectionTestResult: Setter<ConnectionTestResult | null>;
-  configTab: string;
-  setConfigTab: Setter<string>;
-  startOAuthLogin: (url?: string) => void;
-  handleOAuthLogout: () => void;
-  canAdvanceOnboarding: boolean;
-  isOnboardingActive: boolean;
 }
 
 // ── Gestione delle pagine ───────────────────────────────────────────────────
@@ -626,23 +589,4 @@ export interface UseDashboardEffectsResult {
   mediaTick: number;
   optimisticLightBrightness: Record<string, number>;
   setOptimisticLightBrightness: Setter<Record<string, number>>;
-}
-
-export interface AppContentProps {
-  showOnboarding: boolean;
-  setShowOnboarding: Setter<boolean>;
-}
-
-export interface CardBaseProps {
-  cardId: string;
-  dragProps: Record<string, unknown>;
-  controls: ReactNode;
-  cardStyle: CSSProperties;
-  editMode: boolean;
-  isMobile?: boolean;
-  entities?: EntityMap;
-  customNames?: Record<string, string>;
-  customIcons?: Record<string, string>;
-  t: Translate;
-  onOpen?: (...args: unknown[]) => void;
 }

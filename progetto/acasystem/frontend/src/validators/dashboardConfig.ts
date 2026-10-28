@@ -62,10 +62,6 @@ export function sanitizeCardSettingsMap(value: unknown): CardSettingsMap | null 
   return result;
 }
 
-export function isCardSettingsMap(value: unknown): value is CardSettingsMap {
-  return isObject(value) && Object.values(value).every(isObject);
-}
-
 // ── Sanificazione campo per campo ──────────────────────────────────────────
 
 type FieldCheck = (value: unknown) => boolean;
@@ -233,11 +229,6 @@ export function normalizeGridColumns(value: unknown): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 4;
   return Math.max(MIN_GRID_COLUMNS, Math.min(Math.round(parsed), MAX_GRID_COLUMNS));
-}
-
-/** Numero finito (spaziature, raggi, scale), altrimenti `null`. */
-export function readFiniteNumber(value: unknown): number | null {
-  return isFiniteNumber(value) ? value : null;
 }
 
 export function isGridPosition(value: unknown): value is GridPosition {

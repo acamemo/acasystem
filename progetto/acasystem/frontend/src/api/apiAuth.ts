@@ -198,14 +198,6 @@ export function hasHomeAssistantRequestAuth(): boolean {
   return Boolean(getHomeAssistantRequestHeaders().Authorization);
 }
 
-export function getValidatedHomeAssistantRequestHeaders(): HomeAssistantRequestHeaders {
-  const headers = getHomeAssistantRequestHeaders();
-  if (!headers.Authorization) {
-    throw notifyHomeAssistantApiUnauthorized('Missing Home Assistant bearer token');
-  }
-  return headers;
-}
-
 export async function getValidatedHomeAssistantRequestHeadersAsync(
   options: RequestHeadersOptions = {}
 ): Promise<HomeAssistantRequestHeaders> {

@@ -1,5 +1,6 @@
 import { Body, Caption, Heading, Icon } from '@/components/primitives';
 import './launcherStates.css';
+import { classes } from '@/components/primitives/classes';
 
 export interface WidgetUnavailableProps {
   /** Name of the card (custom name, entity name or id). */
@@ -13,11 +14,7 @@ export interface WidgetUnavailableProps {
 /** Calm placeholder inside the widget frame when a widget cannot be shown. */
 export function WidgetUnavailable({ name, reason, compact = false }: WidgetUnavailableProps) {
   return (
-    <div
-      className={['aca-widget-fallback', compact && 'aca-widget-fallback--compact']
-        .filter(Boolean)
-        .join(' ')}
-    >
+    <div className={classes('aca-widget-fallback', compact && 'aca-widget-fallback--compact')}>
       <Icon
         name={reason === 'error' ? 'warning' : 'info'}
         size="lg"

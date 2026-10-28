@@ -477,9 +477,7 @@
       animation: none !important;
     }
   }
-}
 
-@layer components {
   @media (prefers-reduced-motion: reduce) {
     .aca-bar-button {
       transition-duration: 0ms !important;

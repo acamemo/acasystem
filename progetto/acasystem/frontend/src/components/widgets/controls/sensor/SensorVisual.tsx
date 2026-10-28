@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { ThresholdTone } from './sensorModel';
+import { classes } from '@/components/primitives/classes';
 
 export interface SensorVisualProps {
   kind: 'gauge' | 'donut' | 'bar';
@@ -29,14 +30,12 @@ export function SensorVisual({
   compact = false,
 }: SensorVisualProps) {
   const ratio = ratioOf(value, min, max);
-  const className = [
+  const className = classes(
     'ctl-visual',
     `ctl-visual--${kind}`,
     `ctl-visual--${tone}`,
-    compact && 'ctl-visual--compact',
-  ]
-    .filter(Boolean)
-    .join(' ');
+    compact && 'ctl-visual--compact'
+  );
 
   if (kind === 'bar') {
     return (

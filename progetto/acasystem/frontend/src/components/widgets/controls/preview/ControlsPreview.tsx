@@ -163,8 +163,8 @@ export default function ControlsPreview() {
 
   return (
     <WidgetRuntimeProvider value={runtime}>
-      <main className="ctl-preview">
-        <header className="ctl-preview__header">
+      <main className="widget-preview ctl-preview">
+        <header className="widget-preview__header">
           <Title tone="engraved">Widget dei controlli</Title>
           <Body tone="muted" className="ctl-preview__lead">
             Anteprima solo per lo sviluppo, con un Home Assistant simulato: i comandi vengono
@@ -172,11 +172,15 @@ export default function ControlsPreview() {
           </Body>
         </header>
         {previewSections.map((section, sectionIndex) => (
-          <section key={section.title} className="ctl-preview__section" data-section={sectionIndex}>
+          <section
+            key={section.title}
+            className="widget-preview__section"
+            data-section={sectionIndex}
+          >
             <Heading level={2} size="lg">
               {section.title}
             </Heading>
-            <div className="ctl-preview__grid">
+            <div className="widget-preview__grid ctl-preview__grid">
               {section.cards.map((card, index) => {
                 const definition = definitionOf(card);
                 if (!definition) return null;
@@ -209,17 +213,21 @@ export default function ControlsPreview() {
                 ) : (
                   <Surface
                     behavior="static"
-                    className="ctl-preview__widget aca-m--fill"
-                    contentClassName="ctl-preview__widget-content"
+                    className="widget-preview__frame aca-m--fill"
+                    contentClassName="widget-preview__frame-content"
                     inert={editMode || undefined}
                   >
                     {content}
                   </Surface>
                 );
                 return (
-                  <figure key={`${card.id}-${index}`} className="ctl-preview__cell" style={style}>
+                  <figure
+                    key={`${card.id}-${index}`}
+                    className="widget-preview__cell"
+                    style={style}
+                  >
                     {framed}
-                    <figcaption className="ctl-preview__caption">
+                    <figcaption className="widget-preview__note">
                       <Caption>
                         {definition.label} · {card.size.w}×{card.size.h}
                         {card.note === 'loading'
@@ -237,7 +245,7 @@ export default function ControlsPreview() {
             </div>
           </section>
         ))}
-        <section className="ctl-preview__section ctl-preview__page" data-section="lights">
+        <section className="widget-preview__section ctl-preview__page" data-section="lights">
           <Heading level={2} size="lg">
             Pagina delle luci
           </Heading>

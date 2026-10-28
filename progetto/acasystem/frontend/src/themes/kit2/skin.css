@@ -122,12 +122,20 @@
     box-shadow: var(--aca-face-pressed);
   }
   /*
-   * Nothing scales on these presses here, so the pressables inside a widget need no compositor
-   * layer of their own (REP-20261012-003): the widget has one. About a third fewer layers in the
-   * launcher, with the same press. The hosted knobs and thumbs still scale and keep theirs. Not
-   * the shell of the widget frame: launcher.css, which comes after this sheet, still scales it
-   * on the opening of the details, and it keeps the layer that scale needs (REP-20261007-005).
+   * Nothing scales on these presses here, so the pressables need no compositor layer of their
+   * own (REP-20261012-003): inside a widget none of them, the widget has one (about a third fewer
+   * layers in the launcher); elsewhere (bars, sheets, settings, REP-20261028-001) all but those
+   * that still scale: the hosted knobs and thumbs, the gesture knob, the soft wells and the shell
+   * of the widget frame, which launcher.css scales on the opening of the details
+   * (REP-20261007-005). The first selector weighs as the Metallo rule and comes later.
    */
+  :where(.aca-fx-press, .aca-m--press):not(
+      .aca-m-host .aca-m--hosted,
+      .aca-launcher-widget__frame,
+      .uikw-gesture__knob,
+      button.aca-m--well-soft
+    )
+    > .aca-m__outer,
   .aca-launcher-widget :is(.aca-fx-press, .aca-m--press) > .aca-m__outer {
     will-change: auto;
   }

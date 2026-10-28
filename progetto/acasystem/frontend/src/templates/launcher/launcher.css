@@ -1321,14 +1321,12 @@
       transition: opacity var(--aca-dur-reduced, 120ms) linear;
     }
   }
-}
 
-/*
- * Widget stacks (REP-20261007-037): one widget at a time, swiped sideways inside the stack
- * (it does not hand the swipe to the pager), dots below; the widget held over another one to
- * make a stack lifts and shows «Crea pila».
- */
-@layer components {
+  /*
+   * Widget stacks (REP-20261007-037): one widget at a time, swiped sideways inside the stack
+   * (it does not hand the swipe to the pager), dots below; the widget held over another one to
+   * make a stack lifts and shows «Crea pila».
+   */
   .aca-stack {
     position: relative;
     display: flex;

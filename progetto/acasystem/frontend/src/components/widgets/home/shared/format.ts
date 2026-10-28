@@ -85,7 +85,3 @@ export function formatDayLabel(date: Date, locale: string, now: Date = new Date(
 export function formatTime(date: Date, locale: string): string {
   return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 }
-
-export function isValidDate(date: Date): boolean {
-  return !Number.isNaN(date.getTime());
-}

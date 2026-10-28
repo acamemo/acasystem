@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Body, Caption, MaterialLayers, Skeleton, materialClass } from '@/components/primitives';
 import { UtilityIcon, iconTone, type UtilityIconName, type UtilityIconTone } from './UtilityIcon';
 import '../utilities.css';
+import { classes } from '@/components/primitives/classes';
 
 export interface UtilityCardProps {
   /** Accessible name of the open action, e.g. «Aspirapolvere, apri i comandi». */
@@ -33,7 +34,7 @@ export function UtilityCard({
   const interactive = Boolean(onOpen) && !editMode;
   return (
     <div
-      className={['utility-card', row && 'utility-card--row', className].filter(Boolean).join(' ')}
+      className={classes('utility-card', row && 'utility-card--row', className)}
       data-editing={editMode || undefined}
       inert={editMode || undefined}
     >
@@ -96,11 +97,7 @@ export function Chip({
   label?: string;
 }) {
   return (
-    <span
-      className={['utility-chip', tone !== 'neutral' && `utility-chip--${tone}`]
-        .filter(Boolean)
-        .join(' ')}
-    >
+    <span className={classes('utility-chip', tone !== 'neutral' && `utility-chip--${tone}`)}>
       {icon && <UtilityIcon name={icon} size="sm" />}
       {label ? (
         <>
@@ -170,9 +167,7 @@ export function Notice({
   return (
     <p
       id={id}
-      className={['utility-notice', tone === 'danger' && 'utility-notice--danger']
-        .filter(Boolean)
-        .join(' ')}
+      className={classes('utility-notice', tone === 'danger' && 'utility-notice--danger')}
       role={live ? 'status' : undefined}
     >
       {icon && <UtilityIcon name={icon} size="sm" />}

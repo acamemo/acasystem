@@ -1,6 +1,7 @@
 import type { ComponentPropsWithRef, MouseEvent } from 'react';
 import { Button, Caption, Icon, type IconName } from '@/components/primitives';
 import './edit.css';
+import { classes } from '@/components/primitives/classes';
 
 export interface EditToolbarProps {
   /**
@@ -75,13 +76,11 @@ export function EditToolbar({
 }: EditToolbarProps) {
   return (
     <div
-      className={[
+      className={classes(
         'aca-edit-toolbar',
         hidden && 'aca-edit-toolbar--hidden',
-        closing && 'aca-edit-toolbar--closing',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        closing && 'aca-edit-toolbar--closing'
+      )}
       role="group"
       aria-label="Modifica della disposizione"
       inert={hidden || undefined}

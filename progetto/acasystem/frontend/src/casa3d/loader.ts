@@ -136,12 +136,6 @@ export function loadCasa3d(): Promise<LoadedCasa3d> {
   return shared;
 }
 
-/** For tests: forgets the shared load and the preload. */
-export function resetCasa3dLoader(): void {
-  shared = null;
-  preloading = null;
-}
-
 /** A bundle file name the preload accepts: the entry or the 3D bundle, both of the same folder. */
 const PRELOAD_NAME = /^casa3d-(?:3d-)?[A-Za-z0-9]+\.js$/;
 

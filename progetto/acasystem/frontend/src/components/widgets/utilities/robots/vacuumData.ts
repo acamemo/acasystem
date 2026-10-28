@@ -81,10 +81,6 @@ export function primaryAction(entity: MaybeEntity): 'pause' | 'stop' | 'start' {
   return 'start';
 }
 
-export function vacuumBattery(entity: MaybeEntity): number | null {
-  return numberAttr(entity, 'battery_level');
-}
-
 /** Room reported by the vacuum itself. */
 export function vacuumRoom(entity: MaybeEntity): string | null {
   return stringAttr(entity, 'current_room') ?? stringAttr(entity, 'room');
@@ -148,28 +144,6 @@ function relatedByName(identity: VacuumIdentity, entityId: string): boolean {
 }
 
 const isValid = (value: unknown) => !isUnavailableState(value);
-
-/** Select or input_select that chooses the room to clean. */
-export function roomSelectId(
-  entities: EntityMap,
-  identity: VacuumIdentity,
-  relations: Relations,
-  settings: CardSettings
-): string | null {
-  const configured = settingString(settings, 'roomSelectEntityId');
-  if (configured) return configured;
-  const keyword = /(room|zone|segment|clean_room|area)/i;
-  const fromRegistry = relations.selects.find(
-    (id) => keyword.test(id.toLowerCase()) || keyword.test(friendlyLower(entities[id]))
-  );
-  if (fromRegistry) return fromRegistry;
-  for (const [id, entity] of Object.entries(entities)) {
-    if (!id.startsWith('select.') && !id.startsWith('input_select.')) continue;
-    if (!relatedByName(identity, id)) continue;
-    if (keyword.test(id.toLowerCase()) || keyword.test(friendlyLower(entity))) return id;
-  }
-  return null;
-}
 
 /** Sensors of the vacuum: from the registry when known, else by name. */
 export function relatedSensors(

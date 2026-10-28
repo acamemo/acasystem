@@ -23,6 +23,7 @@ import {
 } from '@/hooks/launcher/PageVisibilityContext';
 import { NO_STAGE, useStaged, type Stage } from '@/hooks/launcher/useStagedScene';
 import { afterNextFrame } from '@/utils/launcher/afterFrame';
+import { classes } from '@/components/primitives/classes';
 
 export interface PagerPage {
   key: string;
@@ -1182,7 +1183,7 @@ export function Pager({
         ref.current = node;
         containerRef?.(node);
       }}
-      className={[
+      className={classes(
         'aca-pager',
         locked && 'is-locked',
         visualOverview && 'is-overview',
@@ -1190,10 +1191,8 @@ export function Pager({
         entering && 'is-entering',
         settling && 'is-settling',
         cardDrag && 'is-card-dragging',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
       onScroll={onScroll}
       onPointerDownCapture={touchStart}
       onFocus={onFocusCard}
@@ -1234,17 +1233,15 @@ export function Pager({
         return (
           <section
             key={page.key}
-            className={[
+            className={classes(
               'aca-pager__page',
               !off && 'is-current',
               current.fresh.includes(page.key) && 'is-new',
               overview && page.hidden && 'is-hidden',
               pressingCard === position && 'is-pressing',
               cardDrag?.from === position && 'is-lifted',
-              leavingKey === page.key && 'is-leaving',
-            ]
-              .filter(Boolean)
-              .join(' ')}
+              leavingKey === page.key && 'is-leaving'
+            )}
             style={style}
             // Skipped by the browser (launcher.css): out of the window of the pages drawn.
             data-far={position < firstDrawn || position > lastDrawn ? '' : undefined}

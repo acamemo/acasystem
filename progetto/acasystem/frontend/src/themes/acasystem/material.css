@@ -138,8 +138,9 @@
    * Touch target of at least 44 px (kit rule) without changing the look: a transparent ::before
    * centred on the socket grows only along the sides shorter than 44 px. :where() keeps it below
    * any owner rule for the same pseudo-element (e.g. the larger target of the «×» in edit mode).
+   * The show/hide key of a field is a plain button of 22 px: it takes the same target.
    */
-  :where(button.aca-m)::before {
+  :where(button.aca-m, .aca-field__action)::before {
     content: '';
     position: absolute;
     inset: min(0px, calc(50% - 22px));
@@ -650,12 +651,13 @@
     }
   }
 
+  /* Breathing of a pending state; an element may set how far it fades (--aca-pulse-to). */
   @keyframes aca-pulse {
     from {
       opacity: 1;
     }
     to {
-      opacity: 0.6;
+      opacity: var(--aca-pulse-to, 0.6);
     }
   }
 

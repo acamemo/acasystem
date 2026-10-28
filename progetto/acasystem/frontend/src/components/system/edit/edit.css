@@ -184,9 +184,7 @@
     pointer-events: auto;
     /* A stable layer: the groups slide in and out (REP-20261012-003). */
     will-change: transform, opacity;
-    transition:
-      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
-      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
+    transition: var(--aca-bar-enter);
   }
   .aca-edit-toolbar__pages {
     flex: none;
@@ -197,9 +195,7 @@
     transform: translateY(calc(100% + var(--aca-space-3) + 0.75rem));
     opacity: 0;
     pointer-events: none;
-    transition:
-      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
-      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+    transition: var(--aca-bar-leave);
   }
   /*
    * Swapping with the bar of the pages (REP-20261009-004): the bar that comes waits for the one
@@ -293,13 +289,12 @@
   [data-band-measure] .aca-edit-toolbar__note {
     max-width: var(--aca-note-min);
   }
-}
 
-/*
- * Tray of widget types (REP-20261007-027): a floating panel over the footer band, like the
- * edit bars; it rises from below when opened and sinks while a tile is dragged onto the grid.
- */
-@layer components {
+  /*
+   * Tray of widget types (REP-20261007-027): a floating panel over the footer band, like the
+   * edit bars; it rises from below when opened and sinks while a tile is dragged onto the grid.
+   */
+
   .aca-widget-tray {
     position: fixed;
     z-index: var(--aca-z-sticky);
@@ -312,18 +307,14 @@
     border-radius: var(--aca-radius-card);
     background: var(--aca-page);
     box-shadow: var(--aca-socket-shadow-card);
-    transition:
-      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
-      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
+    transition: var(--aca-bar-enter);
   }
   .aca-widget-tray--hidden,
   .aca-widget-tray--dragging {
     transform: translateY(calc(100% + var(--aca-space-3) + 0.75rem));
     opacity: 0;
     pointer-events: none;
-    transition:
-      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
-      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+    transition: var(--aca-bar-leave);
   }
   /* While dragging the tile is still under the finger: the tray keeps the pointer capture. */
   .aca-widget-tray--dragging {
@@ -410,14 +401,13 @@
       transition: opacity 120ms linear;
     }
   }
-}
 
-/*
- * Bar of the page overview (REP-20261007-028, REP-20261009-002): a floating pill in the place of
- * the page indicator, with plain icons (their words are in the tip), the name of the page beside
- * the house and «Fine»; it rises when the overview opens, like the edit bars.
- */
-@layer components {
+  /*
+   * Bar of the page overview (REP-20261007-028, REP-20261009-002): a floating pill in the place of
+   * the page indicator, with plain icons (their words are in the tip), the name of the page beside
+   * the house and «Fine»; it rises when the overview opens, like the edit bars.
+   */
+
   .aca-page-overview {
     display: flex;
     justify-content: center;
@@ -437,9 +427,7 @@
     pointer-events: auto;
     /* A stable layer, as for the groups of the edit bar (REP-20261012-003). */
     will-change: transform, opacity;
-    transition:
-      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
-      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
+    transition: var(--aca-bar-enter);
   }
   /*
    * The bar of the pages never goes past the band, on a phone too: the name gives way, with its
@@ -479,9 +467,7 @@
     transform: translateY(calc(100% + var(--aca-space-3) + 0.75rem));
     opacity: 0;
     pointer-events: none;
-    transition:
-      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
-      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+    transition: var(--aca-bar-leave);
   }
   /*
    * It comes after the edit bar has gone (see the edit bar above), and in its place in the order
@@ -683,19 +669,18 @@
     flex: none;
     color: var(--aca-ink-muted);
   }
-}
 
-/*
- * Tip of the icons without text of the page editor (REP-20261009-002, D5; look REP-20261009-003,
- * after the tooltip reference UI-010): a small bubble over the icon, shown by a held finger, the
- * mouse or the keyboard (IconAction.tsx). The face is the accent darkened to L 45 % at most, the
- * chroma scaled with it (the same hue, inside sRGB: no clipped channels), so the white text is
- * ≥ 4.5:1 on every accent, custom hues included (EditTipContrast.test.ts); the
- * pointer is a square turned 45°, aimed at the icon by IconAction (data-side, --aca-tip-arrow-x).
- * It rises from the icon with the elastic curve of the reference; with reduced motion it only
- * fades. Animations name their properties: no `transition: all`.
- */
-@layer components {
+  /*
+   * Tip of the icons without text of the page editor (REP-20261009-002, D5; look REP-20261009-003,
+   * after the tooltip reference UI-010): a small bubble over the icon, shown by a held finger, the
+   * mouse or the keyboard (IconAction.tsx). The face is the accent darkened to L 45 % at most, the
+   * chroma scaled with it (the same hue, inside sRGB: no clipped channels), so the white text is
+   * ≥ 4.5:1 on every accent, custom hues included (EditTipContrast.test.ts); the
+   * pointer is a square turned 45°, aimed at the icon by IconAction (data-side, --aca-tip-arrow-x).
+   * It rises from the icon with the elastic curve of the reference; with reduced motion it only
+   * fades. Animations name their properties: no `transition: all`.
+   */
+
   .aca-edit-tip {
     --aca-tip-surface: oklch(
       from var(--k2-accent, var(--aca-orange)) min(l, 0.45) calc(c * min(1, 0.45 / l)) h
@@ -798,13 +783,13 @@
       animation-timing-function: ease-out;
     }
   }
-}
-/*
- * Bar of the selected widget: the overview pill, with a divider before Annulla / Conferma.
- * While the widget is moved (REP-20261008-001) only the trash stays, as a «Rimuovi» pill that
- * is the drop target: red with the finger over it, as the drop target of Launcher3.
- */
-@layer components {
+
+  /*
+   * Bar of the selected widget: the overview pill, with a divider before Annulla / Conferma.
+   * While the widget is moved (REP-20261008-001) only the trash stays, as a «Rimuovi» pill that
+   * is the drop target: red with the finger over it, as the drop target of Launcher3.
+   */
+
   .aca-widget-actions__divider {
     width: 1px;
     height: 1.5rem;
@@ -896,10 +881,9 @@
       scale: 1;
     }
   }
-}
 
-/* «Annulla» after a removal (REP-20261007-031): a pill above the footer band. */
-@layer components {
+  /* «Annulla» after a removal (REP-20261007-031): a pill above the footer band. */
+
   .aca-undo {
     position: fixed;
     z-index: var(--aca-z-toast);
@@ -972,10 +956,9 @@
       transition: opacity var(--aca-dur-reduced, 120ms) linear;
     }
   }
-}
 
-/* Categories of the tray and the shape of each widget (REP-20261007-035). */
-@layer components {
+  /* Categories of the tray and the shape of each widget (REP-20261007-035). */
+
   .aca-widget-tray__chips {
     display: flex;
     gap: var(--aca-space-2);

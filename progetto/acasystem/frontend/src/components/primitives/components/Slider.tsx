@@ -1,6 +1,7 @@
 import type { CSSProperties, ComponentPropsWithRef } from 'react';
 import { Icon } from './Icon';
 import { MaterialLayers, materialClass, type MaterialSize } from './Material';
+import { classes } from '../classes';
 
 export type SliderProps = Omit<
   ComponentPropsWithRef<'input'>,
@@ -53,7 +54,7 @@ export function Slider({
   const ratio = span > 0 ? Math.min(1, Math.max(0, (value - min) / span)) : 0;
   return (
     <div
-      className={[
+      className={classes(
         'aca-slider',
         'aca-m-host',
         size !== 'inherit' && `aca-m--${size}`,
@@ -61,10 +62,8 @@ export function Slider({
         variant === 'column' && 'aca-slider--column',
         pending && 'aca-slider--pending',
         error && 'aca-slider--error',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
       style={{ '--aca-ratio': ratio } as CSSProperties}
     >
       <span

@@ -19,10 +19,6 @@ export async function fetchProfiles(haUserId: string): Promise<ProfileRecord[]> 
   );
 }
 
-export async function fetchProfile(id: string, _haUserId?: string): Promise<ProfileRecord> {
-  return requireProfile(await backendRequest(`/profiles/${id}`, {}));
-}
-
 export async function createProfile({
   ha_user_id,
   name,

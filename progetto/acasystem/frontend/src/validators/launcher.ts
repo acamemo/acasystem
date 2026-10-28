@@ -3,18 +3,11 @@
  * Invalid rectangles and pages are dropped; a layout without a valid page list is rejected,
  * so the launcher migrates again from the legacy configuration.
  */
-import type {
-  CellRect,
-  DeviceClass,
-  LauncherLayout,
-  LauncherPage,
-  PageKind,
-} from '@/@types/launcher';
+import type { CellRect, LauncherLayout, LauncherPage, PageKind } from '@/@types/launcher';
 import {
   COLUMNS_RANGE,
   BASE_DEVICE_CLASSES,
   COVER_COLUMNS,
-  DEVICE_CLASSES,
   isPlacementKey,
 } from '@/utils/launcher/deviceClass';
 import { withoutEmptyStacks } from '@/utils/launcher/layout';
@@ -34,10 +27,6 @@ const PAGE_KINDS: readonly PageKind[] = [
 const MAX_CELLS = 64;
 
 /** A class at a density (the keys of the screens, without the `base@WxH` grids). */
-export function isDeviceClass(value: unknown): value is DeviceClass {
-  return typeof value === 'string' && (DEVICE_CLASSES as readonly string[]).includes(value);
-}
-
 export function isPageKind(value: unknown): value is PageKind {
   return typeof value === 'string' && (PAGE_KINDS as readonly string[]).includes(value);
 }
@@ -111,10 +100,6 @@ export function sanitizeLauncherPage(value: unknown): LauncherPage | null {
     }
   }
   return page;
-}
-
-export function isLauncherPage(value: unknown): value is LauncherPage {
-  return sanitizeLauncherPage(value) !== null;
 }
 
 /** Valid layout (version 1, page list), with the bad parts removed; null otherwise. */

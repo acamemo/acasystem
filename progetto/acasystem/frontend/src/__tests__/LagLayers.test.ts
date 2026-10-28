@@ -288,6 +288,20 @@ describe('stable layers and no redraw per frame (REP-20261012-003)', () => {
       );
     });
 
+    it('outside the widgets too, only the pressables that still scale keep a layer (REP-20261028-001)', () => {
+      const rule = rules('skin').find(({ selector }) =>
+        selector.startsWith(':where(.aca-fx-press, .aca-m--press):not(')
+      );
+      expect(rule?.body).toMatch(/will-change:\s*auto;/);
+      for (const kept of [
+        '.aca-m-host .aca-m--hosted',
+        '.aca-launcher-widget__frame',
+        '.uikw-gesture__knob',
+        'button.aca-m--well-soft',
+      ])
+        expect(rule?.selector).toContain(kept);
+    });
+
     it('the shell of the widget frame keeps its layer: launcher.css, after the skin, still scales it', () => {
       // The skin comes first in the cascade (main.tsx), so at equal weight launcher.css wins.
       expect(css.skin).not.toMatch(/data-widget-open\][^{}]*\{[^{}]*will-change/);

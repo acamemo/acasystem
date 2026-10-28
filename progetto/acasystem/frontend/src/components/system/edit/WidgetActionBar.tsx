@@ -2,6 +2,7 @@ import type { KeyboardEvent, Ref } from 'react';
 import { Body, Button, Icon } from '@/components/primitives';
 import { useHeldAfterFrames } from '@/hooks/launcher/useHeldAfterFrames';
 import './edit.css';
+import { classes } from '@/components/primitives/classes';
 
 /**
  * The trash while a widget is moved (REP-20261008-001): `ready` it waits as a «Rimuovi» pill,
@@ -78,13 +79,11 @@ export function WidgetActionBar({
     >
       <div
         ref={groupRef}
-        className={[
+        className={classes(
           'aca-page-overview__group',
           dropping && 'aca-widget-actions--drop',
-          drop === 'armed' && 'is-armed',
-        ]
-          .filter(Boolean)
-          .join(' ')}
+          drop === 'armed' && 'is-armed'
+        )}
       >
         {/* Removes at once; «Annulla» appears afterwards, as on Android (REP-20261007-031). */}
         <button

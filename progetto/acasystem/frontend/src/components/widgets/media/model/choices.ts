@@ -4,6 +4,7 @@
  * (same filters, buckets, depth 4 and 18 expansions).
  */
 import type { HaMessageConnection } from '@/@types/ha';
+import { isRecord } from '@/validators/guards';
 
 export interface MediaChoice {
   id: string;
@@ -57,9 +58,6 @@ const BLOCKED_TITLE_WORDS = [
   'security cam',
   'cctv',
 ];
-
-const isRecord = (value: unknown): value is BrowseNode =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const text = (value: unknown): string =>
   typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';

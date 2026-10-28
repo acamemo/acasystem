@@ -316,6 +316,7 @@
     opacity: 1;
   }
   .aca-field__action {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -332,8 +333,11 @@
     -webkit-tap-highlight-color: transparent;
     transition: color 150ms var(--aca-ease-out);
   }
-  .aca-field__action:is(:hover, .is-hover) {
-    color: var(--aca-ink-solid);
+  /* Mouse only: on a touch screen the hover would stick after the tap. */
+  @media (hover: hover) {
+    .aca-field__action:is(:hover, .is-hover) {
+      color: var(--aca-ink-solid);
+    }
   }
   .aca-field__action:focus-visible {
     outline: 2px solid var(--aca-focus);

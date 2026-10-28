@@ -41,8 +41,3 @@ export function unwrapImportedSnapshot(candidate: unknown): UnknownRecord | null
 
   return payload;
 }
-
-/** Profilo pronto da applicare: dati presenti e strutturalmente validi. */
-export function isApplicableProfileData(data: unknown): data is UnknownRecord {
-  return isObject(data);
-}

@@ -1,17 +1,10 @@
-import { Wifi, Settings, Check, type LucideIcon } from 'lucide-react';
-import type { Translate } from '@/@types/dashboard';
+import type { LucideIcon } from 'lucide-react';
 
 export interface OnboardingStep {
   key: 'connection' | 'preferences' | 'finish';
   label: string;
   icon: LucideIcon;
 }
-
-export const buildOnboardingSteps = (t: Translate): OnboardingStep[] => [
-  { key: 'connection', label: t('onboarding.step.connection'), icon: Wifi },
-  { key: 'preferences', label: t('onboarding.step.preferences'), icon: Settings },
-  { key: 'finish', label: t('onboarding.step.finish'), icon: Check },
-];
 
 export const validateUrl = (url: unknown): boolean => {
   if (!url) return false;

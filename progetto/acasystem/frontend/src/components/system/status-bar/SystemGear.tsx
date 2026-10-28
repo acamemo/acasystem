@@ -1,5 +1,6 @@
 import { Badge } from '@/components/primitives';
 import { IconAction } from '@/components/system/edit/IconAction';
+import { classes } from '@/components/primitives/classes';
 
 export interface SystemGearProps {
   onOpenSystem: () => void;
@@ -41,9 +42,7 @@ export function SystemGear({
 }: SystemGearProps) {
   return (
     <span
-      className={['aca-system-gear', connectionProblem && 'aca-system-gear--problem']
-        .filter(Boolean)
-        .join(' ')}
+      className={classes('aca-system-gear', connectionProblem && 'aca-system-gear--problem')}
       inert={inert || undefined}
     >
       <IconAction

@@ -19,16 +19,6 @@ export interface DetailsTarget {
   title: string;
 }
 
-/** True when the widget has a details view the launcher can open. */
-export function hasDetails(
-  widgetId: string,
-  settings: CardSettings = {},
-  resolve: DefinitionResolver = findWidgetDefinition
-): boolean {
-  const definition = resolve(widgetId, settings);
-  return Boolean(definition?.Details || definition?.Console);
-}
-
 /**
  * Bottom sheet with a widget's details. The definition gives only the content; the sheet
  * (title, close, focus, Escape, backdrop) is the kit's.

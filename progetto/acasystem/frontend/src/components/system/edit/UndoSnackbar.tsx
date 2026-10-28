@@ -1,5 +1,6 @@
 import { Body, Button } from '@/components/primitives';
 import './edit.css';
+import { classes } from '@/components/primitives/classes';
 
 /**
  * «Widget rimosso · Annulla» (REP-20261007-031), as the snackbar of Launcher3 after a removal:
@@ -20,9 +21,7 @@ export function UndoSnackbar({
 }) {
   return (
     <div
-      className={['aca-undo', top && 'aca-undo--top', !message && 'aca-undo--hidden']
-        .filter(Boolean)
-        .join(' ')}
+      className={classes('aca-undo', top && 'aca-undo--top', !message && 'aca-undo--hidden')}
       role="status"
       aria-hidden={!message || undefined}
       inert={!message || undefined}

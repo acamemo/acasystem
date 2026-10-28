@@ -228,8 +228,8 @@ function Cell({ size, children }: { size: CellSize; children: ReactNode }) {
     <div className="preview-cell" style={{ '--w': size.w, '--h': size.h } as CSSProperties}>
       <Surface
         behavior="static"
-        className="aca-m--fill preview-frame"
-        contentClassName="preview-frame__content"
+        className="aca-m--fill widget-preview__frame"
+        contentClassName="widget-preview__frame-content"
       >
         {children}
       </Surface>
@@ -306,8 +306,8 @@ export default function PreviewMedia() {
   };
 
   return (
-    <main className="preview-page">
-      <header className="preview-header">
+    <main className="widget-preview preview-page">
+      <header className="widget-preview__header">
         <Title tone="engraved">Widget multimediali</Title>
         <Body tone="muted">
           Anteprima solo per lo sviluppo: lettori, gruppi, televisori, videocamere e pagine media,
@@ -326,7 +326,11 @@ export default function PreviewMedia() {
       </header>
 
       {SAMPLES.map((group) => (
-        <section key={group.title} className="preview-section" aria-label={group.title}>
+        <section
+          key={group.title}
+          className="widget-preview__section preview-section"
+          aria-label={group.title}
+        >
           <Heading level={2} size="lg">
             {group.title}
           </Heading>
@@ -334,7 +338,7 @@ export default function PreviewMedia() {
         </section>
       ))}
 
-      <section className="preview-section" aria-label="Stati dei comandi">
+      <section className="widget-preview__section preview-section" aria-label="Stati dei comandi">
         <Heading level={2} size="lg">
           Stati dei comandi
         </Heading>
@@ -359,7 +363,10 @@ export default function PreviewMedia() {
       </section>
 
       <WidgetRuntimeProvider value={runtime}>
-        <section className="preview-section preview-section--page" aria-label="Pagina media">
+        <section
+          className="widget-preview__section preview-section preview-section--page"
+          aria-label="Pagina media"
+        >
           <Heading level={2} size="lg">
             Pagina media
           </Heading>
@@ -367,7 +374,10 @@ export default function PreviewMedia() {
             <PreviewKindPage Page={MediaKindPage} pageId="media" />
           </div>
         </section>
-        <section className="preview-section preview-section--page" aria-label="Pagina Sonos">
+        <section
+          className="widget-preview__section preview-section preview-section--page"
+          aria-label="Pagina Sonos"
+        >
           <Heading level={2} size="lg">
             Pagina Sonos
           </Heading>

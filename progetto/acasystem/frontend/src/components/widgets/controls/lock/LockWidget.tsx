@@ -8,6 +8,7 @@ import { densityOf, entityName, settingString } from '../shared/entity';
 import { COMMAND_LABELS } from '../shared/labels';
 import { WidgetContent, WidgetLoading, WidgetMissing } from '../shared/WidgetContent';
 import { useLockControl, type LockControl } from './useLockControl';
+import { classes } from '@/components/primitives/classes';
 
 /** Entity of a lock card: the card id for `lock.*`, the `lockId` setting for `lock_card_*`. */
 export function lockEntityId(cardId: string, settings: unknown): string | undefined {
@@ -139,14 +140,12 @@ export function LockWidget({ id, settings, size, editMode }: WidgetProps) {
   );
   const stateText = (
     <Text
-      className={[
+      className={classes(
         'ctl-state',
         density === 'large' ? 'ctl-state--lg' : undefined,
         lock.command.pending && 'ctl-value--pending',
-        'ctl-clamp-1',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        'ctl-clamp-1'
+      )}
     >
       {lock.label}
     </Text>

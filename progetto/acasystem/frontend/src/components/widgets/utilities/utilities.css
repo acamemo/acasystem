@@ -640,9 +640,7 @@
       transition: none;
     }
   }
-}
 
-@layer components {
   /* ── «Rileva dispositivi»: a device of the list, one tap away from its widget ─────── */
   .aca-m.utility-device-row {
     --aca-pad: 0.55em 1.1em;
@@ -663,9 +661,7 @@
     min-width: 0;
     text-align: start;
   }
-}
 
-@layer components {
   /* ── «Rileva dispositivi»: a device found on the network, with its two answers ──────── */
   .utility-found-row {
     display: flex;

@@ -11,6 +11,7 @@ import { WidgetContent, WidgetLoading, WidgetMissing } from '../shared/WidgetCon
 import { BrightnessKnob } from './BrightnessKnob';
 import { groupMembers } from './lightModel';
 import { useLightControl, type LightControl } from './useLightControl';
+import { classes } from '@/components/primitives/classes';
 
 /** Status line: unavailable, members on in a group, or on/off. */
 export function lightStatusText(
@@ -53,14 +54,12 @@ function StateReading({ control, text }: { control: LightControl; text: string }
   const fit = control.available ? stateFit(text) : stateFit(text, 1, GLYPH_EM);
   return (
     <Text
-      className={[
+      className={classes(
         'ctl-value',
         control.pending && 'ctl-value--pending',
         'ctl-state ctl-fit',
-        `ctl-clamp-${fit.lines}`,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        `ctl-clamp-${fit.lines}`
+      )}
       style={fit.style}
     >
       {control.available ? (

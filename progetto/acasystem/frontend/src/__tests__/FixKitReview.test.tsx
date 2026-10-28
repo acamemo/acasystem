@@ -51,7 +51,7 @@ function sides(value: string): number[] {
 
 describe('RESP-3: area di tocco di 44 px senza cambiare l’aspetto', () => {
   it('ogni pulsante del materiale ha un ::before trasparente che cresce solo sotto i 44 px', () => {
-    const target = rule(material, ':where(button.aca-m)::before');
+    const target = rule(material, ':where(button.aca-m, .aca-field__action)::before');
     expect(target).toMatch(/content:\s*''/);
     expect(target).toMatch(/position:\s*absolute/);
     expect(target).toMatch(/inset:\s*min\(0px, calc\(50% - 22px\)\)/);
@@ -217,5 +217,18 @@ describe('icona chevronUp (richiesta della corsia launcher-ui)', () => {
       const mirrored = index % 2 === 0 ? down[index] : 24 - (down[index] ?? 0);
       expect(value).toBeCloseTo(mirrored ?? Number.NaN, 2);
     });
+  });
+});
+
+describe('show/hide key of a field (REP-20261028-001)', () => {
+  it('takes the 44 px target of the kit buttons, around its own box', () => {
+    expect(material).toMatch(/:where\(button\.aca-m, \.aca-field__action\)::before \{/);
+    expect(rule(components, '.aca-field__action')).toMatch(/position:\s*relative;/);
+  });
+
+  it('changes colour on hover only with a mouse, so the tap leaves no hover on a touch screen', () => {
+    expect(components).toMatch(
+      /@media \(hover: hover\) \{\s*\.aca-field__action:is\(:hover, \.is-hover\) \{/
+    );
   });
 });

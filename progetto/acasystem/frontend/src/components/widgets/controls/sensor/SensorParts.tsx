@@ -13,6 +13,7 @@ import { italianNumber } from '../shared/format';
 import { figureFit, stateFit } from '../shared/valueFit';
 import type { SensorControls } from './useSensorControls';
 import type { SensorModel } from './sensorModel';
+import { classes } from '@/components/primitives/classes';
 
 /**
  * Main value: number with unit (tabular, never wrapped) or the state wording. With `fit` (the
@@ -31,7 +32,7 @@ export function SensorValue({
 }) {
   const text = model.showVariant && model.isRangeVariant ? model.chartDisplay : model.displayState;
   const showUnit = !!model.unit && model.valueMode !== 'percent';
-  const className = ['ctl-value', pending && 'ctl-value--pending'].filter(Boolean).join(' ');
+  const className = classes('ctl-value', pending && 'ctl-value--pending');
   if (model.isNumeric) {
     const figure = fit ? figureFit(text, showUnit ? model.unit : '') : null;
     return (
@@ -51,14 +52,12 @@ export function SensorValue({
   const state = fit ? stateFit(text) : null;
   return (
     <Text
-      className={[
+      className={classes(
         className,
         'ctl-state',
         size === 'sm' ? 'ctl-state--sm' : size === 'lg' ? 'ctl-state--lg' : undefined,
-        state ? `ctl-fit ctl-clamp-${state.lines}` : 'ctl-clamp-2',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        state ? `ctl-fit ctl-clamp-${state.lines}` : 'ctl-clamp-2'
+      )}
       style={state?.style}
     >
       {text}

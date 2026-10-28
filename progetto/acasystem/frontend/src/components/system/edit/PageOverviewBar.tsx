@@ -4,6 +4,7 @@ import { Body, Button, Field, Popover } from '@/components/primitives';
 import { useReducedMotion } from '@/hooks/launcher/useViewport';
 import { IconAction } from './IconAction';
 import './edit.css';
+import { classes } from '@/components/primitives/classes';
 
 export interface PageOverviewBarProps {
   /** Out of the overview: the bar waits below the screen, inert, to rise and sink. */
@@ -340,13 +341,11 @@ export function PageOverviewBar({
   );
   return (
     <div
-      className={[
+      className={classes(
         'aca-page-overview',
         hidden && 'aca-page-overview--hidden',
-        overview && 'aca-page-overview--overview',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        overview && 'aca-page-overview--overview'
+      )}
       role="toolbar"
       aria-label="Pagine"
       aria-hidden={hidden || undefined}
@@ -355,13 +354,11 @@ export function PageOverviewBar({
     >
       <div
         ref={setHost}
-        className={[
+        className={classes(
           'aca-page-overview__group',
           phase !== 'rest' && 'is-renaming',
-          phase === 'closing' && 'is-closing',
-        ]
-          .filter(Boolean)
-          .join(' ')}
+          phase === 'closing' && 'is-closing'
+        )}
       >
         {/* The tools fade while the name is a field, and cannot be reached meanwhile. */}
         <div

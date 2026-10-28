@@ -225,15 +225,6 @@ export interface AreaDto {
   name: string;
 }
 
-/** Body of an error answer: `{ error, code, field?, flowId?, retryAfterSeconds? }`. */
-export interface DeviceErrorBody {
-  error: string;
-  code: string;
-  field?: string;
-  flowId?: string;
-  retryAfterSeconds?: number;
-}
-
 /** An error of the facade as the screens use it (see `toDeviceError`). */
 export interface DeviceErrorInfo {
   /** HTTP status; 0 when the request did not reach the server. */

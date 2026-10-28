@@ -27,6 +27,7 @@ import { BrightnessKnob } from './BrightnessKnob';
 import { groupMembers } from './lightModel';
 import { useLightControl } from './useLightControl';
 import '../controls.css';
+import { classes } from '@/components/primitives/classes';
 
 export type LightsSort = 'status' | 'name-az' | 'name-za' | 'brightness' | 'area' | 'unavailable';
 
@@ -91,9 +92,7 @@ function LightTile({ entity, areaName }: { entity: HassEntity; areaName: string 
     <li>
       <Surface
         shape="card"
-        className={['ctl-lights__tile', !control.available && 'ctl-lights__tile--off']
-          .filter(Boolean)
-          .join(' ')}
+        className={classes('ctl-lights__tile', !control.available && 'ctl-lights__tile--off')}
         contentClassName="ctl-lights__tile-content"
         error={control.failed}
       >

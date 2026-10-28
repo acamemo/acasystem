@@ -125,8 +125,8 @@ function PreviewFrame({
   return (
     <Surface
       behavior="static"
-      className="aca-m--fill preview-frame"
-      contentClassName="preview-frame__content"
+      className="aca-m--fill widget-preview__frame"
+      contentClassName="widget-preview__frame-content"
       inert={editMode || undefined}
     >
       {children}
@@ -247,10 +247,10 @@ export default function PreviewPage() {
   return (
     <WidgetRuntimeProvider value={runtime}>
       <main
-        className="preview-page"
+        className="widget-preview preview-page"
         style={{ '--preview-cell': cell === 'tablet' ? '8.5rem' : '5.5rem' } as CSSProperties}
       >
-        <header className="preview-header">
+        <header className="widget-preview__header preview-header">
           <Title level={1}>Widget utilità</Title>
           <Body size="sm" tone="muted">
             Anteprima di sviluppo con dati fittizi: costi, prezzi, auto, robot, stanze, separatore e
@@ -333,13 +333,13 @@ export default function PreviewPage() {
                   Taglie da {definition.sizes.min.w}×{definition.sizes.min.h} a{' '}
                   {definition.sizes.max.w}×{definition.sizes.max.h}
                 </Caption>
-                <div className="preview-grid">
+                <div className="widget-preview__grid preview-grid">
                   {group.items.map((item, index) => {
                     const settingsKey = `home::${item.id}`;
                     return (
                       <figure
                         key={`${item.id}-${index}`}
-                        className="preview-cell"
+                        className="widget-preview__cell preview-cell"
                         style={{
                           gridColumn: `span ${Math.min(item.size.w, cell === 'phone' ? 4 : 8)}`,
                           gridRow: `span ${item.size.h}`,
@@ -355,7 +355,7 @@ export default function PreviewPage() {
                             editMode={editMode}
                           />
                         </PreviewFrame>
-                        <Caption as="figcaption">
+                        <Caption as="figcaption" className="widget-preview__note preview-note">
                           {item.size.w}×{item.size.h}
                           {item.note ? ` · ${item.note}` : ''}
                         </Caption>

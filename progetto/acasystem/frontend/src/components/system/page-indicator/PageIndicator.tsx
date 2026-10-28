@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { Body, MaterialLayers, materialClass } from '@/components/primitives';
 import { TWO_FRAMES_MS, canAnimate } from '@/utils/launcher/motion';
 import './pageIndicator.css';
+import { classes } from '@/components/primitives/classes';
 
 export interface PageIndicatorProps {
   /** Labels of the pager entries, in order (sentence case). */
@@ -83,16 +84,14 @@ export function PageIndicator({
 
   return (
     <div
-      className={[
+      className={classes(
         'aca-indicator',
         single && 'aca-indicator--single',
         hidden && 'aca-indicator--hidden',
         hidden && yielding && 'aca-indicator--yield',
         passive && !hidden && 'aca-indicator--passive',
-        overview && 'aca-indicator--overview',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        overview && 'aca-indicator--overview'
+      )}
       aria-hidden={silent || undefined}
       inert={silent || undefined}
     >

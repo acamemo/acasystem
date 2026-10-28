@@ -175,6 +175,13 @@
   --aca-dur-bar-out: 240ms;
   --aca-dur-bar-fade-in: 240ms;
   --aca-dur-bar-fade-out: 200ms;
+  /* A bar that slides in or out (edit bar, bar of the pages, indicator): one transition each. */
+  --aca-bar-enter:
+    transform var(--aca-dur-bar-in) var(--aca-motion-ease-out),
+    opacity var(--aca-dur-bar-fade-in) var(--aca-motion-ease-out);
+  --aca-bar-leave:
+    transform var(--aca-dur-bar-out) var(--aca-motion-ease-in),
+    opacity var(--aca-dur-bar-fade-out) var(--aca-motion-ease-in);
   /* The scene of a page (the pages view) and the sheets, which cover the screen. */
   --aca-dur-scene: 360ms;
   --aca-dur-sheet-in: 280ms;

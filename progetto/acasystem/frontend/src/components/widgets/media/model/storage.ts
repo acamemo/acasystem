@@ -2,6 +2,7 @@
  * Browser-local preferences of the legacy media modal, kept under the same keys so existing
  * installations keep them: last chosen content, extra Sonos players, name filter, session sensors.
  */
+import { isRecord } from '@/validators/guards';
 import { stringList } from './entity';
 
 export const STORAGE_KEYS = {
@@ -42,9 +43,6 @@ function writeJson(key: string, value: unknown) {
     console.error(`Failed to write ${key} to localStorage:`, error);
   }
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export function readLastChoices(): Record<string, LastChoice> {
   const raw = readJson(STORAGE_KEYS.lastChoice);

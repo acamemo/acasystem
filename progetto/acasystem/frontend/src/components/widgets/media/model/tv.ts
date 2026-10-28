@@ -201,12 +201,6 @@ export function tvPowerOffCall(
   return { domain: 'media_player', service: 'turn_off', data: { entity_id: mediaPlayerId } };
 }
 
-/** Target of the play/pause button on the widget: Android follows the playing display entity. */
-export function widgetPlayTarget(kind: TvKind, view: TvView, mediaPlayerId: string): string {
-  if (kind === 'apple') return view.linkedActive ? view.displayId : mediaPlayerId;
-  return view.isPlaying ? view.displayId : mediaPlayerId;
-}
-
 /** Target of a details command: media_* actions go to the linked player when it is shown. */
 export function detailsTarget(action: string, view: TvView, mediaPlayerId: string): string {
   return action.includes('media') && view.displayId !== mediaPlayerId

@@ -3,6 +3,7 @@ import { Body, Caption, IconText, Skeleton } from '@/components/primitives';
 import type { CellSize } from '@/@types/launcher';
 import { testi } from '../testi';
 import '../media.css';
+import { classes } from '@/components/primitives/classes';
 
 export interface WidgetShellProps {
   size: CellSize;
@@ -42,14 +43,12 @@ export function WidgetShell({
     <div
       role="group"
       aria-label={label}
-      className={[
+      className={classes(
         'aca-media-widget',
         size.h <= 1 && 'aca-media-widget--compact',
         tappable && 'aca-media-widget--clickable',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
       data-edit-mode={editMode || undefined}
       onClick={tappable ? handleClick : undefined}
     >
@@ -86,9 +85,7 @@ export function OpenButton({
     <button
       type="button"
       data-widget-open
-      className={['aca-media-open', stretch && 'aca-media-open--stretch', className]
-        .filter(Boolean)
-        .join(' ')}
+      className={classes('aca-media-open', stretch && 'aca-media-open--stretch', className)}
       disabled={editMode}
       onClick={(event) => {
         event.stopPropagation();
@@ -106,11 +103,7 @@ export const stop = (event: { stopPropagation: () => void }) => event.stopPropag
 
 export function WidgetLoading({ size, label }: { size: CellSize; label: string }) {
   return (
-    <div
-      className={['aca-media-widget', size.h <= 1 && 'aca-media-widget--compact']
-        .filter(Boolean)
-        .join(' ')}
-    >
+    <div className={classes('aca-media-widget', size.h <= 1 && 'aca-media-widget--compact')}>
       <Skeleton
         variant="compact"
         rows={size.h <= 1 ? 1 : 2}

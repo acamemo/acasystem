@@ -119,21 +119,6 @@ export async function getHistory(
   return parseHistoryEntries(historyData);
 }
 
-export function canUseHistoryRest(
-  baseUrl: string | null | undefined,
-  currentOrigin: string | undefined = globalThis?.window?.location?.origin
-): boolean {
-  if (!baseUrl) return false;
-  if (!currentOrigin) return true;
-
-  try {
-    const targetUrl = new URL(baseUrl, currentOrigin);
-    return targetUrl.origin === currentOrigin;
-  } catch {
-    return false;
-  }
-}
-
 export interface HistoryRestQuery extends HistoryQuery {
   significant_changes_only?: boolean;
 }

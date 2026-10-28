@@ -267,7 +267,8 @@
   }
   /* Requested, not yet confirmed: the value breathes until Home Assistant reports it. */
   .ctl-value--pending {
-    animation: aca-ctl-pending 900ms ease-in-out infinite alternate;
+    --aca-pulse-to: 0.55;
+    animation: aca-pulse 900ms ease-in-out infinite alternate;
   }
   .ctl-feedback {
     display: block;
@@ -818,15 +819,6 @@
       > .ctl-widget__body
       > :is(.ctl-figure, .ctl-state) {
       display: none;
-    }
-  }
-
-  @keyframes aca-ctl-pending {
-    from {
-      opacity: 1;
-    }
-    to {
-      opacity: 0.55;
     }
   }
 

@@ -14,8 +14,6 @@ export function italianNumber(value: string): string {
   });
 }
 
-export const percentText = (value: number): string => `${Math.round(value)}%`;
-
 const dateTime = new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' });
 const timeOnly = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' });
 const relative = new Intl.RelativeTimeFormat('it', { numeric: 'auto' });

@@ -156,10 +156,6 @@ export function withCoverPage(layout: LauncherLayout, grids: LauncherGrids): Lau
   return { ...layout, pages: [...layout.pages, defaultCoverPage(grids)] };
 }
 
-export function createEmptyLayout(): LauncherLayout {
-  return { version: 1, cover: { enabled: true }, pages: [] };
-}
-
 export function findPage(layout: LauncherLayout, pageId: string): LauncherPage | undefined {
   return layout.pages.find((page) => page.id === pageId);
 }
@@ -311,27 +307,6 @@ function sizesFor(ctx: LayoutContext, widgetId: string, pageId: string) {
 /** Minimum size of the widgets of a page, for the reflow that makes room (REP-20261007-027). */
 function minOf(ctx: LayoutContext, pageId: string) {
   return (widgetId: string) => sizesFor(ctx, widgetId, pageId)?.min;
-}
-
-/** Placements of `page` for `deviceClass`, packed from the first class that has them. */
-export function materializePage(
-  page: LauncherPage,
-  deviceClass: DeviceClass,
-  ctx: LayoutContext
-): { placements: Placements; overflow: PackItem[] } {
-  const reference = placementKeysOf(page).find((item) => item !== deviceClass);
-  if (!reference) return { placements: {}, overflow: [] };
-  const source = page.placements[reference] ?? {};
-  const grid = gridFor(ctx.grids, deviceClass);
-  const items = idsByPosition(source).map((id) => {
-    const sizes = sizesFor(ctx, id, page.id);
-    return {
-      id,
-      size: clampSize({ w: source[id].w, h: source[id].h }, grid, sizes),
-      min: sizes?.min,
-    };
-  });
-  return packItems(items, grid);
 }
 
 /**

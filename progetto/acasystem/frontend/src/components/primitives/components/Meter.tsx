@@ -1,5 +1,6 @@
 import type { CSSProperties, ComponentPropsWithRef } from 'react';
 import { MaterialLayers, materialClass, type MaterialSize } from './Material';
+import { classes } from '../classes';
 
 export type MeterProps = Omit<ComponentPropsWithRef<'div'>, 'children'> & {
   value: number;
@@ -39,16 +40,14 @@ export function Meter({
       aria-valuemax={max}
       aria-valuenow={value}
       aria-valuetext={valueText}
-      className={[
+      className={classes(
         'aca-slider',
         'aca-slider--column',
         orientation === 'vertical' && 'aca-slider--vertical',
         'aca-meter',
         size !== 'inherit' && `aca-${size}`,
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
       style={{ ...style, '--aca-ratio': ratio } as CSSProperties}
       {...props}
     >

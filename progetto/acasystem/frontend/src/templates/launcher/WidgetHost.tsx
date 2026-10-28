@@ -19,6 +19,7 @@ import { WidgetUnavailable } from '@/components/system/launcher/LauncherStates';
 import type { CellRect } from '@/@types/launcher';
 import { useRejected, type WidgetEntering } from '@/hooks/launcher/useLauncherSelection';
 import { useResizeShape } from '@/hooks/launcher/useResizeShape';
+import { classes } from '@/components/primitives/classes';
 import { describeRect } from '@/utils/launcher/names';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useLauncherUi } from './LauncherUiContext';
@@ -255,7 +256,7 @@ export const WidgetHost = memo(function WidgetHost({
   const glass = typeof settings.appearanceOpacity === 'number' ? settings.appearanceOpacity : 0;
   if (glass > 0) style['--aca-widget-glass'] = `${100 - glass}%`;
 
-  const classes = [
+  const hostClass = classes(
     'aca-launcher-widget',
     glass > 0 && !unframed && 'has-glass',
     editMode && 'is-editing',
@@ -272,13 +273,11 @@ export const WidgetHost = memo(function WidgetHost({
     exiting && 'is-exiting',
     entering && 'is-entering',
     entering?.go && 'is-go',
-    entering && `is-${entering.mode}`,
-  ]
-    .filter(Boolean)
-    .join(' ');
+    entering && `is-${entering.mode}`
+  );
 
   return (
-    <div ref={boxRef} className={classes} style={style} data-widget-id={widgetId}>
+    <div ref={boxRef} className={hostClass} style={style} data-widget-id={widgetId}>
       <Frame
         frameless={definition?.frameless === true || unframed || stackFrameless}
         rejected={rejected}

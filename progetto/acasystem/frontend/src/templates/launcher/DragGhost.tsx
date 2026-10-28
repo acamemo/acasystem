@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, type CSSProperties } from 'react';
 import { Body, Caption, Icon, Surface, type IconName } from '@/components/primitives';
 import type { DragFlight, DragSession } from '@/hooks/launcher/useWidgetDrag';
 import { afterTransition } from '@/utils/launcher/motion';
+import { classes } from '@/components/primitives/classes';
 
 /** How long each flight takes after the release (--aca-dur-fly, -fly-back and -exit-sm, tokens.css). */
 export const FLIGHT_MS: Record<DragFlight['kind'], number> = {
@@ -139,17 +140,15 @@ export function DragGhost({
   return (
     <div
       ref={ghostRef}
-      className={[
+      className={classes(
         'aca-drag-ghost',
         `aca-drag-ghost--${mode}`,
         target && !target.valid && 'is-invalid',
         session.lifted && 'is-lifting',
         session.removing && 'is-removing',
         flight && 'is-flying',
-        flight && `is-flying--${flight.kind}`,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        flight && `is-flying--${flight.kind}`
+      )}
       style={style}
       aria-hidden="true"
     >

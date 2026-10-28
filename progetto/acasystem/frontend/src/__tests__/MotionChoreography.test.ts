@@ -120,11 +120,16 @@ describe('choreography of the launcher (block 1 of 0.9.28)', () => {
     });
 
     it('the bars and the indicator take their times from the tokens, not from numbers', () => {
+      // One transition per direction, made of the bar tokens, read by every bar.
+      expect(css.tokens).toMatch(
+        /--aca-bar-enter:\s*transform var\(--aca-dur-bar-in\) var\(--aca-motion-ease-out\),\s*opacity var\(--aca-dur-bar-fade-in\) var\(--aca-motion-ease-out\);/
+      );
+      expect(css.tokens).toMatch(
+        /--aca-bar-leave:\s*transform var\(--aca-dur-bar-out\) var\(--aca-motion-ease-in\),\s*opacity var\(--aca-dur-bar-fade-out\) var\(--aca-motion-ease-in\);/
+      );
       for (const sheet of ['edit', 'indicator'] as const) {
-        const bars = [
-          ...css[sheet].matchAll(/transform var\(--aca-dur-bar-(?:in|out)[^)]*\)[^;]*;/g),
-        ];
-        expect(bars.length, sheet).toBeGreaterThan(0);
+        expect(css[sheet], sheet).toMatch(/transition: var\(--aca-bar-enter\);/);
+        expect(css[sheet], sheet).toMatch(/transition: var\(--aca-bar-leave\);/);
         expect(css[sheet], sheet).not.toMatch(/transform (?:360|240)ms/);
         expect(css[sheet], sheet).not.toMatch(/opacity (?:240|200)ms (?:ease-out|ease-in)/);
       }

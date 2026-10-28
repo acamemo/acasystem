@@ -5,6 +5,7 @@ import { MediaIcon } from '../icons';
 import { testi } from '../testi';
 import type { MediaControls } from '../hooks/useMediaControls';
 import { stop } from './WidgetShell';
+import { classes } from '@/components/primitives/classes';
 
 export interface TransportProps {
   controls: MediaControls;
@@ -48,13 +49,11 @@ export function Transport({
   const repeatMode = repeat.value;
   return (
     <div
-      className={[
+      className={classes(
         'aca-media-transport',
         align === 'start' && 'aca-media-transport--start',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
       onClick={stop}
     >
       {full && caps.shuffle && (

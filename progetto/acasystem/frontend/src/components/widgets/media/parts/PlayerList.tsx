@@ -5,6 +5,7 @@ import { MediaIcon } from '../icons';
 import { artworkPath, resolveImage, type Entity } from '../model/entity';
 import { testi } from '../testi';
 import { Artwork } from './Artwork';
+import { classes } from '@/components/primitives/classes';
 
 export interface PlayerListProps {
   players: Entity[];
@@ -45,9 +46,7 @@ export function PlayerList({
         return (
           <li
             key={playerId}
-            className={['aca-media-player', !isActive(player) && 'aca-media-player--idle']
-              .filter(Boolean)
-              .join(' ')}
+            className={classes('aca-media-player', !isActive(player) && 'aca-media-player--idle')}
           >
             <Button
               variant="control"

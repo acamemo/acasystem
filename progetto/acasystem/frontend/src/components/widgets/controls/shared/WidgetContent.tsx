@@ -4,6 +4,7 @@ import type { CellSize } from '@/@types/launcher';
 import { COMMON_LABELS } from './labels';
 import { densityOf, type Density } from './entity';
 import '../controls.css';
+import { classes } from '@/components/primitives/classes';
 
 export interface WidgetContentProps {
   size: CellSize;
@@ -42,14 +43,12 @@ export function WidgetContent({
   const density: Density = densityOf(size);
   return (
     <div
-      className={[
+      className={classes(
         'ctl-widget',
         `ctl-widget--${density}`,
         editMode && 'ctl-widget--editing',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
       data-density={density}
     >
       {onOpen && (

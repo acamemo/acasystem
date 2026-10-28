@@ -8,6 +8,7 @@ import { tvCanPower, type TvKind, type TvView } from '../../model/tv';
 import { ChannelKey } from '../ChannelKey';
 import { PowerButton } from '../Controls';
 import { VolumeKnob } from '../VolumeKnob';
+import { classes } from '@/components/primitives/classes';
 
 export type TvKeySize = 'md' | 'lg' | 'xl';
 
@@ -30,13 +31,11 @@ interface KeyProps {
 
 /** Look of a key of the face: `md` is the plain small key (one-row widget), larger ones are the raised keys. */
 const keyClass = (size: TvKeySize, waiting: boolean) =>
-  [
+  classes(
     size !== 'md' && 'aca-media-key',
     size === 'xl' && 'aca-media-key--xl',
-    waiting && 'aca-media-key--waiting',
-  ]
-    .filter(Boolean)
-    .join(' ') || undefined;
+    waiting && 'aca-media-key--waiting'
+  );
 
 /**
  * Power key, always shown. A TV that cannot be switched on over the network (Samsung on Wi-Fi)

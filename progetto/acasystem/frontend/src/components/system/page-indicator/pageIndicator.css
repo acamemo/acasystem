@@ -177,30 +177,25 @@
       transition: none !important;
     }
   }
-}
 
-/*
- * The indicator is the top bar (ADR-0016, C2): it comes down from the top of the screen with a
- * fade in edit mode, page overview included (a press and hold on an empty place, or «Pagine»),
- * and for a moment after a page change; it goes back up with the reverse motion, the mirror of
- * the bars that rise at the bottom. Only transform and opacity change. Passive (a cue only) it
- * takes no pointer, so a touch on it reaches the widget below.
- */
-@layer components {
+  /*
+   * The indicator is the top bar (ADR-0016, C2): it comes down from the top of the screen with a
+   * fade in edit mode, page overview included (a press and hold on an empty place, or «Pagine»),
+   * and for a moment after a page change; it goes back up with the reverse motion, the mirror of
+   * the bars that rise at the bottom. Only transform and opacity change. Passive (a cue only) it
+   * takes no pointer, so a touch on it reaches the widget below.
+   */
+
   .aca-indicator {
     /* A stable layer, as for the bars that slide (REP-20261012-003). */
     will-change: transform, opacity;
-    transition:
-      transform var(--aca-dur-bar-in, 360ms) var(--aca-motion-ease-out, ease-out),
-      opacity var(--aca-dur-bar-fade-in, 240ms) var(--aca-motion-ease-out, ease-out);
+    transition: var(--aca-bar-enter);
   }
   .aca-indicator.aca-indicator--hidden {
     transform: translateY(calc(-100% - var(--aca-space-3) - 0.75rem));
     opacity: 0;
     pointer-events: none;
-    transition:
-      transform var(--aca-dur-bar-out, 240ms) var(--aca-motion-ease-in, ease-in),
-      opacity var(--aca-dur-bar-fade-out, 200ms) var(--aca-motion-ease-in, ease-in);
+    transition: var(--aca-bar-leave);
   }
   /*
    * In the order of the scene (REP-20261023-006, D-M3, D-M24): with the pages view up the

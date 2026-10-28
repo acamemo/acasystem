@@ -92,7 +92,7 @@ describe('scambio con la barra delle pagine (REP-20261009-004)', () => {
     // The exit of a bar takes 200 ms (opacity); the one that comes waits for it, the pager saying
     // which way the swap goes with a class of the bar (G2: not a `:has()` on the main area).
     expect(edit).toMatch(
-      /\.aca-edit-toolbar--hidden > \.aca-edit-toolbar__group \{[^}]*opacity var\(--aca-dur-bar-fade-out, 200ms\)/
+      /\.aca-edit-toolbar--hidden > \.aca-edit-toolbar__group \{[^}]*transition: var\(--aca-bar-leave\);/
     );
     expect(edit).toMatch(
       /\.aca-edit-toolbar--closing:not\(\.aca-edit-toolbar--hidden\) > \.aca-edit-toolbar__group \{\s*transition-delay: 180ms;/
