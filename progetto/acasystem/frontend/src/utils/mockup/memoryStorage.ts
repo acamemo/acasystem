@@ -7,15 +7,37 @@
  * dropped.
  */
 
+/**
+ * A key whose first read is answered as it is and then marked as set: the value written is
+ * `'1'` and `onRead` runs once. The demo uses it for a flag the app reads when a screen opens.
+ */
+export interface FirstRead {
+  key: string;
+  onRead: () => void;
+}
+
 /** A `Storage` kept in memory. */
-export function createMemoryStorage(initial: Record<string, string> = {}): Storage {
+export function createMemoryStorage(
+  initial: Record<string, string> = {},
+  firstRead?: FirstRead
+): Storage {
   const data = new Map<string, string>(Object.entries(initial));
+  let pending = firstRead !== undefined;
   return {
     get length() {
       return data.size;
     },
     clear: () => data.clear(),
-    getItem: (key: string) => data.get(String(key)) ?? null,
+    getItem: (key: string) => {
+      const name = String(key);
+      const value = data.get(name) ?? null;
+      if (pending && firstRead && name === firstRead.key) {
+        pending = false;
+        if (value === null) data.set(name, '1');
+        firstRead.onRead();
+      }
+      return value;
+    },
     key: (index: number) => [...data.keys()][index] ?? null,
     removeItem: (key: string) => {
       data.delete(String(key));
@@ -34,11 +56,12 @@ export function createMemoryStorage(initial: Record<string, string> = {}): Stora
  */
 export function installMemoryStorage(
   name: 'localStorage' | 'sessionStorage',
-  initial: Record<string, string> = {}
+  initial: Record<string, string> = {},
+  firstRead?: FirstRead
 ): () => void {
   const target = globalThis as unknown as Window;
   const original = Object.getOwnPropertyDescriptor(target, name);
-  const memory = createMemoryStorage(initial);
+  const memory = createMemoryStorage(initial, firstRead);
   Object.defineProperty(target, name, {
     configurable: true,
     enumerable: true,

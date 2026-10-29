@@ -183,8 +183,15 @@ describe('#/mockup is the real app', () => {
       return within(card as HTMLElement).getByRole('button', { name: 'Accensione luce' });
     };
     await waitFor(() => expect(light()).toHaveAttribute('aria-pressed', 'true'));
+    const card = () => container.querySelector('[aria-label="Luce soggiorno"]') as HTMLElement;
+    expect(within(card()).getByText('Accesa')).toBeInTheDocument();
     fireEvent.click(light());
     await waitFor(() => expect(light()).toHaveAttribute('aria-pressed', 'false'));
+    // The simulated house confirms: the state word follows and no command is left pending.
+    await waitFor(() => expect(within(card()).getByText('Spenta')).toBeInTheDocument(), {
+      timeout: 5_000,
+    });
+    await waitFor(() => expect(within(card()).queryByText('Sto inviando il comando…')).toBeNull());
     fireEvent.click(light());
     await waitFor(() => expect(light()).toHaveAttribute('aria-pressed', 'true'));
   }, 120_000);
@@ -278,6 +285,67 @@ describe('leaving the demo', () => {
     expect(sessionStorage.getItem(DEMO_FLAG_KEY)).toBeNull();
     expect(snapshot(localStorage)).toEqual(realLocal);
   }, 120_000);
+});
+
+describe('scenarios and the «Dispositivi trovati» screen', () => {
+  it('keeps the chosen scenario in the tab and builds the house of it on the next visit', () => {
+    expect(demoMode.enterDemo().scenario).toBe('normal');
+    demoMode.switchScenario('extremes');
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(getDemoSource()).toBeNull();
+    // The choice is a mark of the tab; the storage of the real app is not touched.
+    expect(sessionStorage.getItem('aca_demo_scenario')).toBe('extremes');
+    expect(snapshot(localStorage)).toEqual(realLocal);
+    const next = demoMode.enterDemo();
+    expect(next.scenario).toBe('extremes');
+    expect(next.store.getEntities()['sensor.auto_batteria']!.state).toBe('0');
+    expect(demoMode.currentScenario()).toBe('extremes');
+    demoMode.leaveDemo();
+    // Leaving takes the marks away: the tab is as it was found.
+    expect(snapshot(sessionStorage)).toEqual(realSession);
+    expect(snapshot(localStorage)).toEqual(realLocal);
+  });
+
+  it('shows the discovery screen on the first entry only, not on a reload or a remount', () => {
+    demoMode.enterDemo();
+    // The first read of the flag (the screen asking whether it was seen) says «not yet» ...
+    expect(localStorage.getItem('aca_discovery_seen')).toBeNull();
+    // ... and a screen mounted again (a resize) finds it seen.
+    expect(localStorage.getItem('aca_discovery_seen')).toBe('1');
+    // The reload of a scenario switch starts with it already seen.
+    demoMode.switchScenario('empty');
+    demoMode.enterDemo();
+    expect(localStorage.getItem('aca_discovery_seen')).toBe('1');
+    // After leaving, the next entry is a first one again.
+    demoMode.leaveDemo();
+    demoMode.enterDemo();
+    expect(localStorage.getItem('aca_discovery_seen')).toBeNull();
+  });
+
+  it('offers the scenarios in the bar, with 44 px targets, and switches to the one chosen', async () => {
+    demoMode.enterDemo();
+    render(
+      <ToastProvider>
+        <DemoOverlay />
+      </ToastProvider>
+    );
+    const trigger = screen.getByRole('button', { name: 'Scenario: Casa normale' });
+    expect(trigger.className).toContain('aca-mockup-touch');
+    fireEvent.click(trigger);
+    for (const label of [
+      'Casa normale',
+      'Non raggiungibili',
+      'Nomi lunghi',
+      'Valori estremi',
+      'Casa vuota',
+    ]) {
+      expect(await screen.findByRole('button', { name: label })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Casa vuota' }));
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem('aca_demo_scenario')).toBe('empty');
+    expect(screen.getByRole('button', { name: 'Scenario: Casa vuota' })).toBeInTheDocument();
+  });
 });
 
 describe('entry of the demo', () => {

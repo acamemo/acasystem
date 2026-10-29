@@ -20,11 +20,54 @@
     box-shadow: var(--aca-socket-shadow-card);
   }
 
+  /* Every control of the bar is a 44 px target, like the controls of the app. */
+  .aca-mockup-touch {
+    min-height: var(--aca-control-height);
+  }
+
+  /* A long name of a scenario is cut, never wrapped: the bar stays one line tall. */
+  .aca-mockup-touch .aca-m__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The list of the scenarios: one column of full-width choices. */
+  .aca-mockup-menu {
+    display: grid;
+    gap: var(--aca-space-1);
+    inline-size: min(16rem, calc(100vw - var(--aca-space-6)));
+    padding: var(--aca-space-2);
+  }
+
+  .aca-mockup-menu__item {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
   .aca-mockup-bar__label {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* On a narrow screen the label gives way to the buttons. */
+  @media (max-width: 34rem) {
+    .aca-mockup-bar {
+      gap: var(--aca-space-1);
+      left: var(--aca-space-2);
+      max-width: calc(100vw - var(--aca-space-4));
+    }
+
+    .aca-mockup-bar__label {
+      display: none;
+    }
+
+    .aca-mockup-bar [aria-haspopup] {
+      min-width: 0;
+      max-width: 9.5rem;
+    }
   }
 
   /* The Materials page covers the app and scrolls, under the bar. */

@@ -17,7 +17,7 @@ import { DEFAULT_GRIDS } from '@/utils/launcher/deviceClass';
 import { addPageToLayout, placeWidgetInLayout, type LayoutContext } from '@/utils/launcher/layout';
 import { legacySettingsKey } from '@/utils/launcher/migration';
 import { LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
-import { mockBindingSettings } from './mockData';
+import { mockBindingSettings, type MockScenario } from './mockData';
 
 export const ALL_WIDGETS_LABEL = 'Tutti i widget';
 
@@ -29,8 +29,8 @@ export interface MockupSeed {
   pageIds: string[];
 }
 
-const settingsOf = (type: string, extra: CardSettings = {}): CardSettings => ({
-  ...mockBindingSettings(type),
+const settingsOf = (type: string, extra: CardSettings = {}, second = false): CardSettings => ({
+  ...mockBindingSettings(type, second),
   categoryWidgetType: type,
   ...(type === 'sensor' ? { type: 'sensor' } : {}),
   ...(type === 'spacer' ? { variant: 'divider', heading: 'Casa', adaptiveSpacing: 16 } : {}),
@@ -57,7 +57,9 @@ function sizesShown(type: string): CellSize[] {
   return other ? [base, other] : [base];
 }
 
-export function buildMockupSeed(): MockupSeed {
+export function buildMockupSeed(scenario: MockScenario = 'normal'): MockupSeed {
+  // «Casa vuota»: the pages of a house with nothing in it yet, no widget on them.
+  const empty = scenario === 'empty';
   let layout: LauncherLayout = {
     version: 1,
     categoryDefaultsVersion: 1,
@@ -82,8 +84,8 @@ export function buildMockupSeed(): MockupSeed {
       ),
     };
     pagesConfig.pages.push(pageId);
-    pagesConfig[pageId] = seeds.map((seed) => seed.id);
-    for (const seed of seeds) {
+    pagesConfig[pageId] = empty ? [] : seeds.map((seed) => seed.id);
+    for (const seed of empty ? [] : seeds) {
       const type = String(seed.settings.categoryWidgetType);
       cardSettings[legacySettingsKey(pageId, seed.id)] = settingsOf(type, seed.settings);
     }
@@ -106,11 +108,11 @@ export function buildMockupSeed(): MockupSeed {
   };
   let counter = 0;
   const placedOn = new Set<string>([first.pageId]);
-  for (const item of ADD_WIDGET_TYPES) {
-    for (const size of sizesShown(item.type)) {
+  for (const item of empty ? [] : ADD_WIDGET_TYPES) {
+    for (const [nth, size] of sizesShown(item.type).entries()) {
       counter += 1;
       const widgetId = item.sample.id.replace('esempio', `tutti_${counter}`);
-      const settings = settingsOf(item.type);
+      const settings = settingsOf(item.type, {}, nth > 0);
       settingsById.set(widgetId, settings);
       const result = placeWidgetInLayout(layout, ctx, currentPage, widgetId, size);
       layout = result.layout;
@@ -123,6 +125,7 @@ export function buildMockupSeed(): MockupSeed {
   for (const page of layout.pages) {
     if (placedOn.has(page.id) && !pagesConfig.pages.includes(page.id)) {
       pagesConfig.pages.push(page.id);
+      pagesConfig[page.id] ??= [];
       pageIds.push(page.id);
     }
   }

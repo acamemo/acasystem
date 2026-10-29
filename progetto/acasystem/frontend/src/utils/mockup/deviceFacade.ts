@@ -1,9 +1,13 @@
 /**
- * The device facade of the demo mode (`/api/dispositivi/*`, REP-20261028-005, K1), answered inside
- * the browser: the service is active, a few devices are discovered over some seconds, a Samsung TV
- * is seen on the network, and «Aggiungi» runs a short flow (one confirmation, then the entry) that
- * adds the device to the simulated Home Assistant, so its widget is made by itself.
- * It never touches the network. The shapes are the DTOs of `@/@types/devices`.
+ * The device facade of the demo mode (`/api/dispositivi/*`, REP-20261028-005), answered inside
+ * the browser: the service is active; over a few seconds Home Assistant «finds» televisions
+ * (an LG that asks to be accepted, a Samsung that shows a code) and other devices (a Hue bridge,
+ * a Reolink doorbell, one that cannot be connected from here, one already ignored); and every
+ * «Aggiungi» or «Collega» runs the steps the real server sends for that integration - the code
+ * shown on the TV, the request to accept on the TV and a wait, the button of the bridge, a form
+ * with fields - before it adds the device and its entities to the simulated Home Assistant, so
+ * the app makes its widget by itself. It never touches the network. The shapes are the DTOs of
+ * `@/@types/devices`.
  */
 import type { HassEntity } from 'home-assistant-js-websocket';
 import type {
@@ -11,7 +15,10 @@ import type {
   DiscoveredDeviceDto,
   EntryDto,
   FlowCreatedDto,
+  FlowErrorDto,
+  FlowFieldDto,
   FlowFormDto,
+  FlowResponseDto,
   StatusDto,
   TvInReteDto,
 } from '@/@types/devices';
@@ -43,8 +50,22 @@ export interface MockDeviceFacade {
 
 export interface MockDeviceFacadeOptions {
   now?: () => number;
+  /** How long the steps that wait on a device take, in ms (tests pass 0). */
+  delays?: Partial<FlowDelays>;
 }
 
+export interface FlowDelays {
+  /** The TV is asked to accept: the answer stays open this long. */
+  consentMs: number;
+  /** The wait after the acceptance, shown as a progress step. */
+  progressMs: number;
+  /** The bridge looks for its button, the camera checks the password. */
+  checkMs: number;
+}
+
+const DEFAULT_DELAYS: FlowDelays = { consentMs: 3000, progressMs: 3500, checkMs: 1500 };
+
+/** What a flow adds to the house. */
 interface DemoDevice {
   handler: string;
   family: DeviceFamily;
@@ -60,79 +81,108 @@ const DISCOVERED: {
   device: DemoDevice;
   addable: boolean;
   reason?: string;
+  /** Ignored from the start: it is listed in «Nascosti». */
+  hidden?: boolean;
 }[] = [
   {
-    flowId: 'flow-demo-lg',
-    appearsAfterMs: 1500,
-    source: 'ssdp',
-    device: {
-      handler: 'webostv',
-      family: 'tv',
-      name: 'TV LG OLED55',
-      manufacturer: 'LG',
-      model: 'OLED55C3',
-    },
-    addable: true,
-  },
-  {
-    flowId: 'flow-demo-reolink',
-    appearsAfterMs: 3000,
-    source: 'dhcp',
-    device: {
-      handler: 'reolink',
-      family: 'camera',
-      name: 'Videocamera garage',
-      manufacturer: 'Reolink',
-      model: 'RLC-520A',
-    },
-    addable: true,
-  },
-  {
     flowId: 'flow-demo-hue',
-    appearsAfterMs: 5000,
+    appearsAfterMs: 3000,
     source: 'zeroconf',
     device: {
       handler: 'hue',
       family: 'light',
       name: 'Lampada scrivania',
-      manufacturer: 'Signify',
-      model: 'Hue Iris',
+      manufacturer: 'Signify Netherlands B.V.',
+      model: 'Hue Iris (7602031U7)',
     },
     addable: true,
   },
   {
-    flowId: 'flow-demo-roborock',
-    appearsAfterMs: 6500,
+    flowId: 'flow-demo-reolink-campanello',
+    appearsAfterMs: 5000,
     source: 'dhcp',
     device: {
-      handler: 'roborock',
-      family: 'vacuum',
-      name: 'Aspirapolvere Roborock Q Revo',
-      manufacturer: 'Roborock',
-      model: 'Q Revo',
+      handler: 'reolink',
+      family: 'camera',
+      name: 'Campanello Reolink',
+      manufacturer: 'Reolink',
+      model: 'Video Doorbell WiFi',
+    },
+    addable: true,
+  },
+  {
+    flowId: 'flow-demo-home-connect',
+    appearsAfterMs: 6500,
+    source: 'zeroconf',
+    device: {
+      handler: 'home_connect',
+      family: 'plug',
+      name: 'Forno Bosch HBG7',
+      manufacturer: 'Bosch',
+      model: 'HBG7741B1',
     },
     addable: false,
-    reason: 'Per collegarlo serve l’accesso con l’account del produttore, che qui non è possibile.',
+    reason: 'Per collegarlo serve l’accesso con l’account Home Connect, che qui non è possibile.',
+  },
+  {
+    flowId: 'flow-demo-chromecast',
+    appearsAfterMs: 2000,
+    source: 'zeroconf',
+    device: {
+      handler: 'cast',
+      family: 'tv',
+      name: 'Chromecast studio',
+      manufacturer: 'Google Inc.',
+      model: 'Chromecast',
+    },
+    addable: true,
+    hidden: true,
   },
 ];
 
-const DEMO_TV: TvInReteDto & { demo: DemoDevice } = {
-  id: 'tv-demo-samsung',
-  brandKey: 'samsung',
-  brand: 'Samsung',
-  name: 'Samsung Frame 55"',
-  model: 'QE55LS03',
-  handler: 'samsungtv',
-  conferma: 'consenti',
-  collegabile: true,
-  demo: {
-    handler: 'samsungtv',
-    family: 'tv',
-    name: 'Samsung Frame 55"',
-    manufacturer: 'Samsung',
-    model: 'QE55LS03',
+/**
+ * Televisions seen on the network: the one that asks to be accepted, the one that shows a code.
+ * The screen reads this list when it opens and then every 30 seconds (`useTvsOnNetwork`), so
+ * they are there from the first read, like the SSDP cache of Home Assistant.
+ */
+const DEMO_TVS: (TvInReteDto & { appearsAfterMs: number; demo: DemoDevice })[] = [
+  {
+    id: 'tv-demo-lg',
+    appearsAfterMs: 0,
+    brandKey: 'lg',
+    brand: 'LG',
+    name: 'LG webOS TV NANO81T6A',
+    model: 'NANO81T6A',
+    handler: 'webostv',
+    conferma: 'consenti',
+    collegabile: true,
+    demo: {
+      handler: 'webostv',
+      family: 'tv',
+      name: 'LG webOS TV NANO81T6A',
+      manufacturer: 'LG Electronics',
+      model: 'NANO81T6A',
+    },
   },
-};
+  {
+    id: 'tv-demo-samsung',
+    appearsAfterMs: 0,
+    brandKey: 'samsung',
+    brand: 'Samsung',
+    name: 'Samsung Frame 55"',
+    model: 'QE55LS03',
+    handler: 'samsungtv',
+    conferma: 'pin',
+    collegabile: true,
+    demo: {
+      handler: 'samsungtv',
+      family: 'tv',
+      name: 'Samsung Frame 55"',
+      manufacturer: 'Samsung Electronics',
+      model: 'QE55LS03',
+    },
+  },
+];
 
 const CATALOG: CatalogEntryDto[] = [
   ['hue', 'Philips Hue', 'Signify'],
@@ -195,6 +245,10 @@ function entitiesOf(device: DemoDevice, name: string, base: string): HassEntity[
           entity_picture: `/api/camera_proxy/camera.${base}`,
           access_token: 'mockup',
         }),
+        makeEntity(`binary_sensor.${base}_movimento`, 'off', {
+          friendly_name: `${name} movimento`,
+          device_class: 'motion',
+        }),
       ];
     case 'tv': {
       const player = makeEntity(`media_player.${base}`, 'off', {
@@ -205,6 +259,7 @@ function entitiesOf(device: DemoDevice, name: string, base: string): HassEntity[
         is_volume_muted: false,
         source_list: ['HDMI 1', 'HDMI 2', 'Netflix', 'YouTube'],
       });
+      // The Samsung integration brings a remote; the webOS one does not.
       return device.handler === 'samsungtv'
         ? [player, makeEntity(`remote.${base}`, 'on', { friendly_name: `${name} telecomando` })]
         : [player];
@@ -222,11 +277,25 @@ const primaryDomain = (device: DemoDevice): string =>
       ? device.family
       : 'switch';
 
+/** The steps a flow goes through; the integration decides where it starts. */
+type StepKind = 'pin' | 'consent' | 'progress' | 'link' | 'login' | 'host' | 'confirm';
+
+/** Where the flow of an integration starts when Home Assistant did not already know the address. */
+const FIRST_STEP: Record<string, StepKind> = {
+  samsungtv: 'pin',
+  webostv: 'consent',
+  hue: 'link',
+  reolink: 'login',
+};
+
 interface FlowState {
   flowId: string;
   device: DemoDevice;
   /** The discovery or the TV this flow took over, removed from the lists when it ends. */
   origin: { kind: 'discovered' | 'tv' | 'catalog'; id: string };
+  step: StepKind;
+  /** When the progress step began (ms of the facade's clock). */
+  progressSince: number | null;
 }
 
 export function createMockDeviceFacade(
@@ -234,10 +303,12 @@ export function createMockDeviceFacade(
   options: MockDeviceFacadeOptions = {}
 ): MockDeviceFacade {
   const now = options.now ?? Date.now;
+  const delays: FlowDelays = { ...DEFAULT_DELAYS, ...options.delays };
   let startedAt: number | null = null;
-  const ignored = new Set<string>();
+  const hiddenAtStart = DISCOVERED.filter((item) => item.hidden).map((item) => item.flowId);
+  const ignored = new Set<string>(hiddenAtStart);
   const taken = new Set<string>();
-  let tvTaken = false;
+  const tvsTaken = new Set<string>();
   const flows = new Map<string, FlowState>();
   const entries = new Map<string, EntryDto>();
   let counter = 0;
@@ -246,40 +317,144 @@ export function createMockDeviceFacade(
     Promise.resolve({ status, body });
   const fail = (status: number, code: string, error: string): Promise<MockResponse> =>
     reply({ error, code }, status);
+  const pause = (ms: number): Promise<void> =>
+    ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
 
-  const discoveredNow = (): DiscoveredDeviceDto[] => {
+  /** Milliseconds since the first look at the network: the clock of the discoveries. */
+  const elapsed = (): number => {
     startedAt ??= now();
-    const elapsed = now() - startedAt;
-    return DISCOVERED.filter(
-      (item) =>
-        item.appearsAfterMs <= elapsed && !ignored.has(item.flowId) && !taken.has(item.flowId)
-    ).map((item) => ({
-      flowId: item.flowId,
-      handler: item.device.handler,
-      source: item.source,
-      name: item.device.name,
-      model: item.device.model,
-      family: item.device.family,
-      addable: item.addable,
-      ...(item.reason ? { reason: item.reason } : {}),
-    }));
+    return now() - startedAt;
   };
 
-  const confirmStep = (state: FlowState): FlowFormDto => ({
-    type: 'form',
-    flowId: state.flowId,
-    handler: state.device.handler,
-    stepId: 'confirm',
-    title: `Collega ${state.device.name}`,
-    description: 'Conferma per collegare il dispositivo a Acasystem.',
-    waitSeconds: null,
-    fields: [],
-    errors: [],
-  });
+  const discoveredNow = (): DiscoveredDeviceDto[] => {
+    const time = elapsed();
+    return DISCOVERED.filter(
+      (item) => item.appearsAfterMs <= time && !ignored.has(item.flowId) && !taken.has(item.flowId)
+    )
+      .sort((a, b) => a.appearsAfterMs - b.appearsAfterMs)
+      .map((item) => ({
+        flowId: item.flowId,
+        handler: item.device.handler,
+        source: item.source,
+        name: item.device.name,
+        model: item.device.model,
+        family: item.device.family,
+        addable: item.addable,
+        ...(item.reason ? { reason: item.reason } : {}),
+      }));
+  };
 
-  const openFlow = (device: DemoDevice, origin: FlowState['origin'], flowId?: string) => {
+  const tvsNow = (): TvInReteDto[] => {
+    const time = elapsed();
+    return DEMO_TVS.filter((tv) => tv.appearsAfterMs <= time && !tvsTaken.has(tv.id)).map(
+      ({ appearsAfterMs: _after, demo: _demo, ...dto }) => dto
+    );
+  };
+
+  const field = (
+    name: string,
+    kind: FlowFieldDto['kind'],
+    label: string,
+    extra: Partial<FlowFieldDto> = {}
+  ): FlowFieldDto => ({ name, kind, required: true, label, ...extra });
+
+  /** The step the flow is at, in the shape the real server sends it. */
+  const stepOf = (state: FlowState, errors: FlowErrorDto[] = []): FlowResponseDto => {
+    const { flowId, device } = state;
+    const base = { flowId, handler: device.handler };
+    const form = (
+      stepId: string,
+      title: string,
+      description: string | null,
+      fields: FlowFieldDto[],
+      waitSeconds: number | null = null
+    ): FlowFormDto => ({
+      type: 'form',
+      ...base,
+      stepId,
+      title,
+      description,
+      waitSeconds,
+      fields,
+      errors,
+    });
+    switch (state.step) {
+      case 'pin':
+        return form(
+          'encrypted_pairing',
+          `Collega ${device.name}`,
+          'Sulla TV compare un codice di 4 cifre: scrivilo qui. In demo va bene qualsiasi codice, tranne 0000.',
+          [field('pin', 'text', 'Codice sulla TV')]
+        );
+      case 'consent':
+        return form(
+          'pair',
+          `Collega ${device.name}`,
+          'Sulla TV compare una richiesta: accettala con il telecomando.',
+          [],
+          10
+        );
+      case 'progress':
+        return {
+          type: 'progress',
+          ...base,
+          stepId: 'connecting',
+          title: `Collega ${device.name}`,
+          description: 'Sto collegando la TV e leggo le sue impostazioni…',
+          progressAction: null,
+        };
+      case 'link':
+        return form(
+          'link',
+          'Collega il bridge Hue',
+          'Premi il pulsante rotondo sul bridge Hue, poi tocca Conferma.',
+          []
+        );
+      case 'login':
+        return form(
+          'user',
+          `Collega ${device.name}`,
+          'Scrivi la password che hai scelto per la videocamera.',
+          [
+            field('username', 'text', 'Utente', { default: 'admin' }),
+            field('password', 'password', 'Password', { hint: 'La stessa dell’app Reolink.' }),
+          ]
+        );
+      case 'host':
+        return form(
+          'user',
+          `Collega ${device.name}`,
+          'Scrivi l’indirizzo del dispositivo sulla rete di casa.',
+          [
+            field('host', 'text', 'Indirizzo del dispositivo', {
+              hint: 'Per esempio 192.168.1.40',
+            }),
+          ]
+        );
+      default:
+        return form(
+          'confirm',
+          `Collega ${device.name}`,
+          'Conferma per collegare il dispositivo a Acasystem.',
+          []
+        );
+    }
+  };
+
+  const openFlow = (
+    device: DemoDevice,
+    origin: FlowState['origin'],
+    step: StepKind,
+    flowId?: string
+  ) => {
     counter += 1;
-    const state: FlowState = { flowId: flowId ?? `flow-demo-${counter}`, device, origin };
+    const state: FlowState = {
+      flowId: flowId ?? `flow-demo-${counter}`,
+      device,
+      origin,
+      step,
+      progressSince: null,
+    };
     flows.set(state.flowId, state);
     return state;
   };
@@ -300,7 +475,23 @@ export function createMockDeviceFacade(
       model: device.model,
       platform: device.handler,
       entityIds: entities.map((entity) => entity.entity_id),
+      serial: `demo-${counter}`,
     };
+    // A Hue bridge brings its lights; the bridge itself is a device without entities.
+    if (device.handler === 'hue') {
+      store.addDevice({
+        spec: {
+          id: `dev_added_bridge_${counter}`,
+          name: 'Philips Hue Bridge',
+          manufacturer: 'Signify Netherlands B.V.',
+          model: 'BSB002',
+          platform: 'hue',
+          entityIds: [],
+          serial: `bridge-${counter}`,
+        },
+        entities: [],
+      });
+    }
     store.addDevice({ spec, entities });
     const entryId = `entry_added_${counter}`;
     const player = entities.find((entity) => entity.entity_id.startsWith('media_player.'));
@@ -326,7 +517,7 @@ export function createMockDeviceFacade(
     entries.set(entryId, entry);
     flows.delete(state.flowId);
     if (state.origin.kind === 'discovered') taken.add(state.origin.id);
-    if (state.origin.kind === 'tv') tvTaken = true;
+    if (state.origin.kind === 'tv') tvsTaken.add(state.origin.id);
     return {
       type: 'create_entry',
       handler: device.handler,
@@ -338,6 +529,65 @@ export function createMockDeviceFacade(
     };
   };
 
+  /** The person answered the current step: the next one, an error on the same one, or the end. */
+  const answer = async (
+    state: FlowState,
+    input: Record<string, unknown>
+  ): Promise<MockResponse> => {
+    const refuse = (field: string, code: string, message: string) =>
+      reply(stepOf(state, [{ field, code, message }]));
+    switch (state.step) {
+      case 'pin': {
+        const pin = String(input.pin ?? '').trim();
+        if (!/^\d{4}$/.test(pin) || pin === '0000') {
+          return refuse('pin', 'invalid_auth', 'Il codice non è giusto. Guarda la TV e riprova.');
+        }
+        await pause(delays.checkMs);
+        return reply(finish(state));
+      }
+      case 'consent': {
+        // The call stays open while the person accepts on the TV, then the TV is set up.
+        await pause(delays.consentMs);
+        if (delays.progressMs <= 0) return reply(finish(state));
+        state.step = 'progress';
+        state.progressSince = now();
+        return reply(stepOf(state));
+      }
+      case 'link':
+        await pause(delays.checkMs);
+        return reply(finish(state));
+      case 'login': {
+        if (!String(input.password ?? '').trim()) {
+          return refuse('password', 'invalid_auth', 'Scrivi la password della videocamera.');
+        }
+        await pause(delays.checkMs);
+        return reply(finish(state));
+      }
+      case 'host': {
+        const host = String(input.host ?? '').trim();
+        if (!/^[\w.-]+$/.test(host)) {
+          return refuse('host', 'cannot_connect', 'Non riesco a raggiungere questo indirizzo.');
+        }
+        await pause(delays.checkMs);
+        return reply(finish(state));
+      }
+      default:
+        return reply(finish(state));
+    }
+  };
+
+  /** A read of the flow: a progress step ends by itself once its wait is over. */
+  const read = (state: FlowState): FlowResponseDto => {
+    if (
+      state.step === 'progress' &&
+      state.progressSince !== null &&
+      now() - state.progressSince >= delays.progressMs
+    ) {
+      return finish(state);
+    }
+    return stepOf(state);
+  };
+
   const readBody = (request: MockRequest): Record<string, unknown> => {
     try {
       const parsed: unknown = request.body ? JSON.parse(request.body) : {};
@@ -347,6 +597,25 @@ export function createMockDeviceFacade(
     } catch {
       return {};
     }
+  };
+
+  /** A new device of the catalogue, whose address nobody knows yet. */
+  const catalogDevice = (handler: string): DemoDevice => {
+    const entry = CATALOG.find((item) => item.domain === handler);
+    return {
+      handler,
+      family:
+        handler === 'hue'
+          ? 'light'
+          : handler === 'reolink'
+            ? 'camera'
+            : handler === 'webostv' || handler === 'samsungtv'
+              ? 'tv'
+              : 'plug',
+      name: entry?.name ?? 'Dispositivo dimostrativo',
+      manufacturer: entry?.brand ?? 'Dimostrazione',
+      model: 'Modello dimostrativo',
+    };
   };
 
   const handle = (request: MockRequest): Promise<MockResponse> => {
@@ -406,21 +675,27 @@ export function createMockDeviceFacade(
       if (found && second === 'aggiungi' && post) {
         if (!found.addable)
           return fail(409, 'NOT_ADDABLE', found.reason ?? 'Non si può aggiungere.');
+        // Home Assistant knows the address of what it found: the first step is the one that
+        // needs the person (the button, the password), or a plain confirmation.
         const existing = flows.get(found.flowId);
         const state =
           existing ??
-          openFlow(found.device, { kind: 'discovered', id: found.flowId }, found.flowId);
-        return reply(confirmStep(state));
+          openFlow(
+            found.device,
+            { kind: 'discovered', id: found.flowId },
+            FIRST_STEP[found.device.handler] ?? 'confirm',
+            found.flowId
+          );
+        return reply(stepOf(state));
       }
     }
 
     if (area === 'tv-in-rete') {
-      if (first === undefined && get) {
-        const { demo: _demo, ...dto } = DEMO_TV;
-        return reply({ tvs: tvTaken ? [] : [dto] });
-      }
-      if (first === DEMO_TV.id && second === 'collega' && post) {
-        return reply(confirmStep(openFlow(DEMO_TV.demo, { kind: 'tv', id: DEMO_TV.id })));
+      if (first === undefined && get) return reply({ tvs: tvsNow() });
+      const tv = DEMO_TVS.find((item) => item.id === first);
+      if (tv && second === 'collega' && post) {
+        const step = FIRST_STEP[tv.demo.handler] ?? 'confirm';
+        return reply(stepOf(openFlow(tv.demo, { kind: 'tv', id: tv.id }, step)));
       }
     }
 
@@ -428,27 +703,25 @@ export function createMockDeviceFacade(
       if (first === undefined && get) return reply({ flows: [] });
       if (first === undefined && post) {
         const handler = String(readBody(request).handler ?? 'demo');
-        const entry = CATALOG.find((item) => item.domain === handler);
-        const device: DemoDevice = {
-          handler,
-          family:
-            handler === 'hue'
-              ? 'light'
-              : handler === 'reolink'
-                ? 'camera'
-                : handler === 'webostv' || handler === 'samsungtv'
-                  ? 'tv'
-                  : 'plug',
-          name: entry?.name ?? 'Dispositivo dimostrativo',
-          manufacturer: entry?.brand ?? 'Dimostrazione',
-          model: 'Modello dimostrativo',
-        };
-        return reply(confirmStep(openFlow(device, { kind: 'catalog', id: handler })));
+        // A brand picked from the catalogue: the integration asks what it needs, an address
+        // when it has nothing else to ask.
+        const step = FIRST_STEP[handler] ?? 'host';
+        return reply(
+          stepOf(openFlow(catalogDevice(handler), { kind: 'catalog', id: handler }, step))
+        );
       }
       const state = first ? flows.get(first) : undefined;
       if (first && !state) return fail(404, 'FLOW_NOT_FOUND', 'Questa procedura non esiste più.');
-      if (state && get) return reply(confirmStep(state));
-      if (state && post) return reply(finish(state));
+      if (state && get) return reply(read(state));
+      if (state && post) {
+        const input = readBody(request).input;
+        return answer(
+          state,
+          typeof input === 'object' && input !== null && !Array.isArray(input)
+            ? (input as Record<string, unknown>)
+            : {}
+        );
+      }
       if (state && method === 'DELETE') {
         flows.delete(state.flowId);
         return reply({});
@@ -509,8 +782,9 @@ export function createMockDeviceFacade(
     reset() {
       startedAt = null;
       ignored.clear();
+      for (const flowId of hiddenAtStart) ignored.add(flowId);
       taken.clear();
-      tvTaken = false;
+      tvsTaken.clear();
       flows.clear();
     },
   };

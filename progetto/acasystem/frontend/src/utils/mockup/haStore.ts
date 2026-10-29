@@ -7,15 +7,14 @@
 import type { HassEntity } from 'home-assistant-js-websocket';
 import type { EntityMap, HaDeviceRegistryEntry, HaEntityRegistryEntry } from '@/@types/ha';
 import {
-  MOCK_AREAS,
-  MOCK_DEVICES,
   MOCK_TRACKS,
   buildRegistries,
-  createMockEntities,
   deviceRegistryEntry,
   entityRegistryEntry,
   mediaPicturePath,
+  mockHouse,
   type MockDeviceSpec,
+  type MockScenario,
 } from './mockData';
 
 type Attributes = Record<string, unknown>;
@@ -43,6 +42,8 @@ export interface MockHaStoreOptions {
    * 0 docks them at once.
    */
   settleMs?: number;
+  /** The state of the house (the demo bar's «Scenario»); the normal house when omitted. */
+  scenario?: MockScenario;
 }
 
 export interface AddedDevice {
@@ -381,12 +382,13 @@ function patchFor(entity: HassEntity, domain: string, service: string, data: Dat
 export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore {
   const now = options.now ?? Date.now;
   const settleMs = options.settleMs ?? 4000;
-  let entities: EntityMap = createMockEntities();
+  const house = mockHouse(options.scenario ?? 'normal');
+  let entities: EntityMap = house.entities;
   const listeners = new Set<() => void>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
-  const devices: MockDeviceSpec[] = MOCK_DEVICES.map((spec) => ({ ...spec }));
+  const devices: MockDeviceSpec[] = house.devices;
   const extraEntries: HaEntityRegistryEntry[] = [];
-  const areas = MOCK_AREAS.map((area) => ({ ...area }));
+  const areas = house.areas;
   let todo: TodoItem[] = [
     { uid: 'mockup-1', summary: 'Latte e pane', status: 'needs_action' },
     { uid: 'mockup-2', summary: 'Chiamare l’idraulico', status: 'needs_action', due: '2026-10-30' },
@@ -571,7 +573,7 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
   };
 
   // The count of the list is the one the entity shows from the start.
-  syncTodo('todo.fixture');
+  syncTodo('todo.lista_spesa');
 
   return {
     getEntities: () => entities,

@@ -170,7 +170,7 @@ export function createMockConnection(
     haVersion: '2026.9.4',
     sendMessagePromise: (message: HaMessage) => respond(store, message as Message, now),
     /**
-     * Subscriptions: `subscribe_entities` pushes the compressed changes of the store like Home
+     * Subscriptions: `subscribe_entities` pushes the changes of the store like Home
      * Assistant does; any other subscription is accepted and stays silent.
      */
     subscribeMessage: (callback: (event: unknown) => void, message: HaMessage) => {
@@ -201,7 +201,8 @@ export function createMockConnection(
         previous = current;
         if (Object.keys(changed).length === 0 && removed.length === 0) return;
         callback({
-          ...(Object.keys(changed).length > 0 ? { c: compress(changed) } : {}),
+          // `a` replaces the entity: the `c` of Home Assistant is a diff (`+`/`-`), not a state.
+          ...(Object.keys(changed).length > 0 ? { a: compress(changed) } : {}),
           ...(removed.length > 0 ? { r: removed } : {}),
         });
       });
