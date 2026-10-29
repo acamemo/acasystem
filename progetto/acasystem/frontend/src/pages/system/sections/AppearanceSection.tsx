@@ -119,6 +119,7 @@ export function AppearanceSection({
           ref={photoInput}
           type="file"
           accept="image/*"
+          aria-label="Scegli una foto per lo sfondo"
           className="sr-only"
           tabIndex={-1}
           aria-hidden="true"
@@ -158,7 +159,7 @@ export function AppearanceSection({
         })}
       </div>
       <Body size="sm" tone="muted">
-        «Dallo sfondo» prende il colore dominante dello sfondo, come Material You. La scelta vale
+        «Dallo sfondo» prende il colore dominante dello sfondo. La scelta vale
         per questo dispositivo e resta salvata in questo browser.
       </Body>
     </div>

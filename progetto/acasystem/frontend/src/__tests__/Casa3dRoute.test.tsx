@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { casaOpenState, readCasaState } from '@/casa3d/casaNav';
 import { AppRoutes, ROUTES } from '@/routes/AppRoutes';
 
@@ -91,6 +91,18 @@ function routesAt(path: string | { pathname: string; state?: unknown }, showConn
     </MemoryRouter>
   );
 }
+
+// Sistema is a lazy chunk (REP-20261029-001, step 9): the first render waits for it, the others
+// find it loaded. Warmed up here so the tests below stay synchronous.
+beforeAll(async () => {
+  const { unmount } = render(
+    <MemoryRouter initialEntries={['/sistema']}>
+      <AppRoutes showConnect={false} onConnected={() => undefined} />
+    </MemoryRouter>
+  );
+  await screen.findByText('Pagina Sistema');
+  unmount();
+});
 
 describe('Casa 3D development route', () => {
   afterEach(() => {

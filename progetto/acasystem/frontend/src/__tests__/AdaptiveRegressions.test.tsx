@@ -114,7 +114,7 @@ describe('Audit indipendente del 2026-10-15 — comportamento atteso', () => {
         />
       </WidgetRuntimeProvider>
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Serratura' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Serratura: audit' }));
     expect(callService).not.toHaveBeenCalled();
   });
 

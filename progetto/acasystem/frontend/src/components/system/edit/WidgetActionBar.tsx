@@ -21,6 +21,10 @@ export interface WidgetActionBarProps {
   onDone: () => void;
   onUndo: () => void;
   onRemove: () => void;
+  /** «Aggiungi»: the sheet of the widget types, for the page in the centre. */
+  onAddWidget: () => void;
+  /** «Pagine»: the pages view (order, names, new page). */
+  onPages: () => void;
   /** The trash as the drop target of a moved widget. */
   drop?: WidgetBarDrop;
   /** The group of the bar: its box is the drop target of the trash. */
@@ -37,7 +41,8 @@ export interface WidgetActionBarProps {
  * remove (at once, then «Annulla»), «Annulla» (back to how the widget was when selected) and
  * «Fine» (keeps the size and position chosen and leaves edit mode: one tap instead of «Conferma»
  * then «Fine», REP-20261013-001). While the widget is moved only the trash
- * stays, as the place to drop it to remove it. The settings open with a double tap on the
+ * stays, as the place to drop it to remove it. «Aggiungi» and «Pagine» sit between the trash and
+ * the pair «Annulla» / «Fine»; on a phone the bar takes two rows (edit.css). The settings open with a double tap on the
  * widget, or Invio from the keyboard. The bar keeps its width in both states (REP-20261023-006,
  * D-M14): «Annulla» and «Fine» fade out in their place, where they are, and the «Rimuovi» pill
  * lies over the group, so nothing changes width at the switch.
@@ -49,6 +54,8 @@ export function WidgetActionBar({
   onDone,
   onUndo,
   onRemove,
+  onAddWidget,
+  onPages,
   drop = 'none',
   groupRef,
   onTabBack,
@@ -102,17 +109,50 @@ export function WidgetActionBar({
             </Body>
           )}
         </button>
+        {/* Where the widget goes and how the pages are laid out, with their words: edit mode
+            needs no long press to be understood (REP-20261029-001, step 5). */}
+        <div
+          className="aca-widget-actions__rest aca-widget-actions__pages"
+          aria-hidden={dropping || undefined}
+          inert={restOut || undefined}
+        >
+          <Button
+            variant="control"
+            size="md"
+            className="aca-frame-pill"
+            contentClassName="aca-widget-actions__done"
+            data-widget-action="add"
+            onClick={onAddWidget}
+          >
+            <Icon name="add" size="md" />
+            Aggiungi
+          </Button>
+          <Button
+            variant="control"
+            size="md"
+            className="aca-frame-pill"
+            contentClassName="aca-widget-actions__done"
+            data-widget-action="pages"
+            onClick={onPages}
+          >
+            <Icon name="grid" size="md" />
+            Pagine
+          </Button>
+        </div>
         <div
           className="aca-widget-actions__rest"
           aria-hidden={dropping || undefined}
           inert={restOut || undefined}
         >
           <span className="aca-widget-actions__divider" aria-hidden="true" />
+          {/* A raised pill while there is something to put back, a plainly disabled one when not:
+              the flat «quiet» look read as disabled next to «Fine». */}
           <Button
-            variant="secondary"
+            variant="control"
             size="md"
-            className="aca-frame-pill"
+            className="aca-frame-pill aca-widget-actions__undo"
             disabled={!changed}
+            title={changed ? undefined : 'Niente da annullare'}
             onClick={onUndo}
           >
             Annulla

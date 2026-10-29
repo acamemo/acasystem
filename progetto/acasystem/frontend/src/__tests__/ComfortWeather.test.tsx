@@ -146,7 +146,7 @@ describe('Widget meteo: rendering per taglia e stati', () => {
     ).toBeInTheDocument();
     update({ id: ID, settings, runtime: { entities: {} } });
     expect(
-      screen.getByText('La fonte meteo non è più presente in Home Assistant.')
+      screen.getByText('La fonte meteo non è più disponibile.')
     ).toBeInTheDocument();
     update({ id: ID, settings, runtime: { entities: fixtureEntities([weather('unavailable')]) } });
     expect(screen.getByText('Non disponibile')).toBeInTheDocument();

@@ -86,7 +86,7 @@ export function LocationSection({ home, canEdit, onSave }: LocationSectionProps)
     } catch {
       setStatus({
         kind: 'error',
-        text: 'Home Assistant non ha salvato la posizione. Riprova; serve un utente amministratore.',
+        text: 'Non sono riuscito a salvare la posizione. Riprova; serve un utente amministratore.',
       });
     }
   };
@@ -146,7 +146,7 @@ export function LocationSection({ home, canEdit, onSave }: LocationSectionProps)
         </div>
       ) : (
         <Body size="sm" tone="muted">
-          Solo un amministratore di Home Assistant può cambiare la posizione.
+          Solo un amministratore può cambiare la posizione.
         </Body>
       )}
       <Body as="p" size="sm" tone={status.kind === 'error' ? 'danger' : 'muted'} role="status">

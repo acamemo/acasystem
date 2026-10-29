@@ -157,7 +157,7 @@ export function AdaptiveSettingsSection({
         <Body size="sm" tone="muted">
           Scegli visibilità e ordine. I dettagli conservano tutte le funzioni supportate.
         </Body>
-        {!services && type !== 'spacer' && <Caption>Attendo i servizi di Home Assistant.</Caption>}
+        {!services && type !== 'spacer' && <Caption>Attendo i comandi disponibili.</Caption>}
         {preference.order.map((id, index) => {
           const cap = profile.capabilities.find((candidate) => candidate.id === id)!;
           const move = (direction: -1 | 1) => {
@@ -229,7 +229,7 @@ export function AdaptiveSettingsSection({
                 setting="cameraCaptureDirectory"
                 settings={settings}
                 save={save}
-                hint="Percorso assoluto già autorizzato in Home Assistant. Non usare cartelle pubbliche www."
+                hint="Percorso assoluto già autorizzata sul server. Non usare cartelle pubbliche www."
               />
               <SavedText
                 label="Durata registrazione in secondi"

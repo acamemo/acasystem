@@ -2,13 +2,16 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Body, Button, Caption, Field, Icon, Skeleton } from '@/components/primitives';
 import type { EntityMap } from '@/@types/ha';
 import { useDomId } from './hooks';
+import { useEntityRooms } from './useEntityRooms';
 import '../sheets.css';
 
-/** Friendly name of an entity, or its id when HA has none. */
+/** Friendly name of an entity; without one, the readable part of its id («lampada comodino»). */
 export function entityName(entities: EntityMap, id: string | null | undefined): string {
   if (!id) return '';
   const name: unknown = entities[id]?.attributes?.friendly_name;
-  return typeof name === 'string' && name.trim() ? name : id;
+  if (typeof name === 'string' && name.trim()) return name;
+  const readable = (id.split('.')[1] ?? id).replace(/_+/g, ' ').trim();
+  return readable ? readable.charAt(0).toUpperCase() + readable.slice(1) : id;
 }
 
 /** Ids sorted by friendly name, as the legacy pickers did. */
@@ -18,7 +21,7 @@ export function sortByName(entities: EntityMap, ids: readonly string[]): string[
   );
 }
 
-/** Case-insensitive match on the id or the friendly name. */
+/** Case-insensitive match on the friendly name, and silently on the id. */
 export function matchesQuery(entities: EntityMap, id: string, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
@@ -116,6 +119,7 @@ export function EntityPicker({
   const labelId = useDomId('elenco');
   const [ownQuery, setOwnQuery] = useState('');
   const [limit, setLimit] = useState(PAGE_SIZE);
+  const rooms = useEntityRooms();
   const search = query ?? ownQuery;
   const sorted = useMemo(() => sortByName(entities, ids), [entities, ids]);
   const matching = useMemo(
@@ -128,7 +132,7 @@ export function EntityPicker({
 
   let body: ReactNode;
   if (loading) {
-    body = <Skeleton rows={3} label="Caricamento delle entità…" />;
+    body = <Skeleton rows={3} label="Caricamento dei dispositivi…" />;
   } else if (ids.length === 0 && !leading) {
     body = (
       <Caption as="p" className="aca-pick__empty">
@@ -144,7 +148,7 @@ export function EntityPicker({
             <li key={id}>
               <PickRow
                 title={entityName(entities, id)}
-                subtitle={id}
+                subtitle={rooms[id]}
                 selected={selectedSet.has(id)}
                 tags={tags?.(id)}
                 onClick={() => onToggle(id)}
@@ -190,7 +194,7 @@ export function EntityPicker({
           label={`Cerca in: ${label}`}
           icon="search"
           type="search"
-          placeholder="Cerca per nome o id"
+          placeholder="Cerca per nome"
           value={ownQuery}
           onChange={(event) => {
             setOwnQuery(event.target.value);
@@ -216,7 +220,7 @@ export function EntitySelect({
   onChange,
   allowNone = true,
   noneLabel = 'Nessuna',
-  emptyText = 'Nessuna entità adatta in Home Assistant.',
+  emptyText = 'Nessun dispositivo adatto.',
 }: {
   label: string;
   hint?: string;
@@ -229,6 +233,7 @@ export function EntitySelect({
   emptyText?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const rooms = useEntityRooms();
   const labelId = useDomId('selezione');
   const panelId = `${labelId}-elenco`;
   const current = value ? entityName(entities, value) : noneLabel;
@@ -256,8 +261,8 @@ export function EntitySelect({
           <Body as="span" size="sm" className="aca-pick-row__title">
             {current}
           </Body>
-          {value && value !== current && (
-            <Caption className="aca-pick-row__subtitle">{value}</Caption>
+          {value && rooms[value] && (
+            <Caption className="aca-pick-row__subtitle">{rooms[value]}</Caption>
           )}
         </span>
         <Caption>{open ? 'Chiudi' : 'Cambia'}</Caption>

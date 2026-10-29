@@ -54,7 +54,7 @@ describe('category pages', () => {
       screen.getByRole('button', { name: 'Dispositivo da collegare: Non collegato' })
     );
     expect(screen.queryByRole('button', { name: /Presa/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /Sala\s*light.sala/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Sala/ }));
     expect(save).toHaveBeenCalledWith('bindingEntityId', 'light.sala');
   });
   it('covers the full catalog once, with native definitions and without borrowed device mappings', () => {

@@ -222,6 +222,15 @@ describe('SystemPage', () => {
       expect(screen.getByRole('heading', { level: 2, name: title })).toBeInTheDocument();
       expect(within(nav).getByRole('button', { name: title })).toBeInTheDocument();
     }
+    // The index marks the section in view; before any scroll it is the first, and a click moves it.
+    const first = within(nav).getByRole('button', { name: 'Collegamento' });
+    expect(first).toHaveAttribute('aria-current', 'true');
+    fireEvent.click(within(nav).getByRole('button', { name: 'Profili' }));
+    expect(within(nav).getByRole('button', { name: 'Profili' })).toHaveAttribute(
+      'aria-current',
+      'true'
+    );
+    expect(first).not.toHaveAttribute('aria-current');
     // Aspetto (ADR-0011, REP-20261007-008) holds the Kit 2 theme and accent, and since
     // REP-20261007-038 the wallpaper the user asked for; the other legacy appearance
     // preferences stay gone (ADR-0007).
@@ -229,6 +238,11 @@ describe('SystemPage', () => {
     expect(screen.getByRole('group', { name: 'Colore dâ€™accento' })).toBeInTheDocument();
     const text = document.body.textContent ?? '';
     expect(screen.getByRole('group', { name: 'Sfondo' })).toBeInTheDocument();
+    // The hidden file input behind «Una foto…» has a name of its own.
+    expect(document.querySelector('.aca-system__wallpapers input[type="file"]')).toHaveAttribute(
+      'aria-label',
+      'Scegli una foto per lo sfondo'
+    );
     expect(text).not.toMatch(/\b(lingua|unitÃ  di misura|carattere|blocco)\b/i);
     expect(screen.queryByRole('heading', { name: 'Lingua' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Lingua' })).not.toBeInTheDocument();
@@ -321,13 +335,13 @@ describe('SystemPage', () => {
   it('sceglie la qualitÃ  della vista 3D di questo dispositivo (ADR-0014, T5)', () => {
     renderSystem();
     const group = screen.getByRole('group', { name: 'QualitÃ  della vista 3D' });
-    expect(within(group).getByRole('button', { name: 'Light' })).toHaveAttribute(
+    expect(within(group).getByRole('button', { name: 'Leggera' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
-    fireEvent.click(within(group).getByRole('button', { name: 'Medium' }));
+    fireEvent.click(within(group).getByRole('button', { name: 'Media' }));
     expect(localStorage.getItem('aca_casa3d_quality')).toBe('medium');
-    expect(within(group).getByRole('button', { name: 'Medium' })).toHaveAttribute(
+    expect(within(group).getByRole('button', { name: 'Media' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
@@ -514,7 +528,7 @@ describe('Profili', () => {
     mocks.meta = { ...mocks.meta, haUser: null, connected: false };
     renderSystem();
     expect(
-      screen.getByText('Collega Home Assistant con un utente per salvare e caricare i profili.')
+      screen.getByText('Accedi con un utente per salvare e caricare i profili.')
     ).toBeVisible();
     expect(mocks.fetchProfiles).not.toHaveBeenCalled();
   });

@@ -92,7 +92,7 @@ describe('Widget clima: rendering per taglia e stati', () => {
 
     update({ id: ID, settings, runtime: { entities: {} } });
     expect(
-      screen.getByText('Il termostato non è più presente in Home Assistant.')
+      screen.getByText('Il termostato non è più disponibile.')
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Clima' })).toBeInTheDocument();
     expect(screen.getByText('climate.soggiorno')).toBeInTheDocument();
@@ -382,7 +382,7 @@ describe('Dettagli clima: temperatura, modalità, preset, ventola e oscillazione
     await waitFor(() => expect(toggle).toHaveAttribute('aria-invalid', 'true'));
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     expect(
-      screen.getByText('Home Assistant non ha eseguito il comando. Riprova.')
+      screen.getByText('Il comando non è stato eseguito. Riprova.')
     ).toBeInTheDocument();
   });
 });

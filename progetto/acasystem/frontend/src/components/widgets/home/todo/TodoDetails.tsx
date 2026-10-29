@@ -72,7 +72,7 @@ export function TodoDetails({ settings }: WidgetDetailsProps) {
       {list.loading ? (
         <Skeleton rows={3} label="Caricamento delle attività…" />
       ) : list.loadError && total === 0 ? (
-        <CommandError>Non riesco a leggere la lista da Home Assistant.</CommandError>
+        <CommandError>Non riesco a leggere la lista.</CommandError>
       ) : total === 0 || pending.length === 0 ? (
         <div className="home-empty">
           <HomeIcon name="ok" size="lg" tone="muted" />

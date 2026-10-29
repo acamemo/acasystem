@@ -288,7 +288,7 @@ describe('launcher screen (shell)', () => {
 
   it('opens the settings sheet of a to-do list right after adding it', async () => {
     await openAddSheet();
-    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi attività' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Aggiungi attività' }));
 
     expect(
       await screen.findByText('Impostazioni di todo_card_1 (home::todo_card_1)')
@@ -490,6 +490,10 @@ describe('«Aggiungi widget» of the pages view (shell)', () => {
     await waitFor(() =>
       expect(spoken()).toHaveTextContent('aggiunto alla pagina Luci, perché questa è piena.')
     );
+    // Said on screen too (REP-20261029-001, step 5), and with no «Vai lì»: the view is there.
+    const pill = document.querySelector('.aca-undo__pill');
+    expect(pill).toHaveTextContent(/^Pagina piena: ho messo «.+» in «Luci»\.$/);
+    expect(within(pill as HTMLElement).queryByRole('button')).toBeNull();
   });
 
   it('with no room on any page after it a new page is made at the end, and the view goes to it', async () => {
@@ -507,6 +511,9 @@ describe('«Aggiungi widget» of the pages view (shell)', () => {
     expect(latest?.currentPageId).toBe(created.id);
     await waitFor(() =>
       expect(spoken()).toHaveTextContent('a una nuova pagina in fondo, perché le altre sono piene')
+    );
+    expect(document.querySelector('.aca-undo__pill')).toHaveTextContent(
+      /^Pagine piene: ho messo «.+» in una nuova pagina in fondo\.$/
     );
   });
 

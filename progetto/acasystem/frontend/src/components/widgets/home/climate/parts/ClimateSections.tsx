@@ -75,7 +75,7 @@ export function ClimateHeadSection({
       </div>
       {power.error && (
         <CommandError id={powerErrorId}>
-          Home Assistant non ha eseguito il comando. Riprova.
+          Il comando non è stato eseguito. Riprova.
         </CommandError>
       )}
     </>

@@ -259,11 +259,11 @@ describe('pagina stanze', () => {
       }
     );
     expect(
-      screen.getByText('Le stanze arrivano da Home Assistant: il collegamento non è attivo.')
+      screen.getByText('Non c’è collegamento con la casa: le stanze non si possono leggere.')
     ).toBeInTheDocument();
     view.update({ conn: fakeConnection({}).conn });
     expect(
-      await screen.findByText('Impossibile leggere le stanze da Home Assistant. Riprova più tardi.')
+      await screen.findByText('Impossibile leggere le stanze. Riprova più tardi.')
     ).toBeInTheDocument();
     view.update({
       conn: fakeConnection({
@@ -272,6 +272,6 @@ describe('pagina stanze', () => {
         'config/device_registry/list': () => [],
       }).conn,
     });
-    expect(await screen.findByText('Nessuna stanza in Home Assistant.')).toBeInTheDocument();
+    expect(await screen.findByText('Nessuna stanza trovata.')).toBeInTheDocument();
   });
 });

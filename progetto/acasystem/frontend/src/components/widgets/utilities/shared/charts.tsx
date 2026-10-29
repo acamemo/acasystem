@@ -1,4 +1,4 @@
-import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { Body, Caption } from '@/components/primitives';
 import '../utilities.css';
 import { classes } from '@/components/primitives/classes';
@@ -282,6 +282,9 @@ export function PriceExplorer({
 }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const [selected, setSelected] = useState<number | null>(null);
+  // The pointer that is scrubbing now (mouse, finger or pen): `event.buttons` is not reliable on
+  // touch, so the drag is tracked by id and held with pointer capture.
+  const scrubbing = useRef<number | null>(null);
   if (data.length === 0) return null;
   const active = selected ?? (currentIndex >= 0 ? currentIndex : 0);
   const point = data[Math.min(active, data.length - 1)];
@@ -309,6 +312,33 @@ export function PriceExplorer({
     if (box.width <= 0) return;
     move(Math.floor(((event.clientX - box.left) / box.width) * data.length));
   };
+  const startScrub = (event: PointerEvent<HTMLDivElement>) => {
+    scrubbing.current = event.pointerId;
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    } catch {
+      // The pointer is already gone: the scrub simply ends with its own events.
+    }
+    onPointer(event);
+  };
+  const endScrub = (event: PointerEvent<HTMLDivElement>) => {
+    if (scrubbing.current !== null && scrubbing.current !== event.pointerId) return;
+    scrubbing.current = null;
+    try {
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    } catch {
+      // Already released.
+    }
+  };
+  // A cancelled scrub (the browser took the gesture) leaves no half-chosen slot behind. A lifted
+  // finger (pointerup) keeps the slot it reached, so the value stays readable.
+  const cancelScrub = (event: PointerEvent<HTMLDivElement>) => {
+    if (scrubbing.current !== event.pointerId) return;
+    endScrub(event);
+    setSelected(null);
+  };
 
   return (
     <div className="utility-stack">
@@ -333,10 +363,16 @@ export function PriceExplorer({
           aria-valuetext={point ? describe(point, active) : undefined}
           aria-describedby={`prezzo-${id}`}
           onKeyDown={onKeyDown}
-          onPointerDown={onPointer}
+          onPointerDown={startScrub}
           onPointerMove={(event) => {
-            if (event.buttons > 0 || event.pointerType === 'mouse') onPointer(event);
+            // Mouse hover follows the pointer; touch and pen only while their own scrub lasts.
+            if (scrubbing.current === event.pointerId || event.pointerType === 'mouse') {
+              onPointer(event);
+            }
           }}
+          onPointerUp={endScrub}
+          onPointerCancel={cancelScrub}
+          onLostPointerCapture={endScrub}
         >
           <PriceBars
             data={data}

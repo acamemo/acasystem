@@ -1,6 +1,9 @@
 /* Sistema: full page with an index and one metal surface per section; --aca-* tokens only. */
 @layer components {
   .aca-system {
+    /* Index column + gap + content: the whole composition is centred, so both margins match. */
+    --aca-system-content: 48rem;
+    --aca-system-width: 72rem;
     box-sizing: border-box;
     min-height: 100dvh;
     padding: 1.5rem 1rem calc(2.5rem + env(safe-area-inset-bottom, 0px));
@@ -12,7 +15,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    max-width: 72rem;
+    max-width: var(--aca-system-width, 72rem);
     margin: 0 auto 1.75rem;
   }
   .aca-system__bar-text {
@@ -23,30 +26,51 @@
   }
   .aca-system__layout {
     display: grid;
+    /* minmax(0, ...): the sideways row of the index must not widen the column. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
-    max-width: 72rem;
+    max-width: var(--aca-system-width, 72rem);
     margin: 0 auto;
+  }
+  /* Phone: the index is one row that scrolls sideways and stays at the top while the page moves. */
+  .aca-system__nav {
+    position: sticky;
+    top: 0;
+    z-index: var(--aca-z-sticky);
+    margin-inline: -1rem;
+    background-color: var(--aca-page);
   }
   .aca-system__nav ul {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.625rem;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
     margin: 0;
-    padding: 0.25rem;
+    padding: 0.5rem 1rem 0.75rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    touch-action: pan-x;
     list-style: none;
+  }
+  .aca-system__nav ul::-webkit-scrollbar {
+    display: none;
+  }
+  .aca-system__nav li {
+    flex: none;
   }
   .aca-system__sections {
     display: flex;
     flex-direction: column;
-    gap: 2.25rem;
+    /* Twice what sits between a heading and its panel: a section starts after a clear break. */
+    gap: 3rem;
     min-width: 0;
-    max-width: 46rem;
+    max-width: var(--aca-system-content, 48rem);
   }
   .aca-system__section {
     display: flex;
     flex-direction: column;
     gap: 0.875rem;
-    scroll-margin-top: 1.5rem;
+    scroll-margin-top: 5rem;
   }
   .aca-system__section-head {
     display: flex;
@@ -140,7 +164,14 @@
   .aca-system__break {
     overflow-wrap: anywhere;
   }
+  /* The pills of the sections (theme, accent, wallpaper, quality) are real 44 px boxes. */
+  .aca-system button.aca-m:not(.aca-m--circle, .aca-m--hosted) {
+    min-block-size: 2.75rem;
+  }
   .aca-system__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
     color: var(--aca-blue-ink);
     text-decoration: underline;
     text-underline-offset: 0.15em;
@@ -156,19 +187,28 @@
     .aca-system {
       padding-inline: 2rem;
     }
+    .aca-system {
+      --aca-system-width: calc(13rem + 2.5rem + var(--aca-system-content));
+    }
     .aca-system__layout {
       grid-template-columns: 13rem minmax(0, 1fr);
       align-items: start;
       gap: 2.5rem;
     }
+    .aca-system__section {
+      scroll-margin-top: 1.5rem;
+    }
     .aca-system__nav {
-      position: sticky;
       top: 1.5rem;
-      z-index: var(--aca-z-sticky);
+      margin-inline: 0;
+      background-color: transparent;
     }
     .aca-system__nav ul {
       flex-direction: column;
       align-items: stretch;
+      padding: 0.25rem;
+      overflow: visible;
+      touch-action: auto;
     }
     .aca-system__nav .aca-m {
       width: 100%;
@@ -201,6 +241,13 @@
   border-radius: var(--k2-radius, 12px);
   background: var(--aca-page);
   box-shadow: var(--k2-inset, inset 0 1px 3px rgb(5 5 5 / 20%));
+}
+/* The zoom keys of the map are 44 px boxes, as every touch target (Leaflet draws them at 30). */
+.aca-location-map .leaflet-bar.leaflet-control-zoom a.leaflet-control-zoom-in,
+.aca-location-map .leaflet-bar.leaflet-control-zoom a.leaflet-control-zoom-out {
+  width: 2.75rem;
+  height: 2.75rem;
+  line-height: 2.75rem;
 }
 .aca-location-map--loading {
   opacity: 0.6;

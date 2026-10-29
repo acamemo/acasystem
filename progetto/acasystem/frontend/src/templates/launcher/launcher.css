@@ -1533,6 +1533,7 @@
   --aca-orange-ink: var(--aca-g-ink);
   --aca-blue-ink: var(--aca-g-ink);
   --aca-danger-ink: var(--aca-g-ink);
+  --k2-accent-text: var(--aca-g-ink);
   --aca-orange-glow: color-mix(in oklch, var(--aca-g-soft) 40%, transparent);
   --aca-blue-glow: color-mix(in oklch, var(--aca-g-soft) 40%, transparent);
   --aca-ink-selected: linear-gradient(var(--aca-g-ink), var(--aca-g-ink));

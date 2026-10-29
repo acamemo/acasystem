@@ -93,7 +93,7 @@ describe('«Collega» of the Android TV widget', () => {
 
   it('without a media player in Home Assistant says so and offers the row, with no sample', () => {
     section(fixtureEntities([fixtureEntity('light.sala', 'off', { friendly_name: 'Sala' })]));
-    expect(screen.getByText('Nessun televisore in Home Assistant.')).toBeInTheDocument();
+    expect(screen.getByText('Nessun televisore trovato.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: new RegExp(ADD_ROW) })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dispositivo da collegare/ })).toBeNull();
     expect(document.body.textContent).not.toMatch(/esempio/i);
@@ -103,14 +103,14 @@ describe('«Collega» of the Android TV widget', () => {
     section(fixtureEntities([otherTv()]));
     const list = screen.getByRole('button', { name: 'Dispositivo da collegare: Non collegato' });
     const row = screen.getByRole('button', { name: new RegExp(ADD_ROW) });
-    expect(screen.queryByText('Nessun televisore in Home Assistant.')).toBeNull();
+    expect(screen.queryByText('Nessun televisore trovato.')).toBeNull();
     expect(list.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('does not say the TV is missing while the devices are still loading', () => {
     section(fixtureEntities([]), vi.fn(), 'androidtv', false);
-    expect(screen.queryByText('Nessun televisore in Home Assistant.')).toBeNull();
-    expect(screen.getByText('Attendo i dispositivi di Home Assistant.')).toBeInTheDocument();
+    expect(screen.queryByText('Nessun televisore trovato.')).toBeNull();
+    expect(screen.getByText('Attendo i dispositivi della casa.')).toBeInTheDocument();
   });
 
   it('is offered to the Android TV and the Apple TV, not to the light, the player or the climate', () => {
@@ -264,7 +264,7 @@ describe('«Aggiungi un widget»', () => {
     expect(screen.queryByRole('button', { name: 'Aggiungi il widget' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Indietro' })).toBeNull();
     expect(
-      screen.getByText('Aggiungi il dispositivo a Home Assistant, poi collegalo al widget.')
+      screen.getByText('Aggiungi prima il dispositivo alla casa, poi collegalo al widget.')
     ).toBeInTheDocument();
   });
 

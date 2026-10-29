@@ -160,10 +160,10 @@ export function ProfilesSection({
 
       <div className="aca-system__group">
         <Body as="span" size="sm" className="aca-form-row__label">
-          Profili sul server
+          Profili salvati
         </Body>
         {!hasUser && (
-          <Notice>Collega Home Assistant con un utente per salvare e caricare i profili.</Notice>
+          <Notice>Accedi con un utente per salvare e caricare i profili.</Notice>
         )}
         {hasUser && !backendAvailable && (
           <Notice tone="danger">
@@ -184,7 +184,7 @@ export function ProfilesSection({
                 />
               )}
             </FormRow>
-            <FormRow label="Dispositivo, facoltativo">
+            <FormRow label="Per quale dispositivo (facoltativo)">
               {({ labelId }) => (
                 <Field
                   label="Dispositivo"
@@ -263,7 +263,7 @@ export function ProfilesSection({
                         />
                         <Field
                           label="Dispositivo"
-                          placeholder="Dispositivo, facoltativo"
+                          placeholder="Per quale dispositivo (facoltativo)"
                           value={renameDevice}
                           onChange={(event) => setRenameDevice(event.target.value)}
                         />

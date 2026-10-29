@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CardSettings } from '@/@types/dashboard';
 import {
   Body,
@@ -12,12 +12,15 @@ import {
 } from '@/components/primitives';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
+import { formatReading, unitSuffixBox } from '@/utils/formatting';
 import { pagerMoving } from '@/utils/launcher/pagerMoving';
 import { useRequestedState } from '../controls/shared/useRequestedState';
+import { entityName } from '../controls/shared/entity';
 import { callSafely } from '../controls/shared/service';
 import { useLockControl } from '../controls/lock/useLockControl';
 import { CONFIRM_HINT } from '../controls/lock/LockWidget';
 import { GestureControl } from './GestureControl';
+import { wantsTrendChart } from './chartPolicy';
 import { WidgetDesignChart } from './WidgetDesignChart';
 import {
   operationalProfile,
@@ -26,9 +29,11 @@ import {
   type OperationalProfile,
 } from './operationalProfile';
 import { useServiceCatalog } from './useServiceCatalog';
+import { AdaptiveNameContext, adaptiveStateWord, useControlLabel } from './adaptiveState';
 import { AlarmControl, AlarmControlGroup } from './AlarmControl';
 import { CameraPreview } from './CameraPreview';
 import { SpacerWidget } from '../utilities/spacer/SpacerWidget';
+import { roomName } from '../utilities/room/RoomWidget';
 import { TodoContent } from './TodoContent';
 import { useMediaResources } from './useMediaResources';
 import type { Capability, SampleValue, SampleValues } from './widgetDesignModel';
@@ -42,6 +47,10 @@ export function calculateWidgetTier(w: number, h: number): WidgetTier {
   if (area <= 12) return 'large';
   return 'page';
 }
+/** Height the name and state lines take above the controls, in px. */
+const HEADER_HEIGHT = 44;
+/** Height of the trend chart slot and the gap that goes with it, in px (adaptiveWidget.css). */
+const CHART_SLOT_HEIGHT = 96;
 const sameValue = (a: SampleValue, b: SampleValue) =>
   typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 0.01 : Object.is(a, b);
 
@@ -57,6 +66,7 @@ function LockControl({
   openDetails?: () => void;
 }) {
   const lock = useLockControl(entityId, disabled);
+  const label = useControlLabel(cap.label);
   const run = () => {
     const accepted = cap.id === 'open' ? lock.open() : lock.isLocked ? lock.unlock() : lock.lock();
     if (!accepted) openDetails?.();
@@ -68,7 +78,7 @@ function LockControl({
         shape="circle"
         size="lg"
         disabled={lock.actionDisabled}
-        aria-label={cap.label}
+        aria-label={label}
         aria-pressed={cap.id === 'locked' ? lock.isLocked : undefined}
         aria-busy={lock.command.pending || undefined}
         onClick={run}
@@ -83,6 +93,22 @@ function LockControl({
   );
 }
 
+/** Name of the device and its state in words: the first lines of every card above the smallest. */
+function WidgetName({ name, word }: { name: string; word: string | null }) {
+  return (
+    <div className="aca-adaptive-widget__header">
+      <Heading level={3} size="sm" className="aca-adaptive-widget__name">
+        {name}
+      </Heading>
+      {word && (
+        <Caption tone="muted" className="aca-adaptive-widget__state">
+          {word}
+        </Caption>
+      )}
+    </div>
+  );
+}
+
 function RequestedControl({
   cap,
   confirmed,
@@ -92,6 +118,8 @@ function RequestedControl({
   settingsKey,
   openDetails,
   type,
+  stateWord,
+  printedName,
 }: {
   cap: Capability;
   confirmed: SampleValue;
@@ -101,8 +129,13 @@ function RequestedControl({
   settingsKey: string;
   openDetails?: () => void;
   type: string;
+  /** The device's state in words, printed in place of the label on the smallest card. */
+  stateWord?: string | null;
+  /** The name the card prints on top: a reading labelled with the same words does not repeat it. */
+  printedName?: string | null;
 }) {
   const runtime = useWidgetRuntime();
+  const label = useControlLabel(cap.label);
   const request = useRequestedState<SampleValue>({ confirmed, matches: sameValue });
   const clearRequest = request.clear;
   const [preview, setPreview] = useState<SampleValue | undefined>();
@@ -196,17 +229,17 @@ function RequestedControl({
       <div className="uikw-reading" data-control-id={cap.id}>
         {typeof value === 'number' ? (
           <Display as="span" size="sm">
-            <Numeric>
-              {new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(value)}
-            </Numeric>
-            <span className="uikw-unit"> {cap.unit}</span>
+            <Numeric>{formatReading(value)}</Numeric>
+            <span className="uikw-unit">{unitSuffixBox(cap.unit)}</span>
           </Display>
         ) : (
           <Heading level={3} size="md">
-            {String(value ?? '—')}
+            {formatReading(value)}
           </Heading>
         )}
-        <Caption tone="muted">{cap.label}</Caption>
+        {cap.label.trim().toLowerCase() !== printedName?.trim().toLowerCase() && (
+          <Caption tone="muted">{cap.label}</Caption>
+        )}
       </div>
     );
   } else if (cap.kind === 'options') {
@@ -238,13 +271,17 @@ function RequestedControl({
           size="lg"
           disabled={disabled}
           state={cap.kind === 'toggle' && Boolean(value) && 'on'}
-          aria-label={cap.label}
+          aria-label={label}
           aria-pressed={cap.kind === 'toggle' ? Boolean(value) : undefined}
           onClick={() => commit(cap.kind === 'toggle' ? !value : true)}
         >
           <Icon name={cap.icon} size="lg" />
         </Button>
-        <Caption>{cap.label}</Caption>
+        <Caption>
+          {stateWord && cap.kind === 'toggle' && ['power', 'playing'].includes(cap.id)
+            ? stateWord
+            : cap.label}
+        </Caption>
       </div>
     );
   }
@@ -254,11 +291,23 @@ function RequestedControl({
       {(request.pending || request.message || sent) && (
         <Caption tone={request.failed ? 'danger' : 'muted'} role="status">
           {request.message ||
-            (request.pending ? 'Attendo conferma da Home Assistant…' : 'Comando inviato')}
+            (request.pending ? 'Sto inviando il comando…' : 'Comando inviato')}
         </Caption>
       )}
     </div>
   );
+}
+
+/** The name the person gave the widget, else the device's own (a room has its area name). */
+function widgetName(
+  runtime: ReturnType<typeof useWidgetRuntime>,
+  type: string,
+  id: string,
+  settings: CardSettings | undefined,
+  entityId: string
+): string {
+  if (type === 'room') return roomName(id, settings ?? EMPTY_SETTINGS, runtime.customNames);
+  return entityName(runtime, id, runtime.entities[entityId], entityId);
 }
 
 export interface AdaptiveCategoryWidgetProps {
@@ -282,7 +331,20 @@ export function AdaptiveCategoryWidget(props: AdaptiveCategoryWidgetProps) {
     props.settings ?? EMPTY_SETTINGS,
     runtime.entities
   );
-  return <AdaptiveBody key={props.type + '|' + resolved} {...props} entityId={resolved} />;
+  // The smallest card prints no name: its controls carry it in their accessible name.
+  const smallest =
+    !props.detailsMode && calculateWidgetTier(props.size.w, props.size.h) === 'compact';
+  return (
+    <AdaptiveNameContext
+      value={
+        smallest
+          ? widgetName(runtime, props.type, props.id ?? resolved, props.settings, resolved)
+          : null
+      }
+    >
+      <AdaptiveBody key={props.type + '|' + resolved} {...props} entityId={resolved} />
+    </AdaptiveNameContext>
+  );
 }
 function AdaptiveBody({
   type,
@@ -329,6 +391,14 @@ function AdaptiveBody({
   const host = useRef<HTMLElement>(null);
   const [capacity, setCapacity] = useState<number | null>(null);
   const [showChart, setShowChart] = useState(true);
+  const trendChart = wantsTrendChart({
+    type,
+    history: profile.history,
+    hasSeries: Boolean(profile.series?.length),
+  });
+  const [todoRows, setTodoRows] = useState(3);
+  const [fitCheck, setFitCheck] = useState(0);
+  const recheck = useCallback(() => setFitCheck((count) => count + 1), []);
   useEffect(() => {
     const element = host.current;
     if (
@@ -343,19 +413,21 @@ function AdaptiveBody({
       if (!entry) return;
       const { width, height } = entry.contentRect;
       if (width > 0 && height > 0) {
+        setTodoRows(3);
         setShowChart(height >= 240);
+        const chartRoom = trendChart && height >= 240 ? CHART_SLOT_HEIGHT : 0;
         setCapacity(
           Math.max(
             1,
             Math.floor(width / 116) *
-              Math.max(1, Math.floor((height - (height >= 240 ? 76 : 0)) / 130))
+              Math.max(1, Math.floor((height - HEADER_HEIGHT - chartRoom) / 130))
           )
         );
       }
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [tier, detailsMode]);
+  }, [tier, detailsMode, trendChart]);
   const max = detailsMode
     ? Infinity
     : tier === 'compact'
@@ -394,12 +466,28 @@ function AdaptiveBody({
         (entity.state !== 'unknown' ||
           ['button', 'input_button', 'scene'].includes(entityId.split('.')[0]!));
   const blocked = editMode || (type !== 'spacer' && !runtime.conn) || !available;
+  const name = widgetName(runtime, type, id, settings, entityId);
+  const shownIds = new Set(displayCaps.map((cap) => cap.id));
+  const stateWord = adaptiveStateWord(type, entity, shownIds);
+  const showName = tier !== 'compact' && !detailsMode;
   const configure = onConfigure ?? openDetails;
   const open = useCallback(() => {
     // A tap that only stops the fling of the pager is not a tap on the widget (ADR-0016, Body/Tap).
     if (host.current && pagerMoving(host.current)) return;
     openDetails?.();
   }, [openDetails]);
+  // The name takes room the controls count did not reckon with: while the card is cut off, show
+  // one task less (down to none) or one control less (never below one) instead of letting it
+  // hang out of the card.
+  useLayoutEffect(() => {
+    const element = host.current;
+    if (!element || detailsMode || tier === 'compact' || tier === 'page') return;
+    if (element.scrollHeight <= element.clientHeight + 1) return;
+    // The chart goes first: the name and the commands matter more than a trend.
+    if (trendChart && showChart) setShowChart(false);
+    else if (type === 'todo' && todoRows > 0) setTodoRows(todoRows - 1);
+    else if (displayCaps.length > 1) setCapacity(displayCaps.length - 1);
+  }, [detailsMode, tier, type, todoRows, displayCaps.length, fitCheck, name, trendChart, showChart]);
   if (type === 'spacer' && !detailsMode)
     return (
       <div
@@ -434,7 +522,7 @@ function AdaptiveBody({
       data-tier={tier}
       data-widget-type={type}
       data-entity-id={entityId}
-      aria-label={String(entity?.attributes.friendly_name ?? type)}
+      aria-label={name}
     >
       {openDetails && (
         // The body of the widget (ADR-0016, G3): a transparent button under the commands, over
@@ -452,7 +540,8 @@ function AdaptiveBody({
         <Body role="status">Caricamento del dispositivo…</Body>
       ) : !available ? (
         <div className="aca-adaptive-widget__notice">
-          <Body role="status">Dispositivo non disponibile</Body>
+          {showName && entity && <WidgetName name={name} word={null} />}
+          <Body role="status">{entity ? 'Non raggiungibile' : 'Dispositivo non disponibile'}</Body>
           {configure && (
             <Button variant="control" onClick={configure}>
               Configura dispositivo
@@ -461,9 +550,11 @@ function AdaptiveBody({
         </div>
       ) : (
         <>
+          {showName && <WidgetName name={name} word={stateWord} />}
           {type === 'camera' && tier !== 'compact' && !detailsMode ? (
             <CameraPreview entityId={entityId} settings={settings} disabled={Boolean(blocked)} />
           ) : (
+            trendChart &&
             showChart &&
             tier !== 'compact' &&
             !detailsMode &&
@@ -474,7 +565,6 @@ function AdaptiveBody({
                   capabilities={profile.capabilities}
                   values={profile.values}
                   status="available"
-                  operational
                   historySource={profile.history}
                   historyPoints={profile.series}
                   seriesLabel={profile.seriesLabel}
@@ -491,6 +581,8 @@ function AdaptiveBody({
                   entityId={entityId}
                   disabled={Boolean(blocked)}
                   expanded={detailsMode || tier === 'page'}
+                  rows={todoRows}
+                  onSettle={recheck}
                 />
               )}
               {type === 'alarm' ? (
@@ -518,6 +610,8 @@ function AdaptiveBody({
                     values={profile.values}
                     profile={profile}
                     type={type}
+                    stateWord={tier === 'compact' && !detailsMode ? stateWord : null}
+                    printedName={showName ? name : null}
                     disabled={Boolean(
                       blocked ||
                       (type !== 'spacer' &&
@@ -554,7 +648,7 @@ function AdaptiveBody({
             {detailsMode &&
               profile.unavailable.map((message) => <Caption key={message}>{message}</Caption>)}
             {!runtime.conn && type !== 'spacer' && (
-              <Caption role="status">Connessione a Home Assistant assente</Caption>
+              <Caption role="status">Collegamento con la casa assente</Caption>
             )}
           </div>
         </>

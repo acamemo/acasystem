@@ -18,20 +18,57 @@
   padding: var(--aca-space-2);
 }
 
-.aca-adaptive-widget__chart-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
+.aca-adaptive-widget__header {
+  flex: 0 0 auto;
   width: 100%;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: var(--aca-space-1);
+  pointer-events: none;
+}
+
+/* One line each, ellipsis: a long name never wraps into the controls. */
+.aca-adaptive-widget__name,
+.aca-adaptive-widget__state {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A long reading (a track, a content title) and its label take two lines, not the whole card. */
+.aca-adaptive-widget:not([data-details], [data-tier='page']) .uikw-reading h3,
+.aca-adaptive-widget:not([data-details], [data-tier='page']) .uikw-reading > span:last-child {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
 }
 
-.aca-adaptive-widget__chart-wrap .uikwa-chart {
+.aca-adaptive-widget__notice .aca-adaptive-widget__header {
+  align-items: center;
+}
+
+/*
+ * The slot of a trend chart: the same size while the history loads, when it is missing and when it
+ * is drawn, so the card does not move. Name, chart slot and commands share the free height evenly,
+ * so no band opens where a chart is not kept; a tight card has no free height and loses nothing.
+ */
+.aca-adaptive-widget__chart-wrap {
+  flex: 0 0 auto;
   width: 100%;
-  height: 100%;
-  max-height: 140px;
+  height: var(--aca-chart-slot, 84px);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.aca-adaptive-widget:not([data-details], [data-tier='compact'], [data-tier='page']) {
+  justify-content: space-evenly;
+}
+.aca-adaptive-widget:not([data-details], [data-tier='compact'], [data-tier='page'])
+  .aca-adaptive-widget__controls-wrap {
+  margin-top: 0;
 }
 
 .aca-adaptive-widget__controls-wrap {
@@ -211,6 +248,11 @@
   align-items: center;
   gap: var(--aca-space-2);
 }
+/* The gear of the divider is a real 44 px box. */
+.aca-adaptive-spacer > .aca-m {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
 .aca-adaptive-camera {
   width: 100%;
   min-height: 0;
@@ -220,4 +262,58 @@
 .aca-adaptive-camera .aca-media-feed {
   height: 100%;
   aspect-ratio: auto;
+}
+
+/*
+ * A phone (390 px): the 158 px tile has no room for the padding and the gaps of a wider card, so
+ * they tighten and nothing hangs out of it. A task of the list may take two lines instead of
+ * being cut. 1280x665 is not touched (the rule stops at 479 px).
+ */
+@media (max-width: 479px) {
+  .aca-adaptive-widget[data-tier='standard'] {
+    padding: var(--aca-space-2);
+  }
+  .aca-adaptive-widget[data-tier='standard'] .aca-adaptive-widget__controls-wrap {
+    gap: var(--aca-space-1);
+  }
+  .aca-adaptive-widget[data-tier='standard'] .uikwa-controls {
+    gap: var(--aca-space-2);
+  }
+  .aca-adaptive-todo .home-todo__summary.home-truncate {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+  }
+}
+
+/* The camera tile repeats its name in the reading under the header: on a phone it is said once. */
+@media (max-width: 479px) {
+  .aca-adaptive-widget[data-tier='standard'][data-widget-type='camera'] .uikw-reading > h3 {
+    display: none;
+  }
+}
+
+/* A phone: the knob of a gesture control sits beside its reading, as in the compact tile. */
+@media (max-width: 479px) {
+  .aca-adaptive-widget[data-tier='standard'] :is(.uikw-gesture, .uikwa-toggle, .uikwa-action) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--aca-space-1) var(--aca-space-2);
+  }
+  .aca-adaptive-widget[data-tier='standard'] .uikw-gesture > .uikw-gesture__knob,
+  .aca-adaptive-widget[data-tier='standard'] .uikwa-action > button {
+    grid-row: span 2;
+  }
+}
+
+/* A phone: the name of the device may take two lines where the tile has the room for them. */
+@media (max-width: 479px) {
+  .aca-adaptive-widget:not([data-details]) .aca-adaptive-widget__name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+  }
 }

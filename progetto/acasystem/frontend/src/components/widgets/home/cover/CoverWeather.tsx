@@ -3,6 +3,7 @@ import type { EntityMap } from '@/@types/ha';
 import { Surface } from '@/components/primitives';
 import { HomeIcon } from '@/components/widgets/home/shared/HomeIcon';
 import { readWeather } from '@/components/widgets/home/weather/weatherModel';
+import { unitSuffix } from '@/utils/formatting';
 import { useOptionalWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import '@/components/system/cover/coverCards.css';
 
@@ -55,7 +56,7 @@ export function CoverWeather() {
     );
   }
   const temperature =
-    view.temperature === null ? '—' : `${Math.round(view.temperature)}${view.unit}`;
+    view.temperature === null ? '—' : `${Math.round(view.temperature)}${unitSuffix(view.unit)}`;
   return (
     <Surface className="aca-cover-card" contentClassName="aca-cover-card__content">
       <div

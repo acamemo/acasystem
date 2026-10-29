@@ -28,8 +28,8 @@ export function Casa3dSection() {
       )}
       <Casa3dQualityPicker value={quality} onChange={setQuality} weak={weak} />
       <Body size="sm" tone="muted">
-        La scelta vale per questo dispositivo. Se la vista 3D resta lenta o si interrompe, torna a
-        Light.
+        La scelta vale per questo dispositivo. Se la vista 3D resta lenta o si interrompe, torna alla
+        qualità Leggera.
       </Body>
     </div>
   );

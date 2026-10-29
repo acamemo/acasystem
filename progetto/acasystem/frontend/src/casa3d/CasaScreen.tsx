@@ -168,7 +168,7 @@ export default function CasaScreen({ onOpenSystem }: CasaScreenProps) {
     setPreference(next);
   };
   const qualityLabel =
-    CASA3D_QUALITY_OPTIONS.find((option) => option.value === quality)?.label ?? 'Light';
+    CASA3D_QUALITY_OPTIONS.find((option) => option.value === quality)?.label ?? 'Leggera';
 
   // The focus starts on the title of the screen (as in Sistema), so a screen reader says where it is.
   useEffect(() => {
@@ -397,10 +397,10 @@ export default function CasaScreen({ onOpenSystem }: CasaScreenProps) {
           )}
           {slowAt === quality && quality !== 'light' && phase === 'ok' && (
             <Surface className="casa__notice" role="status">
-              <Body size="sm">Il disegno è lento a questo livello. Tornare a Light?</Body>
+              <Body size="sm">Il disegno è lento a questo livello. Tornare alla qualità Leggera?</Body>
               <div className="casa__notice-buttons">
                 <Button variant="primary" onClick={() => chooseQuality('light')}>
-                  Passa a Light
+                  Passa a Leggera
                 </Button>
                 <Button variant="secondary" onClick={() => setSlowAt(null)}>
                   Ignora
@@ -544,7 +544,7 @@ export default function CasaScreen({ onOpenSystem }: CasaScreenProps) {
           onChange={chooseQuality}
           note={
             forceLight
-              ? 'La vista è tornata a Light dopo un’interruzione. Scegli un livello per riprovare.'
+              ? 'La vista è tornata alla qualità Leggera dopo un’interruzione. Scegli un livello per riprovare.'
               : undefined
           }
         />

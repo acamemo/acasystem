@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { Body, Button, Caption, Field } from '@/components/primitives';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { useTodoList, CARD_REFRESH_MS } from '../home/todo/useTodoList';
@@ -10,10 +10,16 @@ export function TodoContent({
   entityId,
   disabled,
   expanded = false,
+  rows = 3,
+  onSettle,
 }: {
   entityId: string;
   disabled: boolean;
   expanded?: boolean;
+  /** Tasks the card lists when it is not expanded. */
+  rows?: number;
+  /** Called when the list has loaded or changed length, so the card can check it fits. */
+  onSettle?: () => void;
 }) {
   const { conn, callService, entities } = useWidgetRuntime();
   const list = useTodoList(conn, callService, entityId, CARD_REFRESH_MS);
@@ -23,7 +29,7 @@ export function TodoContent({
   const [due, setDue] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
-  const shown = expanded ? list.items : list.items.slice(0, 3);
+  const shown = expanded ? list.items : list.items.slice(0, rows);
   const save = async () => {
     if (!editing || !summary.trim()) return;
     setSaving(true);
@@ -39,6 +45,10 @@ export function TodoContent({
     setSaving(false);
     if (ok) setEditing(null);
   };
+  const listed = shown.length;
+  useLayoutEffect(() => {
+    onSettle?.();
+  }, [list.loading, listed, onSettle]);
   if (list.loading) return <Caption role="status">Caricamento delle attività…</Caption>;
   return (
     <div className="aca-adaptive-todo">

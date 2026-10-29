@@ -323,6 +323,8 @@
   .utility-plot__area {
     position: relative;
     min-height: 0;
+    /* A horizontal drag scrubs the slots; a vertical one still scrolls the page. */
+    touch-action: pan-y;
   }
   .utility-plot__x {
     display: flex;
@@ -692,5 +694,15 @@
   .utility-device-line > :first-child {
     flex: 1 1 12em;
     min-width: 0;
+  }
+
+  /* A phone: the name and the line under it may take two lines instead of being cut. */
+  @media (max-width: 479px) {
+    .utility-head__text > .utility-truncate {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      white-space: normal;
+    }
   }
 }

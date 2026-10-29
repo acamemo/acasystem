@@ -163,12 +163,12 @@ export function StatusBarSection({
         </Button>
         {adding === 'person' && (
           <EntityPicker
-            label="Persone di Home Assistant"
+            label="Persone della casa"
             entities={entities}
             ids={people}
             selected={[]}
             searchable
-            emptyText="Tutte le persone sono già fissate, o Home Assistant non ne ha."
+            emptyText="Tutte le persone sono già fissate, o non ce ne sono altre."
             onToggle={(id) => {
               onPinned([...pinned, id]);
               setAdding(null);
@@ -280,7 +280,7 @@ export function StatusBarSection({
             ids={allIds}
             selected={[]}
             searchable
-            emptyText="Home Assistant non ha ancora entità disponibili."
+            emptyText="Non ci sono ancora dispositivi disponibili."
             onToggle={(id) => {
               onPills([...pills, newSensorPill(id)]);
               setAdding(null);

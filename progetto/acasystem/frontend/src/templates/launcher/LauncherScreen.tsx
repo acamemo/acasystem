@@ -69,14 +69,21 @@ import { describeRect, widgetDisplayName } from '@/utils/launcher/names';
 import { PAGE_KIND_LABEL, displayLabel } from '@/utils/launcher/pageIdentity';
 import type { StatusChip } from '@/utils/launcher/statusChips';
 import { AppShell } from '../app-shell/AppShell';
-import { DiscoveredAddFlow } from '../devices/DiscoveredAddFlow';
-import { DiscoveryScreen } from '../discovery/DiscoveryScreen';
-import { AddWidgetSheet, WidgetSettingsSheet } from '../sheets';
-import { CategoryPageSheet } from '../sheets/CategoryPageSheet';
 import { isCategoryWidgetUnbound } from '../sheets/categoryPages';
 import { WIDGET_CATEGORIES } from '../sheets/catalog';
-import { DetailsSheet, type DefinitionResolver, type DetailsTarget } from './DetailsSheet';
-import { WidgetConsole } from './WidgetConsole';
+import type { DefinitionResolver, DetailsTarget } from './DetailsSheet';
+import {
+  DiscoveredAddFlowLazy,
+  LazyAddWidgetSheet,
+  LazyCategoryPageSheet,
+  LazyDetailsSheet,
+  LazyDiscoveryScreen,
+  LazyPanel,
+  LazyStackSheet,
+  LazyWidgetConsole,
+  LazyWidgetSettingsSheet,
+  usePanelsReady,
+} from './lazyPanels';
 import { FlashingPageIndicator } from './FlashingPageIndicator';
 import { HeldByStage } from './HeldByStage';
 import { DragGhost } from './DragGhost';
@@ -88,7 +95,6 @@ import {
   type LauncherUi,
 } from './LauncherUiContext';
 import { PageShell } from './PageShell';
-import { StackSheet } from './StackSheet';
 import { CARD_EXIT_MS, Pager, overviewPitchOf, type PagerPage } from './Pager';
 import { EDIT_HELP_ID } from './WidgetHost';
 import { CELL_HELP_ID, cellSelector } from './WidgetGrid';
@@ -787,6 +793,8 @@ export function LauncherScreen({
     undone?: string;
     /** The widget the removal took away: «Annulla» brings it back in (D-M10). */
     restored?: WidgetRef;
+    /** The page a widget went to when the one asked for was full: «Vai lì» opens it. */
+    goTo?: string;
   } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -906,8 +914,8 @@ export function LauncherScreen({
     if (controller.layout.locked && editMode) setEditMode(false);
   }, [controller.layout.locked, editMode, setEditMode]);
   /** A short notice in the same pill, without «Annulla». */
-  const notify = useCallback((message: string) => {
-    setUndo({ message });
+  const notify = useCallback((message: string, goTo?: string) => {
+    setUndo(goTo ? { message, goTo } : { message });
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
   }, []);
@@ -920,6 +928,16 @@ export function LauncherScreen({
     if (undoTimer.current) clearTimeout(undoTimer.current);
     announce(undo.undone ?? 'Widget rimesso al suo posto.');
   }, [undo, controller, announce, beginEntering, goEntering]);
+
+  /** «Vai lì» only while the view is not already on the page the widget went to. */
+  const offerGo = Boolean(undo?.goTo) && undo?.goTo !== currentPageId;
+  /** «Vai lì» of the notice that says where a widget went: opens that page. */
+  const goToNoticePage = useCallback(() => {
+    const page = undo?.goTo;
+    setUndo(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    if (page) controller.goToPageId(page);
+  }, [undo, controller]);
 
   // ── Sheets ──
   const addDestination = useRef<string | null>(null);
@@ -1975,6 +1993,8 @@ export function LauncherScreen({
   const pageCount = entries.length;
   const connectionProblem = connection.phase === 'error';
   const editHint = useEditHint(screenVisible && !editMode && !controller.layout.locked && !undo);
+  // The sheets and screens opened on request are chunks loaded when idle (REP-20261029-001, step 9).
+  const panelsReady = usePanelsReady();
   // «Dispositivi trovati»: by itself once, when the launcher is ready; then from the widget types.
   const discovery = useDiscoveryScreen(
     discoveryOnFirstOpen && screenVisible && runtime.entitiesLoaded
@@ -2083,7 +2103,7 @@ export function LauncherScreen({
       <WidgetRuntimeProvider value={runtime}>
         <AddWidgetRequestProvider value={requestAddWidget}>
         <AddSheetRequestProvider value={requestAddSheet}>
-        <DiscoveredFlowProvider value={DiscoveredAddFlow}>
+        <DiscoveredFlowProvider value={DiscoveredAddFlowLazy}>
         <DiscoveryScreenProvider value={discovery.show}>
         <LauncherUiContext.Provider value={ui}>
           <LauncherDragContext.Provider value={drag.session}>
@@ -2156,6 +2176,10 @@ export function LauncherScreen({
                           onRemove={() => {
                             if (selected) removeLeaving(selected.pageId, selected.widgetId);
                           }}
+                          // A full page sends the widget to the next one with room, and says so;
+                          // a locked or hidden page answers with its reason (addWidgetBlocked).
+                          onAddWidget={addWidgetToCurrentPage}
+                          onPages={() => openOverview()}
                           drop={
                             drag.session?.mode === 'move'
                               ? drag.session.removing
@@ -2262,7 +2286,8 @@ export function LauncherScreen({
                 */}
                 <UndoSnackbar
                   message={undo?.message ?? null}
-                  onUndo={undo?.layout ? undoRemoval : undefined}
+                  onUndo={undo?.layout ? undoRemoval : offerGo ? goToNoticePage : undefined}
+                  actionLabel={!undo?.layout && offerGo ? 'Vai lì' : undefined}
                   top={overview}
                 />
                 <EditHint
@@ -2297,19 +2322,24 @@ export function LauncherScreen({
               {announcement}
             </div>
 
-            <DetailsSheet
-              target={opensConsole ? null : detailsTarget}
-              onClose={onCloseDetails}
-              resolve={findDefinition}
-            />
-            <WidgetConsole
-              target={opensConsole ? detailsTarget : null}
-              origin={consoleOrigin}
-              onClose={onCloseDetails}
-              resolve={findDefinition}
-            />
+            <LazyPanel when={detailsTarget !== null && !opensConsole} ready={panelsReady}>
+              <LazyDetailsSheet
+                target={opensConsole ? null : detailsTarget}
+                onClose={onCloseDetails}
+                resolve={findDefinition}
+              />
+            </LazyPanel>
+            <LazyPanel when={detailsTarget !== null && opensConsole} ready={panelsReady}>
+              <LazyWidgetConsole
+                target={opensConsole ? detailsTarget : null}
+                origin={consoleOrigin}
+                onClose={onCloseDetails}
+                resolve={findDefinition}
+              />
+            </LazyPanel>
 
-            <AddWidgetSheet
+            <LazyPanel when={sheet?.type === 'add'} ready={panelsReady}>
+            <LazyAddWidgetSheet
               open={sheet?.type === 'add'}
               onClose={closeAddSheet}
               pageId={sheetPageId || addTargetPageId || firstWidgetPageId || 'home'}
@@ -2348,22 +2378,33 @@ export function LauncherScreen({
                   setReveal({ pageId: placedOn, widgetId });
                 }
                 let where = 'alla pagina';
+                const name = widgetName(pageId, widgetId);
                 if (ahead && placedOn && placedOn !== pageId) {
                   // A page that is not in this render's layout yet is the new one at the end.
                   const label = controller.findPage(placedOn)?.label;
                   where = label
                     ? `alla pagina ${displayLabel(label)}, perché questa è piena`
                     : 'a una nuova pagina in fondo, perché le altre sono piene';
+                  // Said on screen too, not only aloud. Where the view glides to the page by
+                  // itself (motion on) nothing more is needed; otherwise «Vai lì» takes it there.
+                  notify(
+                    label
+                      ? `Pagina piena: ho messo «${name}» in «${displayLabel(label)}».`
+                      : `Pagine piene: ho messo «${name}» in una nuova pagina in fondo.`,
+                    moves ? undefined : placedOn
+                  );
                 }
-                announce(`${widgetName(pageId, widgetId)} aggiunto ${where}.`);
+                announce(`${name} aggiunto ${where}.`);
                 if (placedOn && settings) {
                   setSheet({ type: 'widget', pageId: placedOn, widgetId });
                 }
               }}
             />
+            </LazyPanel>
           </LauncherDragContext.Provider>
           <LauncherUiContext.Provider value={ui}>
-            <StackSheet
+            <LazyPanel when={sheet?.type === 'stack'} ready={panelsReady}>
+            <LazyStackSheet
               open={sheet?.type === 'stack'}
               onClose={closeSheet}
               pageId={sheet?.type === 'stack' ? sheet.pageId : ''}
@@ -2378,19 +2419,25 @@ export function LauncherScreen({
                 ) : undefined
               }
             />
+            </LazyPanel>
           </LauncherUiContext.Provider>
-          <DiscoveryScreen
-            open={discovery.open}
-            onClose={discovery.close}
-            pageId={addTargetPageId || firstWidgetPageId || 'home'}
-            searchWindow={discovery.first}
-          />
-          <CategoryPageSheet
-            open={categoryPageOpen}
-            onClose={() => setCategoryPageOpen(false)}
-            onChoose={addPageAfterCurrent}
-          />
-          <WidgetSettingsSheet
+          <LazyPanel when={discovery.open} ready={panelsReady}>
+            <LazyDiscoveryScreen
+              open={discovery.open}
+              onClose={discovery.close}
+              pageId={addTargetPageId || firstWidgetPageId || 'home'}
+              searchWindow={discovery.first}
+            />
+          </LazyPanel>
+          <LazyPanel when={categoryPageOpen} ready={panelsReady}>
+            <LazyCategoryPageSheet
+              open={categoryPageOpen}
+              onClose={() => setCategoryPageOpen(false)}
+              onChoose={addPageAfterCurrent}
+            />
+          </LazyPanel>
+          <LazyPanel when={sheet?.type === 'widget'} ready={panelsReady}>
+          <LazyWidgetSettingsSheet
             open={sheet?.type === 'widget'}
             onClose={closeSheet}
             widgetId={sheetWidgetId}
@@ -2410,6 +2457,7 @@ export function LauncherScreen({
               ) : undefined
             }
           />
+          </LazyPanel>
         </LauncherUiContext.Provider>
         </DiscoveryScreenProvider>
         </DiscoveredFlowProvider>

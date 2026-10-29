@@ -103,7 +103,7 @@
     font-family: var(--aca-font);
   }
   .aca-cover-calendar__weekday {
-    color: var(--k2-accent, var(--aca-orange-ink-icon));
+    color: var(--k2-accent-text, var(--aca-orange-ink));
     font-size: calc(var(--aca-cover-side) * 0.13);
     font-weight: var(--aca-weight-light);
     line-height: 1.1;
@@ -143,7 +143,7 @@
     line-height: 1;
   }
   .aca-cover-weather__condition {
-    color: var(--k2-accent, var(--aca-orange-ink-icon));
+    color: var(--k2-accent-text, var(--aca-orange-ink));
     font-size: calc(var(--aca-cover-side) * 0.09);
     font-weight: var(--aca-weight-light);
   }

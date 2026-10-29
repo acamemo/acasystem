@@ -82,6 +82,6 @@ describe('Vacuum console', () => {
       <VacuumConsole id="vacuum.gone" settingsKey="k" settings={{}} onClose={() => undefined} />,
       { entities: fixtureEntities([]) }
     );
-    expect(screen.getByText(/non è stato trovato in Home Assistant/)).toBeInTheDocument();
+    expect(screen.getByText(/non è più disponibile/)).toBeInTheDocument();
   });
 });

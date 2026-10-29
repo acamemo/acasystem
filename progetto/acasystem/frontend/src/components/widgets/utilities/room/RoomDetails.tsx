@@ -18,7 +18,7 @@ export function RoomMissing() {
   return (
     <DetailsBody>
       <Notice icon="room">
-        Nessun dispositivo di questa stanza è disponibile in Home Assistant.
+        Nessun dispositivo di questa stanza è disponibile.
       </Notice>
     </DetailsBody>
   );

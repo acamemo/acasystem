@@ -106,7 +106,7 @@ describe('launcher status chips', () => {
       targetId: 'media_player.salotto',
     });
     expect(result[2]).toMatchObject({ kind: 'group', count: 2, icon: 'light', tone: 'active' });
-    expect(result[3]).toMatchObject({ label: 'Soggiorno', detail: '21.5 °C' });
+    expect(result[3]).toMatchObject({ label: 'Soggiorno', detail: '21,5 °C' });
   });
 
   it('hides a media pill when nothing plays and filters players like the legacy bar', () => {
@@ -133,7 +133,7 @@ describe('launcher status chips', () => {
         { id: 'x', type: 'sensor', unitSource: 'custom', customUnit: 'gradi' },
         entities['sensor.temp']
       )
-    ).toBe('21.46 gradi');
+    ).toBe('21,46 gradi');
     expect(pendingUpdateCount(entities)).toBe(1);
   });
 });

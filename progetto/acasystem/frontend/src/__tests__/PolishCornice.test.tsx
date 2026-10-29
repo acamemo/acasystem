@@ -141,6 +141,8 @@ describe('barra del widget selezionato, al posto di «×» e del menu (REP-20261
         onDone={() => undefined}
         onUndo={() => undefined}
         onRemove={onRemove}
+        onAddWidget={() => undefined}
+        onPages={() => undefined}
       />
     );
     return onRemove;
@@ -158,7 +160,7 @@ describe('barra del widget selezionato, al posto di «×» e del menu (REP-20261
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
-  it('«Annulla» è attivo solo dopo una modifica; la barra ha solo Rimuovi, Annulla e Fine', () => {
+  it('«Annulla» è attivo solo dopo una modifica; la barra ha Rimuovi, Aggiungi, Pagine, Annulla e Fine', () => {
     renderBar(vi.fn(), false);
     const bar = screen.getByRole('toolbar', { name: 'Modifica Luce cucina' });
     expect(within(bar).getByRole('button', { name: 'Annulla' })).toBeDisabled();
@@ -167,7 +169,7 @@ describe('barra del widget selezionato, al posto di «×» e del menu (REP-20261
       within(bar)
         .getAllByRole('button')
         .map((button) => button.getAttribute('aria-label') ?? button.textContent)
-    ).toEqual(['Rimuovi Luce cucina', 'Annulla', 'Fine']);
+    ).toEqual(['Rimuovi Luce cucina', 'Aggiungi', 'Pagine', 'Annulla', 'Fine']);
     expect(bar.querySelector('[data-widget-action="settings"]')).toBeNull();
     expect(bar.querySelector('[data-widget-action="move"]')).toBeNull();
     expect(bar.querySelector('[data-widget-action="resize"]')).toBeNull();

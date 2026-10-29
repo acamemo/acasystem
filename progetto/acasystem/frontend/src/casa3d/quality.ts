@@ -22,17 +22,17 @@ export interface Casa3dQualityOption {
 export const CASA3D_QUALITY_OPTIONS: ReadonlyArray<Casa3dQualityOption> = [
   {
     value: 'light',
-    label: 'Light',
+    label: 'Leggera',
     hint: 'Il più leggero, pensato per tablet e telefoni. È il livello di partenza.',
   },
   {
     value: 'medium',
-    label: 'Medium',
+    label: 'Media',
     hint: 'Più definizione e luci più ricche, per tablet più potenti.',
   },
   {
     value: 'high',
-    label: 'High',
+    label: 'Alta',
     hint: 'La massima qualità, per dispositivi con hardware generoso.',
   },
 ];

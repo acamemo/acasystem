@@ -284,7 +284,7 @@ describe('Casa 3D screen: the side bar', () => {
       'Modifica la piantina',
       'Piani',
       'Elenco stanze',
-      'QualitàLight',
+      'QualitàLeggera',
       'Esci',
     ]);
     expect(
@@ -538,7 +538,7 @@ describe('Casa 3D screen: floors, rooms and quality', () => {
     await choose('Qualità');
     expect(overlay()).toBe('qualita');
     fireEvent.click(
-      within(dialogOf('Qualità della vista 3D')).getByRole('button', { name: 'Medium' })
+      within(dialogOf('Qualità della vista 3D')).getByRole('button', { name: 'Media' })
     );
     expect(stub().quality).toBe('medium');
     expect(localStorage.getItem(CASA3D_QUALITY_KEY)).toBe('medium');
@@ -546,7 +546,7 @@ describe('Casa 3D screen: floors, rooms and quality', () => {
     await settle();
     await openMenu();
     expect(within(dialogOf('Casa 3D')).getByRole('button', { name: /Qualità/ }).textContent).toBe(
-      'QualitàMedium'
+      'QualitàMedia'
     );
   });
 });

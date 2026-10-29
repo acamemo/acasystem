@@ -219,6 +219,22 @@
   }
 
   /* Add-widget sheet: grid of types, then the details of the chosen type. */
+  .aca-type-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+  .aca-type-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  .aca-type-group__title {
+    padding-inline: 0.25rem;
+  }
+  .aca-type-tile__hint {
+    text-wrap: balance;
+  }
   .aca-type-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));

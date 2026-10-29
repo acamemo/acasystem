@@ -44,7 +44,7 @@ export function AlarmWidget({ id, settings, size, editMode }: WidgetProps) {
           title={name}
           message={
             entityId
-              ? 'La centrale d’allarme non è più presente in Home Assistant.'
+              ? 'La centrale d’allarme non è più disponibile.'
               : 'Scegli una centrale d’allarme nelle impostazioni del widget.'
           }
           detail={entityId}

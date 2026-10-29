@@ -135,6 +135,8 @@ const summary = () => screen.getByRole('dialog').getAttribute('aria-describedby'
 const summaryText = () => document.getElementById(summary() ?? '')?.textContent;
 /** The first tile comes after a short reveal (600 ms): room for a loaded machine. */
 const REVEAL_WAIT = { timeout: 3000 };
+/** The same, for a test that waits on several reveals one after the other. */
+const SLOW_WAIT = { timeout: 10_000 };
 const skeletons = () => document.querySelectorAll('.discovery-skeleton');
 /** Reads of the list of devices found (not the ignored ones, whose path starts the same). */
 const reads = () => fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti');
@@ -170,7 +172,14 @@ describe('«Dispositivi trovati»: la finestra', () => {
     // Nothing ignored: that section is not there.
     expect(screen.queryByRole('button', { name: /^Nascosti/ })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Salta' }));
+    // A real button, reachable with the keyboard.
+    const skip = screen.getByRole('button', { name: 'Salta' });
+    expect(skip.tagName).toBe('BUTTON');
+    expect(skip).not.toHaveAttribute('tabindex', '-1');
+    expect(skip).not.toBeDisabled();
+    skip.focus();
+    expect(skip).toHaveFocus();
+    fireEvent.click(skip);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -733,6 +742,7 @@ describe('Televisori LG: Cast da solo e più televisori della stessa marca', () 
     ).toBeInTheDocument();
   });
 
+  // Four waits in a row, each after a reveal: under load they add up, so they get room of their own.
   it('mentre la TV risponde, nome della TV sopra il testo e nessun quadrato grigio', async () => {
     withFound();
     fake.on('GET /tv-in-rete', () => ({ body: { tvs: [lgTv(), lgNano()] } }));
@@ -742,25 +752,31 @@ describe('Televisori LG: Cast da solo e più televisori della stessa marca', () 
     screenOf();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: /^Collega \[LG\] webOS TV UA751C0LA/ }, REVEAL_WAIT)
+      await screen.findByRole('button', { name: /^Collega \[LG\] webOS TV UA751C0LA/ }, SLOW_WAIT)
     );
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Sono davanti alla TV, continua' }, REVEAL_WAIT)
+      await screen.findByRole('button', { name: 'Sono davanti alla TV, continua' }, SLOW_WAIT)
     );
 
-    expect(
-      await screen.findByText(
-        'Accetta la richiesta sulla TV «[LG] webOS TV UA751C0LA».',
-        {},
-        REVEAL_WAIT
-      )
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText(/Accetta la richiesta sulla TV con il telecomando/, {}, REVEAL_WAIT)
-    ).toBeInTheDocument();
+    // waitFor, not find + expect: the step may redraw its text between the two, and a node found
+    // a moment before is then no longer in the document.
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText('Accetta la richiesta sulla TV «[LG] webOS TV UA751C0LA».')
+        ).toBeInTheDocument(),
+      SLOW_WAIT
+    );
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/Accetta la richiesta sulla TV con il telecomando/)
+        ).toBeInTheDocument(),
+      SLOW_WAIT
+    );
     // Two empty grey squares (skeleton rows) used to be drawn above the text.
     expect(document.querySelector('.aca-device-pairing .aca-skeleton')).toBeNull();
-  });
+  }, 40_000);
 
   it('con due LG in rete la marca non ne sceglie una: chiede quale', async () => {
     withFound();

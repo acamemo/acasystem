@@ -69,7 +69,7 @@ export function CalendarWidget({ id, settings, size, editMode }: WidgetProps) {
         icon="warning"
         tone="danger"
         title={name}
-        message="Non riesco a leggere gli eventi da Home Assistant. Riprovo tra poco."
+        message="Non riesco a leggere gli eventi. Riprovo tra poco."
         compact={compact}
       />
     );

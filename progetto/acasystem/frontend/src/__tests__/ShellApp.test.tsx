@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getHassUrl } from '@/api/haUrl';
 import { ConfigProvider, useConfig } from '@/hooks/context/ConfigContext';
 import { AppRoutes } from '@/routes/AppRoutes';
@@ -13,6 +13,18 @@ vi.mock('@/pages/launcher/LauncherPage', () => ({
 }));
 vi.mock('@/pages/system', () => ({ SystemPage: () => <p>Pagina Sistema</p> }));
 vi.mock('@/pages/connect', () => ({ ConnectPage: () => <p>Collegamento</p> }));
+
+// Sistema is a lazy chunk (REP-20261029-001, step 9): the first render waits for it, the others
+// find it loaded. Warmed up here so the tests below stay synchronous.
+beforeAll(async () => {
+  const { unmount } = render(
+    <MemoryRouter initialEntries={['/sistema']}>
+      <AppRoutes showConnect={false} onConnected={() => undefined} />
+    </MemoryRouter>
+  );
+  await screen.findByText('Pagina Sistema');
+  unmount();
+});
 
 function routesAt(path: string, showConnect = false) {
   return render(

@@ -14,10 +14,10 @@ import { VacuumStatusSection } from './parts/VacuumStatusSection';
 import { useVacuumDetailsState } from './parts/useVacuumDetailsState';
 
 /** Notice shown by the sheet and the console when the vacuum is not in Home Assistant. */
-export function VacuumMissing({ id }: { id: string }) {
+export function VacuumMissing(_props: { id: string }) {
   return (
     <DetailsBody>
-      <Notice icon="warning">Il dispositivo {id} non è stato trovato in Home Assistant.</Notice>
+      <Notice icon="warning">Questo dispositivo non è più disponibile.</Notice>
     </DetailsBody>
   );
 }

@@ -75,7 +75,7 @@ describe('Widget allarme: rendering per taglia e stati', () => {
 
     update({ id: ID, settings, runtime: { entities: {} } });
     expect(
-      screen.getByText('La centrale d’allarme non è più presente in Home Assistant.')
+      screen.getByText('La centrale d’allarme non è più disponibile.')
     ).toBeInTheDocument();
   });
 
@@ -277,7 +277,7 @@ describe('Dettagli allarme: tastierino PIN', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(
       await screen.findByText(
-        'Comando non riuscito. Controlla il PIN e i permessi di Home Assistant.'
+        'Comando non riuscito. Controlla il PIN e i permessi.'
       )
     ).toBeInTheDocument();
     expect(field).toHaveValue('');

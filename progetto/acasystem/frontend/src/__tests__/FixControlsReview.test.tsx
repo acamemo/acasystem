@@ -65,7 +65,7 @@ describe('PAR-4: la conferma di «Apri» non accetta uno stato fermo', () => {
     view.setEntities([lock('locked')]);
     await flush();
     act(() => vi.advanceTimersByTime(30_500));
-    expect(screen.getByText('Nessuna conferma da Home Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Nessuna conferma dal dispositivo')).toBeInTheDocument();
   });
 });
 

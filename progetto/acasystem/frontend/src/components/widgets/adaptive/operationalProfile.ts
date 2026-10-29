@@ -73,6 +73,43 @@ const reading = (id: string, label: string, initial: string | number, unit = '')
   icon: 'activity',
   frequent: true,
 });
+/** Name for a function the person linked to a widget: the device's own name, else a plain word. */
+const DOMAIN_LABELS: Record<string, string> = {
+  switch: 'Interruttore',
+  input_boolean: 'Interruttore',
+  automation: 'Automazione',
+  number: 'Valore',
+  input_number: 'Valore',
+  select: 'Selezione',
+  input_select: 'Selezione',
+  button: 'Pulsante',
+  input_button: 'Pulsante',
+  script: 'Scena',
+  scene: 'Scena',
+  sensor: 'Misura',
+  binary_sensor: 'Stato',
+};
+const BINDING_KEY_LABELS: Record<string, string> = {
+  switch: 'Interruttore',
+  button: 'Pulsante',
+  script: 'Scena',
+  select: 'Selezione',
+  number: 'Valore',
+};
+const bindingLabel = (key: string, target: string, entities: EntityMap): string =>
+  text(entities[target]?.attributes.friendly_name) ||
+  BINDING_KEY_LABELS[key] ||
+  DOMAIN_LABELS[target.split('.')[0]!] ||
+  'Funzione';
+const CAR_READING_LABELS = {
+  range: 'Autonomia',
+  odometer: 'Chilometri percorsi',
+  fuelLevel: 'Carburante',
+  chargingPower: 'Potenza di ricarica',
+  chargeRate: 'Velocità di ricarica',
+  timeToFull: 'Tempo alla carica completa',
+  chargeEndTime: 'Fine ricarica',
+} as const;
 const action = (id: string, label: string, icon: Capability['icon'] = 'play'): Capability => ({
   id,
   label,
@@ -785,7 +822,7 @@ export function operationalProfile(input: OperationalInput): OperationalProfile 
       bind('control', text(attrs.friendly_name) || 'Comando', entityId);
     }
     for (const [id, target] of Object.entries(extensionIds))
-      if (text(target)) bind(id, id, text(target));
+      if (text(target)) bind(id, bindingLabel(id, text(target), entities), text(target));
     history = {
       entityId,
       ...(entityId.startsWith('binary_sensor.') ? { states: { on: 1, off: 0 } } : {}),
@@ -873,7 +910,7 @@ export function operationalProfile(input: OperationalInput): OperationalProfile 
       'chargeEndTime',
     ] as const) {
       const target = text(settings[id + 'Id']);
-      if (target) addReading(id, id, target);
+      if (target) addReading(id, CAR_READING_LABELS[id], target);
     }
     history = { entityId: car.ids.batteryId ?? entityId };
   }
@@ -1034,7 +1071,7 @@ export function operationalProfile(input: OperationalInput): OperationalProfile 
       ['record', 'Registra un video', 'mp4'],
     ] as const) {
       if (!validDirectory) {
-        unavailable.push(label + ': configura una cartella privata autorizzata in Home Assistant');
+        unavailable.push(label + ': serve una cartella privata autorizzata sul server');
         continue;
       }
       if (id === 'record' && !(features & 2)) continue;

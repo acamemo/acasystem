@@ -120,13 +120,13 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
       )}
 
       {calendars.length === 0 ? (
-        <Caption as="p">Nessun calendario trovato in Home Assistant.</Caption>
+        <Caption as="p">Nessun calendario trovato.</Caption>
       ) : active.length === 0 ? (
         <Caption as="p">Scegli almeno un calendario per vedere gli eventi.</Caption>
       ) : loading ? (
         <Skeleton rows={4} label="Caricamento del calendario…" />
       ) : error && events.length === 0 ? (
-        <CommandError>Non riesco a leggere gli eventi da Home Assistant.</CommandError>
+        <CommandError>Non riesco a leggere gli eventi.</CommandError>
       ) : groups.length === 0 ? (
         <div className="home-empty">
           <HomeIcon name="calendar" size="lg" tone="muted" />

@@ -42,7 +42,7 @@ export function ClimateWidget({ id, settings, size, editMode }: WidgetProps) {
           title={name}
           message={
             entityId
-              ? 'Il termostato non è più presente in Home Assistant.'
+              ? 'Il termostato non è più disponibile.'
               : 'Scegli un termostato nelle impostazioni del widget.'
           }
           detail={entityId}

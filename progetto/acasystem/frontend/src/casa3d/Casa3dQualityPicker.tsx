@@ -47,10 +47,10 @@ export function Casa3dQualityPicker({
         onChange={choose}
       />
       {askHigh ? (
-        <div className="c3d-quality__confirm" role="group" aria-label="Conferma del livello High">
+        <div className="c3d-quality__confirm" role="group" aria-label="Conferma della qualità Alta">
           <Body size="sm">
-            High può rallentare questo dispositivo, che ha poca memoria o pochi processori. Passare
-            a High?
+            La qualità Alta può rallentare questo dispositivo, che ha poca memoria o pochi
+            processori. Passare ad Alta?
           </Body>
           <div className="c3d-quality__buttons">
             <Button
@@ -60,7 +60,7 @@ export function Casa3dQualityPicker({
                 onChange('high');
               }}
             >
-              Passa a High
+              Passa ad Alta
             </Button>
             <Button variant="secondary" onClick={() => setAskHigh(false)}>
               Annulla

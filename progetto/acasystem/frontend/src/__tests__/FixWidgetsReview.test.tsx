@@ -41,7 +41,7 @@ describe('PAR-4: conferma della serratura con funzione di apertura', () => {
       view.setEntities([lock(state)]);
       await flush();
       act(() => vi.advanceTimersByTime(30_500));
-      expect(screen.queryByText('Nessuna conferma da Home Assistant')).not.toBeInTheDocument();
+      expect(screen.queryByText('Nessuna conferma dal dispositivo')).not.toBeInTheDocument();
       expect(screen.queryByText('In attesa…')).not.toBeInTheDocument();
     }
   );
@@ -61,7 +61,7 @@ describe('PAR-4: conferma della serratura con funzione di apertura', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apri: Porta' }));
     await flush();
     act(() => vi.advanceTimersByTime(30_500));
-    expect(screen.getByText('Nessuna conferma da Home Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Nessuna conferma dal dispositivo')).toBeInTheDocument();
   });
 });
 

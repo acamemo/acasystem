@@ -310,6 +310,20 @@ describe('stable layers and no redraw per frame (REP-20261012-003)', () => {
       ).toMatch(/will-change:\s*transform;/);
     });
 
+    it('the face of Kit 2 transitions the shadow, the clip and the transform, not the filter nor the image (step 9)', () => {
+      const face = bodyOf('skin', '.aca-m__face');
+      expect(face).toMatch(/transition:[^;]*box-shadow[^;]*clip-path[^;]*transform/);
+      expect(face).not.toMatch(/transition:[^;]*(filter|background-image)/);
+    });
+
+    it('a control that becomes unavailable changes at once outside the launcher too (step 9)', () => {
+      const own = ".aca-m:is([disabled], [aria-disabled='true'])";
+      expect(bodyOf('skin', own)).toMatch(/transition:\s*none;/);
+      expect(
+        bodyOf('skin', `${own} :is(.aca-m__outer, .aca-m__face, .aca-m__content)`)
+      ).toMatch(/transition:\s*none;/);
+    });
+
     it('the Metallo kit keeps the layer of its scaling press', () => {
       expect(css.material).toMatch(
         /\.aca-m-host \.aca-m--hosted\) > \.aca-m__outer \{\s*will-change: transform;/

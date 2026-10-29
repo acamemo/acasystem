@@ -75,7 +75,7 @@ export const automationWidget: WidgetDefinition = {
  */
 export const sensorWidget: WidgetDefinition = {
   type: 'sensor',
-  label: 'Sensore o entità',
+  label: 'Misura o stato',
   icon: 'activity' satisfies IconName,
   sizes: { min: { w: 1, h: 1 }, max: { w: 2, h: 2 }, default: { w: 1, h: 1 } },
   matches: (id, settings) => id.startsWith('entity_card_') || isSensorType(settings),

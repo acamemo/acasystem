@@ -141,7 +141,7 @@ describe('PAR-2: lista del widget Attività', () => {
       screen.getByText('Scegli una lista di attività nelle impostazioni del widget.')
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Nessuna' }));
-    fireEvent.click(screen.getByRole('button', { name: /Attività ufficio.*todo\.ufficio/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Attività ufficio/ }));
     await flush();
     expect(saved()).toMatchObject({ todoEntityId: 'todo.ufficio' });
     expect(await screen.findByText('Comprare il pane')).toBeInTheDocument();
@@ -210,7 +210,7 @@ describe('PAR-3: impostazioni di tipo con le chiavi lette dai widget nuovi', () 
   it('videocamera: un vecchio «webrtc» appare come Home Assistant senza URL del lettore', () => {
     render(<SettingsHarness widgetId="camera_card_1" initial={{ cameraStreamEngine: 'webrtc' }} />);
     const engine = screen.getByRole('group', { name: 'Motore video' });
-    expect(within(engine).getByRole('button', { name: 'Home Assistant' })).toHaveAttribute(
+    expect(within(engine).getByRole('button', { name: 'Della casa' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
@@ -219,7 +219,7 @@ describe('PAR-3: impostazioni di tipo con le chiavi lette dai widget nuovi', () 
   it('costi: sensori, etichette e decimali arrivano alla configurazione del widget', () => {
     render(<SettingsHarness widgetId="cost_card_1" />);
     fireEvent.click(screen.getByRole('button', { name: 'Costo di oggi: Nessuna' }));
-    fireEvent.click(screen.getByRole('button', { name: /Costo oggi.*sensor\.costo_oggi/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Costo oggi/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Costo del mese: Nessuna' }));
     fireEvent.click(screen.getByRole('button', { name: /Costo mese manuale/ }));
     const today = screen.getByRole('textbox', { name: 'Etichetta di oggi' });
@@ -251,9 +251,9 @@ describe('PAR-3: impostazioni di tipo con le chiavi lette dai widget nuovi', () 
     );
     const list = screen.getByRole('group', { name: 'Lettori multimediali' });
     expect(
-      within(list).queryByRole('button', { name: /media_player\.tv/ })
+      within(list).queryByRole('button', { name: /TV salotto/ })
     ).not.toBeInTheDocument();
-    fireEvent.click(within(list).getByRole('button', { name: /Cucina.*media_player\.cucina/ }));
+    fireEvent.click(within(list).getByRole('button', { name: /Cucina/ }));
     expect(readTvConfig(saved()).linkedMediaPlayers).toEqual(['media_player.cucina']);
   });
 
@@ -269,7 +269,7 @@ describe('PAR-3: impostazioni di tipo con le chiavi lette dai widget nuovi', () 
     fireEvent.blur(name);
     fireEvent.click(within(rooms).getByRole('button', { name: 'Script della stanza 1: Nessuno' }));
     fireEvent.click(
-      within(rooms).getByRole('button', { name: /Pulisci cucina.*script\.pulisci_cucina/ })
+      within(rooms).getByRole('button', { name: /Pulisci cucina/ })
     );
     expect(saved().roomScripts).toEqual([{ label: 'Cucina', entityId: 'script.pulisci_cucina' }]);
 

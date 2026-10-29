@@ -115,7 +115,7 @@ export function Casa3dProva({ onClose }: Casa3dProvaProps) {
             Casa 3D: pagina di prova
           </Heading>
           <Caption as="p">
-            Sola lettura, qualità Light. Non è visibile ai clienti: serve a vedere la vista con i
+            Sola lettura, qualità Leggera. Non è visibile ai clienti: serve a vedere la vista con i
             dati di questa casa.
           </Caption>
         </div>

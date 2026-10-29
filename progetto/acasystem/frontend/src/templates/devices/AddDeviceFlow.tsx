@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Body, Button, Caption, Heading, Skeleton } from '@/components/primitives';
+import { Button, Caption, Heading, Skeleton } from '@/components/primitives';
 import { useOptionalWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { identifyActionFor } from '@/utils/devices/identify';
 import { pinSpecFor } from '@/utils/devices/pinSpec';
@@ -421,8 +421,8 @@ function DonePanel({
   const presence = useEntityPresence(entry.mediaPlayerEntityId ?? entry.entities[0] ?? null);
   return (
     <div className="aca-device-flow">
-      <Notice tone="success">{deviceTexts.added}</Notice>
-      <Body size="sm">{entry.device?.name ?? entry.title}</Body>
+      {/* The heading already says «Dispositivo aggiunto.»: the notice carries the name. */}
+      <Notice tone="success">{entry.device?.name ?? entry.title}</Notice>
       {presence === 'waiting' && (
         <Caption as="p" role="status">
           {deviceTexts.entityAppearing}

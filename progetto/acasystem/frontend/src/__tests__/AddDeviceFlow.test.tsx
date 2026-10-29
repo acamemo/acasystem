@@ -124,7 +124,7 @@ describe('the service is not there', () => {
       }),
     });
     mount();
-    expect(await screen.findByText(/Home Assistant non è raggiungibile/)).toBeInTheDocument();
+    expect(await screen.findByText(/La casa non è raggiungibile/)).toBeInTheDocument();
     expect(fake.callsTo('GET /catalogo')).toHaveLength(0);
   });
 

@@ -756,7 +756,7 @@ describe('«Rimuovi dispositivo»', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Rimuovi dispositivo' }));
     expect(
-      screen.getByText(/sparisce da Home Assistant e da tutti i widget/)
+      screen.getByText(/sparisce dalla casa e da tutti i widget/)
     ).toBeInTheDocument();
     // Nothing was asked of the server yet but the check that the entry is the customer’s.
     expect(fake.callsTo('DELETE')).toHaveLength(0);

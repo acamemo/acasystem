@@ -214,7 +214,7 @@ export function useTodoList(
           (changes.due_datetime === null
             ? !actual.due
             : new Date(actual.due ?? '').getTime() === new Date(changes.due_datetime).getTime()));
-      if (!confirmed) setActionError('Home Assistant non ha confermato la modifica.');
+      if (!confirmed) setActionError('La modifica non è stata confermata.');
       return Boolean(confirmed);
     } catch {
       if (mounted.current) setActionError('Attività non aggiornata. Riprova.');

@@ -134,7 +134,7 @@ describe('Casa 3D screen: quality', () => {
     await openHouse();
     expect(vista().getAttribute('data-quality')).toBe('light');
     const sheet = await openQualitySheet();
-    expect(within(sheet).getByRole('button', { name: 'Light' }).getAttribute('aria-pressed')).toBe(
+    expect(within(sheet).getByRole('button', { name: 'Leggera' }).getAttribute('aria-pressed')).toBe(
       'true'
     );
   });
@@ -148,7 +148,7 @@ describe('Casa 3D screen: quality', () => {
   it('the sheet raises the level, keeps it for the device and does not make the view again', async () => {
     await openHouse();
     const sheet = await openQualitySheet();
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Medium' }));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Media' }));
     expect(vista().getAttribute('data-quality')).toBe('medium');
     expect(localStorage.getItem(CASA3D_QUALITY_KEY)).toBe('medium');
     expect(live.made).toBe(1);
@@ -158,7 +158,7 @@ describe('Casa 3D screen: quality', () => {
     setCasa3dQuality('high');
     await openHouse();
     const sheet = await openQualitySheet();
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Light' }));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Leggera' }));
     expect(vista().getAttribute('data-quality')).toBe('light');
     expect(localStorage.getItem(CASA3D_QUALITY_KEY)).toBe('light');
   });
@@ -192,9 +192,9 @@ describe('Casa 3D screen: quality', () => {
     // the saved level is not touched; the sheet explains the return to Light
     expect(localStorage.getItem(CASA3D_QUALITY_KEY)).toBe('high');
     const sheet = await openQualitySheet();
-    expect(screen.getByText(/La vista è tornata a Light dopo un’interruzione/)).toBeTruthy();
+    expect(screen.getByText(/La vista è tornata alla qualità Leggera dopo un’interruzione/)).toBeTruthy();
     // choosing a level lifts it
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Medium' }));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Media' }));
     expect(vista().getAttribute('data-quality')).toBe('medium');
   });
 
@@ -305,7 +305,7 @@ describe('Casa 3D screen: quality', () => {
     setCasa3dQuality('high');
     await openHouse();
     act(() => stub().onSlow());
-    fireEvent.click(screen.getByRole('button', { name: 'Passa a Light' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Passa a Leggera' }));
     expect(vista().getAttribute('data-quality')).toBe('light');
     expect(localStorage.getItem(CASA3D_QUALITY_KEY)).toBe('light');
     expect(screen.queryByText(/Il disegno è lento/)).toBeNull();

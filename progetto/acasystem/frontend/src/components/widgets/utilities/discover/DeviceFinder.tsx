@@ -308,17 +308,17 @@ export function DeviceFinder({
 
   let body: ReactNode = null;
   if (state.status === 'loading') {
-    body = <Notice icon="refresh">Leggo i dispositivi di Home Assistant…</Notice>;
+    body = <Notice icon="refresh">Cerco i dispositivi della casa…</Notice>;
   } else if (state.status === 'error') {
     body = (
       <Notice tone="danger" icon="warning">
-        Non riesco a leggere i dispositivi di Home Assistant.
+        Non riesco a leggere i dispositivi della casa.
       </Notice>
     );
   } else if (state.devices.length === 0) {
     body = compact ? null : (
       <Notice icon="ok">
-        Nessun dispositivo nuovo: quelli di Home Assistant sono già nei widget.
+        Nessun dispositivo nuovo: quelli della casa sono già nei widget.
       </Notice>
     );
   } else {
@@ -431,7 +431,7 @@ export function DeviceFinder({
     <DetailsBody label={label}>
       {nothingYet && (
         <Notice icon="ok">
-          Non trovo {noun} nuovi in rete né in Home Assistant. Scegli la marca qui sotto.
+          Non trovo {noun} nuovi in rete né già collegati alla casa. Scegli la marca qui sotto.
         </Notice>
       )}
       {tvList && (
@@ -470,7 +470,7 @@ export function DeviceFinder({
       )}
       {body && (
         <Section
-          title={compact ? 'Già in Home Assistant' : 'Pronti da aggiungere'}
+          title={compact ? 'Già collegati alla casa' : 'Pronti da aggiungere'}
           icon="widgetAdd"
         >
           {body}

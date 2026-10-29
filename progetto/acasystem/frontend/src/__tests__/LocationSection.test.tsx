@@ -37,7 +37,7 @@ describe('Sistema → Posizione (REP-20261007-025)', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Salva la posizione' }));
     });
-    expect(screen.getByRole('status')).toHaveTextContent('non ha salvato la posizione');
+    expect(screen.getByRole('status')).toHaveTextContent('Non sono riuscito a salvare la posizione');
   });
 
   it('senza permessi di amministratore non permette di cambiarla', () => {

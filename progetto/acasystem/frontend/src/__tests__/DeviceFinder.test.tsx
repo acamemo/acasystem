@@ -226,7 +226,7 @@ describe('the screen of a family', () => {
     expect(titles).toEqual([
       'Televisori in rete',
       'Trovati in rete',
-      'Già in Home Assistant',
+      'Già collegati alla casa',
       'Marche consigliate',
       'Altra marca',
     ]);
@@ -245,11 +245,11 @@ describe('the screen of a family', () => {
 
     expect(
       await screen.findByText(
-        'Non trovo televisori nuovi in rete né in Home Assistant. Scegli la marca qui sotto.'
+        'Non trovo televisori nuovi in rete né già collegati alla casa. Scegli la marca qui sotto.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Televisori in rete' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Già in Home Assistant' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Già collegati alla casa' })).toBeNull();
     expect(screen.getByRole('list', { name: 'Marche consigliate' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Altra marca/ })).toBeEnabled();
   });

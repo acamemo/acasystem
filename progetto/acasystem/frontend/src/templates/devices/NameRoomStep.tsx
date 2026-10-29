@@ -127,7 +127,7 @@ export function NameRoomStep({
           <Skeleton rows={2} label={deviceTexts.roomsLoading} />
         ) : (
           <ChoiceGroup<string>
-            label={deviceTexts.roomTitle}
+            label={deviceTexts.roomLabel}
             options={options}
             value={areaId}
             onChange={setAreaId}

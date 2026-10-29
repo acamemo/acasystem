@@ -5,12 +5,14 @@ import { classes } from '@/components/primitives/classes';
 /**
  * «Widget rimosso · Annulla» (REP-20261007-031), as the snackbar of Launcher3 after a removal:
  * a floating pill above the footer band for a few seconds; «Annulla» puts the widget back.
+ * The same pill tells where a widget went when the page was full, with «Vai lì» as its action.
  * The owner decides how long it stays (it unmounts it, or passes `message` null).
  */
 export function UndoSnackbar({
   message,
   onUndo,
   top = false,
+  actionLabel = 'Annulla',
 }: {
   /** Null: nothing to undo, the pill sinks. */
   message: string | null;
@@ -18,6 +20,8 @@ export function UndoSnackbar({
   onUndo?: () => void;
   /** At the top of the screen: in the page overview the bottom is full of controls. */
   top?: boolean;
+  /** Name of the action of the pill; «Annulla» when the pill undoes a change. */
+  actionLabel?: string;
 }) {
   return (
     <div
@@ -33,7 +37,7 @@ export function UndoSnackbar({
         </Body>
         {onUndo && (
           <Button variant="control" size="md" className="aca-frame-pill" onClick={onUndo}>
-            Annulla
+            {actionLabel}
           </Button>
         )}
       </div>

@@ -10,7 +10,7 @@ export const deviceTexts = {
   // Entry points.
   addDevice: 'Aggiungi un dispositivo',
   addDeviceHint: 'Non lo vedi nell’elenco? Aggiungilo da qui.',
-  noTv: 'Nessun televisore in Home Assistant.',
+  noTv: 'Nessun televisore trovato.',
   entityAppearing: 'Il televisore sta comparendo…',
   entityLate: 'Comparirà tra pochi secondi.',
 
@@ -29,9 +29,9 @@ export const deviceTexts = {
   backToChoice: 'Torna alla scelta del dispositivo',
 
   // Checks and states of the service.
-  checking: 'Controllo Home Assistant…',
+  checking: 'Controllo la casa…',
   featureUnavailable: 'Su questo sistema non è possibile aggiungere dispositivi da qui.',
-  haUnreachable: 'Home Assistant non è raggiungibile. Controlla che sia acceso e riprova tra poco.',
+  haUnreachable: 'La casa non è raggiungibile. Controlla che sia accesa e riprova tra poco.',
   pendingFlow: 'Hai un’aggiunta in sospeso.',
   pendingFlowHint: 'Puoi riprenderla da dove eri arrivato oppure annullarla e ricominciare.',
   conflictFlow: 'Hai già un’aggiunta in corso per questo dispositivo. Continuala oppure annullala.',
@@ -53,7 +53,7 @@ export const deviceTexts = {
   catalogByBrand: 'Scegli la marca',
 
   // Steps of a flow.
-  progressWaiting: 'Attendo Home Assistant…',
+  progressWaiting: 'Attendo la risposta della casa…',
   openMakerPage: 'Apri la pagina del produttore',
   externalWaiting: 'Quando hai finito sul sito del produttore, torna qui: continuo da solo.',
   showPassword: 'Mostra il testo',
@@ -100,6 +100,7 @@ export const deviceTexts = {
   nameLabel: 'Nome del dispositivo',
   nameProposal: 'Televisore',
   roomTitle: 'In quale stanza si trova?',
+  roomLabel: 'Stanza',
   roomNone: 'Nessuna stanza',
   roomNew: 'Nuova stanza',
   roomNewLabel: 'Nome della nuova stanza',
@@ -131,7 +132,7 @@ export const deviceTexts = {
   // Identify and remove.
   removeDevice: 'Rimuovi dispositivo',
   removeAsk:
-    'Il dispositivo sparisce da Home Assistant e da tutti i widget. Per riaverlo dovrai aggiungerlo di nuovo.',
+    'Il dispositivo sparisce dalla casa e da tutti i widget. Per riaverlo dovrai aggiungerlo di nuovo.',
   removeConfirm: 'Rimuovi',
   removeDone: 'Dispositivo rimosso.',
   removeFailed: 'Non sono riuscito a rimuovere il dispositivo. Riprova.',

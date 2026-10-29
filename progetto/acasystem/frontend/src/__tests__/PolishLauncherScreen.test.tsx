@@ -235,7 +235,7 @@ describe('free cells with «+»', () => {
     await renderLauncher();
     expect(latest?.editMode).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: cellLabel(5, 2) }));
-    const sheet = screen.getByRole('dialog', { name: 'Aggiungi alla pagina home' });
+    const sheet = await screen.findByRole('dialog', { name: 'Aggiungi alla pagina home' });
     fireEvent.click(within(sheet).getByRole('button', { name: 'Aggiungi una tessera' }));
     expect(placement('home', 'test_tile_new')).toEqual({ x: 5, y: 2, w: 2, h: 2 });
     expect(screen.getByText('Tessera test_tile_new 2x2')).toBeInTheDocument();

@@ -123,7 +123,7 @@ describe('Widget calendario', () => {
     });
     expect(
       await screen.findByText(
-        'Non riesco a leggere gli eventi da Home Assistant. Riprovo tra poco.'
+        'Non riesco a leggere gli eventi. Riprovo tra poco.'
       )
     ).toBeInTheDocument();
   });

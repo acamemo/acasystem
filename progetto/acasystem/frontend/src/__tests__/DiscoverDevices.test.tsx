@@ -219,7 +219,7 @@ describe('Details di «Trova dispositivi»', () => {
 
   it('mentre legge i registri dice che sta caricando', () => {
     details();
-    expect(screen.getByText('Leggo i dispositivi di Home Assistant…')).toBeInTheDocument();
+    expect(screen.getByText('Cerco i dispositivi della casa…')).toBeInTheDocument();
   });
 
   it('elenca per famiglia sotto «Pronti da aggiungere», senza i dispositivi già in un widget', async () => {
@@ -264,7 +264,7 @@ describe('Details di «Trova dispositivi»', () => {
     details(vi.fn(), vi.fn(), only);
     expect(
       await screen.findByText(
-        'Nessun dispositivo nuovo: quelli di Home Assistant sono già nei widget.'
+        'Nessun dispositivo nuovo: quelli della casa sono già nei widget.'
       )
     ).toBeInTheDocument();
   });
@@ -289,7 +289,7 @@ describe('Details di «Trova dispositivi»', () => {
       )
     );
     expect(
-      await screen.findByText('Non riesco a leggere i dispositivi di Home Assistant.')
+      await screen.findByText('Non riesco a leggere i dispositivi della casa.')
     ).toBeInTheDocument();
   });
 });
@@ -333,7 +333,7 @@ describe('«Aggiungi un widget» con un dispositivo già scelto', () => {
         'true'
       )
     );
-    expect(screen.getByRole('button', { name: /remote lg|remote\.lg/i })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^lg$/ })).toHaveAttribute(
       'aria-pressed',
       'true'
     );

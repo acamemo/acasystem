@@ -69,7 +69,7 @@ export function TodoWidget({ id, settings, size, editMode }: WidgetProps) {
         icon="warning"
         tone="danger"
         title={name}
-        message="Non riesco a leggere la lista da Home Assistant. Riprovo tra poco."
+        message="Non riesco a leggere la lista. Riprovo tra poco."
         compact={compact}
       />
     );

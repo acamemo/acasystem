@@ -198,7 +198,7 @@ describe('LightWidget: richiesto e confermato', () => {
       vi.advanceTimersByTime(10_000);
     });
     expect(knob()).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByText('Nessuna conferma da Home Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Nessuna conferma dal dispositivo')).toBeInTheDocument();
   });
 
   it('+/− chiedono la luminosità con light.turn_on e brightness 0–255', () => {

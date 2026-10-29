@@ -292,7 +292,7 @@ export function LightsPageView({ settings, onSaveSetting }: LightsPageViewProps)
         <ControlIcon name="light" size="lg" />
         <Body>{search ? 'Nessuna luce corrisponde alla ricerca.' : 'Nessuna luce trovata.'}</Body>
         {!search && (
-          <Caption as="p">Le luci di Home Assistant compaiono qui automaticamente.</Caption>
+          <Caption as="p">Le luci della casa compaiono qui automaticamente.</Caption>
         )}
       </div>
     );

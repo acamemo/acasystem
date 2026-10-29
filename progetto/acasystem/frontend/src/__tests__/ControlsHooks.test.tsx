@@ -137,7 +137,7 @@ describe('useRequestedState (richiesto vs confermato)', () => {
       vi.advanceTimersByTime(CONFIRM_TIMEOUT_MS);
     });
     expect(result.current).toMatchObject({ value: 1, status: 'timeout' });
-    expect(result.current.message).toBe('Nessuna conferma da Home Assistant');
+    expect(result.current.message).toBe('Nessuna conferma dal dispositivo');
   });
 
   it('un errore di una richiesta superata non cancella quella nuova', async () => {

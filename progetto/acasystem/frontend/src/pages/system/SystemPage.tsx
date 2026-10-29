@@ -197,13 +197,13 @@ export function SystemPage({ onClose }: SystemPageProps) {
         {
           id: 'sistema-posizione',
           title: 'Posizione',
-          description: 'La posizione della casa in Home Assistant, usata dal meteo.',
+          description: 'La posizione della casa, usata dal meteo.',
           content: (
             <LocationSection
               home={home}
               canEdit={canEditLocation}
               onSave={async ({ lat, lon }) => {
-                if (!meta.conn) throw new Error('Home Assistant non collegato');
+                if (!meta.conn) throw new Error('Casa non collegata');
                 await meta.conn.sendMessagePromise({
                   type: 'config/core/update',
                   latitude: lat,

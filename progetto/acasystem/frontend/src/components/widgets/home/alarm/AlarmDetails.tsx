@@ -33,7 +33,7 @@ export function AlarmDetails({ id, settings, onClose }: WidgetDetailsProps) {
         title={name}
         message={
           entityId
-            ? 'La centrale d’allarme non è più presente in Home Assistant.'
+            ? 'La centrale d’allarme non è più disponibile.'
             : 'Scegli una centrale d’allarme nelle impostazioni del widget.'
         }
         detail={entityId}
@@ -122,7 +122,7 @@ function AlarmDetailsContent({ id, name, entityId, entity, onClose }: AlarmDetai
       </div>
       {command.error && (
         <CommandError>
-          Comando non riuscito. Controlla il PIN e i permessi di Home Assistant.
+          Comando non riuscito. Controlla il PIN e i permessi.
         </CommandError>
       )}
 

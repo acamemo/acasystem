@@ -9,6 +9,7 @@ import {
 } from '../home/alarm/alarmModel';
 import { type AlarmCommand, useAlarmCommand } from '../home/alarm/useAlarmCommand';
 import { requestAlarmAction } from '../home/alarm/alarmRequests';
+import { useControlLabel } from './adaptiveState';
 import type { Capability } from './widgetDesignModel';
 
 const AlarmCommandContext = createContext<AlarmCommand | null>(null);
@@ -38,6 +39,7 @@ export function AlarmControl({
   const { entities } = useWidgetRuntime();
   const entity = entities[entityId]!;
   const command = useContext(AlarmCommandContext);
+  const label = useControlLabel(cap.label);
   if (!command) return null;
   const action = actionByKey(cap.id);
   const run = () => {
@@ -60,7 +62,7 @@ export function AlarmControl({
         variant="control"
         shape="circle"
         size="lg"
-        aria-label={cap.label}
+        aria-label={label}
         disabled={
           disabled ||
           !action ||
@@ -76,7 +78,7 @@ export function AlarmControl({
       <Caption>{cap.label}</Caption>
       {command.error && (
         <Caption role="alert" tone="danger">
-          Home Assistant non ha confermato il comando.
+          Il comando non è stato confermato.
         </Caption>
       )}
     </div>

@@ -326,6 +326,8 @@ describe('the bar of the widget keeps «Annulla» and «Fine» out of reach two 
       onDone={() => undefined}
       onUndo={() => undefined}
       onRemove={() => undefined}
+      onAddWidget={() => undefined}
+      onPages={() => undefined}
       drop={drop}
     />
   );

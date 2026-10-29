@@ -8,6 +8,8 @@ import {
   GESTURE_SEND_INTERVAL_MS,
   useThrottledSender,
 } from '@/components/widgets/controls/shared/useThrottledSender';
+import { formatReading, unitSuffix, unitSuffixBox } from '@/utils/formatting';
+import { useControlLabel } from './adaptiveState';
 import { normalizedValue, type Capability } from './widgetDesignModel';
 
 export type RangeCapability = Extract<Capability, { kind: 'range' }>;
@@ -51,6 +53,7 @@ export function GestureControl({
   saturation,
   throttleIntervalMs,
 }: GestureControlProps) {
+  const knobLabel = useControlLabel(capability.label);
   const gesture = useRef<Gesture | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -97,7 +100,7 @@ export function GestureControl({
         ? at(current, event.clientY)
         : current.value;
     onChange(next);
-    setAnnouncement(cancelled ? 'Regolazione annullata' : `${next} ${capability.unit}`);
+    setAnnouncement(cancelled ? 'Regolazione annullata' : `${formatReading(next)}${unitSuffix(capability.unit)}`);
     if (cancelled) {
       sender.cancel();
       onCancel?.();
@@ -108,7 +111,7 @@ export function GestureControl({
     if (event.currentTarget.hasPointerCapture?.(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
   };
-  const formatted = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(value);
+  const formatted = formatReading(value);
   return (
     <div className="uikw-gesture" data-control-id={capability.id}>
       <Button
@@ -116,13 +119,13 @@ export function GestureControl({
         shape="circle"
         size="lg"
         role="slider"
-        aria-label={capability.label}
+        aria-label={knobLabel}
         aria-valuemin={capability.min}
         aria-valuemax={
           capability.colour === 'hue' ? capability.max - capability.step : capability.max
         }
         aria-valuenow={value}
-        aria-valuetext={`${formatted} ${capability.unit}`}
+        aria-valuetext={`${formatted}${unitSuffix(capability.unit)}`}
         aria-orientation="vertical"
         disabled={disabled}
         data-no-long-press
@@ -180,14 +183,14 @@ export function GestureControl({
           onChange(next);
           sender.cancel();
           onCommitRef.current?.(next, 'end');
-          setAnnouncement(`${next} ${capability.unit}`);
+          setAnnouncement(`${formatReading(next)}${unitSuffix(capability.unit)}`);
         }}
       >
         <Icon name={capability.icon} size="lg" color="var(--uikw-control-colour)" />
       </Button>
       <Display as="span" size="sm">
         <Numeric>{formatted}</Numeric>
-        <span className="uikw-unit"> {capability.unit}</span>
+        <span className="uikw-unit">{unitSuffixBox(capability.unit)}</span>
       </Display>
       <Caption tone="muted">{capability.label}</Caption>
       <span className="sr-only" aria-live="polite">

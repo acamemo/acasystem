@@ -119,14 +119,14 @@ export const COMMAND_LABELS = {
   sent: 'Comando inviato',
   confirmed: 'Aggiornato',
   error: 'Comando non riuscito',
-  timeout: 'Nessuna conferma da Home Assistant',
+  timeout: 'Nessuna conferma dal dispositivo',
 } as const;
 
 export const COMMON_LABELS = {
   unavailable: 'Non disponibile',
   missing: 'Dispositivo non trovato',
   missingHint: 'Scegli di nuovo il dispositivo nelle impostazioni del widget.',
-  unavailableHint: 'Home Assistant non riesce a raggiungere il dispositivo.',
+  unavailableHint: 'Il dispositivo non è raggiungibile.',
   loading: 'Caricamento del dispositivo…',
   details: 'Dettagli',
   on: 'Acceso',

@@ -115,7 +115,7 @@ function MultipleEntities({
       ids={[...new Set([...ids, ...selected])]}
       selected={selected}
       searchable
-      emptyText="Nessuna entità adatta in Home Assistant."
+      emptyText="Nessun dispositivo adatto."
       onToggle={(id) =>
         save(
           setting,
@@ -289,7 +289,7 @@ function RoomScriptRow({
         entities={entities}
         ids={scriptIds}
         noneLabel="Nessuno"
-        emptyText="Nessuno script in Home Assistant."
+        emptyText="Nessuna scena disponibile."
         onChange={onScript}
       />
       <div>
@@ -377,7 +377,7 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
             {...common}
             label="Valuta"
             setting="currency"
-            hint="Vuota usa la valuta configurata in Home Assistant."
+            hint="Vuota usa la valuta della casa."
           />
           <NumberSetting
             {...common}
@@ -460,7 +460,7 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
             options={[
               { value: 'auto', label: 'Automatico' },
               { value: 'go2rtc', label: 'go2rtc' },
-              { value: 'ha', label: 'Home Assistant' },
+              { value: 'ha', label: 'Della casa' },
               { value: 'snapshot', label: 'Istantanee' },
             ]}
             onChange={(value) => save('cameraStreamEngine', value)}

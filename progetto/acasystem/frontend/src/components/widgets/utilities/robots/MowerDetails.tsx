@@ -20,7 +20,7 @@ export function MowerDetails({ id }: WidgetDetailsProps) {
   if (!entity) {
     return (
       <DetailsBody>
-        <Notice icon="warning">Il dispositivo {id} non è stato trovato in Home Assistant.</Notice>
+        <Notice icon="warning">Questo dispositivo non è più disponibile.</Notice>
       </DetailsBody>
     );
   }

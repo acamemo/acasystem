@@ -135,29 +135,29 @@ describe('quality picker', () => {
     render(<Casa3dQualityPicker value="medium" onChange={() => undefined} />);
     const group = screen.getByRole('group', { name: 'Qualità della vista 3D' });
     expect(group).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Light' }).getAttribute('aria-pressed')).toBe(
+    expect(screen.getByRole('button', { name: 'Leggera' }).getAttribute('aria-pressed')).toBe(
       'false'
     );
-    expect(screen.getByRole('button', { name: 'Medium' }).getAttribute('aria-pressed')).toBe(
+    expect(screen.getByRole('button', { name: 'Media' }).getAttribute('aria-pressed')).toBe(
       'true'
     );
-    expect(screen.getByRole('button', { name: 'High' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Alta' })).toBeTruthy();
     expect(screen.getByText(/Più definizione e luci più ricche/)).toBeTruthy();
   });
 
   it('changes the level at once on a device that can bear it', () => {
     const onChange = vi.fn();
     render(<Casa3dQualityPicker value="light" onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'High' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Alta' }));
     expect(onChange).toHaveBeenCalledWith('high');
   });
 
   it('asks before High on a weak device, and Annulla changes nothing', () => {
     const onChange = vi.fn();
     render(<Casa3dQualityPicker value="light" weak onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'High' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Alta' }));
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByText(/High può rallentare questo dispositivo/)).toBeTruthy();
+    expect(screen.getByText(/La qualità Alta può rallentare questo dispositivo/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Annulla' }));
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.queryByText(/High può rallentare/)).toBeNull();
@@ -166,8 +166,8 @@ describe('quality picker', () => {
   it('goes to High on a weak device after the confirmation', () => {
     const onChange = vi.fn();
     render(<Casa3dQualityPicker value="medium" weak onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'High' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Passa a High' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Alta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Passa ad Alta' }));
     expect(onChange).toHaveBeenCalledWith('high');
     expect(screen.queryByText(/High può rallentare/)).toBeNull();
   });
@@ -175,7 +175,7 @@ describe('quality picker', () => {
   it('moves down to Light or Medium without asking, on a weak device too', () => {
     const onChange = vi.fn();
     render(<Casa3dQualityPicker value="high" weak onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Leggera' }));
     expect(onChange).toHaveBeenCalledWith('light');
   });
 
@@ -184,10 +184,10 @@ describe('quality picker', () => {
       <Casa3dQualityPicker
         value="light"
         onChange={() => undefined}
-        note="La vista è tornata a Light."
+        note="La vista è tornata alla qualità Leggera."
       />
     );
-    expect(screen.getByText('La vista è tornata a Light.')).toBeTruthy();
+    expect(screen.getByText('La vista è tornata alla qualità Leggera.')).toBeTruthy();
   });
 });
 

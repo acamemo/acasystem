@@ -144,7 +144,7 @@ function SettingsBody({
           )}
           <SheetSection title="Generali">
             {target.canEditName && (
-              <FormRow label="Nome" hint="Vuoto usa il nome di Home Assistant.">
+              <FormRow label="Nome" hint="Vuoto usa il nome del dispositivo.">
                 {({ labelId, hintId }) => (
                   <Field
                     label="Nome"

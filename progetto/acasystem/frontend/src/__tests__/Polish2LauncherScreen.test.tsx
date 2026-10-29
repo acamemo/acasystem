@@ -219,7 +219,7 @@ describe('focus after a widget added from a cell opens its settings (R-02; selec
     const button = screen.getByRole('button', { name: cellLabel(cell.x, cell.y) });
     act(() => button.focus());
     fireEvent.click(button);
-    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi le attività' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Aggiungi le attività' }));
     // The settings sheet of the new widget opens right away.
     const settings = await screen.findByRole('dialog', { name: 'Impostazioni di todo_card_1' });
     expect(document.activeElement).toBe(document.body);
@@ -295,7 +295,7 @@ describe('a widget just added is shown selected in edit mode (the request of 202
     const button = screen.getByRole('button', { name: cellLabel(6, 3) });
     act(() => button.focus());
     fireEvent.click(button);
-    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi le attività' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Aggiungi le attività' }));
     const settings = await screen.findByRole('dialog', { name: 'Impostazioni di todo_card_1' });
     // Not yet: the sheets come first.
     expect(latest?.editMode).toBe(false);

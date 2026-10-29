@@ -328,11 +328,11 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
       </header>
       {load.status === 'offline' ? (
         <Notice icon="wifi">
-          Le stanze arrivano da Home Assistant: il collegamento non è attivo.
+          Non c’è collegamento con la casa: le stanze non si possono leggere.
         </Notice>
       ) : load.status === 'error' ? (
         <Notice icon="warning" tone="danger">
-          Impossibile leggere le stanze da Home Assistant. Riprova più tardi.
+          Impossibile leggere le stanze. Riprova più tardi.
         </Notice>
       ) : load.status === 'loading' ? (
         <Skeleton variant="list" rows={4} label="Caricamento delle stanze…" />
@@ -340,9 +340,9 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
         <div className="utility-empty">
           <UtilityIcon name="room" size="lg" color="var(--aca-ink-muted)" />
           <Body size="md" tone="ink">
-            Nessuna stanza in Home Assistant.
+            Nessuna stanza trovata.
           </Body>
-          <Caption>Crea le aree in Home Assistant per vederle qui.</Caption>
+          <Caption>Le stanze compaiono qui quando la casa ha delle aree.</Caption>
         </div>
       ) : (
         <>

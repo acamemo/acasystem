@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { SystemGear } from '@/components/system/status-bar/SystemGear';
 import { AppRoutes } from '@/routes/AppRoutes';
 import { SystemLayout } from '@/pages/system/SystemLayout';
@@ -23,6 +23,18 @@ vi.mock('@/pages/system', () => ({
   ),
 }));
 vi.mock('@/pages/connect', () => ({ ConnectPage: () => <p>Collegamento</p> }));
+
+// Sistema is a lazy chunk (REP-20261029-001, step 9): the first render waits for it, the others
+// find it loaded. Warmed up here so the tests below stay synchronous.
+beforeAll(async () => {
+  const { unmount } = render(
+    <MemoryRouter initialEntries={['/sistema']}>
+      <AppRoutes showConnect={false} onConnected={() => undefined} />
+    </MemoryRouter>
+  );
+  await screen.findByRole('heading', { level: 1, name: 'Sistema' });
+  unmount();
+});
 
 describe('Sistema focus, A11Y-4', () => {
   it('focuses the page title on opening and restores the launcher trigger on closing', async () => {

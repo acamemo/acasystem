@@ -55,7 +55,7 @@ export function LockDetails({ id, settings }: WidgetDetailsProps) {
         )}
         {!runtime.conn && !lock.unavailable && (
           <Body size="sm" tone="muted">
-            Serve la connessione a Home Assistant per comandare la serratura.
+            Serve il collegamento con la casa per comandare la serratura.
           </Body>
         )}
         {lock.requiresCode && (

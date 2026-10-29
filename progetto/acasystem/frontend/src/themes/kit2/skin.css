@@ -81,6 +81,54 @@
   --aca-radius-rounded: 12px;
   --aca-radius-card: 24px;
   --aca-font: var(--k2-font);
+
+  /* Accent as text under 24 px (cover weekday, weather condition): ≥ 4.5:1 for every accent. */
+  --k2-accent-text: oklch(from var(--k2-accent) 0.45 calc(c * 0.9) h);
+}
+
+/*
+ * Dark theme: the inks of the Metallo tokens have a fixed lightness of 0.4 / 0.49 made for light
+ * faces (1.8:1 on the dark one). Same hue and chroma factors, lightness raised: ink ≥ 4.5:1,
+ * icon ink ≥ 3:1 on the dark surface and on its raised light layer. The gradients that wrap them
+ * (--aca-ink-selected, --aca-ink-danger) and --aca-focus follow, being declared on the same root.
+ */
+:root[data-theme='dark'] {
+  --aca-orange-ink-icon: oklch(from var(--aca-orange) 0.7 calc(c * 0.75) h);
+  --aca-orange-ink: oklch(from var(--aca-orange) 0.8 calc(c * 0.6) h);
+  --aca-blue-ink-icon: oklch(from var(--aca-blue) 0.7 calc(c * 0.75) h);
+  --aca-blue-ink: oklch(from var(--aca-blue) 0.8 calc(c * 0.6) h);
+  --aca-danger-ink-icon: oklch(from var(--aca-danger) 0.7 calc(c * 0.75) h);
+  --aca-danger-ink: oklch(from var(--aca-danger) 0.8 calc(c * 0.6) h);
+  --k2-accent-text: oklch(from var(--k2-accent) 0.8 calc(c * 0.6) h);
+}
+
+/*
+ * Dark theme: the soft wells (free cells of the launcher grid) keep their white lit lip of the
+ * light theme (50% and 10%), a bright rim on charcoal. Same layers, lip at 14% and edge at 4%
+ * (REP-20261029-001).
+ */
+:root[data-theme='dark'] :is(.aca-well-soft, .aca-m--well-soft) {
+  --aca-well-soft-rest:
+    0.06em 0.09em 0.06em 0 inset rgb(5 5 5 / 18%),
+    -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 4%),
+    0.125em 0.125em 0.15em 0 inset rgb(5 5 5 / 5%),
+    0 0 0.025em 0.25em inset rgb(255 255 255 / 4%), 0 0 0 0 inset rgb(255 255 255 / 0%),
+    -0.06em -0.06em 0.06em 0 inset rgb(255 255 255 / 14%),
+    -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 0%);
+  --aca-well-soft-hover:
+    0.06em 0.09em 0.06em 0 inset rgb(5 5 5 / 24%),
+    -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 8%),
+    0.125em 0.125em 0.15em 0 inset rgb(5 5 5 / 9%),
+    0 0 0.025em 0.25em inset rgb(255 255 255 / 4%), 0 0 0 0 inset rgb(255 255 255 / 0%),
+    -0.06em -0.06em 0.06em 0 inset rgb(255 255 255 / 14%),
+    -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 6%);
+  --aca-well-soft-press:
+    0.06em 0.09em 0.06em 0 inset rgb(5 5 5 / 28%),
+    -0.0125em -0.015em 0.025em 0.0125em inset rgb(5 5 5 / 10%),
+    0.125em 0.125em 0.15em 0 inset rgb(5 5 5 / 11%),
+    0 0 0.025em 0.25em inset rgb(255 255 255 / 4%), 0 0 0 0 inset rgb(255 255 255 / 0%),
+    -0.06em -0.06em 0.06em 0 inset rgb(255 255 255 / 14%),
+    -0.0375em -0.06em 0.1em 0.05em inset rgb(5 5 5 / 8%);
 }
 
 /* ── 2. Behaviours ─────────────────────────────────────────────────────── */
@@ -138,6 +186,30 @@
     > .aca-m__outer,
   .aca-launcher-widget :is(.aca-fx-press, .aca-m--press) > .aca-m__outer {
     will-change: auto;
+  }
+
+  /*
+   * Transitions of the material (REP-20261029-001, step 9). The Metallo list animates five
+   * properties of the face; of those, `filter` (the Metallo hover brightness) is always `none`
+   * here, and `background-image` swaps one gradient for another, which does not interpolate and
+   * so never ran. Dropped from the list: the look is the same and the face keeps no idle
+   * transition on them. The shadow, the clip of the knobs and the transform stay as they were.
+   */
+  .aca-m__face {
+    transition:
+      box-shadow var(--aca-release) var(--aca-ease-out),
+      clip-path 200ms var(--aca-ease-out),
+      transform 200ms var(--aca-ease-out);
+  }
+  /*
+   * A control that becomes unavailable changes at once, outside the launcher too (Sistema, the
+   * sheets, the bars): the launcher already did it (launcher.css, REP-20261012-003), because a
+   * redraw of the soft shadows per frame is not on the compositor. The press and the release of
+   * an available control keep their timing.
+   */
+  .aca-m:is([disabled], [aria-disabled='true']),
+  .aca-m:is([disabled], [aria-disabled='true']) :is(.aca-m__outer, .aca-m__face, .aca-m__content) {
+    transition: none;
   }
 
   /* Hover (mouse): the accent ink instead of a brighter face. */

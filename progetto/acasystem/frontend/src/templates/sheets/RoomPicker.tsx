@@ -86,7 +86,7 @@ export function RoomPicker({
   };
 
   if (!conn) {
-    return <Notice>Collega Home Assistant per vedere le sue aree.</Notice>;
+    return <Notice>Collega la casa per vedere le sue aree.</Notice>;
   }
   if (load.status === 'loading') {
     return <Skeleton rows={3} label="Caricamento delle stanze…" />;
@@ -94,7 +94,7 @@ export function RoomPicker({
   if (load.status === 'error') {
     return (
       <Notice tone="danger">
-        Impossibile caricare le aree di Home Assistant. Riprova più tardi.
+        Impossibile caricare le aree. Riprova più tardi.
       </Notice>
     );
   }
@@ -116,11 +116,11 @@ export function RoomPicker({
   return (
     <div className="aca-pick" role="group" aria-labelledby={labelId}>
       <Body as="span" size="sm" id={labelId} className="aca-form-row__label">
-        Aree di Home Assistant
+        Aree della casa
       </Body>
       {load.areas.length === 0 ? (
         <Caption as="p" className="aca-pick__empty">
-          Nessuna area trovata in Home Assistant.
+          Nessuna area trovata.
         </Caption>
       ) : visible.length === 0 ? (
         <Caption as="p" className="aca-pick__empty">

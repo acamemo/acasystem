@@ -40,7 +40,7 @@ export function WeatherDetails({ settings }: WidgetDetailsProps) {
         title="Meteo"
         message={
           entityId
-            ? 'La fonte meteo non è più presente in Home Assistant.'
+            ? 'La fonte meteo non è più disponibile.'
             : 'Scegli una fonte meteo nelle impostazioni del widget.'
         }
         detail={entityId}

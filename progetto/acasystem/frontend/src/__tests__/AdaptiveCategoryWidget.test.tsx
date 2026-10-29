@@ -65,7 +65,8 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa A - Controlli singoli)', () => 
 
     expect(screen.getByRole('slider', { name: 'Luminosità della luce' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Accensione luce' })).toBeInTheDocument();
-    expect(container.querySelector('.uikwa-chart')).toBeInTheDocument();
+    // The brightness is a command the user gave: no chart, no slot for one.
+    expect(container.querySelector('.aca-adaptive-widget__chart-wrap')).not.toBeInTheDocument();
 
     const toggleBtn = screen.getByRole('button', { name: 'Accensione luce' });
     fireEvent.click(toggleBtn);
@@ -97,7 +98,10 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa A - Controlli singoli)', () => 
 
     expect(container.querySelector('.aca-adaptive-widget')).toHaveAttribute('data-tier', 'compact');
     expect(container.querySelector('.aca-adaptive-widget__chart-wrap')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Accensione luce' })).toBeInTheDocument();
+    // The smallest card prints no name: the control carries it, so cards can be told apart.
+    expect(
+      screen.getByRole('button', { name: 'Accensione luce: Luce Salotto' })
+    ).toBeInTheDocument();
   });
 
   it('renders a climate widget with target temperature and dispatches set_temperature', () => {
@@ -229,8 +233,10 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa A - Controlli singoli)', () => 
       </WidgetRuntimeProvider>
     );
 
-    expect(screen.getByText('19.4')).toBeInTheDocument();
-    expect(container.querySelector('.uikwa-chart')).toBeInTheDocument();
+    expect(screen.getByText('19,4')).toBeInTheDocument();
+    // A measured reading keeps its slot; with no history yet nothing is drawn in it.
+    expect(container.querySelector('.aca-adaptive-widget__chart-wrap')).toBeInTheDocument();
+    expect(container.querySelector('.uikwa-chart')).not.toBeInTheDocument();
   });
 });
 

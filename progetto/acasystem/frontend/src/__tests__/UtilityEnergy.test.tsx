@@ -212,7 +212,7 @@ describe('costi energetici', () => {
       }
     );
     expect(
-      screen.getByText('Storico non disponibile: Home Assistant non è collegato.')
+      screen.getByText('Storico non disponibile: manca il collegamento con la casa.')
     ).toBeInTheDocument();
   });
 });
@@ -298,5 +298,43 @@ describe('Nordpool', () => {
     expect(explorer.getAttribute('aria-valuetext')).toMatch(/^Oggi 15:00–16:00: 0,20 €$/);
     fireEvent.click(screen.getByRole('switch'));
     expect(saveCardSetting).toHaveBeenCalledWith('home::nordpool_card_1', 'showWithSupport', true);
+  });
+
+  it('dettagli: un dito trascina la fascia, e un gesto annullato dal browser la rimette a posto', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+    renderWithRuntime(
+      <NordpoolDetails
+        id="nordpool_card_1"
+        settingsKey="home::nordpool_card_1"
+        settings={{ nordpoolId: 'sensor.nordpool' }}
+        onClose={() => {}}
+      />,
+      { entities: fixtureEntities([nordpool]) }
+    );
+    const explorer = screen.getByRole('slider', { name: 'Fascia oraria' });
+    expect(explorer).toHaveAttribute('aria-valuenow', '14');
+    // jsdom has no layout: 24 slots across 240 px, 10 px each.
+    explorer.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 240, bottom: 100, width: 240, height: 100 }) as DOMRect;
+    const touch = { pointerType: 'touch', pointerId: 7, buttons: 0 };
+    // A touch move with no scrub started does nothing.
+    fireEvent.pointerMove(explorer, { ...touch, clientX: 15 });
+    expect(explorer).toHaveAttribute('aria-valuenow', '14');
+    // The finger goes down on slot 3 (buttons is 0 or 1 depending on the device: it is not used).
+    fireEvent.pointerDown(explorer, { ...touch, clientX: 35 });
+    expect(explorer).toHaveAttribute('aria-valuenow', '3');
+    fireEvent.pointerMove(explorer, { ...touch, clientX: 85 });
+    expect(explorer).toHaveAttribute('aria-valuenow', '8');
+    // The browser takes the gesture: the choice is dropped and later moves are ignored.
+    fireEvent.pointerCancel(explorer, touch);
+    expect(explorer).toHaveAttribute('aria-valuenow', '14');
+    fireEvent.pointerMove(explorer, { ...touch, clientX: 125 });
+    expect(explorer).toHaveAttribute('aria-valuenow', '14');
+    // A finger lifted normally keeps the slot it reached.
+    fireEvent.pointerDown(explorer, { ...touch, clientX: 55 });
+    fireEvent.pointerUp(explorer, touch);
+    fireEvent.pointerMove(explorer, { ...touch, clientX: 125 });
+    expect(explorer).toHaveAttribute('aria-valuenow', '5');
   });
 });

@@ -203,7 +203,10 @@ describe('Percorso operativo dei venti tipi', () => {
           ),
         })
       );
-      expect(screen.getByText('Dispositivo non disponibile')).toBeInTheDocument();
+      // A room has no entity of its own to be unreachable: it keeps the plain notice.
+      expect(
+        screen.getByText(type === 'room' ? 'Dispositivo non disponibile' : 'Non raggiungibile')
+      ).toBeInTheDocument();
       expect(view.runtime.callService).not.toHaveBeenCalled();
       await act(async () => undefined);
     }
@@ -309,7 +312,7 @@ describe('Percorso operativo dei venti tipi', () => {
         />
       </WidgetRuntimeProvider>
     );
-    expect(screen.getAllByText(/configura una cartella privata autorizzata/)).toHaveLength(2);
+    expect(screen.getAllByText(/serve una cartella privata autorizzata/)).toHaveLength(2);
     expect(screen.queryByRole('button', { name: 'Scatta una foto' })).not.toBeInTheDocument();
     await act(async () => undefined);
   });
@@ -355,7 +358,7 @@ describe('Percorso operativo dei venti tipi', () => {
             ? expect(
                 screen.queryByRole('textbox', { name: 'Nome attività' })
               ).not.toBeInTheDocument()
-            : expect(screen.getByRole('alert')).toHaveTextContent('non ha confermato'),
+            : expect(screen.getByRole('alert')).toHaveTextContent('non è stata confermata'),
         { timeout: 2000 }
       );
       expect(callService).toHaveBeenCalledWith(

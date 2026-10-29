@@ -413,6 +413,8 @@ describe('the bar of the widget', () => {
         onDone={() => undefined}
         onUndo={() => undefined}
         onRemove={() => undefined}
+        onAddWidget={() => undefined}
+        onPages={() => undefined}
       />
     );
     const widgetBar = document.querySelector('.aca-widget-actions') as HTMLElement;
@@ -430,6 +432,8 @@ describe('the bar of the widget', () => {
         onDone={() => undefined}
         onUndo={() => undefined}
         onRemove={() => undefined}
+        onAddWidget={() => undefined}
+        onPages={() => undefined}
       />
     );
     const widgetBar = document.querySelector('.aca-widget-actions') as HTMLElement;

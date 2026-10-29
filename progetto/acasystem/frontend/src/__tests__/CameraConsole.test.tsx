@@ -54,7 +54,7 @@ describe('Camera console', () => {
     expect(main.getByRole('region', { name: 'Ingresso' })).toBeInTheDocument();
     expect(document.querySelector('.aca-console-column .aca-media-feed')).not.toBeNull();
     expect(side.queryByRole('region', { name: 'Ingresso' })).toBeNull();
-    expect(side.getByText(CAMERA)).toBeInTheDocument();
+    expect(side.queryByText(CAMERA)).toBeNull();
     expect(side.getByRole('button', { name: 'Aggiorna' })).toBeInTheDocument();
   });
 

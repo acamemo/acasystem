@@ -1,4 +1,4 @@
-import { Body, Button, Caption, IconText, Numeric, Segmented } from '@/components/primitives';
+import { Body, Button, IconText, Numeric, Segmented } from '@/components/primitives';
 import { MediaIcon } from '../../icons';
 import { attrString } from '../../model/entity';
 import { testi } from '../../testi';
@@ -22,13 +22,12 @@ export function CameraMissing({ cam }: { cam: CameraDetailsState }) {
   );
 }
 
-/** The camera id, its warnings and the time of the last refresh. */
+/** The camera's warnings and the time of the last refresh (never its entity id). */
 export function CameraInfoRow({ cam }: { cam: CameraDetailsState }) {
   const { camera, entity, motionState, refreshKey } = cam;
   return (
     <div className="aca-media-row aca-media-row--between">
       <div className="aca-media-text aca-media-grow">
-        <Caption translate="no">{camera.cameraId}</Caption>
         {isOffline(entity) && (
           <IconText icon="warning" iconTone="danger" iconSize="sm" tone="danger">
             {testi.videocameraSpenta}

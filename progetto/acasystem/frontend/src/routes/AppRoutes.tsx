@@ -1,12 +1,12 @@
-import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/primitives';
 import { CASA_PLAN_ROUTE, CASA_ROUTE, casaOpenState, isCasaPath } from '@/casa3d/casaNav';
 import { CASA3D_OPENER_ATTRIBUTE, Casa3dHouseContext } from '@/casa3d/houseContext';
 import { ConnectPage } from '@/pages/connect';
 import { LauncherPage } from '@/pages/launcher/LauncherPage';
-import { SystemPage } from '@/pages/system';
 import { afterNextFrame } from '@/utils/launcher/afterFrame';
+import { whenIdle } from '@/utils/launcher/whenIdle';
 
 /**
  * Hash routes of the app: the launcher (default), the Sistema page, the house (Casa 3D, ADR-0014 R1:
@@ -21,6 +21,11 @@ export const ROUTES = {
   // Development only (ISSUE-091): the address is not even in the production bundle.
   casa3dProva: import.meta.env.DEV ? '/casa3d-prova' : '',
 } as const;
+
+// The Sistema page (REP-20261029-001, step 9): its own chunk, asked for when the browser is idle
+// after the first paint, so opening the gear finds it loaded.
+const loadSystemPage = () => import('@/pages/system');
+const SystemPage = lazy(() => loadSystemPage().then((m) => ({ default: m.SystemPage })));
 
 // The house at full screen (ADR-0014, R1): the launcher's bundle carries only the route.
 const CasaScreen = lazy(() => import('@/casa3d/CasaScreen'));
@@ -121,6 +126,11 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
     []
   );
 
+  useEffect(() => {
+    if (showConnect) return undefined;
+    return whenIdle(() => void loadSystemPage().catch(() => undefined), 4000);
+  }, [showConnect]);
+
   if (showConnect) {
     return (
       <div className="aca-app-root">
@@ -141,7 +151,9 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
   }
 
   const overlay = inSystem ? (
-    <SystemPage onClose={closeSystem} />
+    <Suspense fallback={<Skeleton variant="panel" rows={2} label="Caricamento del sistema…" />}>
+      <SystemPage onClose={closeSystem} />
+    </Suspense>
   ) : inCasa ? (
     <Suspense fallback={<Skeleton variant="panel" rows={2} label="Caricamento della casa…" />}>
       <CasaScreen onOpenSystem={openSystem} />

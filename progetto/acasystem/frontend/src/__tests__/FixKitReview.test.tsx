@@ -60,7 +60,10 @@ describe('RESP-3: area di tocco di 44 px senza cambiare l’aspetto', () => {
   });
 
   it('non cambia le dimensioni dei materiali: niente minimi di 44 px su socket o faccia', () => {
-    for (const css of [material, components]) {
+    // Unica eccezione (REP-20261029-001, passo 6): la voce del Segmented è un box di 44 px reale.
+    const segmentedItem = /\.aca-segmented \.aca-segmented__item\s*\{[^}]*\}/g;
+    expect(components.match(segmentedItem)?.join('')).toMatch(/min-block-size:\s*2\.75rem/);
+    for (const css of [material, components.replace(segmentedItem, '')]) {
       expect(css).not.toMatch(/min-(?:width|height|block-size|inline-size):\s*(?:44px|2\.75rem)/);
       expect(css).not.toMatch(/max\(44px/);
     }

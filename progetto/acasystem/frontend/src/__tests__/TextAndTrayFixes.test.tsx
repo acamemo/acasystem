@@ -2,16 +2,13 @@
  * REP-20261019-002: two defects of REP-20261019-001 found on the Tab M11, fixed as proposed.
  * - ISSUE-075: the text of a card that says what is missing («Nessun dispositivo associato alla
  *   stanza») was cut in the middle of a word, with no ellipsis, in a narrow tile.
- * - ISSUE-077: the row of the widget tray stayed at its far end after a change of category and
- *   when the tray opened again, so its first tiles seemed to be gone.
+ * - ISSUE-077 (the row of the widget tray, fixed then): the tray is gone, so is its test.
  * jsdom has no layout and no scroll snap: the CSS is read as text and the order of the calls
  * that move the row is checked (the measures in the browser are in the report).
  */
-import { fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WidgetTray, type TrayItem } from '@/components/system/edit/WidgetTray';
+import { render, screen } from '@testing-library/react';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { CardMessage } from '@/components/widgets/utilities/shared/UtilityCard';
-import { WIDGET_CATEGORIES } from '@/templates/sheets/catalog';
 
 describe('ISSUE-075: a long text of a narrow card truncates', () => {
   let css = '';
@@ -78,102 +75,5 @@ describe('ISSUE-075: a long text of a narrow card truncates', () => {
     expect(query![1]).toMatch(/line-clamp:\s*none;/);
     // It comes after the two-line rule of the same specificity, so it wins.
     expect(css.indexOf(query![0])).toBeGreaterThan(css.indexOf('-webkit-line-clamp: 2;'));
-  });
-});
-
-describe('ISSUE-077: the row of the tray starts at its first tile', () => {
-  const items: TrayItem[] = [
-    { type: 'light', label: 'Luce', icon: 'light', category: 'comandi', size: { w: 1, h: 1 } },
-    {
-      type: 'climate',
-      label: 'Clima',
-      icon: 'thermostat',
-      category: 'clima',
-      size: { w: 2, h: 2 },
-    },
-    {
-      type: 'lock',
-      label: 'Serratura',
-      icon: 'lock',
-      category: 'sicurezza',
-      size: { w: 2, h: 1 },
-    },
-  ];
-
-  /** Writes to scrollLeft of the row, with the tiles that were in it at the time. */
-  const writes: Array<{ value: number; tiles: number }> = [];
-  let position = 0;
-  let seen = 0;
-  /** What the scroll snap does when the tiles are replaced: it settles at the far end. */
-  const SNAPPED = 1516;
-
-  beforeEach(() => {
-    writes.length = 0;
-    position = 0;
-    seen = 3;
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn(() => ({ matches: true }))
-    );
-    Object.defineProperty(HTMLElement.prototype, 'scrollLeft', {
-      configurable: true,
-      get() {
-        const row = this as HTMLElement;
-        if (!row.classList.contains('aca-widget-tray__row')) return 0;
-        const tiles = row.querySelectorAll('[data-tray-type]').length;
-        // The layout that follows a change of tiles: the browser snaps to the tile that stays.
-        if (tiles !== seen) position = SNAPPED;
-        seen = tiles;
-        return position;
-      },
-      set(value: number) {
-        const row = this as HTMLElement;
-        if (!row.classList.contains('aca-widget-tray__row')) return;
-        position = value;
-        writes.push({ value, tiles: row.querySelectorAll('[data-tray-type]').length });
-      },
-    });
-  });
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    Reflect.deleteProperty(HTMLElement.prototype, 'scrollLeft');
-  });
-
-  const tray = (open: boolean) => (
-    <WidgetTray
-      open={open}
-      items={items}
-      categories={WIDGET_CATEGORIES}
-      onTilePointerDown={vi.fn()}
-      onPick={vi.fn()}
-      onClose={vi.fn()}
-    />
-  );
-
-  it('after a change of category the row goes back to the start with the new tiles in place', () => {
-    render(tray(true));
-    writes.length = 0;
-    position = 1696;
-    fireEvent.click(screen.getByRole('button', { name: 'Clima e meteo' }));
-    // The scroll snap settles on the tile that stays once the tiles are replaced: the last word is
-    // the one after the render, when the row holds the tiles of the category (one, not three).
-    expect(writes.at(-1)).toEqual({ value: 0, tiles: 1 });
-    expect(position).toBe(0);
-
-    position = 1516;
-    fireEvent.click(screen.getByRole('button', { name: 'Tutti' }));
-    expect(writes.at(-1)).toEqual({ value: 0, tiles: 3 });
-    expect(position).toBe(0);
-  });
-
-  it('when the tray opens again the row is at the start', () => {
-    const { rerender } = render(tray(true));
-    position = 1696;
-    rerender(tray(false));
-    // A closed tray keeps what it had: it is out of sight, and nothing is written for it.
-    expect(position).toBe(1696);
-    rerender(tray(true));
-    expect(position).toBe(0);
-    expect(writes.at(-1)?.value).toBe(0);
   });
 });

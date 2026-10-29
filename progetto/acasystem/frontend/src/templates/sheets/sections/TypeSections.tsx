@@ -330,7 +330,7 @@ export function CarSection({
     <SheetSection title="Auto" description="Associa le entità che il widget mostra.">
       <FormRow
         label="Immagine dell’auto"
-        hint="Metti l’immagine nella cartella www di Home Assistant e usa /local/nome.png."
+        hint="Metti l’immagine nella cartella www del server e usa /local/nome.png."
       >
         {({ labelId, hintId }) => (
           <Field

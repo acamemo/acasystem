@@ -211,9 +211,18 @@
   }
   .aca-segmented__content {
     gap: 0.3em;
+    flex-wrap: wrap;
   }
   .aca-segmented .aca-segmented__item {
     --aca-pad: 0.7em 1.4em;
+    /* A real 44 px box, not only the transparent target around it. */
+    min-block-size: 2.75rem;
+  }
+  /* A phone: less side padding, so «Chiaro · Scuro · Automatico» fits the 310 px of a section. */
+  @media (max-width: 479px) {
+    .aca-segmented .aca-segmented__item {
+      --aca-pad: 0.7em 0.9em;
+    }
   }
   .aca-segmented .aca-segmented__item[aria-pressed='false'] {
     background-color: transparent;

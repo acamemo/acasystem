@@ -215,7 +215,7 @@ export function CostDetails({ settings }: WidgetDetailsProps) {
             style={{ height: '12rem' }}
           />
         ) : fetched.status === 'offline' ? (
-          <Notice icon="wifi">Storico non disponibile: Home Assistant non è collegato.</Notice>
+          <Notice icon="wifi">Storico non disponibile: manca il collegamento con la casa.</Notice>
         ) : fetched.status === 'error' ? (
           <Notice icon="warning" tone="danger">
             Impossibile caricare lo storico. Riprova più tardi.

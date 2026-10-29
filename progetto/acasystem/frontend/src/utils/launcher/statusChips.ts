@@ -24,6 +24,7 @@ import {
   normalizeDecimalPlaces,
 } from '@/utils/units';
 import { toDate } from '@/validators/guards';
+import { formatReading } from '@/utils/formatting';
 
 /** Names of the kit icons a chip may use (a subset of the Icon primitive). */
 export type StatusChipIcon =
@@ -334,13 +335,13 @@ export function stateWithUnit(
         fallback: state,
         ...(decimals === null ? {} : { decimals }),
       });
-      return `${value} ${displayUnit}`;
+      return `${formatReading(value)} ${displayUnit}`;
     }
   }
   const value =
     decimals !== null && Number.isFinite(numeric)
-      ? formatUnitValue(numeric, { fallback: state, decimals })
-      : state;
+      ? formatReading(formatUnitValue(numeric, { fallback: state, decimals }))
+      : formatReading(state);
   if (!unit) return value;
   const lower = state.toLowerCase();
   const lowerUnit = unit.toLowerCase();

@@ -16,9 +16,23 @@ import { isSonosMediaEntity } from '@/utils/mediaEntityClassification';
 export type AddWidgetFlow =
   'entities' | 'calendar' | 'weather' | 'tv' | 'cost' | 'nordpool' | 'simple' | 'spacer' | 'room';
 
+export type AddWidgetGroup = 'find' | 'devices' | 'info' | 'layout';
+
+/** Headings of the groups of the grid, in the order shown. «find» has none. */
+export const ADD_WIDGET_GROUPS: readonly {
+  group: Exclude<AddWidgetGroup, 'find'>;
+  label: string;
+}[] = [
+  { group: 'devices', label: 'Dispositivi' },
+  { group: 'info', label: 'Informazioni' },
+  { group: 'layout', label: 'Layout' },
+];
+
 export interface AddWidgetType {
   /** Legacy addCardType, passed to useAddCard. */
   type: string;
+  /** Heading of the grid the tile sits under; 'find' is «Trova dispositivi», above the groups. */
+  group: AddWidgetGroup;
   label: string;
   /** Kit icon of the tile: one per type, so that every tile is recognisable. */
   icon: IconName;
@@ -26,6 +40,8 @@ export interface AddWidgetType {
   /** Card id and settings like the ones the type creates: used to find its definition. */
   sample: { id: string; settings: CardSettings };
   hint?: string;
+  /** One line under the label on the tile, where two types would otherwise look alike. */
+  tileHint?: string;
   /** Text of the plural item, for «Aggiungi 3 …». */
   unit?: [singular: string, plural: string];
 }
@@ -33,6 +49,7 @@ export interface AddWidgetType {
 export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   {
     type: 'rileva',
+    group: 'find',
     label: 'Trova dispositivi',
     icon: 'wifi',
     flow: 'simple',
@@ -41,6 +58,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'sensor',
+    group: 'devices',
     label: 'Sensori e comandi',
     icon: 'activity',
     flow: 'entities',
@@ -49,6 +67,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'light',
+    group: 'devices',
     label: 'Luci',
     icon: 'light',
     flow: 'entities',
@@ -56,6 +75,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'lock',
+    group: 'devices',
     label: 'Serrature',
     icon: 'lock',
     flow: 'entities',
@@ -63,6 +83,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'vacuum',
+    group: 'devices',
     label: 'Aspirapolvere',
     icon: 'vacuum',
     flow: 'entities',
@@ -70,6 +91,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'mower',
+    group: 'devices',
     label: 'Tagliaerba',
     icon: 'mower',
     flow: 'entities',
@@ -77,6 +99,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'fan',
+    group: 'devices',
     label: 'Ventilatori',
     icon: 'fan',
     flow: 'entities',
@@ -84,6 +107,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'camera',
+    group: 'devices',
     label: 'Videocamere (beta)',
     icon: 'camera',
     flow: 'entities',
@@ -91,6 +115,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'climate',
+    group: 'devices',
     label: 'Clima',
     icon: 'thermostat',
     flow: 'entities',
@@ -98,6 +123,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'cover',
+    group: 'devices',
     label: 'Tapparelle',
     icon: 'blinds',
     flow: 'entities',
@@ -105,6 +131,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'alarm',
+    group: 'devices',
     label: 'Allarme',
     icon: 'shield',
     flow: 'entities',
@@ -112,6 +139,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'car',
+    group: 'devices',
     label: 'Auto',
     icon: 'car',
     flow: 'simple',
@@ -120,6 +148,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'androidtv',
+    group: 'devices',
     label: 'Android TV',
     icon: 'tv',
     flow: 'tv',
@@ -127,6 +156,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'appletv',
+    group: 'devices',
     label: 'Apple TV',
     icon: 'play',
     flow: 'tv',
@@ -134,6 +164,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'cost',
+    group: 'info',
     label: 'Costi',
     icon: 'wallet',
     flow: 'cost',
@@ -145,6 +176,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'media',
+    group: 'devices',
     label: 'Multimedia',
     icon: 'music',
     flow: 'entities',
@@ -153,6 +185,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'sonos',
+    group: 'devices',
     label: 'Sonos',
     icon: 'speaker',
     flow: 'entities',
@@ -161,13 +194,16 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'weather',
+    group: 'info',
     label: 'Meteo',
     icon: 'weather',
     flow: 'weather',
     sample: { id: 'weather_temp_esempio', settings: { weatherId: 'weather.esempio' } },
+    tileHint: 'Da una fonte scelta',
   },
   {
     type: 'calendar',
+    group: 'info',
     label: 'Calendario',
     icon: 'calendar',
     flow: 'calendar',
@@ -175,6 +211,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'todo',
+    group: 'info',
     label: 'Attività',
     icon: 'task',
     flow: 'simple',
@@ -183,6 +220,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'nordpool',
+    group: 'info',
     label: 'Nordpool',
     icon: 'energy',
     flow: 'nordpool',
@@ -190,14 +228,16 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'room',
+    group: 'info',
     label: 'Stanze',
     icon: 'room',
     flow: 'room',
     sample: { id: 'room_card_esempio', settings: { areaId: 'esempio' } },
-    hint: 'Ogni stanza nasce da un’area di Home Assistant con le sue entità.',
+    hint: 'Ogni stanza raccoglie i dispositivi di un’area della casa.',
   },
   {
     type: 'cover_clock',
+    group: 'info',
     label: 'Orologio',
     icon: 'clock',
     flow: 'simple',
@@ -206,6 +246,7 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'cover_calendar',
+    group: 'info',
     label: 'Data',
     icon: 'text',
     flow: 'simple',
@@ -214,14 +255,17 @@ export const ADD_WIDGET_TYPES: readonly AddWidgetType[] = [
   },
   {
     type: 'cover_weather',
+    group: 'info',
     label: 'Meteo di casa',
     icon: 'sun',
     flow: 'simple',
     sample: { id: 'cover_weather_esempio', settings: {} },
     hint: 'Il meteo della posizione di casa, come in copertina.',
+    tileHint: 'Della posizione di casa',
   },
   {
     type: 'spacer',
+    group: 'layout',
     label: 'Separatore',
     icon: 'minus',
     flow: 'spacer',

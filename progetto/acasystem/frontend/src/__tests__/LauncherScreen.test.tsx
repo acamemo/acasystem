@@ -1195,8 +1195,9 @@ describe('page overview (REP-20261007-028)', () => {
     const widget = document.querySelector<HTMLElement>('[data-widget-id="test_tile_a"]')!;
     expect(widget).toHaveClass('is-selected');
     expect(widget.querySelector('.aca-resize-frame')).not.toBeNull();
-    // Only the bar of the widget (remove, «Annulla», «Fine»): no «+ Widget» / «Pagine» bar, no tray
-    // (the request of 2026-10-23); the widgets do not shake (LagLayers: no wiggle in the sheet).
+    // Only the bar of the widget (remove, «Aggiungi», «Pagine», «Annulla», «Fine»): no bar of its
+    // own for «+ Widget» / «Pagine», no tray (REP-20261029-001, step 5); the widgets do not shake
+    // (LagLayers: no wiggle in the sheet).
     expect(document.querySelector('.aca-edit-toolbar')).toBeNull();
     expect(document.querySelector('.aca-widget-tray')).toBeNull();
     const bar = screen.getByRole('toolbar', { name: 'Modifica Tessera A' });
@@ -1204,7 +1205,7 @@ describe('page overview (REP-20261007-028)', () => {
       within(bar)
         .getAllByRole('button')
         .map((button) => button.getAttribute('aria-label') ?? button.textContent)
-    ).toEqual(['Rimuovi Tessera A', 'Annulla', 'Fine']);
+    ).toEqual(['Rimuovi Tessera A', 'Aggiungi', 'Pagine', 'Annulla', 'Fine']);
     // Released without moving: the widget is back in its place, not carried.
     expect(document.querySelector('.aca-drag-ghost')).toBeNull();
   });
@@ -3167,13 +3168,31 @@ describe('simplified editing of the widgets (REP-20261008-001)', () => {
     }
   });
 
-  it('edit mode has no «+ Widget» button and no tray of widget types: widgets are added from the «+» cells (2026-10-23)', async () => {
+  it('edit mode offers «Aggiungi» and «Pagine» with their words in the bar of the widget, and no tray (REP-20261029-001, step 5)', async () => {
     await openHome();
     fireEvent.click(screen.getByRole('button', { name: 'Modifica la disposizione' }));
-    expect(document.querySelector('[data-launcher-add]')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Aggiungi widget' })).toBeNull();
+    const bar = screen.getByRole('toolbar', { name: /^Modifica / });
+    const add = within(bar).getByRole('button', { name: 'Aggiungi' });
+    const pages = within(bar).getByRole('button', { name: 'Pagine' });
+    // Visible words, reachable by Tab: plain buttons that are neither disabled nor out of order.
+    expect(add).toHaveTextContent('Aggiungi');
+    expect(pages).toHaveTextContent('Pagine');
+    expect(add).not.toBeDisabled();
+    expect(add.tabIndex).toBe(0);
+    expect(pages.tabIndex).toBe(0);
     expect(document.querySelector('.aca-widget-tray')).toBeNull();
     expect(document.querySelector('[data-tray-type]')).toBeNull();
+    // «Pagine» opens the pages view; the widget bar gives way to the bar of the pages.
+    fireEvent.click(pages);
+    await waitFor(() => expect(latest?.overview).toBe(true));
+  });
+
+  it('«Aggiungi» of the bar of the widget opens the sheet of the widget types (REP-20261029-001, step 5)', async () => {
+    await openHome();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica la disposizione' }));
+    const bar = screen.getByRole('toolbar', { name: /^Modifica / });
+    fireEvent.click(within(bar).getByRole('button', { name: 'Aggiungi' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('the same widget id on another page is another widget: its «Annulla» starts disabled', async () => {

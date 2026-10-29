@@ -538,11 +538,16 @@ function mediaCapabilities(entity: EntityLike | null | undefined, isSonos = fals
 
   const title = String(attrs.media_title ?? '');
   const artist = String(attrs.media_artist ?? '');
-  const trackLabel = title ? (artist ? `${artist} - ${title}` : title) : 'Nessun brano';
+  const source = String(attrs.source ?? '');
+  const trackLabel = title
+    ? artist
+      ? `${artist} - ${title}`
+      : title
+    : source || 'Niente in riproduzione';
 
   caps.push({
     id: 'track',
-    label: 'Brano',
+    label: title ? 'Brano' : 'Riproduzione',
     icon: isSonos ? 'speaker' : 'music',
     initial: trackLabel,
     frequent: true,
@@ -686,11 +691,15 @@ function tvCapabilities(entity: EntityLike | null | undefined, targetType: strin
 
   const title = String(attrs.media_title ?? '');
   const app = String(attrs.app_name ?? '');
-  const contentLabel = title ? (app ? `${app}: ${title}` : title) : app || 'Nessun contenuto';
+  const contentLabel = title
+    ? app
+      ? `${app}: ${title}`
+      : title
+    : app || 'Niente in riproduzione';
 
   caps.push({
     id: 'programme',
-    label: 'Contenuto',
+    label: title ? 'Contenuto' : 'Riproduzione',
     icon: targetType === 'appletv' ? 'play' : 'tv',
     initial: contentLabel,
     frequent: true,

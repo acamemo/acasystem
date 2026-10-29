@@ -15,7 +15,7 @@ export const testi = {
   caricamentoLettore: 'Caricamento del lettore…',
   caricamentoVideocamera: 'Caricamento della videocamera…',
   dispositivoNonTrovato: 'Dispositivo non trovato',
-  dispositivoNonTrovatoNota: 'Non è più in Home Assistant: controlla il nome o rimuovi il widget.',
+  dispositivoNonTrovatoNota: 'Non è più disponibile: controlla il nome o rimuovi il widget.',
   dispositivoNonConfigurato: 'Dispositivo non configurato',
   dispositivoNonConfiguratoNota: 'Scegli il dispositivo nelle impostazioni del widget.',
   gruppoVuoto: 'Nessun lettore nel gruppo',
@@ -74,9 +74,9 @@ export const testi = {
   lettoriSonos: 'Lettori Sonos',
   nessunLettore: 'Nessun lettore trovato',
   nessunLettoreSonos: 'Nessun lettore Sonos trovato',
-  nessunLettoreNota: 'Aggiungi un lettore multimediale in Home Assistant per vederlo qui.',
+  nessunLettoreNota: 'Aggiungi un lettore multimediale per vederlo qui.',
   nessunLettoreSonosNota:
-    'Collega l’integrazione Sonos in Home Assistant per vedere qui i diffusori.',
+    'Collega Sonos per vedere qui i diffusori.',
   raggruppaTutti: 'Raggruppa tutti',
   separaTutti: 'Separa tutti',
   aggiungiAlGruppo: (nome: string) => `Aggiungi ${nome} al gruppo`,
@@ -84,7 +84,7 @@ export const testi = {
   collegato: 'Collegato al gruppo',
   aggiungiSonos: 'Aggiungi un lettore Sonos',
   nessunSonosDisponibile: 'Nessun altro lettore Sonos disponibile',
-  nessunLettoreDisponibile: 'Nessun lettore disponibile in Home Assistant.',
+  nessunLettoreDisponibile: 'Nessun lettore disponibile.',
   mostraTutti: 'Mostra tutti',
   nessunLettoreScelto: 'In questa pagina non è scelto nessun lettore.',
   togli: 'Togli',
@@ -112,7 +112,7 @@ export const testi = {
   fonteSconosciuta: 'Fonte sconosciuta',
 
   comandoNonRiuscito: 'Comando non riuscito. Riprova.',
-  comandoInviato: 'Comando inviato a Home Assistant',
+  comandoInviato: 'Comando inviato',
 
   telecomando: 'Telecomando',
   su: 'Su',

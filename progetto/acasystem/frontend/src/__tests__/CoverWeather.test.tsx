@@ -29,7 +29,7 @@ describe('meteo della copertina (REP-20261007-019)', () => {
         <CoverWeather />
       </WidgetRuntimeProvider>
     );
-    expect(screen.getByRole('group', { name: 'Meteo Casa: Soleggiato, 21°C' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Meteo Casa: Soleggiato, 21 °C' })).toBeInTheDocument();
   });
 
   it('non compare senza fonte meteo o fuori dal launcher', () => {

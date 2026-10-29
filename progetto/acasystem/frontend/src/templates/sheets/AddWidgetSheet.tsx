@@ -5,6 +5,7 @@ import { useAddCard } from '@/hooks/useAddCard';
 import { usePages } from '@/hooks/context';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import {
+  ADD_WIDGET_GROUPS,
   ADD_WIDGET_TYPES,
   candidateEntityIds,
   temperatureSensorIds,
@@ -128,6 +129,36 @@ export function AddWidgetSheet({
     setRooms(EMPTY_ROOMS);
     setFinderHandled(false);
     setStep('details');
+  };
+
+  // The accessible name of a tile is its label alone; the hint is its description.
+  const renderTile = (item: AddWidgetType) => {
+    const labelId = `aca-tile-${item.type}`;
+    const hintId = `${labelId}-hint`;
+    return (
+      <Button
+        key={item.type}
+        variant="control"
+        shape="card"
+        size="sm"
+        data-widget-type={item.type}
+        className="aca-m--fill aca-type-tile"
+        contentClassName="aca-type-tile__content"
+        aria-labelledby={labelId}
+        aria-describedby={item.tileHint ? hintId : undefined}
+        onClick={() => chooseType(item)}
+      >
+        <Icon name={iconOf(item)} size="lg" />
+        <Body as="span" size="sm" id={labelId}>
+          {labelOf(item)}
+        </Body>
+        {item.tileHint && (
+          <Caption as="span" className="aca-type-tile__hint" id={hintId}>
+            {item.tileHint}
+          </Caption>
+        )}
+      </Button>
+    );
   };
 
   // Opened from a tile of the tray: straight to the details of that type. Declared after
@@ -336,30 +367,36 @@ export function AddWidgetSheet({
         step === 'type'
           ? 'Scegli che cosa mostrare nella pagina.'
           : showFinder
-            ? 'Aggiungi il dispositivo a Home Assistant, poi collegalo al widget.'
+            ? 'Aggiungi prima il dispositivo alla casa, poi collegalo al widget.'
             : 'Scegli che cosa mostra il widget.'
       }
       footer={footer}
       className="aca-add-widget"
     >
       {mounted && step === 'type' && (
-        <div ref={typesRef} role="group" aria-label="Tipi di widget" className="aca-type-grid">
-          {ADD_WIDGET_TYPES.map((item) => (
-            <Button
-              key={item.type}
-              variant="control"
-              shape="card"
-              size="sm"
-              data-widget-type={item.type}
-              className="aca-m--fill aca-type-tile"
-              contentClassName="aca-type-tile__content"
-              onClick={() => chooseType(item)}
+        <div ref={typesRef} role="group" aria-label="Tipi di widget" className="aca-type-groups">
+          {/* «Trova dispositivi» stays first, above the groups. */}
+          <div className="aca-type-grid">
+            {ADD_WIDGET_TYPES.filter((item) => item.group === 'find').map(renderTile)}
+          </div>
+          {ADD_WIDGET_GROUPS.map(({ group, label }) => (
+            <section
+              key={group}
+              className="aca-type-group"
+              aria-labelledby={`aca-type-group-${group}`}
             >
-              <Icon name={iconOf(item)} size="lg" />
-              <Body as="span" size="sm">
-                {labelOf(item)}
-              </Body>
-            </Button>
+              <Heading
+                level={3}
+                size="sm"
+                id={`aca-type-group-${group}`}
+                className="aca-type-group__title"
+              >
+                {label}
+              </Heading>
+              <div className="aca-type-grid">
+                {ADD_WIDGET_TYPES.filter((item) => item.group === group).map(renderTile)}
+              </div>
+            </section>
           ))}
         </div>
       )}
@@ -408,7 +445,7 @@ export function AddWidgetSheet({
               label="Cerca"
               icon="search"
               type="search"
-              placeholder={flow === 'room' ? 'Cerca una stanza' : 'Cerca per nome o id'}
+              placeholder={flow === 'room' ? 'Cerca una stanza' : 'Cerca per nome'}
               value={addCard.searchTerm}
               onChange={(event) => addCard.setSearchTerm(event.target.value)}
             />
@@ -485,7 +522,7 @@ function DetailsBody({
           onToggle={toggleMany}
           query={query}
           loading={loading}
-          emptyText="Nessun calendario trovato in Home Assistant."
+          emptyText="Nessun calendario trovato."
         />
       );
     case 'weather':
@@ -501,7 +538,7 @@ function DetailsBody({
             }
             query={query}
             loading={loading}
-            emptyText="Nessuna entità meteo trovata in Home Assistant."
+            emptyText="Nessuna fonte meteo trovata."
           />
           <EntityPicker
             label="Sensore di temperatura, facoltativo"

@@ -76,7 +76,7 @@ export function CategoryBindingSection({
     <SheetSection title="Dispositivo">
       {!entitiesLoaded && (
         <Body size="sm" tone="muted">
-          Attendo i dispositivi di Home Assistant.
+          Attendo i dispositivi della casa.
         </Body>
       )}
       {canAddDevice && entitiesLoaded && ids.length === 0 ? (

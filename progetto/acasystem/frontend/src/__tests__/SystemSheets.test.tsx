@@ -125,6 +125,29 @@ describe('AddWidgetSheet', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('raggruppa i tipi sotto Dispositivi, Informazioni e Layout, con Trova dispositivi sopra', () => {
+    renderAdd();
+    const grid = screen.getByRole('group', { name: 'Tipi di widget' });
+    const headings = within(grid)
+      .getAllByRole('heading', { level: 3 })
+      .map((heading) => heading.textContent);
+    expect(headings).toEqual(['Dispositivi', 'Informazioni', 'Layout']);
+    const find = within(grid).getByRole('button', { name: 'Trova dispositivi' });
+    const firstHeading = within(grid).getByRole('heading', { name: 'Dispositivi' });
+    expect(
+      find.compareDocumentPosition(firstHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    const info = within(grid).getByRole('region', { name: 'Informazioni' });
+    expect(within(info).getByRole('button', { name: 'Meteo di casa' })).toHaveTextContent(
+      'Della posizione di casa'
+    );
+    expect(within(info).getByRole('button', { name: 'Meteo' })).toHaveTextContent(
+      'Da una fonte scelta'
+    );
+    const layout = within(grid).getByRole('region', { name: 'Layout' });
+    expect(within(layout).getByRole('button', { name: 'Separatore' })).toBeInTheDocument();
+  });
+
   it('crea un widget clima come il legacy e lo passa al launcher alla misura predefinita', () => {
     const { onAdded, onClose } = renderAdd();
     fireEvent.click(screen.getByRole('button', { name: 'Clima' }));
@@ -387,7 +410,7 @@ describe('WidgetSettingsSheet', () => {
     const save = renderSettings('todo_card_1', {});
     expect(screen.queryByText(/non sono ancora modificabili/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Nessuna' }));
-    fireEvent.click(screen.getByRole('button', { name: /Attività ufficio.*todo.ufficio/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Attività ufficio/ }));
     expect(save).toHaveBeenCalledWith('home::todo_card_1', 'todoEntityId', 'todo.ufficio');
     fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Nessuna' }));
     fireEvent.click(screen.getByRole('button', { name: 'Nessuna' }));
@@ -398,7 +421,7 @@ describe('WidgetSettingsSheet', () => {
     const save = renderSettings('calendar_card_1', {
       'home::calendar_card_1': { calendars: ['calendar.assente'] },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Calendario ufficio.*calendar.ufficio/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Calendario ufficio/ }));
     expect(save).toHaveBeenCalledWith('home::calendar_card_1', 'calendars', [
       'calendar.assente',
       'calendar.ufficio',
@@ -435,7 +458,7 @@ describe('WidgetSettingsSheet', () => {
 
   it('Android TV: seleziona lettori collegati usando linkedMediaPlayers', () => {
     const save = renderSettings('androidtv_card_1', {});
-    fireEvent.click(screen.getByRole('button', { name: /Salotto.*media_player.salotto/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Salotto/ }));
     expect(save).toHaveBeenCalledWith('home::androidtv_card_1', 'linkedMediaPlayers', [
       'media_player.salotto',
     ]);
@@ -444,7 +467,7 @@ describe('WidgetSettingsSheet', () => {
   it('Aspirapolvere: ripristina le associazioni dei sensori con le chiavi persistenti', () => {
     const save = renderSettings('vacuum.ufficio', {});
     fireEvent.click(screen.getByRole('button', { name: 'Batteria: Automatico' }));
-    fireEvent.click(screen.getByRole('button', { name: /Temperatura.*sensor.temperatura/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Temperatura/ }));
     expect(save).toHaveBeenCalledWith(
       'home::vacuum.ufficio',
       'batterySensorId',
@@ -456,7 +479,7 @@ describe('WidgetSettingsSheet', () => {
     const save = renderSettings('vacuum.ufficio', {});
     fireEvent.click(screen.getByRole('button', { name: 'Intensità del lavaggio: Automatico' }));
     expect(screen.queryByRole('button', { name: /Lavaggio numerico/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Lavaggio.*input_select.lavaggio/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Lavaggio/ }));
     expect(save).toHaveBeenCalledWith(
       'home::vacuum.ufficio',
       'mopIntensityControlEntityId',

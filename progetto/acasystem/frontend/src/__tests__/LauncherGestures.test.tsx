@@ -585,6 +585,8 @@ describe('WidgetActionBar: the trash as drop target (U3, U5)', () => {
         onDone={vi.fn()}
         onUndo={vi.fn()}
         onRemove={vi.fn()}
+        onAddWidget={vi.fn()}
+        onPages={vi.fn()}
         drop={drop}
       />
     );
@@ -606,6 +608,8 @@ describe('WidgetActionBar: the trash as drop target (U3, U5)', () => {
         onDone={vi.fn()}
         onUndo={vi.fn()}
         onRemove={vi.fn()}
+        onAddWidget={vi.fn()}
+        onPages={vi.fn()}
         drop="armed"
       />
     );

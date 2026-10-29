@@ -67,6 +67,8 @@ export function entityName(
   const friendly = stringAttr(entity, 'friendly_name');
   if (friendly) return friendly;
   const id = fallbackId ?? entity?.entity_id ?? cardId;
+  // A card id that is no entity id (a category preset) says nothing to the person.
+  if (!entity && (!id.includes('.') || id.startsWith('preset.'))) return 'Widget';
   return (id.split('.')[1] ?? id).replace(/_/g, ' ');
 }
 
