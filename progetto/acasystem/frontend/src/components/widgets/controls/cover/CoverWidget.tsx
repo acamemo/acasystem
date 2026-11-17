@@ -1,3 +1,5 @@
+import { ProductCoverWidget } from '../../home/cover/ProductCoverWidget';
+import { coverProductBinding } from '../../home/cover/productCoverModel';
 import {
   Button,
   Caption,
@@ -70,7 +72,7 @@ export function CoverButtons({
 }
 
 /** Cover widget (legacy CoverCard): position, state and open/stop/close. */
-export function CoverWidget({ id, settings, size, editMode }: WidgetProps) {
+function LegacyCoverWidget({ id, settings, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
   const entityId = settingString(settings, 'coverId') || undefined;
   const cover = useCoverControl(entityId, editMode);
@@ -183,4 +185,8 @@ export function CoverWidget({ id, settings, size, editMode }: WidgetProps) {
       )}
     </WidgetContent>
   );
+}
+
+export function CoverWidget(props: WidgetProps) {
+  return coverProductBinding(props.settings) ? <ProductCoverWidget {...props} /> : <LegacyCoverWidget {...props} />;
 }

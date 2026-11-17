@@ -7,7 +7,7 @@ import {
   readControlPreference,
 } from '@/components/widgets/adaptive/operationalProfile';
 import { useServiceCatalog } from '@/components/widgets/adaptive/useServiceCatalog';
-import { categoryEntityId } from '../categoryPages';
+import { categoryEntityId } from '@/domain/launcher/categoryPages';
 import { SheetSection, ToggleRow, FormRow } from '../parts/Form';
 import { EntitySelect } from '../parts/EntityPicker';
 import { DEVICE_SCOPE_NOTE } from '@/utils/launcher/deviceMemory';
@@ -64,9 +64,11 @@ function SavedText({
 export function AdaptiveSettingsSection({
   settings,
   save,
+  showControlPreferences = true,
 }: {
   settings: CardSettings;
   save: (key: string, value: unknown) => void;
+  showControlPreferences?: boolean;
 }) {
   const runtime = useWidgetRuntime();
   const services = useServiceCatalog();
@@ -153,7 +155,7 @@ export function AdaptiveSettingsSection({
           </FormRow>
         </SheetSection>
       )}
-      <SheetSection title="Controlli nella scheda">
+      {showControlPreferences && <SheetSection title="Controlli nella scheda">
         <Body size="sm" tone="muted">
           Scegli visibilità e ordine. I dettagli conservano tutte le funzioni supportate.
         </Body>
@@ -205,7 +207,7 @@ export function AdaptiveSettingsSection({
         {profile.unavailable.map((message) => (
           <Caption key={message}>{message}</Caption>
         ))}
-      </SheetSection>
+      </SheetSection>}
       {(bindings[type]?.length || type === 'camera' || type === 'sonos') && (
         <SheetSection title="Funzioni aggiuntive" description={`${DEVICE_SCOPE_NOTE}.`}>
           {bindings[type]?.map(([key, label, domains]) => (

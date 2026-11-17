@@ -1,3 +1,5 @@
+import { ProductLockDetails } from '../../home/lock/ProductLockDetails';
+import { lockProductBinding } from '../../home/lock/productLockModel';
 import { useId, useState } from 'react';
 import { Body, Field } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
@@ -14,7 +16,7 @@ import { useLockControl } from './useLockControl';
  * Sheet content of a lock: state, the three commands with the code field when the lock asks
  * for one (instead of the legacy window.prompt), then activity and attributes.
  */
-export function LockDetails({ id, settings }: WidgetDetailsProps) {
+function LegacyLockDetails({ id, settings }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const entityId = lockEntityId(id, settings);
   const lock = useLockControl(entityId, false);
@@ -88,4 +90,8 @@ export function LockDetails({ id, settings }: WidgetDetailsProps) {
       <EntityInfoSection entity={lock.entity} />
     </div>
   );
+}
+
+export function LockDetails(props: WidgetDetailsProps) {
+  return lockProductBinding(props.settings) ? <ProductLockDetails {...props} /> : <LegacyLockDetails {...props} />;
 }

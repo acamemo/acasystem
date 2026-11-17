@@ -8,6 +8,9 @@ import type { BundleCache, ConfigStore, HaHttp, HttpClient, ReleaseManifest } fr
 
 /** Plugin nativo del guscio (android/app/src/main/java/it/acasystem/client/AcaShellPlugin.java). */
 export interface AcaShellPlugin {
+  scanPairingCode(): Promise<{ value: string }>;
+  savePairing(options: { value: string }): Promise<void>;
+  pairingState(): Promise<{ configurationPending: boolean }>;
   listBundles(): Promise<{ manifests: string[] }>;
   installBundle(options: { manifest: string; archive: string }): Promise<void>;
   loadConfig(): Promise<{ value: string | null }>;

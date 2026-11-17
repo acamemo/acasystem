@@ -1,0 +1,51 @@
+/* Reset minimo, nello stesso layer del preflight dell'app. I componenti prevalgono. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--aca-font);
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+  }
+}
+
+/* Le superfici ACA scorrono con touch, rotella e tastiera senza mostrare i binari. */
+:root,
+:root * {
+  scrollbar-width: none;
+}
+
+:root::-webkit-scrollbar,
+:root ::-webkit-scrollbar {
+  display: none;
+}
+
+/* In contrasto elevato resta disponibile l'indicatore di scorrimento del sistema. */
+@media (forced-colors: active) {
+  :root,
+  :root * {
+    scrollbar-width: auto;
+  }
+
+  :root::-webkit-scrollbar,
+  :root ::-webkit-scrollbar {
+    display: block;
+  }
+}

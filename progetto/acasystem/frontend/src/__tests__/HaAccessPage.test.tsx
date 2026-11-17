@@ -12,9 +12,9 @@ import { CREDENTIALS_NOTE } from '@/pages/connect/ConnectPage';
 
 /**
  * REP-20261007-002, corsia accesso: pagina di accesso Acasystem con utente e password, codice a
- * due fattori, errori in linea, focus e tastiera, token a lunga durata sotto «Altre opzioni».
- * Reali: ConnectPage, LoginForm, TokenForm, useHaLogin, haLogin, haSession, oauthStorage,
- * ConfigContext. Finti: Home Assistant dietro il proxy (fetch) e il WebSocket del token.
+ * due fattori, errori in linea, focus e tastiera. L’opzione token manuale è ritirata.
+ * Reali: ConnectPage, LoginForm, useHaLogin, haLogin, haSession, oauthStorage,
+ * ConfigContext. Finto: Home Assistant dietro il proxy (fetch).
  */
 
 const mocks = vi.hoisted(() => ({ createConnection: vi.fn() }));
@@ -145,7 +145,7 @@ function renderPage({
   return { onConnected };
 }
 
-const usernameField = () => screen.getByLabelText('Utente');
+const usernameField = () => screen.getByLabelText('Nome utente');
 const passwordField = () => screen.getByLabelText('Password');
 
 function fillCredentials(username = USER, password = PASSWORD) {
@@ -184,10 +184,27 @@ afterEach(() => {
 });
 
 describe('pagina di accesso', () => {
+  it('apre direttamente l’accesso e alterna la registrazione nello stesso pannello', async () => {
+    installFakeHa();
+    renderPage();
+    expect(screen.getByRole('form', { name: 'Accesso' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Accedi al mio account' })).not.toBeInTheDocument();
+    expect(screen.getByText('Non hai un account?')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    expect(screen.getByRole('heading', { name: 'Crea account' })).toBeVisible();
+    expect(screen.getByRole('form', { name: 'Crea un nuovo utente della casa' })).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: /email/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Nome utente')).toBeVisible();
+    expect(screen.queryByLabelText('Il tuo nome')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Altre opzioni' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Il tuo account della casa è gestito/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Accedi' }));
+    expect(screen.getByRole('form', { name: 'Accesso' })).toBeVisible();
+  });
   it('chiede utente e password, senza indirizzi, con il focus sul primo campo', () => {
     installFakeHa();
     renderPage();
-    expect(screen.getByRole('heading', { level: 1, name: 'Accedi ad Acasystem' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1, name: 'Accedi' })).toBeVisible();
     expect(usernameField()).toHaveFocus();
     expect(usernameField()).toHaveAttribute('autocomplete', 'username');
     expect(passwordField()).toHaveAttribute('type', 'password');
@@ -222,7 +239,7 @@ describe('pagina di accesso', () => {
       passwordField(),
       screen.getByRole('button', { name: 'Mostra password' }),
       screen.getByRole('button', { name: 'Accedi' }),
-      screen.getByRole('button', { name: 'Altre opzioni' }),
+      screen.getByRole('button', { name: 'Crea account' }),
     ];
     for (let index = 1; index < order.length; index += 1) {
       expect(
@@ -368,7 +385,7 @@ describe('codice a due fattori', () => {
     await screen.findByLabelText('Codice di verifica');
     const back = screen.getByRole('button', { name: 'Indietro' });
     fireEvent.click(back);
-    expect(await screen.findByLabelText('Utente')).toHaveValue(USER);
+    expect(await screen.findByLabelText('Nome utente')).toHaveValue(USER);
     expect(passwordField()).toHaveValue('');
     // The click on «Indietro» does not submit the credentials step that replaces it: in a
     // browser the click ends after React re-renders, so the pressed button must not become
@@ -387,78 +404,19 @@ describe('codice a due fattori', () => {
   });
 });
 
-describe('altre opzioni: token a lunga durata', () => {
-  const openOptions = () => {
-    const toggle = screen.getByRole('button', { name: 'Altre opzioni' });
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-  };
-
-  it('verifica il token attraverso il proxy e lo salva per il kiosk', async () => {
-    installFakeHa();
-    const close = vi.fn();
-    mocks.createConnection.mockResolvedValueOnce({ close });
+describe('accesso personale senza token manuale', () => {
+  it('non presenta alternative token né elimina le credenziali legacy alla sola apertura', () => {
+    const ha = installFakeHa();
+    localStorage.setItem('ha_token', KIOSK_TOKEN);
+    localStorage.setItem('ha_auth_method', 'token');
     const { onConnected } = renderPage();
-    openOptions();
-    const field = screen.getByLabelText('Token di accesso a lunga durata');
-    expect(field).toHaveAttribute('type', 'password');
-    expect(
-      screen.getByText(
-        'Il token resta salvato in questo browser e arriva a Home Assistant attraverso il server Acasystem, che lo usa anche per riconoscere l’utente. Non viene registrato nei log.'
-      )
-    ).toBeVisible();
-    fireEvent.change(field, { target: { value: KIOSK_TOKEN } });
-    fireEvent.click(screen.getByRole('button', { name: 'Collega con il token' }));
-    await waitFor(() => expect(onConnected).toHaveBeenCalledOnce());
-
-    const options = mocks.createConnection.mock.calls[0]?.[0] as {
-      auth: { wsUrl: string; accessToken: string };
-    };
-    expect(options.auth.wsUrl).toBe(`ws://${window.location.host}/ha/api/websocket`);
-    expect(close).toHaveBeenCalled();
+    expect(screen.getByRole('form', { name: 'Accesso' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Altre opzioni' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Token di accesso a lunga durata')).not.toBeInTheDocument();
     expect(localStorage.getItem('ha_token')).toBe(KIOSK_TOKEN);
     expect(localStorage.getItem('ha_auth_method')).toBe('token');
-  });
-
-  it('spiega un token rifiutato senza salvarlo', async () => {
-    installFakeHa();
-    mocks.createConnection.mockRejectedValueOnce(2);
-    const { onConnected } = renderPage();
-    openOptions();
-    fireEvent.change(screen.getByLabelText('Token di accesso a lunga durata'), {
-      target: { value: KIOSK_TOKEN },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Collega con il token' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      /^Home Assistant ha rifiutato il token\./
-    );
+    expect(ha.calls).toHaveLength(0);
     expect(onConnected).not.toHaveBeenCalled();
-    expect(allStored()).not.toContain(KIOSK_TOKEN);
-  });
-
-  it('distingue il server non configurato da Home Assistant che non risponde', async () => {
-    installFakeHa({ fail: { status: 503, body: { code: 'HA_URL_NOT_CONFIGURED' } } });
-    mocks.createConnection.mockRejectedValueOnce(1);
-    renderPage();
-    openOptions();
-    fireEvent.change(screen.getByLabelText('Token di accesso a lunga durata'), {
-      target: { value: KIOSK_TOKEN },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Collega con il token' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      /^Il server Acasystem non sa ancora dove si trova Home Assistant/
-    );
-  });
-
-  it('chiede il token quando manca', () => {
-    installFakeHa();
-    renderPage();
-    openOptions();
-    fireEvent.click(screen.getByRole('button', { name: 'Collega con il token' }));
-    expect(screen.getByText('Incolla il token di accesso.')).toBeVisible();
-    expect(screen.getByLabelText('Token di accesso a lunga durata')).toHaveFocus();
-    expect(mocks.createConnection).not.toHaveBeenCalled();
   });
 });
 

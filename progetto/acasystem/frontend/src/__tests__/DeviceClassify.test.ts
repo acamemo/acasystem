@@ -64,13 +64,13 @@ describe('classificatore dei dispositivi', () => {
     expect(found?.family).toBe('media');
   });
 
-  it('riconosce il Sonos dagli attributi anche con un’altra integrazione', () => {
+  it('non attribuisce Sonos a un lettore generico dal solo nome', () => {
     const [found] = classify(
       [device('d1', 'Camera')],
       [registered('media_player.camera', 'd1', 'upnp')],
       [fixtureEntity('media_player.camera', 'idle', { friendly_name: 'Sonos Camera' })]
     );
-    expect(found?.family).toBe('sonos');
+    expect(found?.family).toBe('media');
   });
 
   it.each([
@@ -80,7 +80,7 @@ describe('classificatore dei dispositivi', () => {
       registered('switch.presa', 'd1', 'shelly', { original_device_class: 'outlet' }),
       'switch.presa',
       'plug',
-      'sensor',
+      'plug',
     ],
     ['termostato', registered('climate.zona', 'd1', 'tado'), 'climate.zona', 'climate', 'climate'],
     [
@@ -143,7 +143,7 @@ describe('classificatore dei dispositivi', () => {
       expect(types.has(widgetType)).toBe(true);
   });
 
-  it('una presa senza device_class outlet, o un sensore di altro tipo, non è un dispositivo', () => {
+  it('riconosce un interruttore senza device_class e una misura di pressione per dispositivo', () => {
     const found = classify(
       [device('d1', 'Interruttore'), device('d2', 'Pressione')],
       [
@@ -152,7 +152,10 @@ describe('classificatore dei dispositivi', () => {
       ],
       [fixtureEntity('switch.luce', 'on'), fixtureEntity('sensor.pressione', '1012')]
     );
-    expect(found).toEqual([]);
+    expect(found).toMatchObject([
+      { deviceId: 'd1', family: 'plug', widgetType: 'plug', entityIds: ['switch.luce'] },
+      { deviceId: 'd2', family: 'sensor', widgetType: 'sensor', entityIds: ['sensor.pressione'] },
+    ]);
   });
 
   it('esclude i dispositivi di servizio', () => {

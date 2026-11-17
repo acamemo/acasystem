@@ -7,7 +7,7 @@ File generato da `tools/rinomina.mjs`: non modificarlo a mano.
 - Base: progetto di terzi con licenza MIT, revisione `1383a14200c2c96d676ff3fda8b8d87b709089fc` (v1.20.2, 2026-10-19).
 - Archivio scaricato da codeload.github.com: SHA-256 `8841c84f1b72673317dda9958afbcf0628bac2661ccd50a18ab48a9a38f33a02`.
 - Copia verbatim: `upstream/` (205 file; impronte in `upstream.sha256`, controllate a ogni esecuzione dello script).
-- Copia di lavoro: `src/` (188 file generati da 193 sorgenti) e `lang/en.json`.
+- Copia di lavoro: `src/` (189 file generati da 193 sorgenti) e `lang/en.json`.
 - Avvisi di copyright e licenze: `NOTICE`, `LICENSE-MIT-Mastershort`, `LICENSE-BSD3-lit`, `LICENSE-MIT-three`.
 
 ## Come si usa
@@ -40,6 +40,7 @@ Non sono copiati affatto (nemmeno in `upstream/`): le altre 15 lingue di `fronte
 | File | Motivo |
 |---|---|
 | `main.ts` | Punto d'ingresso provvisorio: registra la vista 3D e il pannello stanza (niente pannello, scheda e font del progetto originale). |
+| `styles.ts` | UI Shadow DOM collegata ai token condivisi ACA per colori, font, raggi e superfici; valori precedenti come ripiego senza host ACA, materiali della scena 3D invariati (U42). |
 
 ## 2b. File aggiunti da overrides/
 
@@ -51,6 +52,7 @@ Non sono copiati affatto (nemmeno in `upstream/`): le altre 15 lingue di `fronte
 | `viewer/quality.ts` | Livelli di qualità Light, Medium e High con i loro parametri, rapporto pixel, distanza minima fra due fotogrammi e nomi usati dal viaggio nel tempo (T5). Dati e funzioni pure, senza three.js. |
 | `viewer/quality.test.ts` | Test di quality.ts: livelli, nomi sconosciuti, rapporto pixel, regola che distanzia i fotogrammi in Light a 60, 90 e 120 Hz (T5). |
 | `ask.test.ts` | Comandi (T7): gli elementi della vista non chiamano confirm(); un dispositivo «chiedi prima» passa all'host come callService(..., { ask: true }). |
+| `styles-bridge.test.ts` | Contratto del design condiviso: i riferimenti ACA esistono nella fonte canonica e l'assenza dei token conserva gli stili standalone precedenti (U42). |
 
 ## 3. Patch mirate
 
@@ -250,5 +252,5 @@ Dettaglio per file:
 - Qualità (T5): tre livelli Light, Medium e High (`viewer/quality.ts`, file aggiunto); il livello lo sceglie sempre l'host e si parte da Light su ogni dispositivo (`isLowEnd` è tolto). Light: rapporto pixel 1, niente antialias, preferenza di potenza bassa, fotogrammi distanziati di almeno 24 ms mentre qualcosa si muove solo su schermi da 75 Hz in su (frequenza misurata con i fotogrammi dello schermo: a 60 Hz nessun fotogramma è saltato; soglia 21 ms sui tempi dei callback, `displayPeriodMeter`), più le riduzioni già presenti del livello «tablet» dell'originale (luce a celle da 0,5 m, niente terreno, ombre, aloni, coni, meteo, timer a 66 ms). Medium: rapporto pixel fino a 1,25, niente antialias. High: fino a 2, antialias. `setQuality` libera il contesto vecchio prima di crearne uno nuovo e non cambia durante un gesto; `webglcontextlost` e `webglcontextrestored` sono gestiti (evento `context-state` all'host; al ripristino basta un fotogramma, non si ricostruisce la geometria). **Non fatto, da misurare sul tablet:** distanza di disegno (`far`) ridotta, niente esterni in Light, altri piani solo come contorno, fotogrammi con meno chiamate di disegno (geometrie unite o istanze), rapporto pixel 0,85 o 0,75, `powerPreference` come unica leva. Le texture da canvas 2D (`CanvasTexture`: 8x32 dell'avvolgibile in Light, più 1024x1024, 768x512 e 64x64 sopra Light) sono caricate con `texSubImage2D`: sul renderer software del PC è l'origine dei quattro avvisi «GPU stall due to ReadPixels»; non cambiate.
 - I titoli e le altre stringhe in tedesco e inglese di `voice/mic-probe.ts` e le parole chiave dei comandi vocali restano nelle lingue di origine.
 - Le immagini si caricano ancora da qualunque indirizzo http(s) indicato nei dati (`model.ts`, immagini degli schermi, `entity_picture`): è dato dell'utente, non una chiamata del prodotto; per `entity_picture` l'adattatore (T3) lascia passare solo percorsi sotto `/ha` e indirizzi della stessa origine (toglie gli altri e usa `entity_picture_local` come ripiego); gli indirizzi delle immagini degli schermi e degli sfondi nei dati del piano sono rifiutati dal validatore del server (T6: ammessi solo l'id di un'immagine salvata o `camera:<entità>`, ogni altro indirizzo dà 400), ma il codice copiato (`pictureUrl` in `view3d.ts`) accetta ancora un indirizzo http(s) nelle immagini degli schermi di un piano che non passa dal server (per esempio quello d'esempio).
-- Il look (token, ombre, font, bersagli da 44 px, `ha-icon`, `confirm()`) e le patch dell'editor per il tablet sono T9 e T10.
+- U42 collega i token e i controlli condivisi del CSS Lit al design ACA (override styles.ts), conservando i ripieghi standalone; non cambia i materiali della scena 3D, le geometrie o il layout del visore. I bersagli da 44 px, `ha-icon`, `confirm()` e le patch dell'editor per il tablet restano T9 e T10.
 - I test di alerts, markers e presence verificano testi tradotti: la lingua di prova e le attese sono passate dal tedesco all'italiano (patch della sezione 3 sui rispettivi file di test).

@@ -1,3 +1,5 @@
+import { ProductFanDetails } from '../../home/fan/ProductFanDetails';
+import { fanProductBinding } from '../../home/fan/productFanModel';
 import {
   Body,
   Button,
@@ -26,7 +28,7 @@ import { useFanControl } from './useFanControl';
 type Direction = 'forward' | 'reverse';
 
 /** Sheet content of a fan (legacy GenericFanModal): power, oscillation, speed, direction, preset. */
-export function FanDetails({ id }: WidgetDetailsProps) {
+function LegacyFanDetails({ id }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const fan = useFanControl(id, false);
   const name = entityName(runtime, id, fan.entity);
@@ -164,4 +166,8 @@ export function FanDetails({ id }: WidgetDetailsProps) {
       )}
     </div>
   );
+}
+
+export function FanDetails(props: WidgetDetailsProps) {
+  return fanProductBinding(props.settings) ? <ProductFanDetails {...props} /> : <LegacyFanDetails {...props} />;
 }

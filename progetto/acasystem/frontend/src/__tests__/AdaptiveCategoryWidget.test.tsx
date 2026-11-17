@@ -238,6 +238,69 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa A - Controlli singoli)', () => 
     expect(container.querySelector('.aca-adaptive-widget__chart-wrap')).toBeInTheDocument();
     expect(container.querySelector('.uikwa-chart')).not.toBeInTheDocument();
   });
+
+  it('sceglie il periodo con il menu ACA e conserva preferenza, tastiera e annullamento', () => {
+    const saveCardSetting = vi.fn();
+    const callService = vi.fn();
+    const runtime = {
+      ...createFixtureRuntime(),
+      entities: {
+        'sensor.temperatura_esterna': fixtureEntity('sensor.temperatura_esterna', '19.4'),
+      },
+      saveCardSetting,
+      callService,
+    };
+    const widget = (hours: number, editMode = false) => (
+      <WidgetRuntimeProvider value={runtime}>
+        <AdaptiveCategoryWidget
+          type="sensor"
+          entityId="sensor.temperatura_esterna"
+          settingsKey="sensor-personale"
+          settings={{ adaptiveHistoryHours: hours }}
+          detailsMode
+          size={{ w: 3, h: 3 }}
+          editMode={editMode}
+        />
+      </WidgetRuntimeProvider>
+    );
+    const { rerender } = render(widget(24));
+    const trigger = screen.getByRole('button', { name: 'Periodo del grafico: 24 ore' });
+    expect(trigger).toHaveTextContent('24 ore');
+    expect(trigger).not.toHaveTextContent('Periodo del grafico');
+    expect(screen.getAllByText('Periodo del grafico')).toHaveLength(1);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const current = screen.getByRole('button', { name: '24 ore' });
+    const week = screen.getByRole('button', { name: '7 giorni' });
+    expect(current).toHaveAttribute('aria-pressed', 'true');
+    expect(current).toHaveFocus();
+    fireEvent.keyDown(current, { key: 'ArrowDown' });
+    expect(week).toHaveFocus();
+    fireEvent.keyDown(week, { key: 'Home' });
+    expect(screen.getByRole('button', { name: '6 ore' })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('button', { name: '6 ore' }), { key: 'End' });
+    expect(week).toHaveFocus();
+    expect(saveCardSetting).not.toHaveBeenCalled();
+    fireEvent.click(week);
+    expect(saveCardSetting).toHaveBeenCalledExactlyOnceWith(
+      'sensor-personale', 'adaptiveHistoryHours', 168
+    );
+    expect(callService).not.toHaveBeenCalled();
+    expect(trigger).toHaveFocus();
+
+    rerender(widget(168));
+    const updated = screen.getByRole('button', { name: 'Periodo del grafico: 7 giorni' });
+    fireEvent.click(updated);
+    expect(screen.getByRole('button', { name: '7 giorni' })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('button', { name: '7 giorni' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Periodo del grafico' })).not.toBeInTheDocument();
+    expect(updated).toHaveFocus();
+    expect(saveCardSetting).toHaveBeenCalledTimes(1);
+
+    rerender(widget(168, true));
+    expect(screen.getByRole('button', { name: 'Periodo del grafico: 7 giorni' })).toBeDisabled();
+  });
 });
 
 describe('CategoryWidgetContent integration with AdaptiveCategoryWidget', () => {
@@ -503,13 +566,52 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa B - Media & TV)', () => {
     expect(screen.getByText('Plex: Interstellar')).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Volume TV' })).toBeInTheDocument();
 
-    const sources = screen.getByRole('combobox');
+    const sources = screen.getByRole('button', { name: 'Sorgente o app: Plex' });
     expect(sources).toBeInTheDocument();
-    fireEvent.change(sources, { target: { value: 'Prime Video' } });
+    fireEvent.click(sources);
+    fireEvent.click(screen.getByRole('button', { name: 'Prime Video' }));
     expect(callService).toHaveBeenCalledWith('media_player', 'select_source', {
       entity_id: 'media_player.android_tv',
       source: 'Prime Video',
     });
+  });
+
+  it('mostra Scegli… per una sorgente non elencata e rispetta il blocco dei comandi', () => {
+    const callService = vi.fn();
+    const runtime = {
+      ...createFixtureRuntime(),
+      entities: {
+        'media_player.android_tv': fixtureEntity('media_player.android_tv', 'on', {
+          source: 'App non elencata',
+          source_list: ['Plex', 'Prime Video'],
+          supported_features: 2048,
+        }),
+      },
+      callService,
+    };
+    const widget = (editMode: boolean) => (
+      <WidgetRuntimeProvider value={runtime}>
+        <AdaptiveCategoryWidget
+          type="androidtv"
+          entityId="media_player.android_tv"
+          detailsMode
+          size={{ w: 3, h: 3 }}
+          editMode={editMode}
+        />
+      </WidgetRuntimeProvider>
+    );
+    const { rerender } = render(widget(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Sorgente o app: Scegli…' }));
+    expect(screen.getByRole('button', { name: 'Plex' })).toHaveFocus();
+    expect(screen.queryByText('App non elencata')).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Plex' }), { key: 'Escape' });
+    expect(callService).not.toHaveBeenCalled();
+    rerender(widget(true));
+    const trigger = screen.getByRole('button', { name: 'Sorgente o app: Scegli…' });
+    expect(trigger).toBeDisabled();
+    fireEvent.click(trigger);
+    expect(screen.queryByRole('dialog', { name: 'Sorgente o app' })).not.toBeInTheDocument();
+    expect(callService).not.toHaveBeenCalled();
   });
 });
 
@@ -619,16 +721,15 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa C - Utilità & Robot)', () => {
     });
   });
 
-  it('renders car widget with battery level and range readings', () => {
+  it('renders only explicitly associated car sources with native units', () => {
     const carEntity = fixtureEntity('sensor.auto_batteria', '82', {
       friendly_name: 'Auto Elettrica',
-      range: 360,
-      charging: false,
+      unit_of_measurement: '%',
     });
 
     const runtime = {
       ...createFixtureRuntime(),
-      entities: { 'sensor.auto_batteria': carEntity },
+      entities: { 'sensor.auto_batteria': carEntity, 'sensor.auto_autonomia': fixtureEntity('sensor.auto_autonomia', '360', { unit_of_measurement: 'km', device_class: 'distance' }) },
     };
 
     render(
@@ -636,6 +737,7 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa C - Utilità & Robot)', () => {
         <AdaptiveCategoryWidget
           type="car"
           entityId="sensor.auto_batteria"
+          settings={{ batteryId: 'sensor.auto_batteria', rangeId: 'sensor.auto_autonomia' }}
           size={{ w: 2, h: 2 }}
           editMode={false}
         />
@@ -647,12 +749,12 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa C - Utilità & Robot)', () => {
     expect(screen.queryByRole('button', { name: 'Ricarica' })).not.toBeInTheDocument();
   });
 
-  it('renders cost and nordpool widgets with live telemetry and chart', () => {
-    const costEntity = fixtureEntity('sensor.costo_oggi', '3,45', {
+  it('renders explicit cost and price sources with native units and no Home history', () => {
+    const costEntity = fixtureEntity('sensor.costo_oggi', '3.45', {
       friendly_name: 'Costo Elettricità',
       unit_of_measurement: '€',
     });
-    const nordpoolEntity = fixtureEntity('sensor.nordpool_kwh', '0,18', {
+    const nordpoolEntity = fixtureEntity('sensor.nordpool_kwh', '0.18', {
       friendly_name: 'Prezzo Nordpool',
       unit_of_measurement: '€/kWh',
     });
@@ -670,26 +772,30 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa C - Utilità & Robot)', () => {
         <AdaptiveCategoryWidget
           type="cost"
           entityId="sensor.costo_oggi"
+          settings={{ todayId: 'sensor.costo_oggi', decimals: 2 }}
           size={{ w: 2, h: 2 }}
           editMode={false}
         />
       </WidgetRuntimeProvider>
     );
     expect(costContainer.querySelector('[data-widget-type="cost"]')).toBeInTheDocument();
-    expect(screen.getByText('3,45')).toBeInTheDocument();
+    expect(screen.getByText('3,45 €')).toBeInTheDocument();
+    expect(costContainer.querySelector('.ctl-chart')).toBeNull();
 
     const { container: nordpoolContainer } = render(
       <WidgetRuntimeProvider value={runtime}>
         <AdaptiveCategoryWidget
           type="nordpool"
           entityId="sensor.nordpool_kwh"
+          settings={{ nordpoolId: 'sensor.nordpool_kwh', decimals: 2 }}
           size={{ w: 2, h: 2 }}
           editMode={false}
         />
       </WidgetRuntimeProvider>
     );
     expect(nordpoolContainer.querySelector('[data-widget-type="nordpool"]')).toBeInTheDocument();
-    expect(screen.getByText('0,18')).toBeInTheDocument();
+    expect(screen.getByText('0,18 €/kWh')).toBeInTheDocument();
+    expect(nordpoolContainer.querySelector('.ctl-chart')).toBeNull();
   });
 
   it('switches to AdaptiveCategoryWidget when bound for vacuum and fan', () => {

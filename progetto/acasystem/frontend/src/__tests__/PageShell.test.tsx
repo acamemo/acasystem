@@ -24,6 +24,9 @@ import {
 import { LauncherScreen } from '@/templates/launcher/LauncherScreen';
 import { createFixtureRuntime } from '@/utils/fixtures/runtime';
 import { LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
+import { HomeMeasurementContext } from '@/hooks/startup/HomeStartupContext';
+import { PageShell } from '@/templates/launcher/PageShell';
+import { describePage } from '@/utils/launcher/pageDescriptor';
 
 function SpecialPage() {
   return <p>Contenuto della pagina speciale</p>;
@@ -121,7 +124,7 @@ describe('PageShell', () => {
     latest = null;
     localStorage.setItem(LAUNCHER_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   it('mounts one shell per page, in the pager order, with the kind and the top bar of the page', async () => {
     const { container } = await open();
@@ -144,7 +147,7 @@ describe('PageShell', () => {
     const fs = (await import(/* @vite-ignore */ specifier)) as {
       readFileSync: (path: string, encoding: 'utf8') => string;
     };
-    const css = fs.readFileSync('src/templates/launcher/launcher.css', 'utf8');
+    const css = fs.readFileSync('../design/layout/launcher.css', 'utf8');
     expect(css).toMatch(/\.aca-page-shell\s*\{\s*display:\s*contents;\s*\}/);
   });
 
@@ -185,4 +188,34 @@ describe('PageShell', () => {
       ).toBeEnabled();
     }
   });
+  it('reports real special-page geometry to startup when its display-contents shell has no box', () => {
+    let width = 440, height = 956;
+    let resize: ResizeObserverCallback | null = null;
+    const disconnect = vi.fn(), observe = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const positive = this.classList.contains('aca-launcher-special');
+      const w = positive ? width : 0, h = positive ? height : 0;
+      return { x: 0, y: 0, top: 0, left: 0, right: w, bottom: h, width: w, height: h, toJSON: () => ({}) };
+    });
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) { resize = callback; }
+      observe = observe; disconnect = disconnect; unobserve = vi.fn();
+    });
+    const report = vi.fn();
+    const descriptor = describePage({ type: 'page', key: lights.id, label: lights.label, page: lights }, home.id);
+    const view = render(<PageProvider><HomeMeasurementContext.Provider value={{ key: 'lights-epoch', pageId: lights.id, report }}>
+      <PageShell descriptor={descriptor} editMode={false} />
+    </HomeMeasurementContext.Provider></PageProvider>);
+    expect(report).toHaveBeenLastCalledWith('lights-epoch', true);
+    expect(observe).toHaveBeenCalledWith(view.container.querySelector('.aca-launcher-special'));
+    width = 0; height = 0;
+    act(() => resize?.([], {} as ResizeObserver));
+    expect(report).toHaveBeenLastCalledWith('lights-epoch', false);
+    width = 390; height = 800;
+    act(() => resize?.([], {} as ResizeObserver));
+    expect(report).toHaveBeenLastCalledWith('lights-epoch', true);
+    view.unmount(); expect(disconnect).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
+  });
+
 });

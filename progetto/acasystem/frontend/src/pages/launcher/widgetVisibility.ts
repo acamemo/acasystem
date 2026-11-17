@@ -6,7 +6,7 @@
 import type { CardSettingsMap } from '@/@types/dashboard';
 import type { EntityLikeMap } from '@/@types/ha';
 import type { WidgetStack } from '@/@types/launcher';
-import { categoryDeviceId, isCategoryWidgetReady } from '@/templates/sheets/categoryPages';
+import { categoryDeviceId, isCategoryWidgetReady } from '@/domain/launcher/categoryPages';
 import { isCardHiddenByLogic } from '@/utils/cardUtils';
 import { isStackId } from '@/utils/launcher/layout';
 

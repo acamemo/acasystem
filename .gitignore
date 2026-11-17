@@ -21,14 +21,17 @@ secrets/
 !/backup/README.md
 
 # Artefatti e dati locali Tunet, mai sorgenti o lockfile.
-/progetto/acasystem/node_modules/
-/progetto/acasystem/*/node_modules/
+/progetto/**/node_modules/
 /progetto/acasystem/frontend/dist/
 /progetto/acasystem/backend/data/
 /progetto/acasystem/frontend/playwright-report/
 /progetto/acasystem/frontend/test-results/
-/progetto/client/node_modules/
-/progetto/client/*/node_modules/
+
+# Impeccable: report di revisione e sessioni live restano locali;
+# design.json e l'elenco critique/ignore.md restano versionabili.
+/progetto/**/.impeccable/critique/*
+!/progetto/**/.impeccable/critique/ignore.md
+/progetto/**/.impeccable/live/
 
 # Istantanee di versione al posto dei commit (ADR-0008): restano solo sulla macchina.
 /usa-come-git/**
@@ -37,6 +40,8 @@ secrets/
 /progetto/client/windows/build/
 /progetto/client/windows/release/
 /progetto/client/windows/.tmp/
+/progetto/client/windows/shell/design-aca/
+/progetto/client/windows/generated-shell/
 
 # Guscio Android: pagina compilata (le altre esclusioni sono in android/.gitignore).
 /progetto/client/android/www/

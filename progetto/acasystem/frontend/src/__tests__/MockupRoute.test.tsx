@@ -97,9 +97,11 @@ const systemOpen = () =>
   screen.findByRole('heading', { level: 1, name: 'Sistema' }, { timeout: 30_000 });
 
 const widgetsReady = (container: HTMLElement) =>
-  waitFor(() => expect(container.querySelector('[aria-label="Luce soggiorno"]')).not.toBeNull(), {
-    timeout: 60_000,
-  });
+  waitFor(() => {
+    expect(container.querySelector('[aria-label="Luce soggiorno"]')).not.toBeNull();
+    expect(container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'ready');
+    expect(container.querySelector('.aca-home-entry')).not.toHaveAttribute('inert');
+  }, { timeout: 60_000 });
 
 let fetchSpy: ReturnType<typeof vi.fn>;
 let webSocketSpy: ReturnType<typeof vi.fn>;
@@ -110,6 +112,13 @@ let realLocalDescriptor: PropertyDescriptor | undefined;
 let realSessionDescriptor: PropertyDescriptor | undefined;
 
 beforeEach(() => {
+  // The real app now prepares a measured first view; JSDOM itself supplies no layout boxes.
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const width = this.classList.contains('aca-launcher-page') ? 973 : 0;
+    const height = this.classList.contains('aca-launcher-page') ? 230 : 0;
+    return { x: 0, y: 0, left: 0, top: 0, right: width, bottom: height,
+      width, height, toJSON: () => ({}) } as DOMRect;
+  });
   localStorage.clear();
   sessionStorage.clear();
   for (const [key, value] of Object.entries(REAL_KEYS)) localStorage.setItem(key, value);

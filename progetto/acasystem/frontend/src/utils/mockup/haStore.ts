@@ -7,12 +7,17 @@
 import type { HassEntity } from 'home-assistant-js-websocket';
 import type { EntityMap, HaDeviceRegistryEntry, HaEntityRegistryEntry } from '@/@types/ha';
 import {
+  LG_CHANNELS,
+  LIVE_TV_SOURCE,
   MOCK_TRACKS,
+  lgFeatures,
   buildRegistries,
   deviceRegistryEntry,
   entityRegistryEntry,
   mediaPicturePath,
   mockHouse,
+  mockMediaTitle,
+  zigbeeJoinedDevice,
   type MockDeviceSpec,
   type MockScenario,
 } from './mockData';
@@ -23,8 +28,43 @@ type Data = Record<string, unknown>;
 /** What a service changes in an entity. */
 interface Patch {
   state?: string;
+  /** Merged into the attributes of the entity. */
   attributes?: Attributes;
+  /** Replaces them (an entity that goes `unavailable` keeps almost none). */
+  replace?: Attributes;
 }
+
+/** A service call the store received (the demo's record, for the tester). */
+export interface ServiceCall {
+  domain: string;
+  service: string;
+  data: Record<string, unknown>;
+  at: number;
+}
+
+/**
+ * The LG webOS TV and the Samsung TV of the house. Off, an LG with its power-on recipe reports
+ * `off` and declares TURN_ON (the recipe is the turn-on trigger automation of the docs); without
+ * it, it reports `unavailable`. `turn_on` wakes it after a few seconds.
+ */
+const HOUSE_LG_TVS = ['media_player.tv_soggiorno'];
+const HOUSE_SAMSUNG_TVS = ['media_player.tv_cucina'];
+const WAKE_MS = 3000;
+const KEPT_WHEN_ASLEEP = ['friendly_name', 'device_class', 'icon'];
+
+/** An Apple TV that buffers for a second before it plays again. */
+const BUFFERING_PLAYERS: ReadonlySet<string> = new Set(['media_player.apple_tv_camera']);
+const BUFFER_MS = 1000;
+
+/**
+ * Scenario «TV che non risponde»: Home Assistant accepts these calls and nothing changes, so the
+ * widget waits for a confirmation that never comes.
+ */
+const SILENT_CALLS: ReadonlySet<string> = new Set(['media_player.tv_soggiorno:turn_off']);
+const CALL_LOG_SIZE = 200;
+
+/** After how long a Zigbee device joins once `zha.permit` opens joining. */
+const ZIGBEE_JOIN_MS = 6000;
 
 export interface TodoItem {
   uid: string;
@@ -57,6 +97,12 @@ export interface MockHaStore {
   callService: (domain: string, service: string, data?: Data | null) => Promise<unknown>;
   /** Adds a device and its entities (a flow of the facade ended). */
   addDevice: (added: AddedDevice) => void;
+  /**
+   * Sets up or removes the power-on recipe of a TV (the facade calls it with «Configura
+   * l’accensione»): an LG with it is `off` when it sleeps and declares TURN_ON, without it
+   * `unavailable`; a Samsung declares TURN_ON only with it.
+   */
+  setWakeRecipe: (entityId: string, on: boolean) => void;
   /** Removes a device and its entities. */
   removeDevice: (deviceId: string) => void;
   registries: () => {
@@ -72,9 +118,15 @@ export interface MockHaStore {
   todoItems: (entityId: string) => TodoItem[];
   /** Applies a change made outside a service (a scenario, a test). */
   patchEntity: (entityId: string, patch: Patch) => void;
+  /** The last service calls received, oldest first. */
+  calls: () => readonly ServiceCall[];
   /** Cancels the timers of the simulation (leaving the demo). */
   dispose: () => void;
 }
+
+/** Attributes without the `undefined` values (a patch uses them to remove a key). */
+const defined = (attributes: Attributes): Attributes =>
+  Object.fromEntries(Object.entries(attributes).filter(([, value]) => value !== undefined));
 
 const num = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
@@ -145,7 +197,8 @@ function fanPatch(entity: HassEntity, service: string, data: Data): Patch | null
   if (state === 'on' && data.percentage !== undefined) {
     attributes.percentage = Math.round(num(data.percentage, 0));
   }
-  if (state === 'on' && !entity.attributes.percentage && data.percentage === undefined) {
+  if (state === 'on' && (Number(entity.attributes.supported_features) & 1) !== 0
+    && !entity.attributes.percentage && data.percentage === undefined) {
     attributes.percentage = 50;
   }
   if (state) return { state, attributes };
@@ -153,12 +206,21 @@ function fanPatch(entity: HassEntity, service: string, data: Data): Patch | null
   return null;
 }
 
-function coverPatch(_entity: HassEntity, service: string, data: Data): Patch | null {
+function coverPatch(entity: HassEntity, service: string, data: Data): Patch | null {
   switch (service) {
     case 'open_cover':
       return { state: 'open', attributes: { current_position: 100 } };
     case 'close_cover':
       return { state: 'closed', attributes: { current_position: 0 } };
+    case 'stop_cover': {
+      // The demo preserves the last reported position; it does not infer physical travel.
+      const position = entity.attributes.current_position;
+      return ['opening', 'closing'].includes(entity.state) && typeof position === 'number'
+        && Number.isFinite(position) && position >= 0 && position <= 100
+        ? { state: position === 0 ? 'closed' : 'open' } : null;
+    }
+    case 'stop_cover_tilt':
+      return null;
     case 'set_cover_position': {
       const position = Math.min(100, Math.max(0, Math.round(num(data.position, 0))));
       return {
@@ -245,6 +307,8 @@ function mowerPatch(_entity: HassEntity, service: string): Patch | null {
       return { state: 'paused' };
     case 'dock':
       return { state: 'returning' };
+    case 'stop':
+      return { state: 'idle' };
     default:
       return null;
   }
@@ -264,9 +328,9 @@ function alarmPatch(_entity: HassEntity, service: string): Patch | null {
 
 function cameraPatch(entity: HassEntity, service: string): Patch | null {
   if (service === 'enable_motion_detection')
-    return { attributes: { motion_detection_enabled: true } };
+    return { attributes: { motion_detection: true, motion_detection_enabled: true } };
   if (service === 'disable_motion_detection') {
-    return { attributes: { motion_detection_enabled: false } };
+    return { attributes: { motion_detection: false, motion_detection_enabled: false } };
   }
   if (service === 'turn_on') return { state: 'idle', attributes: { is_on: true } };
   if (service === 'turn_off') return { state: entity.state, attributes: { is_on: false } };
@@ -290,6 +354,8 @@ function mediaPatch(entity: HassEntity, service: string, data: Data): Patch | nu
       return { state: 'off' };
     case 'toggle':
       return { state: entity.state === 'off' ? 'idle' : 'off' };
+    case 'media_play_pause':
+      return { state: entity.state === 'playing' ? 'paused' : 'playing' };
     case 'volume_set':
       return { attributes: { volume_level: num(data.volume_level, 0.5), is_volume_muted: false } };
     case 'volume_up':
@@ -323,14 +389,48 @@ function mediaPatch(entity: HassEntity, service: string, data: Data): Patch | nu
       };
     case 'unjoin':
       return { attributes: { group_members: [entity.entity_id] } };
-    case 'play_media':
+    case 'play_media': {
       if (data.media_content_id !== undefined) attributes.media_content_id = data.media_content_id;
+      const title = mockMediaTitle(data.media_content_id);
+      if (title) {
+        attributes.media_title = title;
+        // An app opens as the app; anything else plays inside the one that is open.
+        if (data.media_content_type === 'app') attributes.app_name = title;
+      }
       return { state: 'playing', attributes };
+    }
     case 'clear_playlist':
       return { state: 'idle' };
     default:
       return null;
   }
+}
+
+/** What the LG TV accepts as sound output; the others are not connected to it. */
+const LG_OUTPUTS: ReadonlySet<string> = new Set([
+  'tv_speaker',
+  'external_arc',
+  'external_speaker',
+  'lineout',
+]);
+
+/**
+ * `webostv.select_sound_output` moves the sound to the output, when the TV has it. With an
+ * external speaker Home Assistant drops VOLUME_SET and only the volume steps remain; with
+ * `lineout` it drops mute and steps too (`lgFeatures`).
+ */
+function webosPatch(
+  entity: HassEntity,
+  service: string,
+  data: Data,
+  wakeRecipe: boolean
+): Patch | null {
+  if (service !== 'select_sound_output' || entity.state === 'unavailable') return null;
+  const output = String(data.sound_output ?? '');
+  if (!LG_OUTPUTS.has(output)) return null;
+  return {
+    attributes: { sound_output: output, supported_features: lgFeatures(output, wakeRecipe) },
+  };
 }
 
 function switchLikePatch(entity: HassEntity, service: string): Patch | null {
@@ -339,7 +439,13 @@ function switchLikePatch(entity: HassEntity, service: string): Patch | null {
 }
 
 /** The change a service makes to one entity of its domain; null when it makes none. */
-function patchFor(entity: HassEntity, domain: string, service: string, data: Data): Patch | null {
+function patchFor(
+  entity: HassEntity,
+  domain: string,
+  service: string,
+  data: Data,
+  wakeRecipe: boolean
+): Patch | null {
   switch (domain) {
     case 'light':
       return lightPatch(entity, service, data);
@@ -356,6 +462,8 @@ function patchFor(entity: HassEntity, domain: string, service: string, data: Dat
       return climatePatch(entity, service, data);
     case 'media_player':
       return mediaPatch(entity, service, data);
+    case 'webostv':
+      return webosPatch(entity, service, data, wakeRecipe);
     case 'vacuum':
       return vacuumPatch(entity, service, data);
     case 'lawn_mower':
@@ -394,7 +502,22 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
     { uid: 'mockup-2', summary: 'Chiamare l’idraulico', status: 'needs_action', due: '2026-10-30' },
     { uid: 'mockup-3', summary: 'Ritirare il pacco', status: 'completed' },
   ];
+  if (options.scenario === 'longNames') todo = todo.map(item => ({ ...item, summary: `${item.summary} per tutta la famiglia, compresa la spesa del fine settimana e le consegne della casa di montagna` }));
   let areaCounter = 0;
+  const callLog: ServiceCall[] = [];
+  const silent = options.scenario === 'tvSilent' ? SILENT_CALLS : new Set<string>();
+  /** What an LG TV looked like when it went to sleep, and the ones on their way back. */
+  const awake = new Map<string, Attributes>();
+  const waking = new Set<string>();
+  const lgTvs = new Set<string>(HOUSE_LG_TVS);
+  const samsungTvs = new Set<string>(HOUSE_SAMSUNG_TVS);
+  /** TVs whose power-on recipe is set up (the LG of the living room has it from the start). */
+  const wakeRecipe = new Set<string>(HOUSE_LG_TVS);
+  /** The channel an LG TV was on when it left live TV. */
+  const lastChannel = new Map<string, string>();
+  /** The device that joins while Zigbee joining is open, and how many joined so far. */
+  let zigbeeJoin: ReturnType<typeof setTimeout> | null = null;
+  let zigbeeJoined = 0;
 
   const notify = () => listeners.forEach((listener) => listener());
   const stamp = () => new Date(now()).toISOString();
@@ -402,9 +525,11 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
   const apply = (entityId: string, patch: Patch): boolean => {
     const entity = entities[entityId];
     if (!entity) return false;
-    const attributes = patch.attributes
-      ? { ...entity.attributes, ...patch.attributes }
-      : entity.attributes;
+    const attributes =
+      patch.replace ??
+      (patch.attributes
+        ? defined({ ...entity.attributes, ...patch.attributes })
+        : entity.attributes);
     const at = stamp();
     entities = {
       ...entities,
@@ -435,6 +560,7 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
 
   const countOpen = () => todo.filter((item) => item.status === 'needs_action').length;
   const syncTodo = (entityId: string) => {
+    if (entities[entityId]?.state === 'unavailable') return;
     apply(entityId, { state: String(countOpen()) });
   };
 
@@ -458,6 +584,155 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
     };
   };
 
+  const keptWhenAsleep = (entity: HassEntity): Attributes =>
+    Object.fromEntries(
+      Object.entries(entity.attributes).filter(([key]) => KEPT_WHEN_ASLEEP.includes(key))
+    );
+
+  const liveChannel = (id: string, title: string): boolean =>
+    apply(id, {
+      state: 'on',
+      attributes: { source: LIVE_TV_SOURCE, media_title: title, media_content_type: 'channel' },
+    });
+
+  /**
+   * What an LG webOS TV does with a call (webostv/media_player.py): turn off, wake, channel
+   * keys, source, `play_media` of a channel. Returns whether it changed, or null when the call
+   * goes on to the generic path (volume, sound output).
+   */
+  const lgCall = (
+    id: string,
+    entity: HassEntity,
+    domain: string,
+    service: string,
+    input: Data
+  ): boolean | null => {
+    const output = String(entity.attributes.sound_output ?? 'tv_speaker');
+    const recipe = wakeRecipe.has(id);
+    const asleep = entity.state === 'unavailable' || entity.state === 'off';
+    if (domain === 'media_player' && service === 'turn_off' && !asleep) {
+      awake.set(id, entity.attributes);
+      const kept = keptWhenAsleep(entity);
+      return recipe
+        ? apply(id, {
+            state: 'off',
+            replace: { ...kept, supported_features: lgFeatures(output, true) },
+          })
+        : apply(id, { state: 'unavailable', replace: kept });
+    }
+    if (domain === 'media_player' && service === 'turn_on' && entity.state === 'off') {
+      if (waking.has(id)) return false;
+      waking.add(id);
+      later(WAKE_MS, () => {
+        waking.delete(id);
+        apply(id, {
+          state: 'on',
+          replace: { ...awake.get(id), supported_features: lgFeatures(output, wakeRecipe.has(id)) },
+        });
+      });
+      return false;
+    }
+    // Home Assistant skips an entity that does not answer, and a TV that is off takes nothing.
+    if (asleep) return false;
+    const live = entity.attributes.source === LIVE_TV_SOURCE;
+    const stepChannel = (step: number): boolean => {
+      if (!live) return false; // elsewhere previous/next are rewind and fast forward
+      const at = LG_CHANNELS.indexOf(String(entity.attributes.media_title));
+      const next = (Math.max(at, 0) + step + LG_CHANNELS.length) % LG_CHANNELS.length;
+      return liveChannel(id, LG_CHANNELS[next]!);
+    };
+    if (domain === 'webostv' && service === 'button') {
+      const button = String(input.button ?? '').toUpperCase();
+      if (button === 'CHANNELUP') return stepChannel(1);
+      if (button === 'CHANNELDOWN') return stepChannel(-1);
+      return false;
+    }
+    if (domain !== 'media_player') return null;
+    switch (service) {
+      case 'media_next_track':
+        return stepChannel(1);
+      case 'media_previous_track':
+        return stepChannel(-1);
+      case 'media_play':
+      case 'media_pause':
+      case 'media_stop':
+      case 'media_play_pause':
+        // The state follows what the TV reports, and live TV reports none.
+        return false;
+      case 'select_source': {
+        const source = String(input.source ?? '');
+        const list = entity.attributes.source_list;
+        if (!Array.isArray(list) || !list.includes(source)) return false;
+        if (source === LIVE_TV_SOURCE) {
+          return liveChannel(id, lastChannel.get(id) ?? LG_CHANNELS[0]!);
+        }
+        if (live) lastChannel.set(id, String(entity.attributes.media_title));
+        return apply(id, {
+          state: 'on',
+          attributes: { source, media_title: undefined, media_content_type: undefined },
+        });
+      }
+      case 'play_media': {
+        // Only channels: the number, then the exact name, then a part of the name.
+        if (input.media_content_type !== 'channel') return false;
+        const wanted = String(input.media_content_id ?? '')
+          .trim()
+          .toLowerCase();
+        const found =
+          LG_CHANNELS[Number(wanted) - 1] ??
+          LG_CHANNELS.find((name) => name.toLowerCase() === wanted) ??
+          LG_CHANNELS.find((name) => wanted !== '' && name.toLowerCase().includes(wanted));
+        return found ? liveChannel(id, found) : false;
+      }
+      default:
+        return null;
+    }
+  };
+
+  /**
+   * A Samsung TV (samsungtv/media_player.py): previous/next are KEY_CHUP/KEY_CHDOWN and mute is a
+   * toggle; without UPnP it reports no volume level, so set and step change nothing visible.
+   */
+  const samsungCall = (
+    id: string,
+    entity: HassEntity,
+    service: string,
+    input: Data
+  ): boolean | null => {
+    if (service === 'turn_on') {
+      if (entity.state !== 'off' || !wakeRecipe.has(id)) return false;
+      return apply(id, { state: 'on', attributes: { source: 'TV' } });
+    }
+    if (entity.state === 'off' || entity.state === 'unavailable') return false;
+    switch (service) {
+      case 'turn_off':
+        return apply(id, { state: 'off' });
+      case 'volume_mute':
+        return apply(id, {
+          attributes: { is_volume_muted: entity.attributes.is_volume_muted !== true },
+        });
+      case 'select_source': {
+        const list = entity.attributes.source_list;
+        const source = String(input.source ?? '');
+        return Array.isArray(list) && list.includes(source)
+          ? apply(id, { attributes: { source } })
+          : false;
+      }
+      case 'media_next_track':
+      case 'media_previous_track':
+      case 'media_play':
+      case 'media_pause':
+      case 'media_stop':
+      case 'media_play_pause':
+      case 'volume_set':
+      case 'volume_up':
+      case 'volume_down':
+        return false;
+      default:
+        return null;
+    }
+  };
+
   const callService = async (
     domain: string,
     service: string,
@@ -465,6 +740,27 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
   ): Promise<unknown> => {
     const input: Data = data ?? {};
     const ids = targetsOf(input);
+    callLog.push({ domain, service, data: input, at: now() });
+    if (callLog.length > CALL_LOG_SIZE) callLog.splice(0, callLog.length - CALL_LOG_SIZE);
+    // ZHA opens joining: one new device joins a few seconds later; duration 0 closes it.
+    if (domain === 'zha' && service === 'permit') {
+      if (zigbeeJoin) {
+        clearTimeout(zigbeeJoin);
+        timers.delete(zigbeeJoin);
+        zigbeeJoin = null;
+      }
+      if (num(input.duration, 60) > 0) {
+        const timer = setTimeout(() => {
+          timers.delete(timer);
+          zigbeeJoin = null;
+          zigbeeJoined += 1;
+          addDevice(zigbeeJoinedDevice(zigbeeJoined, stamp()));
+        }, ZIGBEE_JOIN_MS);
+        timers.add(timer);
+        zigbeeJoin = timer;
+      }
+      return { context: { id: 'mockup' } };
+    }
     // The list of the shopping is kept by the store, not by the entity.
     if (domain === 'todo') {
       const id = ids[0];
@@ -503,6 +799,31 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
       const entity = entities[id];
       if (!entity) continue;
       let patch: Patch | null;
+      if (domain === 'media_player' && silent.has(`${id}:${service}`)) continue;
+      if (lgTvs.has(id) && (domain === 'media_player' || domain === 'webostv')) {
+        const done = lgCall(id, entity, domain, service, input);
+        if (done !== null) {
+          touched = done || touched;
+          continue;
+        }
+      }
+      if (samsungTvs.has(id) && domain === 'media_player') {
+        const done = samsungCall(id, entity, service, input);
+        if (done !== null) {
+          touched = done || touched;
+          continue;
+        }
+      }
+      if (
+        domain === 'media_player' &&
+        BUFFERING_PLAYERS.has(id) &&
+        entity.state === 'paused' &&
+        (service === 'media_play' || service === 'media_play_pause')
+      ) {
+        touched = apply(id, { state: 'buffering' }) || touched;
+        later(BUFFER_MS, () => apply(id, { state: 'playing' }));
+        continue;
+      }
       if (
         domain === 'media_player' &&
         (service === 'media_next_track' || service === 'media_previous_track')
@@ -523,7 +844,7 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
         }
         patch = null;
       } else {
-        patch = patchFor(entity, domain, service, input);
+        patch = patchFor(entity, domain, service, input, wakeRecipe.has(id));
       }
       if (!patch) continue;
       touched = apply(id, patch) || touched;
@@ -542,10 +863,57 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
     devices.push(spec);
     const next: EntityMap = { ...entities };
     for (const entity of added) {
-      next[entity.entity_id] = entity;
-      extraEntries.push(entityRegistryEntry(entity, spec));
+      let stored = entity;
+      if (entity.entity_id.startsWith('media_player.')) {
+        // A TV added from the flows comes with its power-on recipe (the step «Accensione»).
+        if (spec.platform === 'webostv') {
+          lgTvs.add(entity.entity_id);
+          wakeRecipe.add(entity.entity_id);
+          awake.set(entity.entity_id, entity.attributes);
+          stored = {
+            ...entity,
+            attributes: {
+              ...keptWhenAsleep(entity),
+              supported_features: lgFeatures('tv_speaker', true),
+            },
+          };
+        } else if (spec.platform === 'samsungtv') {
+          samsungTvs.add(entity.entity_id);
+          wakeRecipe.add(entity.entity_id);
+        }
+      }
+      next[entity.entity_id] = stored;
+      extraEntries.push(entityRegistryEntry(stored, spec));
     }
     entities = next;
+    notify();
+  };
+
+  const setWakeRecipe = (entityId: string, on: boolean) => {
+    const entity = entities[entityId];
+    if (!entity || !(lgTvs.has(entityId) || samsungTvs.has(entityId))) return;
+    if (on === wakeRecipe.has(entityId)) return;
+    if (on) wakeRecipe.add(entityId);
+    else wakeRecipe.delete(entityId);
+    if (samsungTvs.has(entityId)) {
+      const bits = num(entity.attributes.supported_features, 0);
+      apply(entityId, {
+        attributes: { supported_features: on ? bits | 128 : bits & ~128 },
+      });
+    } else {
+      const output = String(entity.attributes.sound_output ?? 'tv_speaker');
+      if (entity.state === 'unavailable' && on && awake.has(entityId)) {
+        // Home Assistant now knows the turn-on trigger: the sleeping TV is off, not gone.
+        apply(entityId, {
+          state: 'off',
+          replace: { ...keptWhenAsleep(entity), supported_features: lgFeatures(output, true) },
+        });
+      } else if (entity.state === 'off' && !on) {
+        apply(entityId, { state: 'unavailable', replace: keptWhenAsleep(entity) });
+      } else if (entity.state !== 'unavailable') {
+        apply(entityId, { attributes: { supported_features: lgFeatures(output, on) } });
+      }
+    }
     notify();
   };
 
@@ -585,6 +953,7 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
     },
     callService,
     addDevice,
+    setWakeRecipe,
     removeDevice,
     registries,
     addArea(name) {
@@ -601,6 +970,7 @@ export function createMockHaStore(options: MockHaStoreOptions = {}): MockHaStore
       notify();
     },
     todoItems: () => todo.map((item) => ({ ...item })),
+    calls: () => callLog.map((call) => ({ ...call })),
     patchEntity(entityId, patch) {
       if (apply(entityId, patch)) notify();
     },

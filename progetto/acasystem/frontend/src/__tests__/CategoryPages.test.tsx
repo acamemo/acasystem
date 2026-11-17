@@ -264,7 +264,7 @@ describe('category pages', () => {
         readFileSync: (path: string, encoding: 'utf8') => string;
       };
       return fs
-        .readFileSync('src/templates/launcher/launcher.css', 'utf8')
+        .readFileSync('../design/layout/launcher.css', 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, '');
     }
     const body = (css: string, selector: string) =>
@@ -337,11 +337,11 @@ describe('category pages', () => {
       pager.remove();
     });
 
-    it('is complete for all 19 types: the widget, the label and one target «Collega <type>», in every size', () => {
+    it('is complete for all 20 types: the widget, the label and one target «Collega <type>», in every size', () => {
       const runtime = createFixtureRuntime();
       const seeds = unboundSeeds();
-      expect(seeds).toHaveLength(19);
-      expect(new Set(seeds.map((seed) => seed.settings.categoryWidgetType)).size).toBe(19);
+      expect(seeds).toHaveLength(20);
+      expect(new Set(seeds.map((seed) => seed.settings.categoryWidgetType)).size).toBe(20);
       for (const seed of seeds) {
         const type = String(seed.settings.categoryWidgetType);
         const label = typeLabel(seed);
@@ -407,7 +407,7 @@ describe('category pages', () => {
     });
 
     it('reports a device that is off where that makes sense, and a dash where nothing can be said', () => {
-      const OFF = ['light', 'fan', 'climate', 'androidtv', 'appletv', 'media', 'sonos'];
+      const OFF = ['light', 'plug', 'fan', 'climate', 'androidtv', 'appletv', 'media', 'sonos'];
       const IDLE = ['vacuum', 'mower'];
       // None of these is news about a device that is not there; the safety types never get one.
       const NEVER =
@@ -864,9 +864,9 @@ describe('category pages', () => {
       };
       const css = await launcherCss();
       const themes = [
-        'src/themes/acasystem/tokens.css',
-        'src/themes/kit2/tokens.css',
-        'src/themes/kit2/skin.css',
+        '../design/themes/acasystem/tokens.css',
+        '../design/themes/kit2/tokens.css',
+        '../design/themes/kit2/skin.css',
       ]
         .map((path) => fs.readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''))
         .join('\n');

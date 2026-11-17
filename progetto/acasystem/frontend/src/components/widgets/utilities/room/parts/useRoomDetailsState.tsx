@@ -3,9 +3,10 @@ import type { WidgetDetailsProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { getEffectiveRoomEntityIds } from '@/utils/roomEntities';
 import { domainOf, settingString, stringAttr } from '../../shared/entity';
-import { callAll } from '../../shared/UtilityCard';
 import type { UtilityIconName } from '../../shared/UtilityIcon';
 import { RoomSection } from './RoomControls';
+import { useRoomContext } from '../RoomScope';
+import { useRoomLights } from '../useRoomLights';
 
 const GROUPED_OTHER = new Set([
   'binary_sensor',
@@ -48,7 +49,8 @@ function readCollapsed(key: string): Record<string, boolean> {
  */
 export function useRoomDetailsState(settings: WidgetDetailsProps['settings']) {
   const runtime = useWidgetRuntime();
-  const { entities, callService } = runtime;
+  const { entities } = runtime;
+  const membership = useRoomContext();
   const sectionId = `stanza-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const storageKey = collapseKey(
     settingString(settings, 'areaName'),
@@ -60,7 +62,6 @@ export function useRoomDetailsState(settings: WidgetDetailsProps['settings']) {
   const [selectedClimate, setSelectedClimate] = useState<string | null>(
     settingString(settings, 'climateEntityId')
   );
-  const [lightsError, setLightsError] = useState(false);
 
   useEffect(() => {
     try {
@@ -72,14 +73,16 @@ export function useRoomDetailsState(settings: WidgetDetailsProps['settings']) {
 
   const ids = useMemo(() => getEffectiveRoomEntityIds(settings), [settings]);
   const present = ids.filter((id) => entities[id]);
-  const of = (domain: string) => present.filter((id) => domainOf(id) === domain);
+  const technicalIds = membership?.technicalIds ?? [];
+  const daily = present.filter(id => !technicalIds.includes(id));
+  const of = (domain: string) => daily.filter((id) => domainOf(id) === domain);
   const lights = of('light');
   const climates = of('climate');
   const media = of('media_player');
   const vacuums = of('vacuum');
   const tempEntityId = settingString(settings, 'tempEntityId');
   const humidityEntityId = settingString(settings, 'humidityEntityId');
-  const temperatures = present.filter((id) => {
+  const temperatures = daily.filter((id) => {
     if (id === tempEntityId || id === humidityEntityId) return true;
     if (!['sensor', 'climate', 'weather'].includes(domainOf(id))) return false;
     return ['temperature', 'humidity'].includes(stringAttr(entities[id], 'device_class') ?? '');
@@ -94,7 +97,7 @@ export function useRoomDetailsState(settings: WidgetDetailsProps['settings']) {
     ? [activeMedia, ...media.filter((id) => id !== activeMedia)]
     : media;
   const top = new Set([...lights, ...climates, ...media, ...vacuums, ...temperatures]);
-  const others = present.filter((id) => !top.has(id));
+  const others = daily.filter((id) => !top.has(id));
   const groups = new Map<string, string[]>();
   for (const id of others) {
     const domain = domainOf(id);
@@ -106,12 +109,12 @@ export function useRoomDetailsState(settings: WidgetDetailsProps['settings']) {
   );
 
   const activeClimateId =
-    selectedClimate && entities[selectedClimate]
+    selectedClimate && climates.includes(selectedClimate)
       ? selectedClimate
       : (climates.find((id) => id === settingString(settings, 'climateEntityId')) ??
         climates[0] ??
         null);
-  const lightsOn = lights.filter((id) => entities[id]?.state === 'on').length;
+  const lightState = useRoomLights(lights);
 
   const toggle = (key: string) => setCollapsed((current) => ({ ...current, [key]: !current[key] }));
   const section = (
@@ -134,15 +137,7 @@ export function useRoomDetailsState(settings: WidgetDetailsProps['settings']) {
     </RoomSection>
   );
 
-  const toggleAllLights = () => {
-    const service = lightsOn > 0 ? 'turn_off' : 'turn_on';
-    setLightsError(false);
-    Promise.allSettled(
-      lights.map((id) => callAll(() => callService('light', service, { entity_id: id })))
-    ).then((results) => setLightsError(results.some((result) => result.status === 'rejected')));
-  };
-
-  if (present.length === 0) return null;
+  if (present.length === 0 || (membership && membership.status !== 'ready')) return null;
 
   return {
     settings,
@@ -155,11 +150,11 @@ export function useRoomDetailsState(settings: WidgetDetailsProps['settings']) {
     orderedMedia,
     groupList,
     activeClimateId,
-    lightsOn,
-    lightsError,
+    ...lightState,
+    technicalIds,
+    missingIds: ids.filter(id => !entities[id]),
     setSelectedClimate,
     section,
-    toggleAllLights,
   };
 }
 

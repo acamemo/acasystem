@@ -1,11 +1,11 @@
 import type { IconName } from '@/components/primitives';
 import type { PageKindDefinition, WidgetDefinition } from '@/@types/launcher';
 import { CostWidget } from './energy/CostWidget';
-import { CostDetails } from './energy/CostDetails';
+import { CostDetails, CostConsole } from './energy/CostDetails';
 import { NordpoolWidget } from './energy/NordpoolWidget';
-import { NordpoolDetails } from './energy/NordpoolDetails';
+import { NordpoolDetails, NordpoolConsole } from './energy/NordpoolDetails';
 import { CarWidget } from './car/CarWidget';
-import { CarDetails } from './car/CarDetails';
+import { CarDetails, CarConsole } from './car/CarDetails';
 import { MowerWidget, VacuumWidget } from './robots/RobotWidget';
 import { VacuumDetails } from './robots/VacuumDetails';
 import { VacuumConsole } from './robots/VacuumConsole';
@@ -16,8 +16,12 @@ import { RoomConsole } from './room/RoomConsole';
 import { SpacerWidget } from './spacer/SpacerWidget';
 import { DiscoverWidget } from './discover/DiscoverWidget';
 import { DiscoverDetails } from './discover/DiscoverDetails';
+import { ZigbeeWidget } from './zigbee/ZigbeeWidget';
+import { ZigbeeDetails } from './zigbee/ZigbeeDetails';
 import { BatteryPage } from './fullpage/BatteryPage';
 import { RoomsPage } from './fullpage/RoomsPage';
+import { TavanoWidget } from './tavano/TavanoWidget';
+import { TavanoDetails } from './tavano/TavanoDetails';
 
 /** Icons of the add-widget sheet: names of the Icon primitive (checked by the type). */
 const icon = (name: IconName): string => name;
@@ -25,13 +29,19 @@ const icon = (name: IconName): string => name;
 /** Utility widgets (wave 2, B5): energy, car, robots, rooms and the separator. */
 export const utilityWidgets: WidgetDefinition[] = [
   {
+    type: 'tavano', label: 'Tavano', icon: icon('menu'),
+    sizes: { min: { w: 2, h: 1 }, max: { w: 4, h: 2 }, default: { w: 2, h: 1 } },
+    matches: (id) => id.startsWith('tavano_card_'), Widget: TavanoWidget,
+    Details: TavanoDetails, Console: TavanoDetails,
+  },
+  {
     type: 'cost',
-    label: 'Costi energetici',
+    label: 'Energia e consumi',
     icon: icon('wallet'),
     sizes: { min: { w: 2, h: 1 }, max: { w: 2, h: 2 }, default: { w: 2, h: 2 } },
     matches: (id) => id.startsWith('cost_card_'),
     Widget: CostWidget,
-    Details: CostDetails,
+    Details: CostDetails, Console: CostConsole,
   },
   {
     type: 'nordpool',
@@ -40,7 +50,7 @@ export const utilityWidgets: WidgetDefinition[] = [
     sizes: { min: { w: 2, h: 1 }, max: { w: 4, h: 2 }, default: { w: 2, h: 2 } },
     matches: (id) => id.startsWith('nordpool_card_'),
     Widget: NordpoolWidget,
-    Details: NordpoolDetails,
+    Details: NordpoolDetails, Console: NordpoolConsole,
   },
   {
     type: 'car',
@@ -49,7 +59,7 @@ export const utilityWidgets: WidgetDefinition[] = [
     sizes: { min: { w: 2, h: 1 }, max: { w: 2, h: 2 }, default: { w: 2, h: 2 } },
     matches: (id) => id === 'car' || id.startsWith('car_card_'),
     Widget: CarWidget,
-    Details: CarDetails,
+    Details: CarDetails, Console: CarConsole,
   },
   {
     type: 'vacuum',
@@ -88,6 +98,15 @@ export const utilityWidgets: WidgetDefinition[] = [
     matches: (id) => id.startsWith('rileva_card_'),
     Widget: DiscoverWidget,
     Details: DiscoverDetails,
+  },
+  {
+    type: 'zigbee',
+    label: 'Gateway Zigbee',
+    icon: icon('server'),
+    sizes: { min: { w: 2, h: 1 }, max: { w: 4, h: 2 }, default: { w: 2, h: 2 } },
+    matches: (id) => id.startsWith('zigbee_card_'),
+    Widget: ZigbeeWidget,
+    Details: ZigbeeDetails,
   },
   {
     type: 'spacer',

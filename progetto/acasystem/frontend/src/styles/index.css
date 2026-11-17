@@ -4,3 +4,5 @@
  * variables, background modes and Tunet animations are no longer loaded.
  */
 @import 'tailwindcss';
+/* Classi legacy usate dai componenti ora condivisi, oltre al loro CSS autonomo. */
+@source '../../../ui';

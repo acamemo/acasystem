@@ -30,7 +30,7 @@ const entities = fixtureEntities([
   }),
   fixtureEntity('weather.casa', 'sunny', { friendly_name: 'Casa', temperature: 17.4 }),
   fixtureEntity('calendar.famiglia', 'off', { friendly_name: 'Famiglia' }),
-  fixtureEntity('todo.spesa', '0', { friendly_name: 'Spesa' }),
+  fixtureEntity('todo.spesa', '0', { friendly_name: 'Spesa', supported_features: 7 }),
   fixtureEntity('alarm_control_panel.casa', 'disarmed', {
     friendly_name: 'Centrale',
     supported_features: 1 + 2,
@@ -40,7 +40,7 @@ const entities = fixtureEntities([
 
 /** HA answering the reads of calendar and to-do with empty data. */
 const { conn } = fakeConnection((message: HaMessage) => {
-  if (message.service === 'get_events') return { response: {} };
+  if (message.service === 'get_events') return { response: { 'calendar.famiglia': { events: [] } } };
   if (message.type === 'todo/item/list') return { items: [] };
   return null;
 });
@@ -326,7 +326,7 @@ describe('Unità dal sistema di Home Assistant (haConfig)', () => {
       runtime: { entities: fixtureEntities([bareWeather()]), haConfig: IMPERIAL },
     });
     expect(screen.getByText('63,3 °F')).toBeInTheDocument();
-    expect(screen.getByText('30 inHg')).toBeInTheDocument();
+    expect(screen.getByText('29,9 inHg')).toBeInTheDocument();
     expect(screen.getByText('8 mph')).toBeInTheDocument();
     expect(screen.getByText('49 °F')).toBeInTheDocument();
     expect(screen.getByText('0,2 in')).toBeInTheDocument();

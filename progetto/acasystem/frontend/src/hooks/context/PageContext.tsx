@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from 'react';
 import type {
   CardSettingsMap,
@@ -63,6 +64,8 @@ export interface PageContextValue extends DashboardPageContextValue {
   launcherLayout: LauncherLayout | null;
   /** Saves the layout (null forgets it, so the launcher migrates again from pagesConfig). */
   persistLauncherLayout: (layout: LauncherLayout | null) => void;
+  commitWidgetAddition?: (apply: (current: WidgetState) => WidgetState, widgetId: string) => Promise<void>;
+  cancelWidgetAddition?: (widgetId: string) => Promise<'cancelled' | 'saved'>;
 }
 
 export type { PageProviderProps };
@@ -318,6 +321,11 @@ function loadStatusPillsConfig(): StatusPillConfig[] {
 }
 
 const PageContext = createContext<PageContextValue | null>(null);
+
+/** Adattatore applicativo: stessi contratti dei componenti, persistenza coordinata dal profilo. */
+export function PageContextOverride({ value, children }: { value: PageContextValue; children: ReactNode }) {
+  return <PageContext.Provider value={value}>{children}</PageContext.Provider>;
+}
 
 export const usePages = (): PageContextValue => {
   const context = useContext(PageContext);
@@ -591,6 +599,18 @@ export const PageProvider = ({ children }: PageProviderProps) => {
     }
   }, []);
 
+  const commitWidgetAddition = useCallback(async (apply: (current: WidgetState) => WidgetState) => {
+    const current = latest.current;
+    if (!current?.layout) throw new Error('Profilo non disponibile.');
+    const next = apply(current);
+    latest.current = next;
+    setLauncherLayout(next.layout); setPagesConfig(next.pagesConfig ?? current.pagesConfig ?? DEFAULT_PAGES_CONFIG);
+    setCardSettings(next.cardSettings); setCustomNames(next.customNames); setCustomIcons(next.customIcons); setWidgetMemory(next.memory);
+    writeJSON(LAUNCHER_LAYOUT_KEY, next.layout); writeJSON('tunet_pages_config', next.pagesConfig);
+    writeJSON('tunet_card_settings', next.cardSettings); writeJSON('tunet_custom_names', next.customNames);
+    writeJSON('tunet_custom_icons', next.customIcons); writeJSON(WIDGET_MEMORY_STORAGE_KEY, next.memory);
+  }, []);
+
   useLayoutEffect(() => {
     latest.current = {
       layout: launcherLayout,
@@ -750,6 +770,7 @@ export const PageProvider = ({ children }: PageProviderProps) => {
       settingsLoaded,
       launcherLayout,
       persistLauncherLayout,
+      commitWidgetAddition,
     }),
     [
       pagesConfig,
@@ -796,6 +817,7 @@ export const PageProvider = ({ children }: PageProviderProps) => {
       settingsLoaded,
       launcherLayout,
       persistLauncherLayout,
+      commitWidgetAddition,
     ]
   );
 

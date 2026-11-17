@@ -1,8 +1,13 @@
-import type { WidgetProps } from '@/@types/launcher';
+import type { WidgetProps, WidgetDetailsProps } from '@/@types/launcher';
+import type { CardSettings } from '@/@types/dashboard';
+import type { EntityMap } from '@/@types/ha';
+import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
+import { WeatherWidget } from '../weather/WeatherWidget';
+import { WeatherDetails } from '../weather/WeatherDetails';
 import { CoverCalendar, CoverClock } from '@/components/system/cover/CoverCards';
 import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
 import { useNow } from '@/hooks/launcher/useNow';
-import { CoverWeather } from './CoverWeather';
+import { coverWeatherEntity } from './CoverWeather';
 import './coverWidgets.css';
 
 /**
@@ -32,10 +37,19 @@ export function DateWidget(_props: WidgetProps) {
   );
 }
 
-export function HomeWeatherWidget(_props: WidgetProps) {
-  return (
-    <CoverCell>
-      <CoverWeather />
-    </CoverCell>
-  );
+/** Automatic source is derived locally; saved associations and the profile are never rewritten. */
+export function homeWeatherSettings(settings: CardSettings, entities: EntityMap): CardSettings {
+  if (settings.weatherId != null && settings.weatherId !== '') return settings;
+  const weatherId = coverWeatherEntity(entities)?.entity_id;
+  return weatherId ? { ...settings, weatherId } : settings;
+}
+
+export function HomeWeatherWidget(props: WidgetProps) {
+  const { entities } = useWidgetRuntime();
+  return <WeatherWidget {...props} settings={homeWeatherSettings(props.settings, entities)} />;
+}
+
+export function HomeWeatherDetails(props: WidgetDetailsProps) {
+  const { entities } = useWidgetRuntime();
+  return <WeatherDetails {...props} settings={homeWeatherSettings(props.settings, entities)} />;
 }

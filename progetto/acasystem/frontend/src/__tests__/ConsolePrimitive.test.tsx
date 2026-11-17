@@ -5,10 +5,8 @@ import { Console, ConsoleColumns } from '@/components/primitives';
 
 /**
  * The full-screen console: focus and Tab trap, the ways to close it (button, Escape, Android Back,
- * a swipe down from the header), its entry in the history and the flight from the widget.
+ * a swipe down from the header), its entry in the history and the centered window presence.
  */
-
-const origin = { top: 20, left: 10, width: 200, height: 100 };
 
 function reducedMotion(reduced: boolean) {
   window.matchMedia = ((query: string) => ({
@@ -33,7 +31,6 @@ function Harness({ onClosed }: { onClosed?: () => void }) {
           onClosed?.();
         }}
         title="Salotto"
-        origin={origin}
         actions={<button type="button">Azione</button>}
       >
         <button type="button">Primo</button>
@@ -119,23 +116,15 @@ describe('Console', () => {
     expect(entry()).toBeUndefined();
   });
 
-  it('flies from the rectangle of the widget and keeps the panel for its exit', async () => {
+  it('shows the complete window at once and keeps it for its inert exit', async () => {
     render(<Harness />);
     const panel = document.querySelector<HTMLElement>('.aca-console');
-    expect(panel?.style.getPropertyValue('--aca-console-from')).toBe(
-      `translate(10px, 20px) scale(${200 / window.innerWidth}, ${100 / window.innerHeight})`
-    );
-    // Where nothing moves the content is there at once.
-    expect(panel).toHaveAttribute('data-arrived');
+    expect(panel?.getAttribute('style') ?? '').not.toContain('aca-console-from');
+    expect(screen.getByRole('button', { name: 'Primo' }).closest('[inert]')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Azione' }).closest('[inert]')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi' }));
     await settle();
     expect(screen.queryByRole('dialog')).toBeNull();
-  });
-
-  it('scales from the centre without an origin', () => {
-    render(<Console open onClose={() => undefined} title="A" />);
-    const panel = document.querySelector<HTMLElement>('.aca-console');
-    expect(panel?.style.getPropertyValue('--aca-console-from')).toBe('scale(0.94)');
   });
 
   it('sets no transform with reduced motion', () => {

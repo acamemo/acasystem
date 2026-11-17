@@ -9,6 +9,8 @@ import type { SnapshotContextSetters } from '@/@types/snapshot';
 import { useHomeAssistantMeta } from '@/hooks/context/HomeAssistantContext';
 import { usePages } from '@/hooks/context/PageContext';
 import { useSettingsSync } from '@/hooks/useSettingsSync';
+import { useQrAccountSync } from '@/hooks/qrAccountSync';
+import { useOptionalLiveProfiles } from '@/hooks/liveProfiles/LiveProfilesContext';
 
 export type LauncherContextSetters = SnapshotContextSetters & LauncherSnapshotSetters;
 
@@ -79,19 +81,19 @@ export function useSnapshotSetters(): LauncherContextSetters {
 }
 
 /**
- * Keeps the legacy behaviour of the settings sync while the app runs: when edit mode ends
- * (`tunet:edit-done`) the current snapshot, launcher layout included, is pushed at once.
- * Bootstrap and polling stay with the Sistema page, as they did with the settings panel.
+ * Keeps the account's shared interface up to date while the app runs. QR CONFIG copies stay
+ * local; QR ACCOUNT follows this same HA user's revisions through the server's event stream.
  */
 export function useLauncherSettingsSync() {
   const { haUser } = useHomeAssistantMeta();
+  const live = useOptionalLiveProfiles();
   const setters = useSnapshotSetters();
+  useQrAccountSync(live ? undefined : haUser?.id, setters);
+  // Preserve the existing per-device saves (including Casa 3D quality), without its polling.
   const settersRef = useRef<SnapshotContextSetters | null>(setters);
-  useEffect(() => {
-    settersRef.current = setters;
-  }, [setters]);
+  useEffect(() => { settersRef.current = setters; }, [setters]);
   return useSettingsSync({
-    haUserId: haUser?.id,
+    haUserId: live ? undefined : haUser?.id,
     contextSettersRef: settersRef,
     autoBootstrap: false,
   });

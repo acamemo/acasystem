@@ -3,6 +3,7 @@ import { Button, Caption, IconText, Numeric, Slider } from '@/components/primiti
 import { formatDuration } from '@/utils/formatting';
 import { MediaIcon } from '../icons';
 import { testi } from '../testi';
+import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import type { MediaControls } from '../hooks/useMediaControls';
 import { stop } from './WidgetShell';
 import { classes } from '@/components/primitives/classes';
@@ -26,6 +27,9 @@ export interface TransportProps {
   afterPlay?: ReactNode;
   /** Label of play/pause when it is one key for both (Apple TV). */
   playLabel?: string;
+  /** Labels of previous/next when they are not track keys (channel up and down of a TV). */
+  previousLabel?: string;
+  nextLabel?: string;
 }
 
 /** Transport buttons of a media_player, shown only when the entity supports them. */
@@ -42,6 +46,8 @@ export function Transport({
   beforePlay,
   afterPlay,
   playLabel,
+  previousLabel,
+  nextLabel,
 }: TransportProps) {
   const { caps, playing, power, powerAction, shuffle, repeat, busy } = controls;
   const full = variant === 'full';
@@ -76,7 +82,7 @@ export function Transport({
           shape="circle"
           size="md"
           className={skipClassName}
-          aria-label={testi.precedente}
+          aria-label={previousLabel ?? testi.precedente}
           loading={busy === 'previous'}
           disabled={disabled}
           onClick={controls.previous}
@@ -118,7 +124,7 @@ export function Transport({
           shape="circle"
           size="md"
           className={skipClassName}
-          aria-label={testi.successivo}
+          aria-label={nextLabel ?? testi.successivo}
           loading={busy === 'next'}
           disabled={disabled}
           onClick={controls.next}
@@ -198,6 +204,7 @@ export function StepButton({
   label,
   busy,
   disabled,
+  repeat = false,
   onClick,
 }: {
   direction: 1 | -1;
@@ -205,17 +212,20 @@ export function StepButton({
   label: string;
   busy?: boolean;
   disabled?: boolean;
+  /** Held down, the button repeats (channel up and down); it shows no busy pulse then. */
+  repeat?: boolean;
   onClick: () => void;
 }) {
+  const hold = useHoldRepeat(onClick, { disabled: disabled || !repeat });
   return (
     <Button
       variant="control"
       shape="circle"
       size={size}
       aria-label={label}
-      loading={busy}
+      loading={repeat ? undefined : busy}
       disabled={disabled}
-      onClick={onClick}
+      {...(repeat ? hold : { onClick })}
     >
       <MediaIcon name={direction > 0 ? 'add' : 'minus'} size={size === 'lg' ? 'md' : 'sm'} />
     </Button>
@@ -227,12 +237,15 @@ export function StepPair({
   size = 'lg',
   labels,
   busy,
+  repeat = false,
   onStep,
 }: {
   size?: 'md' | 'lg';
   /** Accessible names of − and +. */
   labels: [string, string];
   busy: [boolean, boolean];
+  /** Holding a button repeats the step (see `useHoldRepeat`). */
+  repeat?: boolean;
   onStep: (direction: 1 | -1) => void;
 }) {
   return (
@@ -242,6 +255,7 @@ export function StepPair({
         size={size}
         label={labels[0]}
         busy={busy[0]}
+        repeat={repeat}
         onClick={() => onStep(-1)}
       />
       <StepButton
@@ -249,6 +263,7 @@ export function StepPair({
         size={size}
         label={labels[1]}
         busy={busy[1]}
+        repeat={repeat}
         onClick={() => onStep(1)}
       />
     </div>
@@ -399,12 +414,21 @@ export function SeekBar({
 }
 
 /** Live region for command failures; empty (but present) when everything is fine. */
-export function CommandStatus({ error, id }: { error: boolean; id?: string }) {
+export function CommandStatus({
+  error,
+  id,
+  message = testi.comandoNonRiuscito,
+}: {
+  error: boolean;
+  id?: string;
+  /** What the failure says; the generic «Comando non riuscito» by default. */
+  message?: string;
+}) {
   return (
     <p className="aca-media-status" role="status" id={id}>
       {error && (
         <IconText icon="warning" iconTone="danger" tone="danger" iconSize="sm">
-          {testi.comandoNonRiuscito}
+          {message}
         </IconText>
       )}
     </p>

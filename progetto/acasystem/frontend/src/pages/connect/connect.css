@@ -56,4 +56,57 @@
     display: flex;
     justify-content: flex-start;
   }
+  .aca-m.aca-connect__panel--auth {
+    max-width: 26rem;
+  }
+  .aca-m.aca-connect__panel--auth > .aca-m__outer > .aca-m__face {
+    padding: 0;
+  }
+  .aca-m.aca-connect__panel--auth > .aca-m__outer > .aca-m__face > .aca-connect__content {
+    gap: 0;
+  }
+  .aca-connect__auth-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 2rem 1.5rem 1.5rem;
+    min-width: 0;
+  }
+  .aca-connect--auth .aca-connect__intro {
+    text-align: center;
+  }
+  .aca-connect--auth .aca-connect-form__actions > [type='submit'],
+  .aca-connect--auth .aca-connect-form > [type='submit'] {
+    width: 100%;
+  }
+  .aca-connect--auth .aca-connect__options {
+    align-items: center;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .aca-connect__auth-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: color-mix(in oklch, var(--aca-page) 95%, var(--aca-ink-solid));
+  }
+  .aca-connect__auth-link {
+    min-height: 2.75rem;
+    padding: 0.5rem 0;
+    border: 0;
+    background: none;
+    color: var(--aca-blue-ink-icon);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+  .aca-connect__auth-link:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 4px;
+  }
 }

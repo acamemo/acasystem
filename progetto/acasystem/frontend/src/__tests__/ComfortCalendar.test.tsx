@@ -10,6 +10,10 @@ import { fakeConnection, renderDetails, renderWidget } from './ComfortHarness';
 const NOW = new Date(2026, 9, 6, 9, 0, 0); // Tuesday 6 October 2026, 09:00
 const ID = 'calendar_card_1';
 const settings = { calendars: ['calendar.famiglia', 'calendar.lavoro'], name: 'Agenda' };
+const calendarEntities = fixtureEntities([
+  fixtureEntity('calendar.famiglia', 'off', { friendly_name: 'Famiglia' }),
+  fixtureEntity('calendar.lavoro', 'off', { friendly_name: 'Lavoro' }),
+]);
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -56,7 +60,7 @@ function calendarConnection(fail = false) {
 describe('Widget calendario', () => {
   it('chiama calendar.get_events per i calendari scelti, sui prossimi 7 giorni', async () => {
     const { conn, sendMessagePromise } = calendarConnection();
-    renderWidget(calendarWidget, { id: ID, settings, runtime: { conn } });
+    renderWidget(calendarWidget, { id: ID, settings, runtime: { conn, entities: calendarEntities } });
     await screen.findByText('Dentista');
     const message = sendMessagePromise.mock.calls[0][0];
     expect(message).toMatchObject({
@@ -73,7 +77,7 @@ describe('Widget calendario', () => {
 
   it('2×2: oggi e i prossimi giorni, raggruppati e in ordine, con il resto contato', async () => {
     const { conn } = calendarConnection();
-    renderWidget(calendarWidget, { id: ID, settings, size: { w: 2, h: 2 }, runtime: { conn } });
+    renderWidget(calendarWidget, { id: ID, settings, size: { w: 2, h: 2 }, runtime: { conn, entities: calendarEntities } });
     const card = screen.getByRole('group', { name: 'Agenda' });
     const today = await within(card).findByRole('region', { name: 'Oggi' });
     expect(
@@ -88,7 +92,7 @@ describe('Widget calendario', () => {
 
   it('4×4: due colonne, una settimana, luogo degli eventi', async () => {
     const { conn } = calendarConnection();
-    renderWidget(calendarWidget, { id: ID, settings, size: { w: 4, h: 4 }, runtime: { conn } });
+    renderWidget(calendarWidget, { id: ID, settings, size: { w: 4, h: 4 }, runtime: { conn, entities: calendarEntities } });
     const card = screen.getByRole('group', { name: 'Agenda' });
     expect(await within(card).findByText('Trasferta')).toBeInTheDocument();
     expect(within(card).getByRole('region', { name: 'Domani' })).toHaveTextContent(
@@ -100,10 +104,10 @@ describe('Widget calendario', () => {
 
   it('2×1: solo il prossimo evento', async () => {
     const { conn } = calendarConnection();
-    renderWidget(calendarWidget, { id: ID, settings, size: { w: 2, h: 1 }, runtime: { conn } });
-    expect(await screen.findByText('Colazione')).toBeInTheDocument();
-    expect(screen.getByText(/Oggi ·/)).toHaveTextContent('Oggi · 08:00–08:30');
-    expect(screen.queryByText('Riunione')).not.toBeInTheDocument();
+    renderWidget(calendarWidget, { id: ID, settings, size: { w: 2, h: 1 }, runtime: { conn, entities: calendarEntities } });
+    expect(await screen.findByText('Riunione')).toBeInTheDocument();
+    expect(screen.getByText(/Oggi ·/)).toHaveTextContent('Oggi · 11:00–12:00');
+    expect(screen.queryByText('Colazione')).not.toBeInTheDocument();
   });
 
   it('senza calendari, in caricamento, in errore', async () => {
@@ -112,18 +116,21 @@ describe('Widget calendario', () => {
       screen.getByText('Scegli i calendari da mostrare nelle impostazioni del widget.')
     ).toBeInTheDocument();
 
-    update({ id: ID, settings, runtime: { conn: null } });
+    update({ id: ID, settings, runtime: { conn: null, entities: calendarEntities, entitiesLoaded: false } });
     expect(screen.getByRole('status')).toHaveTextContent('Caricamento del calendario…');
+    update({ id: ID, settings, runtime: { conn: null, entities: calendarEntities } });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByText('Non riesco a leggere gli eventi. Apri i dettagli per riprovare.')).toBeInTheDocument();
 
     cleanup();
     renderWidget(calendarWidget, {
       id: ID,
       settings,
-      runtime: { conn: calendarConnection(true).conn },
+      runtime: { conn: calendarConnection(true).conn, entities: calendarEntities },
     });
     expect(
       await screen.findByText(
-        'Non riesco a leggere gli eventi. Riprovo tra poco.'
+        'Non riesco a leggere gli eventi. Apri i dettagli per riprovare.'
       )
     ).toBeInTheDocument();
   });
@@ -131,7 +138,7 @@ describe('Widget calendario', () => {
   it('il tocco apre i dettagli', async () => {
     const openDetails = vi.fn();
     const { conn } = calendarConnection();
-    renderWidget(calendarWidget, { id: ID, settings, runtime: { conn, openDetails } });
+    renderWidget(calendarWidget, { id: ID, settings, runtime: { conn, openDetails, entities: calendarEntities } });
     await screen.findByText('Dentista');
     fireEvent.click(screen.getByRole('button', { name: 'Apri il calendario Agenda' }));
     expect(openDetails).toHaveBeenCalledWith(ID);
@@ -151,10 +158,7 @@ describe('Capienza misurata del calendario', () => {
 });
 
 describe('Dettagli calendario', () => {
-  const entities = fixtureEntities([
-    fixtureEntity('calendar.famiglia', 'off', { friendly_name: 'Famiglia' }),
-    fixtureEntity('calendar.lavoro', 'off', { friendly_name: 'Lavoro' }),
-  ]);
+  const entities = calendarEntities;
 
   it('30 giorni da oggi per tutti i calendari, eventi conclusi segnalati in testo', async () => {
     const { conn, sendMessagePromise } = calendarConnection();
@@ -167,7 +171,7 @@ describe('Dettagli calendario', () => {
       end_date_time: string;
     };
     expect(new Date(data.start_date_time).getTime()).toBe(new Date(2026, 9, 6).getTime());
-    expect(new Date(data.end_date_time).getTime()).toBe(new Date(2026, 10, 5, 9).getTime());
+    expect(new Date(data.end_date_time).getTime()).toBe(new Date(2026, 10, 5).getTime());
     expect(screen.getByText('2 calendari selezionati')).toBeInTheDocument();
   });
 

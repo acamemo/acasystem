@@ -38,10 +38,18 @@ export function TvRemote({ tv }: { tv: TvDetailsState }) {
         {testi.telecomando}
       </Heading>
       <div className="aca-media-dpad">
-        <RoundKey tv={tv} keyName="up" label={testi.su} icon="up" className="aca-media-dpad__up" />
+        <RoundKey
+          tv={tv}
+          keyName="up"
+          repeat
+          label={testi.su}
+          icon="up"
+          className="aca-media-dpad__up"
+        />
         <RoundKey
           tv={tv}
           keyName="left"
+          repeat
           label={testi.sinistra}
           icon="left"
           className="aca-media-dpad__left"
@@ -50,6 +58,7 @@ export function TvRemote({ tv }: { tv: TvDetailsState }) {
         <RoundKey
           tv={tv}
           keyName="right"
+          repeat
           label={testi.destra}
           icon="right"
           className="aca-media-dpad__right"
@@ -57,6 +66,7 @@ export function TvRemote({ tv }: { tv: TvDetailsState }) {
         <RoundKey
           tv={tv}
           keyName="down"
+          repeat
           label={testi.giu}
           icon="down"
           className="aca-media-dpad__down"

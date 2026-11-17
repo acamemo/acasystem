@@ -279,35 +279,29 @@ describe('devices API: nothing kept, nothing said', () => {
   });
 });
 
-// --- The keys the screens read, against the DTOs of the server -----------------------------------
+// --- The response fixtures against the shared transport contracts -----------------------------------
 
-/**
- * The strict program has no Node types: the server files are read through a typed dynamic import.
- * Vitest runs from the frontend folder; where the server is not beside it, the checks are skipped.
- */
-const SERVER = '../backend/src/services/devices/';
+/** Il contratto comune è obbligatorio: questi controlli non saltano se il backend è assente. */
+const CONTRACT = '../contracts/devices.ts';
 type Fs = {
   existsSync: (path: string) => boolean;
   readFileSync: (path: string, encoding: 'utf8') => string;
 };
 
-async function readServer(file: string): Promise<string | null> {
+async function readContract(): Promise<string> {
   const specifier = 'node:fs';
   const fs = (await import(/* @vite-ignore */ specifier)) as Fs;
-  return fs.existsSync(SERVER + file)
-    ? fs.readFileSync(SERVER + file, 'utf8').replace(/\r\n/g, '\n')
-    : null;
+  if (!fs.existsSync(CONTRACT)) throw new Error('Contratto API comune mancante');
+  return fs.readFileSync(CONTRACT, 'utf8').replace(/\r\n/g, '\n');
 }
 
-/** Property names of `interface <name> {…}` in a server file, with whether each is optional. */
-async function serverKeys(
-  file: string,
+/** Property names of `interface <name> {…}` in the shared contract, with whether each is optional. */
+async function contractKeys(
   name: string
 ): Promise<{ key: string; optional: boolean }[]> {
-  const text = await readServer(file);
-  if (text === null) throw new Error(`${file} not found`);
+  const text = await readContract();
   const start = text.search(new RegExp(`export interface ${name}\\b[^{]*\\{`));
-  if (start < 0) throw new Error(`interface ${name} not found in ${file}`);
+  if (start < 0) throw new Error(`interface ${name} not found in ${CONTRACT}`);
   const open = text.indexOf('{', start);
   const end = text.indexOf('\n}', open);
   const keys: { key: string; optional: boolean }[] = [];
@@ -318,15 +312,14 @@ async function serverKeys(
   return keys;
 }
 
-describe('devices API: the keys of the DTOs match the server', () => {
+describe('devices API: response fixtures match the shared contracts', () => {
   /** Every key of the fixture is a key of the server, and every required key of the server is there. */
   const matches = async (
     fixture: object,
-    file: string,
     name: string,
     extraServer: { key: string; optional: boolean }[] = []
   ) => {
-    const server = [...(await serverKeys(file, name)), ...extraServer];
+    const server = [...(await contractKeys(name)), ...extraServer];
     const wanted = Object.keys(fixture);
     expect(
       wanted.filter((key) => !server.some((item) => item.key === key)),
@@ -338,50 +331,43 @@ describe('devices API: the keys of the DTOs match the server', () => {
     ).toEqual([]);
   };
 
-  it('the flow steps, errors and end results', async (context) => {
-    const service = await readServer('deviceService.ts');
-    if (service === null) return context.skip();
+  it('the flow steps, errors and end results', async () => {
     const form = userForm([{ field: null, code: 'x', message: 'y' }]);
-    await matches(form, 'flowModel.ts', 'FlowFormDto');
-    await matches(form.errors[0] ?? {}, 'flowModel.ts', 'FlowErrorDto');
-    await matches(form.fields[0] ?? {}, 'flowModel.ts', 'FlowFieldDto');
-    await matches(abortDto(), 'flowModel.ts', 'FlowAbortDto');
+    await matches(form, 'FlowFormDto');
+    await matches(form.errors[0] ?? {}, 'FlowErrorDto');
+    await matches(form.fields[0] ?? {}, 'FlowFieldDto');
+    await matches(abortDto(), 'FlowAbortDto');
     // The steps that are not forms, and a generic form with every kind of field (F4).
-    await matches(menuDto(), 'flowModel.ts', 'FlowMenuDto');
-    await matches(progressDto(), 'flowModel.ts', 'FlowProgressDto');
-    await matches(externalDto(), 'flowModel.ts', 'FlowExternalDto');
+    await matches(menuDto(), 'FlowMenuDto');
+    await matches(progressDto(), 'FlowProgressDto');
+    await matches(externalDto(), 'FlowExternalDto');
     const generic = genericForm();
-    await matches(generic, 'flowModel.ts', 'FlowFormDto');
-    for (const field of generic.fields) await matches(field, 'flowModel.ts', 'FlowFieldDto');
+    await matches(generic, 'FlowFormDto');
+    for (const field of generic.fields) await matches(field, 'FlowFieldDto');
     // The created result is the server's one plus the entry and the pending flag.
     const { entry, pending, ...created } = createdDto();
     expect([entry === null, pending]).toEqual([false, false]);
-    await matches(created, 'flowModel.ts', 'FlowCreatedDto');
-    expect(service).toMatch(/FlowCreatedDto & \{ entry: EntryDto \| null; pending: boolean \}/);
+    await matches(created, 'FlowCreatedStepDto');
   });
 
-  it('the entry, the device, the state, the catalogue and the power state', async (context) => {
-    if ((await readServer('deviceService.ts')) === null) return context.skip();
-    await matches(entryDto(), 'deviceService.ts', 'EntryDto');
-    await matches(entryDto().device ?? {}, 'deviceService.ts', 'DeviceDto');
-    await matches(statusDto(), 'deviceService.ts', 'StatusDto');
-    await matches(catalogDto(), 'deviceService.ts', 'CatalogDto');
+  it('the entry, the device, the state, the catalogue and the power state', async () => {
+    await matches(entryDto(), 'EntryDto');
+    await matches(entryDto().device ?? {}, 'DeviceDto');
+    await matches(statusDto(), 'StatusDto');
+    await matches(catalogDto(), 'CatalogDto');
     const item = catalogDto().items[0] ?? {};
     await matches(
       item,
-      'catalog.ts',
       'CatalogEntryDto',
-      await serverKeys('catalog.ts', 'CatalogItem')
+      await contractKeys('CatalogItem')
     );
-    await matches({ ...discoveredDto(), reason: 'x' }, 'discovered.ts', 'DiscoveredDeviceDto');
+    await matches({ ...discoveredDto(), reason: 'x' }, 'DiscoveredDeviceDto');
     await matches(
       { entryId: 'e1', configured: true, active: true, message: null },
-      'powerRecipe.ts',
       'PowerStatusDto'
     );
     await matches(
       { flowId: 'f', handler: 'webostv', stepId: 'user', createdAt: '', expiresAt: '' },
-      'deviceService.ts',
       'FlowSummaryDto'
     );
   });

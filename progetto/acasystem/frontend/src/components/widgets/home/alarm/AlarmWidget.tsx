@@ -1,3 +1,5 @@
+import { alarmProductBinding } from './productAlarmModel';
+import { ProductAlarmWidget } from './ProductAlarmWidget';
 import type { HassEntity } from 'home-assistant-js-websocket';
 import type { CellSize, WidgetProps } from '@/@types/launcher';
 import { Button, Caption, Display, Heading } from '@/components/primitives';
@@ -24,7 +26,7 @@ export function alarmTone(state: string): HomeIconTone {
   return 'active';
 }
 
-export function AlarmWidget({ id, settings, size, editMode }: WidgetProps) {
+function LegacyAlarmWidget({ id, settings, size, editMode }: WidgetProps) {
   const { entities, entitiesLoaded, customNames } = useWidgetRuntime();
   const { entityId, entity } = settingEntity(entities, settings, 'alarmId');
   const name = displayName(customNames, id, entity, entity && entityId ? entityId : 'Allarme');
@@ -182,4 +184,8 @@ function AlarmCard({ id, name, entityId, entity, size, editMode }: AlarmCardProp
       )}
     </WidgetShell>
   );
+}
+
+export function AlarmWidget(props: WidgetProps) {
+  return alarmProductBinding(props.settings) ? <ProductAlarmWidget {...props} /> : <LegacyAlarmWidget {...props} />;
 }

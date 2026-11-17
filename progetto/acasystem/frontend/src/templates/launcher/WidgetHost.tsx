@@ -25,6 +25,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { useLauncherUi } from './LauncherUiContext';
 import { StackView } from './StackView';
 import { CategoryWidgetContent } from './CategoryWidgetContent';
+import { useOptionalLiveProfiles } from '@/hooks/liveProfiles/LiveProfilesContext';
 
 export interface WidgetHostProps {
   pageId: string;
@@ -128,6 +129,16 @@ export const WidgetHost = memo(function WidgetHost({
   entering = null,
 }: WidgetHostProps) {
   const ui = useLauncherUi();
+  const live = useOptionalLiveProfiles();
+  const [presenceTime, setPresenceTime] = useState(Date.now);
+  useEffect(() => {
+    if (!live?.state.leases.length) return;
+    const timer = setInterval(() => setPresenceTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [live?.state.leases.length]);
+  const presence = live?.state.leases.find(lease => lease.expiresAt > presenceTime
+    && lease.editSessionId !== live.state.editor?.id
+    && (lease.resources.includes('profile') || lease.resources.includes(`widget:${widgetId}`)));
   const { controller } = ui;
   const editMode = controller.editMode;
   const settingsKey = controller.settingsKeyFor(pageId, widgetId);
@@ -186,7 +197,7 @@ export const WidgetHost = memo(function WidgetHost({
     event: PointerEvent<HTMLElement>,
     edge?: HandleEdge
   ) => {
-    if (event.button !== 0 || !boxRef.current) return;
+    if (presence || event.button !== 0 || !boxRef.current) return;
     if (kind === 'resize') event.stopPropagation();
     const box = boxRef.current.getBoundingClientRect();
     ui.beginDrag({
@@ -329,6 +340,7 @@ export const WidgetHost = memo(function WidgetHost({
           )}
         </ErrorBoundary>
       </Frame>
+      {presence && <div className="aca-live-widget-presence" role="status"><Caption>{presence.userName} sta editando…</Caption><Caption>{presence.clientName}</Caption></div>}
 
       {editMode && (
         <>
@@ -340,6 +352,7 @@ export const WidgetHost = memo(function WidgetHost({
            */}
           <button
             ref={handleRef}
+            disabled={Boolean(presence)}
             type="button"
             className="aca-launcher-widget__handle"
             aria-label={`${name}, ${describeRect(placement)}${hidden ? ', nascosto' : ''}`}
@@ -386,7 +399,7 @@ export const WidgetHost = memo(function WidgetHost({
               {stack ? 'Aggiungi alla pila' : 'Crea pila'}
             </Caption>
           )}
-          {selected && <ResizeFrame axes={axes} onPointerDown={startResize} />}
+          {selected && !presence && <ResizeFrame axes={axes} onPointerDown={startResize} />}
         </>
       )}
     </div>

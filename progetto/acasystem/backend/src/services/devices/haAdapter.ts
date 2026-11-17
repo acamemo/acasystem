@@ -19,6 +19,12 @@ export interface HaUserInfo {
   isOwner: boolean;
 }
 
+export interface HaCurrentSession {
+  user: HaUserInfo;
+  refreshTokenId: string;
+  tokenType: string;
+}
+
 export interface HaEntry {
   entryId: string;
   domain: string;
@@ -132,6 +138,7 @@ export interface HaNetworkDevice {
 
 export interface HaWsApi {
   currentUser(): Promise<HaUserInfo>;
+  currentSession(): Promise<HaCurrentSession>;
   entries(domain?: string): Promise<HaEntry[]>;
   devices(): Promise<HaDevice[]>;
   updateDevice(
@@ -154,9 +161,12 @@ export interface HaWsApi {
   longLivedToken(clientName: string, lifespanDays: number): Promise<string>;
   adminUsers(): Promise<HaAdminUser[]>;
   createUser(name: string, localOnly: boolean): Promise<HaAdminUser>;
+  /** Human members never inherit the service account's administrator group. */
+  createHumanUser(name: string): Promise<HaAdminUser>;
+  deleteUser(userId: string): Promise<void>;
   updateUser(
     userId: string,
-    changes: { isActive?: boolean; groupIds?: string[]; localOnly?: boolean }
+    changes: { name?: string; isActive?: boolean; groupIds?: string[]; localOnly?: boolean }
   ): Promise<void>;
   /** Ids of the long-lived tokens of the connected user (for the rotation of the token). */
   longLivedTokenIds(): Promise<string[]>;
@@ -485,6 +495,17 @@ const createWsApi = (
   async currentUser() {
     return parseUser(await send(HA_CALLS.currentUser));
   },
+  async currentSession() {
+    const user = parseUser(await send(HA_CALLS.currentUser));
+    const current = asArray(await send(HA_CALLS.refreshTokens)).filter(
+      (item) => isRecord(item) && item.is_current === true
+    );
+    if (current.length !== 1 || !isRecord(current[0])) throw protocolError();
+    const refreshTokenId = asString(current[0].id);
+    const tokenType = asString(current[0].type);
+    if (!refreshTokenId || !tokenType) throw protocolError();
+    return { user, refreshTokenId, tokenType };
+  },
   async entries(domain) {
     const result = await send(HA_CALLS.entriesGet, domain ? { domain } : {});
     return compact(asArray(result).map(parseEntry));
@@ -570,8 +591,20 @@ const createWsApi = (
     if (!user) throw protocolError();
     return user;
   },
+  async createHumanUser(name) {
+    const result = requireRecord(await send(HA_CALLS.usersCreate, {
+      name, group_ids: ['system-users'], local_only: false,
+    }));
+    const user = parseAdminUser(result.user);
+    if (!user || user.isAdmin || user.isOwner) throw protocolError();
+    return user;
+  },
+  async deleteUser(userId) {
+    await send(HA_CALLS.usersDelete, { user_id: userId });
+  },
   async updateUser(userId, changes) {
     const payload: Record<string, unknown> = { user_id: userId };
+    if (changes.name !== undefined) payload.name = changes.name;
     if (changes.isActive !== undefined) payload.is_active = changes.isActive;
     if (changes.groupIds !== undefined) payload.group_ids = changes.groupIds;
     if (changes.localOnly !== undefined) payload.local_only = changes.localOnly;

@@ -4,5 +4,5 @@
     <string name="title_activity_main">Acasystem</string>
     <string name="package_name">it.acasystem.client</string>
     <string name="custom_url_scheme">it.acasystem.client</string>
-    <string name="shortcut_change_address">Cambia indirizzo</string>
+    <string name="shortcut_change_address">Scansiona un QR</string>
 </resources>

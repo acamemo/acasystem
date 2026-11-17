@@ -42,6 +42,23 @@ describe('settingsApi OAuth refresh retry', () => {
       });
   });
 
+  it('non rinnova o ripete un accesso revocato esplicitamente dalla centrale', async () => {
+    vi.mocked(globalThis.fetch).mockReset().mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ code: 'CLIENT_REVOKED', error: 'Dispositivo scollegato' }) } as Response);
+    const { backendRequest } = await import('@/api/backendClient');
+    await expect(backendRequest('/v2/profiles')).rejects.toMatchObject({ status: 401 });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(getValidatedHeadersAsyncMock).toHaveBeenCalledTimes(1);
+    expect(notifyUnauthorizedMock).toHaveBeenCalledWith('Dispositivo scollegato');
+  });
+
+  it('conserva la sessione quando HA è temporaneamente irraggiungibile', async () => {
+    vi.mocked(globalThis.fetch).mockReset().mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ code: 'HA_SESSION_UNAVAILABLE', error: 'Riprova' }) } as Response);
+    const { backendRequest } = await import('@/api/backendClient');
+    await expect(backendRequest('/v2/profiles')).rejects.toMatchObject({ status: 503 });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(notifyUnauthorizedMock).not.toHaveBeenCalled();
+  });
+
   it('refreshes OAuth headers and retries once after a 401', async () => {
     const { fetchCurrentSettings } = await import('@/api/settingsApi');
 

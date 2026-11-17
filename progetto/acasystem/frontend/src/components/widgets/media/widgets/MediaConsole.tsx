@@ -1,3 +1,5 @@
+import { mediaProductBinding } from '../../home/media/productMediaModel';
+import { ProductMediaConsole } from '../../home/media/ProductMediaDetails';
 import { ConsoleColumns } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { stringList } from '../model/entity';
@@ -36,12 +38,20 @@ function MediaConsoleView(input: MediaDetailsInput) {
 }
 
 /** Console of a `media_player.*` widget. */
-export function MediaPlayerConsole({ id }: WidgetDetailsProps) {
+export function MediaPlayerConsole(props: WidgetDetailsProps) {
+  if (mediaProductBinding(props.settings)) return <ProductMediaConsole {...props} />;
+  return <LegacyMediaPlayerConsole {...props} />;
+}
+function LegacyMediaPlayerConsole({ id }: WidgetDetailsProps) {
   return <MediaConsoleView cardId={id} baseIds={[id]} initialId={id} isGroup={false} />;
 }
 
 /** Console of a `media_group_*` / `sonos_group_*` widget. */
-export function MediaGroupConsole({ id, settings }: WidgetDetailsProps) {
+export function MediaGroupConsole(props: WidgetDetailsProps) {
+  if (mediaProductBinding(props.settings)) return <ProductMediaConsole {...props} />;
+  return <LegacyMediaGroupConsole {...props} />;
+}
+function LegacyMediaGroupConsole({ id, settings }: WidgetDetailsProps) {
   const initial = useGroupInitialId(settings);
   return (
     <MediaConsoleView

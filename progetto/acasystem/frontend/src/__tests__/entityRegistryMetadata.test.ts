@@ -52,6 +52,20 @@ describe('entityRegistryMetadata', () => {
     expect(result['media_player.kjokken1'].attributes?.device_name).toBe('Kjokken');
   });
 
+  it('adds the config entry, which the power-on recipe of a TV is looked up by', () => {
+    const entities: Record<string, EntityLike> = {
+      'media_player.tv': { entity_id: 'media_player.tv', state: 'unavailable', attributes: {} },
+    };
+    const result = enrichEntitiesWithRegistryMetadata(
+      entities,
+      buildRegistryLookupMap(
+        [{ entity_id: 'media_player.tv', platform: 'webostv', config_entry_id: 'entry-1' }],
+        'entity_id'
+      )
+    );
+    expect(result['media_player.tv'].attributes?.config_entry_id).toBe('entry-1');
+  });
+
   it('preserves existing entity attributes instead of overwriting them', () => {
     const entities: Record<string, EntityLike> = {
       'media_player.kjokken1': {

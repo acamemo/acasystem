@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { HaDeviceRegistryEntry, HaEntityRegistryEntry } from '@/@types/ha';
-import { getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
+import { getAreas, getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
 import { usePages } from '@/hooks/context';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { boundDeviceIds, boundEntityIds, unboundDevices } from '@/utils/devices/bound';
@@ -9,10 +9,11 @@ import { classifyDevices, type DiscoveredDevice } from '@/utils/devices/classify
 export type ConnectedDevice = DiscoveredDevice & {
   /** A widget of some page already shows the device. */
   bound: boolean;
+  areaName?: string;
 };
 
 export type ConnectedDevicesState =
-  { status: 'loading' } | { status: 'error' } | { status: 'ready'; devices: ConnectedDevice[] };
+  { status: 'loading' } | { status: 'error' } | { status: 'ready'; devices: ConnectedDevice[]; refreshError?: boolean };
 
 interface Registries {
   devices: HaDeviceRegistryEntry[];
@@ -25,29 +26,41 @@ interface Registries {
  * Home Assistant added by itself (Cast...). Same reading as `useUnboundDevices`, without leaving
  * out the bound ones.
  */
-export function useConnectedDevices(): ConnectedDevicesState {
+export function useConnectedDevices(paused = false): ConnectedDevicesState & { refresh: () => void } {
   const { conn, entities, entitiesLoaded } = useWidgetRuntime();
   const { pagesConfig, cardSettings } = usePages();
   const [registries, setRegistries] = useState<Registries | 'error' | null>(null);
+  const [refreshError, setRefreshError] = useState(false);
+  const [areas, setAreas] = useState<{ area_id: string; name?: string }[]>([]);
   const entityCount = Object.keys(entities).length;
+  const [tick, setTick] = useState(0);
+  const refresh = useCallback(() => setTick((value) => value + 1), []);
 
   useEffect(() => {
-    if (!entitiesLoaded || !conn) return;
+    if (paused || !entitiesLoaded || !conn) return;
     let cancelled = false;
+    // Room labels enrich the list; they never hold up the device registry itself.
+    void getAreas(conn).then((next) => { if (!cancelled) setAreas(next); }, () => undefined);
     Promise.all([getDeviceRegistry(conn), getEntityRegistry(conn)]).then(
       ([devices, entityRegistry]) => {
-        if (!cancelled) setRegistries({ devices, entityRegistry });
+        if (!cancelled) {
+          setRegistries({ devices, entityRegistry });
+          setRefreshError(false);
+        }
       },
       () => {
-        if (!cancelled) setRegistries('error');
+        if (!cancelled) {
+          setRefreshError(true);
+          setRegistries((previous) => previous ?? 'error');
+        }
       }
     );
     return () => {
       cancelled = true;
     };
-  }, [conn, entitiesLoaded, entityCount]);
+  }, [conn, entitiesLoaded, entityCount, paused, tick]);
 
-  return useMemo<ConnectedDevicesState>(() => {
+  const state = useMemo<ConnectedDevicesState>(() => {
     if (!entitiesLoaded) return { status: 'loading' };
     if (!conn || registries === 'error') return { status: 'error' };
     if (!registries) return { status: 'loading' };
@@ -67,7 +80,13 @@ export function useConnectedDevices(): ConnectedDevicesState {
     );
     return {
       status: 'ready',
-      devices: found.map((device) => ({ ...device, bound: !unbound.has(device.deviceId) })),
+      refreshError,
+      devices: found.map((device) => {
+        const registered = registries.devices.find((entry) => entry.id === device.deviceId);
+        const areaName = areas.find((area) => area.area_id === registered?.area_id)?.name;
+        return { ...device, bound: !unbound.has(device.deviceId), ...(areaName ? { areaName } : {}) };
+      }),
     };
-  }, [conn, entities, entitiesLoaded, registries, pagesConfig, cardSettings]);
+  }, [conn, entities, entitiesLoaded, registries, pagesConfig, cardSettings, refreshError, areas]);
+  return { ...state, refresh };
 }

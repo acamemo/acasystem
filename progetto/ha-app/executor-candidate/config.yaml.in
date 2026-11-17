@@ -1,0 +1,31 @@
+# Template separato: NON viene incluso nel catalogo stable da prepare.mjs.
+# L'attivazione richiede valutazione esplicita sul target e protection mode OFF.
+name: Acasystem updater
+version: "__VERSION__"
+slug: acasystem_updater
+description: Coordinatore esterno di backup, aggiornamento e recupero della sola ACA.
+url: https://github.com/acamemo/acasystem-releases
+arch:
+  - amd64
+image: ghcr.io/acamemo/acasystem
+init: true
+startup: application
+boot: manual
+stage: experimental
+timeout: 300
+hassio_api: true
+hassio_role: manager
+docker_api: true
+homeassistant_api: false
+host_network: false
+ingress: false
+environment:
+  ACA_PROCESS_ROLE: updater
+backup: cold
+backup_exclude:
+  - "update-secret"
+  - "update-secret/*"
+  - "runtime"
+  - "runtime/*"
+options: {}
+schema: {}

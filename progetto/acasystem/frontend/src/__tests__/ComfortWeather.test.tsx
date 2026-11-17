@@ -96,7 +96,7 @@ describe('Widget meteo: rendering per taglia e stati', () => {
     expect(within(card).getByText('Giardino')).toBeInTheDocument();
   });
 
-  it('2×2: grafico dalla previsione quando manca lo storico (come il legacy)', () => {
+  it('2×2: grafico della sola previsione, senza aggiungere la lettura attuale', () => {
     renderWidget(weatherWidget, {
       id: ID,
       settings,
@@ -104,7 +104,7 @@ describe('Widget meteo: rendering per taglia e stati', () => {
       runtime: { entities: fixtureEntities([weather('sunny', { forecast: hourly })]) },
     });
     expect(
-      screen.getByRole('img', { name: /Temperatura prevista, da 17,4 °C a 25 °C/ })
+      screen.getByRole('img', { name: /Temperatura prevista, da 18 °C a 25 °C/ })
     ).toBeInTheDocument();
   });
 
@@ -184,7 +184,8 @@ describe('Dettagli meteo', () => {
     expect(screen.getByText('62%')).toBeInTheDocument();
     expect(screen.getByText('1013 hPa')).toBeInTheDocument();
     expect(screen.getByText('12 km/h')).toBeInTheDocument();
-    expect(screen.getByText('raffiche 20 km/h')).toBeInTheDocument();
+    expect(screen.getByText('Raffiche')).toBeInTheDocument();
+    expect(screen.getByText('20 km/h')).toBeInTheDocument();
     expect(screen.getByText('9,5 °C')).toBeInTheDocument();
 
     const hourlyList = await screen.findByRole('list', { name: 'Previsioni orarie' });
@@ -199,14 +200,14 @@ describe('Dettagli meteo', () => {
     );
   });
 
-  it('con il sensore mostra lo storico per periodo (statistiche come il legacy)', async () => {
-    const statistics = Array.from({ length: 5 }, (_, index) => ({
-      start: NOW.getTime() - (5 - index) * 3600 * 1000,
-      mean: 14 + index,
+  it('con il sensore mostra soltanto lo storico ricevuto con unità verificata per periodo', async () => {
+    const history = Array.from({ length: 5 }, (_, index) => ({
+      ...fixtureEntity('sensor.esterno', String(14 + index), { unit_of_measurement: '°C' }),
+      last_updated: new Date(NOW.getTime() - (5 - index) * 3600 * 1000).toISOString(),
     }));
     const { conn, sendMessagePromise } = fakeConnection((message: HaMessage) => {
-      if (message.type === 'recorder/statistics_during_period')
-        return { 'sensor.esterno': statistics };
+      if (message.type === 'history/history_during_period')
+        return { 'sensor.esterno': history };
       if (message.service === 'get_forecasts')
         return { response: { 'weather.casa': { forecast: hourly } } };
       return null;
@@ -227,15 +228,17 @@ describe('Dettagli meteo', () => {
     ).toBeInTheDocument();
     expect(sendMessagePromise).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'recorder/statistics_during_period',
-        statistic_ids: ['sensor.esterno'],
-        period: '5minute',
+        type: 'history/history_during_period',
+        entity_ids: ['sensor.esterno'],
+        no_attributes: false,
+        start_time: new Date(NOW.getTime() - 12 * 3600 * 1000).toISOString(),
       })
     );
     fireEvent.click(screen.getByRole('button', { name: '24 ore' }));
     await waitFor(() =>
       expect(sendMessagePromise).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'recorder/statistics_during_period', period: '15minute' })
+        expect.objectContaining({ type: 'history/history_during_period',
+          start_time: new Date(NOW.getTime() - 24 * 3600 * 1000).toISOString(), no_attributes: false })
       )
     );
   });

@@ -1,3 +1,5 @@
+import { ProductCoverDetails } from '../../home/cover/ProductCoverDetails';
+import { coverProductBinding } from '../../home/cover/productCoverModel';
 import { useId } from 'react';
 import { Body, Button, Caption, Heading, Numeric, Slider } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
@@ -22,7 +24,7 @@ const TILT_PRESETS = [
 ];
 
 /** Sheet content of a cover (legacy CoverModal): commands, position, tilt and information. */
-export function CoverDetails({ id, settings }: WidgetDetailsProps) {
+function LegacyCoverDetails({ id, settings }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const entityId = settingString(settings, 'coverId') || undefined;
   const cover = useCoverControl(entityId, false);
@@ -234,4 +236,8 @@ export function CoverDetails({ id, settings }: WidgetDetailsProps) {
       </section>
     </div>
   );
+}
+
+export function CoverDetails(props: WidgetDetailsProps) {
+  return coverProductBinding(props.settings) ? <ProductCoverDetails {...props} /> : <LegacyCoverDetails {...props} />;
 }

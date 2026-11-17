@@ -37,6 +37,7 @@ import {
   useLauncherUi,
 } from './LauncherUiContext';
 import { whenIdle } from './Pager';
+import { useHomeMeasurement } from '@/hooks/startup/HomeStartupContext';
 import { WidgetHost } from './WidgetHost';
 
 type GridStyle = CSSProperties &
@@ -211,7 +212,7 @@ const FreeCells = memo(function FreeCells({
       if (
         press.current?.clicked &&
         target instanceof Element &&
-        target.classList.contains('aca-sheet')
+        (target.classList.contains('aca-sheet') || target.classList.contains('aca-bottom-drawer'))
       ) {
         releasePress();
       }
@@ -373,6 +374,10 @@ export function WidgetGrid({
   const ui = useLauncherUi();
   const { controller } = ui;
   const { editMode } = controller;
+  const homeMeasurement = useHomeMeasurement();
+  const measurementRef = useRef(homeMeasurement); measurementRef.current = homeMeasurement;
+  const [areaAvailable, setAreaAvailable] = useState(false);
+  const [measuredKey, setMeasuredKey] = useState('');
   // The grid of this page: its own columns, the cover's, or the class default (REP-20261008-001).
   const deviceClass = controller.classFor(page.id);
   const pageGrid = controller.gridFor(page.id);
@@ -390,7 +395,6 @@ export function WidgetGrid({
     const element = areaRef.current;
     if (!element) return undefined;
     const measure = (box?: ResizeObserverSize) => {
-      measuredAt.current = pagerSizeEpoch();
       const rect = element.getBoundingClientRect();
       // The layout size: in the page overview the page is scaled, and its rect would be too (a
       // page added there mounts its grid at that moment). Unscaled, the rect is the exact one.
@@ -408,6 +412,11 @@ export function WidgetGrid({
         width - parseFloat(styles.paddingLeft || '0') - parseFloat(styles.paddingRight || '0');
       const innerHeight =
         height - parseFloat(styles.paddingTop || '0') - parseFloat(styles.paddingBottom || '0');
+      // Hidden/skipped pages keep their last usable box; zero is not a new layout.
+      if (innerWidth <= 0 || innerHeight <= 0) { setAreaAvailable(false); return; }
+      setAreaAvailable(true);
+      setMeasuredKey(measurementRef.current?.key ?? '');
+      measuredAt.current = pagerSizeEpoch();
       setArea((prev) =>
         prev.width === innerWidth && prev.height === innerHeight
           ? prev
@@ -431,9 +440,9 @@ export function WidgetGrid({
   // that draws it, but only if the pager changed size since (nothing is read otherwise). A page
   // still skipped has no box to read.
   useLayoutEffect(() => {
-    if (!near || measuredAt.current === pagerSizeEpoch()) return;
+    if (!near || (areaAvailable && area.width > 0 && area.height > 0 && measuredAt.current === pagerSizeEpoch())) return;
     if (areaRef.current && areaRef.current.offsetWidth > 0) measureAgain.current?.();
-  }, [near]);
+  }, [near, area.width, area.height, areaAvailable]);
 
   const metrics = cellMetrics(
     area.width,
@@ -443,6 +452,17 @@ export function WidgetGrid({
     globalThis.window?.devicePixelRatio || 1,
     !page.categoryGrids || page.columns !== undefined
   );
+  // Mount a widget only with its real cell size: otherwise width/height transitions expose
+  // gap-only 10×30 px hosts before the first measurement, and adaptive content fits that box.
+  const layoutReady = metrics.cell > 0;
+  useLayoutEffect(() => {
+    if (homeMeasurement?.pageId !== page.id) return;
+    measureAgain.current?.();
+  }, [homeMeasurement?.key, homeMeasurement?.pageId, page.id]);
+  useLayoutEffect(() => {
+    if (!homeMeasurement || homeMeasurement.pageId !== page.id) return;
+    homeMeasurement.report(homeMeasurement.key, layoutReady && areaAvailable && measuredKey === homeMeasurement.key);
+  }, [homeMeasurement, page.id, layoutReady, areaAvailable, measuredKey]);
   const metricsRef = useRef(metrics);
   useEffect(() => {
     metricsRef.current = metrics;
@@ -601,6 +621,7 @@ export function WidgetGrid({
     '--aca-rows': String(grid.h),
     width: `${metrics.width}px`,
     height: `${metrics.height}px`,
+    visibility: layoutReady ? undefined : 'hidden',
   };
 
   return (
@@ -610,9 +631,12 @@ export function WidgetGrid({
         className={['aca-launcher-grid', editMode && 'is-editing', dragging && 'is-dragging']
           .filter(Boolean)
           .join(' ')}
+        data-widget-drag-mode={live ? drag?.mode : undefined}
+        data-layout-ready={layoutReady ? 'true' : 'false'}
+        inert={!layoutReady || undefined}
         style={style}
       >
-        {visibleIds.map((id) => {
+        {layoutReady && visibleIds.map((id) => {
           // The copy of a drop that lands flies over its cell: the widget is shown by `airborneId`
           // until it has landed and is then drawn at once, with the copy still on screen for a
           // frame (W2), so the session no longer hides it.
@@ -655,12 +679,26 @@ export function WidgetGrid({
         />
         <ReservedCells cells={reserved} />
 
+        {drag?.mode === 'move' && drag.sourcePageId === page.id && !flightLands && (
+          <span
+            className="aca-launcher-origin"
+            style={{
+              '--aca-lx': String(drag.origin.x),
+              '--aca-ly': String(drag.origin.y),
+              '--aca-lw': String(drag.origin.w),
+              '--aca-lh': String(drag.origin.h),
+            } as RectStyle}
+            aria-hidden="true"
+          />
+        )}
+
         {/* A resize draws its own shape on the widget (WidgetHost): no recessed well under it. */}
         {target && !target.stackOn && drag?.mode !== 'resize' && (
           <span
             className={materialClass(
               { behavior: 'well', shape: 'card', size: 'inherit' },
               'aca-launcher-drop',
+              drag?.mode === 'move' && 'aca-launcher-drop--move',
               !target.valid && 'aca-m--error'
             )}
             style={

@@ -1,10 +1,23 @@
 # Banco prova locale ACA SYSTEM
 
-> **Banco corrente: Acasystem 0.1, verificato il 2026-10-07.** Il codice è in [`acasystem/`](acasystem/README.md): monorepo npm con i workspace `frontend/` (React/Vite) e `backend/` (Express), secondo [ADR-0008](../documentazione/decisions/ADR-0008-struttura-frontend-backend.md); i file solo upstream di Tunet sono in `acasystem/upstream-tunet/`. Compose costruisce da `./acasystem` e usa `aca-system:0.1`. La revisione e l'aggiornamento autorizzato sono conclusi in [REP-20261006-002](../documentazione/reports/REP-20261006-002-ripresa-revisione.md).
+**Mappa corrente, 2026-11-02:** [consolidamento U46](../documentazione/reports/REP-20261102-008-consolidamento-progetti-e-flussi.md). Mini PC centrale con HA/ACA, client tramite IP/QR e accesso web. Gli esperimenti VM sono conservati separatamente e non vengono avviati dai client correnti.
 
-## Avvio del banco corrente
+| Cartella | Responsabilità e comandi dalla cartella indicata |
+|---|---|
+| [acasystem/](acasystem/README.md) | Radice npm/lockfile di frontend, backend e Casa3D; ui/, design/ e contracts/ sono fonti comuni. npm ci, npm test, npm run typecheck, npm run build. |
+| [client/shared/](client/shared/README.md) e client/core/ | Asset shell e packaging Node neutrali; core portabile con porte per gli adattatori. |
+| client/windows/, client/android/ | Workspace Electron/Capacitor della radice client/: npm ci; npm test; npm run typecheck; npm run build -w windows oppure -w android. |
+| ha-app/ | Bootstrap/catalogo/immagine HAOS. build-base.mjs congela e identifica i sorgenti, prepare.mjs verifica che corrispondano all'immagine prima di preparare i materiali. Nessuna pubblicazione automatica. |
 
-Dalla radice, con Docker Desktop attivo, `docker compose -f progetto/compose.tunet.yaml up -d --no-build` avvia l'immagine locale già costruita. `docker compose -f progetto/compose.tunet.yaml ps` e `Invoke-RestMethod http://localhost:3002/api/health` controllano servizio e versione. Aprire [Acasystem](http://localhost:3002/); il login avviene nel proprio Home Assistant locale.
+Le due installazioni npm restano distinte: eseguire npm ci nelle rispettive radici acasystem/ e client/. Design, UI e contratti non si duplicano nei consumatori. www/, generated-shell/, dist/, release/ e ha-app/out/ sono output generati. Casa3D conserva upstream/ immutabile, overrides/ manuali e src/lang generati. Stato del banco, versioni e porte effettive in [infrastructure.md](../documentazione/infrastructure.md).
+
+Il copier del design richiede una destinazione dedicata chiamata design-aca: ne verifica il percorso reale e rigenera i figli. Usare i build dei consumatori; non indirizzarlo a sorgenti, cartelle generiche o collegamenti simbolici. Nuovi asset si modificano nelle fonti, poi si rigenerano le copie.
+
+## Avvio del banco locale predisposto
+
+**Correzione UI locale, REP014:** la prova corrente usa ACA0.9.35 locale con l'override conservato in `backup/rep021/compose-ui-local.yaml`. Avvio dalla radice: `docker compose -f progetto/compose.tunet.yaml -f backup/rep021/compose-ui-local.yaml up -d --no-build --pull never tunet`. Indirizzo http://192.168.1.11:3002/ invariato. [Report014](../documentazione/reports/REP-20261102-014-accesso-essenziale-password-visibile.md) registra testi essenziali/password visibile e backup. Il comando principale seguente seleziona invece la0.9.34 pubblica.
+
+Dalla radice, con Docker Desktop attivo, `docker compose -f progetto/compose.tunet.yaml up -d --no-build` avvia il wrapper pubblico della versione in `progetto/.env`, completo di bundle client pre-login. Il banco U55 usa **ACA0.9.34**, [PC e iPhone sulla LAN](http://192.168.1.11:3002/) oppure [solo questo PC](http://localhost:3002/). `docker compose -f progetto/compose.tunet.yaml ps` e `Invoke-RestMethod http://localhost:3002/api/health` controllano servizio e versione. Configurazione iniziale e login restano nella webapp ACA. [Report013](../documentazione/reports/REP-20261102-013-pubblicazione-0.9.34-aggiornamento-centrale.md) registra backup, dati conservati e regola firewall privata; l'indirizzo dipende dalla rete corrente del PC.
 
 Per sviluppo e ricostruzione seguire il [README dei workspace](acasystem/README.md). Configurazione corrente, immagine, volume, copia a freddo e limiti delle prove hanno fonte in [infrastructure.md](../documentazione/infrastructure.md). Le sezioni seguenti conservano l'installazione del 2026-10-05 e non descrivono la versione attuale.
 

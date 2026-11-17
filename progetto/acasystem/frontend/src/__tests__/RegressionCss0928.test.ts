@@ -6,8 +6,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 const FILES = {
-  launcher: 'src/templates/launcher/launcher.css',
-  shell: 'src/templates/app-shell/appShell.css',
+  launcher: '../design/layout/launcher.css',
+  shell: '../design/layout/appShell.css',
 } as const;
 type Sheet = keyof typeof FILES;
 

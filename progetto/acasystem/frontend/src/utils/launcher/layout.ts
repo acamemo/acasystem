@@ -177,6 +177,7 @@ export function placementKeysOf(page: LauncherPage): DeviceClass[] {
 
 /** Every widget of the page in any device class, current class first in reading order. */
 export function pageWidgetIds(page: LauncherPage, deviceClass?: DeviceClass): string[] {
+  if (page.order) return page.order;
   const keys = placementKeysOf(page);
   const order = deviceClass ? [deviceClass, ...keys.filter((item) => item !== deviceClass)] : keys;
   const ids: string[] = [];

@@ -61,10 +61,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* The buttons under the «Collega la TV» message of a Cast-only TV. */
+  /* The buttons under the «Collega la TV» message of a Cast-only TV. Not clipped like the text
+     above: their soft shadows reach outside the row. */
+  .aca-media-widget__message > .aca-media-hint-actions {
+    overflow: visible;
+  }
   .aca-media-hint-actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.5em;
   }
 
@@ -158,6 +163,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  /* «Riprova» under the keys: a button of its own size, not stretched across the column. */
+  .aca-media-retry.aca-m {
+    align-self: center;
+    min-width: 9rem;
+  }
+  /* Why the power key is inert: a calm second line that may wrap, not a cut-off one. */
+  .aca-media-text > .aca-media-hint {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    text-wrap: balance;
   }
   /*
    * Density by width: the widget (and the text column of the large player) is an inline-size
@@ -283,8 +300,12 @@
   .aca-media-nowplaying__head > .aca-media-art.aca-m {
     --aca-media-art-size: 3.5rem;
   }
+  /*
+   * 1 em between the keys; less when the row is short (a phone), so the end keys stay inside it
+   * and the card does not clip their soft shadow. 15.75rem is the keys of the full row (7).
+   */
   .aca-media-nowplaying__keys {
-    gap: 1em;
+    gap: clamp(0.25em, calc((100% - 15.75rem) / 6), 1em);
   }
   .aca-media-progress {
     position: relative;
@@ -357,6 +378,12 @@
   .aca-media-section + .aca-media-section {
     padding-top: 1em;
     border-top: var(--aca-ring) solid var(--aca-socket);
+  }
+  /* «Configura / Modifica l'accensione» under the keys: a button of its own size, not a bar. */
+  .aca-media-power-setup > .aca-m {
+    align-self: center;
+    min-width: 12rem;
+    min-height: 44px;
   }
   /* Console: the volume and channel sections share one row. */
   .aca-media-steps-row {
@@ -674,6 +701,13 @@
     justify-content: space-evenly;
     min-width: 0;
     min-height: 0;
+  }
+  /* Brand logo in place of the TV icon: contained, a little wider than the icon. */
+  .aca-media-brand {
+    flex: none;
+    width: 2.5em;
+    height: 1.5em;
+    object-fit: contain;
   }
   .aca-media-remote__head {
     display: flex;

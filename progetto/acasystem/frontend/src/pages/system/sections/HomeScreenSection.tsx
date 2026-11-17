@@ -27,6 +27,7 @@ export function HomeScreenSection({
   onDensity,
   disabled = false,
   onEditPages,
+  liveEditing = false,
 }: {
   locked: boolean;
   onLocked: (locked: boolean) => void;
@@ -36,32 +37,33 @@ export function HomeScreenSection({
   disabled?: boolean;
   /** Closes Sistema and enters edit mode; absent when Sistema is not inside the launcher. */
   onEditPages?: () => void;
+  liveEditing?: boolean;
 }) {
   return (
     <div className="aca-system__stack">
       {onEditPages && (
         <>
-          <Button variant="secondary" disabled={disabled || locked} onClick={onEditPages}>
-            Modifica le pagine
+          <Button variant="secondary" disabled={disabled || (!liveEditing && locked)} onClick={onEditPages}>
+            {liveEditing ? 'Modifica' : 'Modifica le pagine'}
           </Button>
           <Body size="sm" tone="muted">
-            {locked
+            {liveEditing ? 'Le modifiche si sincronizzano automaticamente.' : locked
               ? 'La disposizione è bloccata: sbloccala qui sotto per modificare.'
               : 'Cambia nome, ordine e colonne delle pagine. Sullo schermo basta tenere premuto uno spazio vuoto; un widget si sposta tenendolo premuto.'}
           </Body>
         </>
       )}
-      <ToggleRow
+      {!liveEditing && <ToggleRow
         label="Blocca la disposizione"
         hint="Widget e pagine restano dove sono: la pressione lunga e «Modifica le pagine» non cambiano nulla."
         checked={locked}
         disabled={disabled}
         onChange={onLocked}
-      />
+      />}
       {!disabled && (
         <ChoiceGroup<GridDensity>
           label="Griglia"
-          hint="Vale per le pagine senza una scelta di colonne; ogni pagina può averne una in Modifica le pagine. Compatta: meno celle. Ampia: più celle."
+          hint={liveEditing ? undefined : 'Vale per le pagine senza una scelta di colonne; ogni pagina può averne una in Modifica le pagine. Compatta: meno celle. Ampia: più celle.'}
           options={DENSITIES}
           value={density}
           onChange={onDensity}

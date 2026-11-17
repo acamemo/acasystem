@@ -1,0 +1,141 @@
+/* Operate: one searchable list. Materials, type and focus come from ACA primitives. */
+@layer components {
+  .discovery-layer {
+    display: contents;
+  }
+  .discovery-content {
+    width: 100%;
+    max-width: 70rem;
+    margin-inline: auto;
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+  }
+  .discovery-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3rem;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .discovery-search {
+    min-width: 0;
+    width: 100%;
+  }
+  .discovery-filters {
+    max-width: 100%;
+    width: 100%;
+  }
+  :root .discovery-filters > .aca-m__outer > .aca-m__face > .aca-segmented__content {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 0.25rem;
+  }
+  .discovery-filters .aca-segmented__item {
+    --aca-pad: 0.25rem;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    min-height: 3rem;
+  }
+  .discovery-filters .aca-m__label {
+    white-space: normal;
+    line-height: 1.25;
+    text-align: center;
+  }
+  .discovery-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .discovery-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--aca-ink) 18%, transparent);
+  }
+  .discovery-row > .aca-icon {
+    flex: none;
+  }
+  .discovery-row__main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  :root
+    .discovery-content
+    .discovery-row__main
+    > .aca-m__outer
+    > .aca-m__face
+    > .discovery-row__content {
+    display: grid;
+    justify-items: start;
+    justify-content: stretch;
+    align-items: start;
+    gap: 0.25rem;
+    text-align: start;
+    min-width: 0;
+  }
+  .discovery-row__name {
+    overflow-wrap: anywhere;
+    font-weight: var(--aca-weight-medium);
+  }
+  .discovery-row__text {
+    display: grid;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0.25rem;
+    overflow-wrap: anywhere;
+  }
+  .discovery-state {
+    display: grid;
+    justify-items: start;
+    gap: 0.75rem;
+    padding-block: 1rem;
+  }
+  .discovery-hidden {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .discovery-grid--brands {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.75rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  .discovery-empty {
+    display: grid;
+    gap: 1rem;
+  }
+  .discovery-footer {
+    display: flex;
+    justify-content: flex-start;
+    padding-top: 0.5rem;
+  }
+  .discovery-logo {
+    flex: none;
+    object-fit: contain;
+  }
+  .discovery-logo--md {
+    width: 1.75em;
+    height: 1.75em;
+  }
+  .discovery-logo--lg {
+    width: 2.75em;
+    height: 2.75em;
+  }
+  @media (max-width: 30rem) {
+    .discovery-row {
+      gap: 0.5rem;
+    }
+    .discovery-action-label {
+      display: none;
+    }
+  }
+}

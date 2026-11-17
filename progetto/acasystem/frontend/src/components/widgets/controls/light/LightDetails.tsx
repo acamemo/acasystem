@@ -1,6 +1,8 @@
 import { useCallback, useId } from 'react';
 import { Body, Button, Caption, Heading, Numeric, Slider, Toggle } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
+import { isProductDeviceBinding } from '@/utils/devices/productBinding';
+import { ProductLightDetails } from './ProductLightDetails';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { CommandFeedback } from '../shared/CommandFeedback';
 import { ControlIcon } from '../shared/ControlIcon';
@@ -228,7 +230,7 @@ function MemberRow({ entityId }: { entityId: string }) {
 }
 
 /** Sheet content of a light: power, brightness, colour temperature, colour, group members. */
-export function LightDetails({ id }: WidgetDetailsProps) {
+function SingleLightDetails({ id }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const control = useLightControl(id);
   const name = entityName(runtime, id, control.entity);
@@ -273,4 +275,12 @@ export function LightDetails({ id }: WidgetDetailsProps) {
       )}
     </div>
   );
+}
+
+/** Existing/manual widgets keep their original details; only new device bindings opt in. */
+export function LightDetails(props: WidgetDetailsProps) {
+  const binding = props.settings.productDevice;
+  return isProductDeviceBinding(binding) && binding.family === 'light' && binding.primaryEntityId === props.id
+    ? <ProductLightDetails binding={binding} settings={props.settings} settingsKey={props.settingsKey} />
+    : <SingleLightDetails {...props} />;
 }

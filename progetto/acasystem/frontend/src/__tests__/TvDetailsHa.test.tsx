@@ -110,9 +110,11 @@ describe('TV details: sections follow the declared features', () => {
   it('Samsung 24381: playback with stop, sources, no seek and no sound mode', () => {
     setup(samsung());
     expect(screen.getByRole('heading', { name: 'Riproduzione' })).toBeInTheDocument();
-    button('Brano precedente');
+    // Next and previous are KEY_CHUP/KEY_CHDOWN on a Samsung TV: only «Canale − / +» has them.
     button('Ferma');
-    button('Brano successivo');
+    button('Canale +');
+    noButton('Canale successivo');
+    noButton('Brano successivo');
     // Its list has only inputs (TV, HDMI): no «App» section.
     expect(screen.getByRole('heading', { name: 'Ingressi' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'App' })).toBeNull();
@@ -298,9 +300,57 @@ describe('TV details: LG webOS remote', () => {
     pressed(callService, '9');
   });
 
-  it('has no guide or source key', () => {
-    setup(lg(), '');
-    noButton('Guida');
+  it('has the guide key (GUIDE) but no source key', () => {
+    const { callService } = setup(lg(), '');
+    fireEvent.click(button('Altri tasti'));
+    fireEvent.click(button('Guida'));
+    pressed(callService, 'GUIDE');
     noButton('Sorgente');
+  });
+
+  it('on live TV previous and next leave the player to «Canale − / +», elsewhere they stay track keys', () => {
+    setup(
+      lg({
+        supported_features: 131968 | 49,
+        source: 'Live TV',
+        media_title: 'Rai 1',
+        media_content_type: 'channel',
+        source_list: ['Live TV', 'HDMI 1'],
+      }),
+      ''
+    );
+    // Live TV: previous/next change channel, which «Canale − / +» already does.
+    button('Canale −');
+    button('Canale +');
+    noButton('Canale precedente');
+    noButton('Canale successivo');
+    noButton('Brano precedente');
+    cleanup();
+    setup(
+      lg({
+        supported_features: 131968 | 49,
+        source: 'Netflix',
+        source_list: ['Live TV', 'Netflix'],
+      }),
+      ''
+    );
+    button('Brano precedente');
+    button('Brano successivo');
+    noButton('Canale successivo');
+  });
+
+  it('the status line of live TV reads «Acceso · TV in diretta · Rai 1»', () => {
+    setup(
+      lg({
+        supported_features: 131968 | 49,
+        source: 'Live TV',
+        media_title: 'Rai 1',
+        media_content_type: 'channel',
+        app_name: undefined,
+        source_list: ['Live TV', 'HDMI 1'],
+      }),
+      ''
+    );
+    expect(screen.getAllByText('Acceso · TV in diretta · Rai 1').length).toBeGreaterThan(0);
   });
 });

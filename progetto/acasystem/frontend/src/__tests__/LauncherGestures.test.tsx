@@ -679,7 +679,7 @@ describe('style of the selection, the dots and the hold', () => {
     };
     for (const [key, path] of Object.entries({
       edit: 'src/components/system/edit/edit.css',
-      launcher: 'src/templates/launcher/launcher.css',
+      launcher: '../design/layout/launcher.css',
     })) {
       css[key] = fs.readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     }

@@ -20,8 +20,8 @@ beforeAll(async () => {
   };
   const read = (file: string) => fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const edit = read('src/components/system/edit/edit.css');
-  const tokens = read('src/themes/kit2/tokens.css');
-  const wallpapers = read('src/themes/kit2/wallpapers.css');
+  const tokens = read('../design/themes/kit2/tokens.css');
+  const wallpapers = read('../design/themes/kit2/wallpapers.css');
   // The rule may be wrapped over lines: collapse it to the single-line form.
   surface = (/--aca-tip-surface:\s*([^;]+);/.exec(edit)?.[1] ?? '')
     .replace(/\s+/g, ' ')

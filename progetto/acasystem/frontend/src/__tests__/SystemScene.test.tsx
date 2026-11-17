@@ -4,7 +4,7 @@
  * only once the page is there, and on the way out the launcher is shown again under the page
  * before it fades away. The hook alone is in `SheetSystemChoreography.test.tsx`.
  */
-import type { ReactNode } from 'react';
+import { lazy, Suspense, useContext, useLayoutEffect, type ReactNode } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HomeAssistantContextValue } from '@/@types/dashboard';
@@ -13,6 +13,10 @@ import { PageProvider } from '@/hooks/context/PageContext';
 import { ToastProvider } from '@/hooks/context/ToastContext';
 import { LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
 import { LauncherPage } from '@/pages/launcher/LauncherPage';
+import {
+  OverlayContentReady,
+  OverlayContentReadyContext,
+} from '@/hooks/launcher/useOverlayScene';
 
 const ha: HomeAssistantContextValue = {
   entities: {},
@@ -73,14 +77,56 @@ function lendAnimations() {
 
 const page = <p>Pagina Sistema</p>;
 
-function Page({ overlay, staged }: { overlay: ReactNode; staged: boolean }) {
+function Page({
+  overlay,
+  staged,
+  waitForContent = false,
+}: {
+  overlay: ReactNode;
+  staged: boolean;
+  waitForContent?: boolean;
+}) {
   return (
     <ToastProvider>
       <PageProvider>
-        <LauncherPage onOpenSystem={() => undefined} overlay={overlay} overlayStaged={staged} />
+        <LauncherPage
+          onOpenSystem={() => undefined}
+          overlay={overlay}
+          overlayStaged={staged}
+          overlayWaitForContent={waitForContent}
+        />
       </PageProvider>
     </ToastProvider>
   );
+}
+
+
+/** A real lazy boundary, resolved by the test rather than by a loading timeout. */
+function deferredPage(label: string) {
+  let resolve!: (module: { default: () => ReactNode }) => void;
+  const pending = new Promise<{ default: () => ReactNode }>((done) => {
+    resolve = done;
+  });
+  const Content = lazy(() => pending);
+  return {
+    node: (
+      <Suspense fallback={<p>Caricamento Sistema</p>}>
+        <Content />
+        <OverlayContentReady />
+      </Suspense>
+    ),
+    resolve: () =>
+      act(async () => {
+        resolve({ default: () => <p>{label}</p> });
+        await pending;
+      }),
+  };
+}
+
+function CaptureReady({ capture }: { capture: (ready: (() => void) | null) => void }) {
+  const ready = useContext(OverlayContentReadyContext);
+  useLayoutEffect(() => capture(ready), [capture, ready]);
+  return null;
 }
 
 const shell = (container: HTMLElement) => container.querySelector('.aca-shell');
@@ -164,4 +210,110 @@ describe('LauncherPage: Sistema in a scene', () => {
     expect(layer(container)).toBeNull();
     expect(shell(container)?.closest('[hidden]')).toBeNull();
   });
+
+  it('waits for the resolved lazy page commit before starting the incoming scene', async () => {
+    const pending = deferredPage('Sistema completo');
+    const { container, rerender } = render(<Page overlay={null} staged waitForContent />);
+    await waitFor(() => expect(shell(container)).not.toBeNull());
+    lendAnimations();
+    vi.useFakeTimers();
+    const frames = manualFrames();
+    rerender(<Page overlay={pending.node} staged waitForContent />);
+    frames.run();
+    frames.run();
+    act(() => vi.advanceTimersByTime(1000));
+    expect(layer(container)).toHaveAttribute('data-scene', 'wait');
+    expect(shell(container)?.closest('[hidden]')).toBeNull();
+    expect(screen.queryByText('Sistema completo')).toBeNull();
+
+    await pending.resolve();
+    expect(screen.getByText('Sistema completo')).toBeInTheDocument();
+    expect(layer(container)).toHaveAttribute('data-scene', 'wait');
+    frames.run();
+    frames.run();
+    expect(layer(container)).toHaveAttribute('data-scene', 'in');
+    expect(screen.queryByText('Caricamento Sistema')).toBeNull();
+    act(() => vi.advanceTimersByTime(300));
+    expect(layer(container)).toHaveAttribute('data-scene', 'on');
+  });
+
+  it('ignores readiness from a closed entry and starts a warm reopen only after its new commit', async () => {
+    const pending = deferredPage('Secondo Sistema');
+    let firstReady: (() => void) | null = null;
+    const capture = (ready: (() => void) | null) => {
+      firstReady ??= ready;
+    };
+    const complete = (
+      <>
+        <p>Sistema pronto</p>
+        <CaptureReady capture={capture} />
+        <OverlayContentReady />
+      </>
+    );
+    const { container, rerender, unmount } = render(<Page overlay={null} staged waitForContent />);
+    await waitFor(() => expect(shell(container)).not.toBeNull());
+    lendAnimations();
+    vi.useFakeTimers();
+    const frames = manualFrames();
+    rerender(<Page overlay={complete} staged waitForContent />);
+    frames.run();
+    frames.run();
+    act(() => vi.advanceTimersByTime(300));
+    expect(layer(container)).toHaveAttribute('data-scene', 'on');
+    expect(firstReady).not.toBeNull();
+    rerender(<Page overlay={null} staged={false} waitForContent />);
+    rerender(<Page overlay={pending.node} staged waitForContent />);
+    expect(layer(container), 'before stale ready').toHaveAttribute('data-scene', 'wait');
+    act(() => firstReady?.());
+    expect(layer(container), 'after stale ready').toHaveAttribute('data-scene', 'wait');
+    frames.run();
+    frames.run();
+    expect(layer(container)).toHaveAttribute('data-scene', 'wait');
+    expect(shell(container)?.closest('[hidden]')).toBeNull();
+
+    // Cancel the pending entry. Its later resolution cannot revive it or cover Home.
+    rerender(<Page overlay={null} staged={false} waitForContent />);
+    await pending.resolve();
+    frames.run();
+    frames.run();
+    expect(layer(container)).toBeNull();
+    expect(screen.queryByText('Secondo Sistema')).toBeNull();
+    expect(shell(container)?.closest('[hidden]')).toBeNull();
+    rerender(<Page overlay={pending.node} staged waitForContent />);
+    expect(screen.getByText('Secondo Sistema')).toBeInTheDocument();
+    expect(layer(container)).toHaveAttribute('data-scene', 'wait');
+    frames.run();
+    frames.run();
+    expect(layer(container)).toHaveAttribute('data-scene', 'in');
+    unmount();
+    act(() => firstReady?.());
+    frames.run();
+    frames.run();
+    expect(layer(container)).toBeNull();
+  });
+
+  it('waits for actual lazy content even without animation APIs, then shows it immediately', async () => {
+    const pending = deferredPage('Sistema senza animazioni');
+    const { container, rerender } = render(<Page overlay={null} staged waitForContent />);
+    await waitFor(() => expect(shell(container)).not.toBeNull());
+    rerender(<Page overlay={pending.node} staged waitForContent />);
+    expect(layer(container)).toHaveAttribute('data-scene', 'wait');
+    expect(shell(container)?.closest('[hidden]')).toBeNull();
+    await pending.resolve();
+    expect(layer(container)).toHaveAttribute('data-scene', 'on');
+    expect(screen.getByText('Sistema senza animazioni')).toBeInTheDocument();
+    expect(shell(container)?.closest('[hidden]')).not.toBeNull();
+  });
+
+  it('keeps the existing direct-route and non-staged behavior when readiness is opted in', async () => {
+    const { container, rerender } = render(<Page overlay={page} staged waitForContent />);
+    await waitFor(() => expect(shell(container)).not.toBeNull());
+    expect(layer(container)).toHaveAttribute('data-scene', 'on');
+    expect(shell(container)?.closest('[hidden]')).not.toBeNull();
+    rerender(<Page overlay={<p>Pagina Casa non staged</p>} staged={false} waitForContent />);
+    expect(layer(container)).toBeNull();
+    expect(screen.getByText('Pagina Casa non staged')).toBeInTheDocument();
+    expect(shell(container)?.closest('[hidden]')).not.toBeNull();
+  });
+
 });

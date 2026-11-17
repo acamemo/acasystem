@@ -9,7 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.CookieManager;
 import android.webkit.RenderProcessGoneDetail;
-import android.webkit.WebStorage;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -21,6 +21,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import java.io.InputStream;
+import java.util.Scanner;
 
 /**
  * Interfaccia di Acasystem scaricata, servita dal server locale (ADR-0023, C6). WebView senza
@@ -29,9 +31,11 @@ import org.json.JSONException;
  */
 public class UiActivity extends AppCompatActivity {
     static final String EXTRA_NOTICES = "notices";
-    /** Mini PC diverso dall'avvio precedente: sessione e dati del browser vanno cancellati. */
+    /** Mini PC diverso: pulisce accessi/cache, preservando le bozze per casa e utente. */
     static final String EXTRA_RESET_BROWSER_DATA = "resetBrowserData";
     private WebView webView;
+    private boolean resetting;
+    private boolean clearResetHistory;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -58,12 +62,21 @@ public class UiActivity extends AppCompatActivity {
         settings.setUserAgentString(settings.getUserAgentString() + " AcasystemShell/" + shellVersion() + " (Android)");
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageFinished(WebView view, String url) {
+                if (clearResetHistory && (AcaShellPlugin.server().origin() + "/").equals(url)) {
+                    clearResetHistory = false;
+                    view.clearHistory();
+                }
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (isLocal(uri)) return false;
                 if (MainActivity.isChangeAddress(new Intent().setData(uri))) {
                     // Pulsante «Cambia indirizzo» di Acasystem: come la scorciatoia dell'icona.
                     startActivity(new Intent(Intent.ACTION_VIEW, uri, UiActivity.this, MainActivity.class));
+                    finish();
                     return true;
                 }
                 openOutside(uri);
@@ -77,6 +90,20 @@ public class UiActivity extends AppCompatActivity {
                 return true;
             }
         });
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onReceivedTitle(WebView view, String title) {
+                if (!resetting || view.getUrl() == null || !isLocal(Uri.parse(view.getUrl()))) return;
+                if ("aca-storage-reset-ready".equals(title)) {
+                    resetting = false;
+                    getIntent().removeExtra(EXTRA_RESET_BROWSER_DATA);
+                    AcaShellPlugin.browserResetComplete(UiActivity.this);
+                    showNotices(getIntent());
+                    clearResetHistory = true;
+                    view.loadUrl(AcaShellPlugin.server().origin() + "/");
+                }
+            }
+        });
         setContentView(webView);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -87,12 +114,30 @@ public class UiActivity extends AppCompatActivity {
             }
         });
 
-        if (savedInstanceState == null && getIntent().getBooleanExtra(EXTRA_RESET_BROWSER_DATA, false)) {
-            // Altro mini PC: sessione, localStorage, cache e service worker del precedente non servono.
-            WebStorage.getInstance().deleteAllData();
-            CookieManager.getInstance().removeAllCookies(null);
-            CookieManager.getInstance().flush();
+        if (getIntent().getBooleanExtra(EXTRA_RESET_BROWSER_DATA, false)) {
+            // Pagina trusted locale prima della webapp: cancella accessi/foto, conserva bozze.
+            resetting = true;
+            webView.postDelayed(() -> {
+                if (resetting && !isFinishing() && !isDestroyed()) {
+                    resetting = false;
+                    webView.loadData("<html lang=\"it\"><body>Preparazione scaduta. Chiudi ACA e riprova. Le bozze sono conservate.</body></html>", "text/html", "UTF-8");
+                }
+            }, 15_000);
             webView.clearCache(true);
+            CookieManager.getInstance().removeAllCookies(ignored -> {
+                if (!resetting || isFinishing() || isDestroyed()) return;
+                CookieManager.getInstance().flush();
+                try (InputStream input = getAssets().open("public/browser-reset.js");
+                     Scanner reader = new Scanner(input, "UTF-8").useDelimiter("\\A")) {
+                    String script = reader.next();
+                    webView.loadDataWithBaseURL(AcaShellPlugin.server().origin() + "/",
+                            "<!doctype html><html lang=\"it\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'\"><title>Preparazione collegamento</title><body>Preparazione del collegamento…<script>" + script + "</script></body></html>",
+                            "text/html", "UTF-8", AcaShellPlugin.server().origin() + "/__acasystem/storage-reset");
+                } catch (Exception error) {
+                    webView.loadData("<html lang=\"it\"><body>Preparazione non completata. Chiudi ACA e riprova. Le bozze sono conservate.</body></html>", "text/html", "UTF-8");
+                }
+            });
+            return;
         }
         showNotices(getIntent());
         if (savedInstanceState == null) webView.loadUrl(AcaShellPlugin.server().origin() + "/");

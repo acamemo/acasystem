@@ -4,6 +4,7 @@
  * the gesture. The values are those of the grid; the radius of the cell comes from the stylesheet,
  * from the same expression the grid uses.
  */
+import { StrictMode } from 'react';
 import { render } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DragGhost } from '@/templates/launcher/DragGhost';
@@ -65,7 +66,7 @@ describe('the lift of a widget reads no computed style (R3)', () => {
     expect(ghost.style.getPropertyValue('--aca-gap-x')).toBe('10px');
     expect(ghost.style.getPropertyValue('--aca-gap-y')).toBe('8px');
     // The copy itself: the frame cloned, out of reach and without ids.
-    expect(ghost).toHaveClass('has-copy');
+    expect(ghost).toHaveAttribute('data-has-copy');
     const copy = ghost.querySelector('.aca-drag-ghost__copy > *')!;
     expect(copy).toHaveAttribute('inert');
     expect(copy.id).toBe('');
@@ -83,7 +84,7 @@ describe('the lift of a widget reads no computed style (R3)', () => {
 
   it('a widget that is not in the page, or a grid without values, leaves the copy bare', () => {
     const { container, unmount } = render(<DragGhost session={session} />);
-    expect(container.querySelector('.aca-drag-ghost')).not.toHaveClass('has-copy');
+    expect(container.querySelector('.aca-drag-ghost')).not.toHaveAttribute('data-has-copy');
     expect(
       container.querySelector<HTMLElement>('.aca-drag-ghost')!.style.getPropertyValue('--aca-cell')
     ).toBe('');
@@ -105,6 +106,53 @@ describe('the lift of a widget reads no computed style (R3)', () => {
     unmount();
     expect(host.children).toHaveLength(0);
   });
+
+  it('keeps the same single copy and its marker while pointer, target and flight update', () => {
+    mountGrid();
+    const clone = vi.spyOn(Element.prototype, 'cloneNode');
+    const lookup = vi.spyOn(document, 'querySelectorAll');
+    const { container, rerender } = render(<DragGhost session={session} />);
+    const ghost = container.querySelector('.aca-drag-ghost')!;
+    const copy = ghost.querySelector('.aca-drag-ghost__copy > *');
+    const lookups = lookup.mock.calls.length;
+    const updates: DragSession[] = [
+      { ...session, pointer: { x: 90, y: 80 }, target: { pageId: 'home', rect: session.origin, valid: false, preview: null } },
+      { ...session, pointer: { x: 120, y: 90 }, removing: true },
+      { ...session, flight: { kind: 'return', x: 0, y: 0, scale: 1 } },
+    ];
+    for (const update of updates) {
+      rerender(<DragGhost session={update} />);
+      expect(ghost).toHaveAttribute('data-has-copy');
+      expect(ghost.querySelector('.aca-drag-ghost__copy')?.children).toHaveLength(1);
+      expect(ghost.querySelector('.aca-drag-ghost__copy > *')).toBe(copy);
+    }
+    expect(ghost).toHaveClass('is-flying', 'is-flying--return');
+    expect(clone).toHaveBeenCalledTimes(1);
+    expect(lookup).toHaveBeenCalledTimes(lookups);
+  });
+
+  it('removes the marker and copy when adding or switching to a source that is absent', () => {
+    mountGrid();
+    const { container, rerender } = render(<DragGhost session={session} />);
+    const ghost = container.querySelector('.aca-drag-ghost')!;
+    rerender(<DragGhost session={{ ...session, mode: 'add' }} />);
+    expect(ghost).not.toHaveAttribute('data-has-copy');
+    expect(ghost.querySelector('.aca-drag-ghost__copy')?.children).toHaveLength(0);
+    rerender(<DragGhost session={{ ...session, sourcePageId: 'absent' }} />);
+    expect(ghost).not.toHaveAttribute('data-has-copy');
+    expect(ghost.querySelector('.aca-drag-ghost__copy')?.children).toHaveLength(0);
+  });
+
+  it('keeps one copy through StrictMode setup/cleanup and removes its marker on unmount', () => {
+    mountGrid();
+    const { container, unmount } = render(<StrictMode><DragGhost session={session} /></StrictMode>);
+    const ghost = container.querySelector('.aca-drag-ghost')!;
+    expect(ghost).toHaveAttribute('data-has-copy');
+    expect(ghost.querySelector('.aca-drag-ghost__copy')?.children).toHaveLength(1);
+    unmount();
+    expect(ghost).not.toHaveAttribute('data-has-copy');
+    expect(ghost.querySelector('.aca-drag-ghost__copy')?.children).toHaveLength(0);
+  });
 });
 
 describe('the radius of the cell of the copy (R3)', () => {
@@ -116,7 +164,7 @@ describe('the radius of the cell of the copy (R3)', () => {
       readFileSync: (path: string, encoding: 'utf8') => string;
     };
     css = fs
-      .readFileSync('src/templates/launcher/launcher.css', 'utf8')
+      .readFileSync('../design/layout/launcher.css', 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '');
   });
   /** The `--aca-radius-cell` that a rule with exactly this selector declares. */

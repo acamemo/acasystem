@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "version": "0.9.73",
+  "appVersion": "0.9.73.1",
+  "channel": "bank",
+  "runtime": "container",
+  "haosVersion": "18.4",
+  "coreVersion": "2026.9.4",
+  "qualification": "candidate-not-target-tested",
+  "compatibility": {
+    "core": { "min": "2026.9.4", "maxExclusive": "2026.9.5" },
+    "upgradeFrom": { "min": "0.9.72", "maxExclusive": "0.9.74" }
+  }
+}

@@ -6,6 +6,8 @@ import { EntityPicker, entityName } from '@/templates/sheets/parts/EntityPicker'
 import { FormRow, InlineConfirm, ToggleRow } from '@/templates/sheets/parts/Form';
 
 export interface StatusBarSectionProps {
+  /** Profile identity within the account; changing it must not retarget a local title draft. */
+  scopeKey?: string;
   entities: EntityMap;
   title: string;
   onTitle: (title: string) => void;
@@ -67,6 +69,7 @@ function newSensorPill(entityId: string): StatusPillConfig {
  * their advanced options keep the values saved by the previous editor.
  */
 export function StatusBarSection({
+  scopeKey = 'legacy',
   entities,
   title,
   onTitle,
@@ -77,7 +80,14 @@ export function StatusBarSection({
   pills,
   onPills,
 }: StatusBarSectionProps) {
-  const [titleDraft, setTitleDraft] = useState(title);
+  const [titleDrafts, setTitleDrafts] = useState<Record<string, { base: string; text: string }>>({});
+  const storedDraft = titleDrafts[scopeKey];
+  const titleDraft = storedDraft?.text !== title ? storedDraft : undefined;
+  const titleText = titleDraft?.text ?? title;
+  const titleConflict = Boolean(titleDraft && titleDraft.base !== title);
+  const forgetTitleDraft = () => setTitleDrafts((current) => {
+    const next = { ...current }; delete next[scopeKey]; return next;
+  });
   const [adding, setAdding] = useState<'person' | 'pill' | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const people = useMemo(
@@ -105,14 +115,26 @@ export function StatusBarSection({
               aria-labelledby={labelId}
               aria-describedby={hintId}
               placeholder="Per esempio Casa"
-              value={titleDraft}
-              onChange={(event) => setTitleDraft(event.target.value)}
+              value={titleText}
+              onChange={(event) => setTitleDrafts((current) => ({
+                ...current, [scopeKey]: { base: titleDraft?.base ?? title, text: event.target.value },
+              }))}
               onBlur={() => {
-                if (titleDraft !== title) onTitle(titleDraft);
+                if (titleDraft && !titleConflict) onTitle(titleDraft.text);
               }}
             />
           )}
         </FormRow>
+        {titleDraft && <Caption role="status">{titleConflict
+          ? 'Titolo aggiornato sulla centrale. Bozza temporanea: si perde uscendo da Sistema.'
+          : 'Bozza temporanea: si perde uscendo da Sistema.'}</Caption>}
+        {titleConflict && <div className="aca-system__actions">
+          <Button variant="control" onClick={forgetTitleDraft}>Usa il titolo attuale</Button>
+          <Button variant="control" onClick={() => {
+            setTitleDrafts((current) => ({ ...current, [scopeKey]: { base: title, text: titleText } }));
+            onTitle(titleText);
+          }}>Applica la mia bozza</Button>
+        </div>}
         <ToggleRow
           label="Mostra il titolo"
           checked={headerSettings.showTitle !== false}

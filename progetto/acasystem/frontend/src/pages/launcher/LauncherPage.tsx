@@ -8,7 +8,11 @@ import { useDashboardEffects } from '@/hooks/useDashboardEffects';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import { PageVisibilityContext } from '@/hooks/launcher/PageVisibilityContext';
 import { useHomeAssistantRuntime } from '@/hooks/launcher/useHomeAssistantRuntime';
-import { OverlayPhaseContext, useOverlayScene } from '@/hooks/launcher/useOverlayScene';
+import {
+  OverlayContentReadyContext,
+  OverlayPhaseContext,
+  useOverlayScene,
+} from '@/hooks/launcher/useOverlayScene';
 import { translateItalian } from '@/hooks/launcher/useItalianTranslate';
 import { useLauncherController, type LauncherStore } from '@/hooks/launcher/useLauncherController';
 import { usePopupTriggerBridge } from '@/hooks/launcher/usePopupTriggerBridge';
@@ -16,6 +20,7 @@ import { useDeviceClass, useViewportSize } from '@/hooks/launcher/useViewport';
 import { connectionSummary, pendingUpdateCount } from '@/utils/launcher/connection';
 import { buildStatusChips } from '@/utils/launcher/statusChips';
 import { LauncherScreen } from '@/templates/launcher/LauncherScreen';
+import { useHomeStartupReady } from '@/hooks/startup/HomeStartupContext';
 import { isWidgetHiddenByLogic } from './widgetVisibility';
 
 const resolveSizes = (widgetId: string, settings: CardSettings) =>
@@ -38,6 +43,8 @@ export interface LauncherPageProps {
    * at once, as before.
    */
   overlayStaged?: boolean;
+  /** Start a newly opened scene only after its resolved lazy content has committed. */
+  overlayWaitForContent?: boolean;
 }
 
 /**
@@ -49,10 +56,12 @@ export function LauncherPage({
   onOpenSystem,
   overlay = null,
   overlayStaged = false,
+  overlayWaitForContent = false,
 }: LauncherPageProps) {
+  const homeReady = useHomeStartupReady();
   const pages = usePages();
   const ha = useHomeAssistant();
-  const scene = useOverlayScene(overlay, overlayStaged);
+  const scene = useOverlayScene(overlay, overlayStaged, overlayWaitForContent);
   const deviceClass = useDeviceClass();
   const { width: viewportWidth } = useViewportSize();
   // Clock, haptics and title of the legacy dashboard (no inactivity reset: removed, ADR-0007).
@@ -74,6 +83,8 @@ export function LauncherPage({
       persistPagesConfig: pages.persistConfig,
       persistPageSettings: pages.persistPageSettings,
       persistCardSettings: pages.persistCardSettings,
+      commitWidgetAddition: pages.commitWidgetAddition,
+      cancelWidgetAddition: pages.cancelWidgetAddition,
     }),
     [
       pages.settingsLoaded,
@@ -85,6 +96,8 @@ export function LauncherPage({
       pages.persistConfig,
       pages.persistPageSettings,
       pages.persistCardSettings,
+      pages.commitWidgetAddition,
+      pages.cancelWidgetAddition,
     ]
   );
   const controller = useLauncherController({
@@ -109,7 +122,7 @@ export function LauncherPage({
     null;
   usePopupTriggerBridge({
     entities: ha.entities,
-    entitiesLoaded: ha.entitiesLoaded,
+    entitiesLoaded: ha.entitiesLoaded && homeReady,
     pagesConfig: pages.pagesConfig,
     pageId: watchedPageId,
     cardSettings: pages.cardSettings,
@@ -183,6 +196,7 @@ export function LauncherPage({
         onCloseDetails={closeDetails}
         isWidgetHidden={isWidgetHidden}
         discoveryOnFirstOpen
+        onRetryInitialSnapshot={ha.retryInitialSnapshot}
       />
     ),
     [
@@ -198,12 +212,13 @@ export function LauncherPage({
       detailsWidgetId,
       closeDetails,
       isWidgetHidden,
+      ha.retryInitialSnapshot,
     ]
   );
 
   return (
     <>
-      <div hidden={scene.covered}>
+      <div className="aca-launcher-scene" hidden={scene.covered}>
         <PageVisibilityContext.Provider value={!scene.covered}>
           {screen}
         </PageVisibilityContext.Provider>
@@ -213,7 +228,9 @@ export function LauncherPage({
           {scene.staged ? (
             <div ref={scene.sceneRef} className="aca-overlay-scene" data-scene={scene.phase}>
               <OverlayPhaseContext.Provider value={scene.phase}>
-                {scene.node}
+                <OverlayContentReadyContext.Provider value={scene.onContentReady}>
+                  {scene.node}
+                </OverlayContentReadyContext.Provider>
               </OverlayPhaseContext.Provider>
             </div>
           ) : (

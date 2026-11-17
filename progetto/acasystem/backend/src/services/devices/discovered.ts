@@ -1,10 +1,11 @@
+export type { DiscoveredDeviceDto, IgnoredDeviceDto } from '../../../../contracts/devices.ts';
+import type { DiscoveredDeviceDto, IgnoredDeviceDto } from '../../../../contracts/devices.ts';
 import {
   DISCOVERY_SOURCES,
   HANDLER_NAMES,
   familyOfHandler,
   isAddableHandler,
 } from '../../config/deviceFamilies.ts';
-import type { DeviceFamily } from '../../config/deviceFamilies.ts';
 import { displayText } from '../../helpers/text.ts';
 import { DEVICE_ERROR_DEFINITIONS } from './deviceErrors.ts';
 import type { HaEntry, HaProgressFlow } from './haAdapter.ts';
@@ -16,26 +17,7 @@ import type { HaEntry, HaProgressFlow } from './haAdapter.ts';
  * Home Assistant does, Acasystem only reads what it found.
  */
 
-export interface DiscoveredDeviceDto {
-  flowId: string;
-  handler: string;
-  source: string;
-  name: string;
-  model: string | null;
-  family: DeviceFamily | null;
-  /** False when Acasystem cannot carry the flow to the end for a customer. */
-  addable: boolean;
-  /** Why not, in Italian; only when `addable` is false. */
-  reason?: string;
-}
-
 /** A discovery that somebody ignored: HA keeps it as a config entry with the source `ignore`. */
-export interface IgnoredDeviceDto {
-  entryId: string;
-  handler: string;
-  name: string;
-  family: DeviceFamily | null;
-}
 
 export const OTHER_PERSON_REASON = 'Aggiunta già in corso da un altro utente.';
 

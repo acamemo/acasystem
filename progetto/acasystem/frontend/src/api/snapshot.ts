@@ -52,6 +52,8 @@ export interface LauncherSnapshotSetters {
 export interface SnapshotApplyOptions {
   /** Also apply the preferences of this device (the synchronised current settings). */
   device?: boolean;
+  /** Il profilo live è autorevole: non eredita la memoria del profilo aperto prima. */
+  authoritative?: boolean;
 }
 
 const SNAPSHOT_VERSION = 1;
@@ -256,8 +258,8 @@ export function applySnapshot(
   // profile, a file or a blank start does not lose their configuration with the pages ──
   const replacesPages =
     Boolean(launcherLayout) || launcherLayout === null || Boolean(layout.pagesConfig);
-  let widgetMemory: WidgetMemory = loadWidgetMemory();
-  if (replacesPages) {
+  let widgetMemory: WidgetMemory = options.authoritative ? emptyWidgetMemory() : loadWidgetMemory();
+  if (replacesPages && !options.authoritative) {
     const keptIds = new Set<string>(launcherLayout ? widgetPages(launcherLayout).keys() : []);
     const incomingPages = layout.pagesConfig ? sanitizePagesConfig(layout.pagesConfig) : null;
     for (const list of Object.values(incomingPages ?? {})) list.forEach((id) => keptIds.add(id));

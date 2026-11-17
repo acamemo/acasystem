@@ -1,5 +1,5 @@
 import type { HassEntity } from 'home-assistant-js-websocket';
-import { Body, Button, Caption } from '@/components/primitives';
+import { Body, Button, Caption, Disclosure, DisclosureGroup } from '@/components/primitives';
 import { friendlyName, settingFlag } from '../../shared/entity';
 import { OptionPicker } from '../../shared/details';
 import { Notice } from '../../shared/UtilityCard';
@@ -20,6 +20,7 @@ export function RoomClimateSection({ v }: { v: RoomState }) {
           'thermostat',
           activeClimateId && entities[activeClimateId] ? (
             <ClimateControl
+              key={activeClimateId}
               climateId={activeClimateId}
               entity={entities[activeClimateId] as HassEntity}
             />
@@ -72,7 +73,7 @@ export function RoomTemperaturesSection({ v }: { v: RoomState }) {
 }
 
 export function RoomLightsSection({ v }: { v: RoomState }) {
-  const { settings, entities, lights, lightsOn, lightsError, toggleAllLights, section } = v;
+  const { settings, entities, lights, lightsOn, lightsMessage, lightsPending, lightsDisabled, unavailableLights, toggleAllLights, section } = v;
   return (
     <>
       {settingFlag(settings, 'showPopupLights') &&
@@ -92,18 +93,28 @@ export function RoomLightsSection({ v }: { v: RoomState }) {
                 />
               ))}
             </ul>
-            {lightsError && (
+            {unavailableLights > 0 && <Caption>{unavailableLights} luci non disponibili</Caption>}
+            {lightsPending && <Caption role="status">In attesa delle luci…</Caption>}
+            {lightsMessage && (
               <Notice tone="danger" icon="warning" live>
-                Alcune luci non hanno risposto. Riprova.
+                {lightsMessage}
               </Notice>
             )}
           </>,
-          <Button variant="control" size="sm" onClick={toggleAllLights}>
+          <Button variant="control" size="sm" disabled={lightsDisabled} loading={lightsPending} onClick={toggleAllLights}>
             {lightsOn > 0 ? 'Spegni tutte' : 'Accendi tutte'}
           </Button>
         )}
     </>
   );
+}
+
+export function RoomTechnicalSection({ v }: { v: RoomState }) {
+  if (!v.technicalIds.length) return null;
+  return <DisclosureGroup><Disclosure id="room-technical" title="Tecnica e manutenzione">
+    <ul className="utility-list">{v.technicalIds.flatMap(id => v.entities[id]
+      ? [<EntityRow key={id} entityId={id} entity={v.entities[id] as HassEntity} />] : [])}</ul>
+  </Disclosure></DisclosureGroup>;
 }
 
 export function RoomVacuumSection({ v }: { v: RoomState }) {

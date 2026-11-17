@@ -1,0 +1,220 @@
+/* Ritmo del solo tema Glass White: la griglia salvata resta al launcher. */
+:root .aca-adaptive-widget:not([data-details], [data-tier='compact']) {
+  justify-content: flex-start;
+  gap: var(--aca-space-3);
+}
+
+:root .aca-adaptive-widget:not([data-details], [data-tier='compact']) > .aca-adaptive-widget__header {
+  min-height: 2.75rem;
+  justify-content: flex-start;
+}
+
+:root .aca-adaptive-widget:not([data-details], [data-tier='compact']) > .aca-adaptive-widget__controls-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0;
+  justify-content: center;
+}
+
+:root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+  align-items: start;
+  justify-items: center;
+  gap: var(--aca-space-3);
+}
+
+:root .aca-adaptive-widget .uikwa-controls > [data-control-id] {
+  width: 100%;
+}
+
+:root .aca-adaptive-widget[data-tier='page']:not([data-details]) > .aca-adaptive-widget__controls-wrap {
+  justify-content: flex-start;
+}
+
+/* Una scheda sensore grande usa lo spazio per il grafico, non per una banda vuota. */
+:root .aca-adaptive-widget[data-widget-type='sensor']:is([data-tier='large'], [data-tier='page']):not([data-details]) > .aca-adaptive-widget__chart-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+:root .aca-adaptive-widget[data-widget-type='sensor']:is([data-tier='large'], [data-tier='page']):not([data-details]) > .aca-adaptive-widget__controls-wrap {
+  flex: 0 0 auto;
+  margin-top: var(--aca-space-3);
+  overflow: visible;
+  padding-block: 0;
+  margin-block-end: 0;
+}
+
+/* I comandi della stessa riga condividono icona, valore e didascalia. */
+@media (min-width: 600px) {
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls :is(.uikwa-toggle, .uikwa-action, .uikw-gesture) {
+    display: grid;
+    grid-template-rows: 3rem 2rem minmax(2.4em, auto);
+    align-items: center;
+    justify-items: center;
+    gap: var(--aca-space-1);
+    width: 100%;
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls :is(.uikwa-toggle, .uikwa-action) > button,
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikw-gesture > .uikw-gesture__knob {
+    grid-row: 1;
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikw-gesture > .aca-type--display-sm {
+    grid-row: 2;
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls :is(.uikwa-toggle, .uikwa-action, .uikw-gesture) > .aca-type--caption {
+    grid-row: 3;
+    align-self: start;
+    max-width: 18ch;
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls .uikw-reading {
+    display: grid;
+    grid-template-rows: 3rem 2rem minmax(2.4em, auto);
+    align-items: center;
+    justify-items: center;
+    gap: var(--aca-space-1);
+    padding-block: 0;
+    width: 100%;
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls .uikw-reading > :is(h3, .aca-type--display-sm, .aca-type--display-md) {
+    grid-row: 2;
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls .uikw-reading > .aca-type--caption {
+    grid-row: 3;
+    align-self: start;
+  }
+}
+
+/* Il catalogo confronta pannelli allineati e azioni della stessa altezza. */
+:root .glass-kit__grid {
+  align-items: stretch;
+}
+:root .glass-kit__panel > .aca-m__outer,
+:root .glass-kit__panel > .aca-m__outer > .aca-m__face {
+  height: 100%;
+}
+:root .glass-kit__panel > .aca-m__outer > .aca-m__face {
+  box-sizing: border-box;
+  padding: 1.5rem;
+}
+:root .glass-kit__panel > .aca-m__outer > .aca-m__face > .glass-kit__stack {
+  height: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  gap: 1.25rem;
+}
+:root .glass-kit :is(#account-actions, #control-actions) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0.75rem;
+}
+:root .glass-kit :is(#account-actions, #control-actions) > .aca-m {
+  --aca-pad: 0.75rem 1rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 3rem;
+}
+:root .glass-kit :is(#account-actions, #control-actions) .aca-m__label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+:root .glass-kit__row--between {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+:root .glass-kit__row--between > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+:root .glass-kit__row--between > .aca-toggle {
+  flex: none;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 479px) {
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) {
+    padding: var(--aca-space-2);
+    gap: var(--aca-space-2);
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) > .aca-adaptive-widget__header {
+    min-height: 0;
+  }
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) .uikwa-controls {
+    gap: var(--aca-space-2);
+  }
+  :root .glass-kit__panel > .aca-m__outer > .aca-m__face {
+    padding: 1.25rem;
+  }
+}
+
+/* A 320px le didascalie usano tutta la larghezza, sotto l'icona o la coppia icona/valore. */
+@media (max-width: 359px) {
+  :root .aca-adaptive-widget:not([data-details], [data-tier='compact']) {
+    padding: var(--aca-space-1);
+    gap: var(--aca-space-1);
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) > .aca-adaptive-widget__header {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--aca-space-1);
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .aca-adaptive-widget__name {
+    display: block;
+    flex: 1;
+    white-space: nowrap;
+    -webkit-line-clamp: unset;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .aca-adaptive-widget__state {
+    flex: none;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .aca-type--caption {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikwa-controls :is(.uikwa-toggle, .uikwa-action, .uikw-gesture) {
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.125rem var(--aca-space-1);
+    width: 100%;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikwa-controls :is(.uikwa-toggle, .uikwa-action) > button,
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikw-gesture > .uikw-gesture__knob {
+    --aca-dim: 2.75rem;
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikwa-controls :is(.uikwa-toggle, .uikwa-action) > .aca-type--caption {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    max-width: 100%;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikwa-controls :is(.uikwa-toggle, .uikwa-action) > button {
+    grid-column: 1 / -1;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikw-gesture > .aca-type {
+    grid-column: 2;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikw-gesture > .aca-type--display-sm {
+    font-size: var(--aca-step-1);
+    grid-row: 1;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikw-gesture > .aca-type--caption {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    max-width: 100%;
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikw-reading {
+    padding-block: 0;
+    gap: var(--aca-space-1);
+  }
+  :root .aca-adaptive-widget[data-tier='standard']:not([data-details]) .uikw-reading > .aca-type--display-sm {
+    font-size: var(--aca-step-3);
+  }
+}

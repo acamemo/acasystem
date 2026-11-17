@@ -14,6 +14,7 @@ import { getHassUrl } from '@/api/haUrl';
 import { clearOAuthTokens, loadTokens, saveTokens } from '@/api/oauthStorage';
 import { isNonEmptyString } from '@/validators/guards';
 import { hasTokenPayload, isSessionTokensFor } from '@/validators/oauthTokens';
+import { resetClientAccess } from '@/utils/clientSessionCache';
 
 /** `oauth`: sessione dell'accesso con utente e password; `token`: token a lunga durata. */
 export type AccessMethod = 'oauth' | 'token';
@@ -71,8 +72,11 @@ export function hasSessionTokens(hassUrl: string = getHassUrl()): boolean {
 
 /** Callback `saveTokens` di HAWS: salva il rinnovo, cancella tutto dopo una revoca (null). */
 export function persistSessionTokens(tokens: AuthData | null): void {
-  if (tokens) saveTokens(tokens);
-  else clearOAuthTokens();
+  if (tokens) {
+    const previous = loadTokens();
+    if (!previous || previous.refresh_token !== tokens.refresh_token) resetClientAccess();
+    saveTokens(tokens);
+  } else { resetClientAccess(); clearOAuthTokens(); }
 }
 
 /** Auth di HAWS per la sessione salvata: rinnova i token sullo stesso hassUrl e li salva. */

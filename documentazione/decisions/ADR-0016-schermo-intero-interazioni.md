@@ -179,3 +179,7 @@ Questo rovescia il punto «Ingresso in modifica» della rettifica del 2026-10-21
 - **Testi (scelta mia, minimi).** Annuncio di ingresso «Modifica della disposizione. Trascina il widget per spostarlo, tocca un widget selezionato per le impostazioni. Fine o Esc per terminare.»; pagina senza widget «Nessun widget da modificare in questa pagina. Per le pagine: Sistema, Modifica le pagine.»; pagina nascosta toccata nella vista pagine «La pagina è nascosta: tocca Mostra per rivederla.» Il suggerimento della prima volta resta vero.
 
 Realizzazione e prove: REP-20261021-003, annotazione del 2026-10-23.
+
+## Annotazione successiva — 2026-11-04
+
+La correzione richiesta delle sovrapposizioni introduce in [ADR-0044](ADR-0044-avvisi-e-anteprime-pagine.md) un'eccezione per gli avvisi: quando presenti, hanno spazio reale e limitato sopra l'area delle pagine, senza riscrivere la griglia salvata. Senza avvisi rimane la disposizione ordinaria. Gerarchia laterali della panoramica e adattamento fisico dei widget sono verificati in REP015; i principi precedenti non autorizzano a sovrapporre avvisi ai comandi.

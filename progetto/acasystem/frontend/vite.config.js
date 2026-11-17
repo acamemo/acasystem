@@ -12,6 +12,7 @@ const analyze = process.env.ANALYZE === 'true';
 export default defineConfig({
   base: './',
   resolve: {
+    dedupe: ['react', 'react-dom'],
     // '@' points at src/ so the layers (primitives, system, widgets, pages) import by stable paths.
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

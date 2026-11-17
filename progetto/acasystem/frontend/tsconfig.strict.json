@@ -13,6 +13,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
@@ -22,6 +23,6 @@
     },
     "types": ["@testing-library/jest-dom/vitest", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../ui/**/*.ts", "../ui/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

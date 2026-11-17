@@ -1,20 +1,14 @@
-import { useMemo, useState } from 'react';
-import { Body, Button, Caption, Field, IconText } from '@/components/primitives';
+import { Body, Button, Caption } from '@/components/primitives';
 import type { CardSettings, PageSettingsMap } from '@/@types/dashboard';
 import type { Connection, EntityMap } from '@/@types/ha';
-import { getEntitiesForArea } from '@/api/haClient';
-import { matchCarEntities, type CarEntityField } from '@/utils/carEntityMatcher';
+import { getEffectiveRoomEntityIds } from '@/utils/roomEntities';
 import {
   MAX_CLIMATE_FAVORITE_MODES,
   resolveClimateFavoriteModes,
   toggleClimateFavoriteMode,
 } from '@/utils/climateFavorites';
-import { EntitySelect } from '../parts/EntityPicker';
 import {
   ChoiceGroup,
-  DeviceScopeNote,
-  FormRow,
-  Notice,
   SheetSection,
   ToggleRow,
 } from '../parts/Form';
@@ -167,25 +161,23 @@ const deviceClassOf = (entities: EntityMap, id: string): unknown =>
 
 /**
  * Room widget: the features it shows (only those with a source in the room, as the legacy
- * section), tap navigation to a page and a refresh of the entities from the HA area.
+ * section) and tap navigation. The common association section owns the atomic area change.
  */
 export function RoomSection({
   settings,
   entities,
-  conn,
   pageIds,
   pageSettings,
   save,
 }: {
   settings: CardSettings;
   entities: EntityMap;
-  conn: Connection | null;
+  conn?: Connection | null;
   pageIds: readonly string[];
   pageSettings: PageSettingsMap;
   save: Save;
 }) {
-  const [refresh, setRefresh] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
-  const roomIds = stringList(settings.entityIds);
+  const roomIds = getEffectiveRoomEntityIds(settings);
   const excluded = new Set(stringList(settings.excludedEntityIds));
   const active = roomIds.filter((id) => !excluded.has(id));
   const has = (test: (id: string) => boolean) => active.some(test);
@@ -195,9 +187,7 @@ export function RoomSection({
     has(
       (id) =>
         Boolean(entities[id]) &&
-        (deviceClassOf(entities, id) === 'temperature' ||
-          id.includes('temperature') ||
-          id.includes('temp'))
+        id.startsWith('sensor.') && deviceClassOf(entities, id) === 'temperature'
     );
   const motionSource =
     Boolean(settings.motionEntityId) ||
@@ -219,18 +209,6 @@ export function RoomSection({
   };
   const features = ROOM_FEATURES.filter((feature) => sources[feature.key]);
   const navigateOnTap = settings.navigateOnTap === true;
-  const areaId = typeof settings.areaId === 'string' ? settings.areaId : '';
-
-  const refreshEntities = async () => {
-    if (!conn || !areaId) return;
-    setRefresh('busy');
-    try {
-      save('entityIds', await getEntitiesForArea(conn, areaId));
-      setRefresh('done');
-    } catch {
-      setRefresh('error');
-    }
-  };
 
   return (
     <SheetSection
@@ -270,95 +248,6 @@ export function RoomSection({
           onChange={(value) => save('navigateToPageId', value || null)}
         />
       )}
-      {areaId && (
-        <div className="aca-form-row">
-          <Button
-            variant="control"
-            size="sm"
-            loading={refresh === 'busy'}
-            disabled={!conn}
-            onClick={() => {
-              void refreshEntities();
-            }}
-          >
-            <IconText icon="refresh">Aggiorna le entità dall’area</IconText>
-          </Button>
-          {refresh === 'done' && <Notice tone="success">Entità aggiornate.</Notice>}
-          {refresh === 'error' && (
-            <Notice tone="danger">
-              Aggiornamento non riuscito: le entità restano quelle di prima.
-            </Notice>
-          )}
-        </div>
-      )}
-    </SheetSection>
-  );
-}
-
-const CAR_FIELDS: ReadonlyArray<{ key: string; label: string; match: CarEntityField }> = [
-  { key: 'batteryId', label: 'Batteria', match: 'batteryId' },
-  { key: 'rangeId', label: 'Autonomia', match: 'rangeId' },
-  { key: 'chargingId', label: 'Stato della ricarica', match: 'chargingStateId' },
-  { key: 'pluggedId', label: 'Cavo collegato', match: 'pluggedId' },
-  { key: 'locationId', label: 'Posizione', match: 'locationId' },
-  { key: 'climateId', label: 'Clima', match: 'climateId' },
-  { key: 'lockId', label: 'Serratura', match: 'lockId' },
-  { key: 'odometerId', label: 'Contachilometri', match: 'odometerId' },
-  { key: 'fuelLevelId', label: 'Carburante', match: 'fuelLevelId' },
-  { key: 'chargingPowerId', label: 'Potenza di ricarica', match: 'chargingPowerId' },
-  { key: 'timeToFullId', label: 'Tempo alla carica completa', match: 'timeToFullId' },
-  { key: 'lastUpdatedId', label: 'Ultimo aggiornamento', match: 'lastUpdatedId' },
-  { key: 'updateButtonId', label: 'Pulsante di aggiornamento', match: 'updateButtonId' },
-];
-
-/** Car widget: picture and the main entity mappings, with the legacy setting keys. */
-export function CarSection({
-  settings,
-  entities,
-  save,
-}: {
-  settings: CardSettings;
-  entities: EntityMap;
-  save: Save;
-}) {
-  const match = useMemo(() => matchCarEntities(entities), [entities]);
-  const allIds = useMemo(() => Object.keys(entities), [entities]);
-  const [imageUrl, setImageUrl] = useState(
-    typeof settings.imageUrl === 'string' ? settings.imageUrl : ''
-  );
-  return (
-    <SheetSection title="Auto" description="Associa le entità che il widget mostra.">
-      <FormRow
-        label="Immagine dell’auto"
-        hint="Metti l’immagine nella cartella www del server e usa /local/nome.png."
-      >
-        {({ labelId, hintId }) => (
-          <Field
-            label="Immagine dell’auto"
-            aria-labelledby={labelId}
-            aria-describedby={hintId}
-            placeholder="/local/auto.png"
-            value={imageUrl}
-            onChange={(event) => setImageUrl(event.target.value)}
-            onBlur={() => save('imageUrl', imageUrl.trim() || null)}
-          />
-        )}
-      </FormRow>
-      <DeviceScopeNote />
-      {CAR_FIELDS.map((field) => {
-        const suggested = match.options[field.match];
-        const value = typeof settings[field.key] === 'string' ? String(settings[field.key]) : null;
-        return (
-          <EntitySelect
-            key={field.key}
-            label={field.label}
-            value={value}
-            entities={entities}
-            ids={suggested.length > 0 ? suggested : allIds}
-            onChange={(id) => save(field.key, id)}
-          />
-        );
-      })}
     </SheetSection>
   );
 }

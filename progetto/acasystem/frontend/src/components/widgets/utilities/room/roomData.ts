@@ -7,14 +7,12 @@ import type { CardSettings } from '@/@types/dashboard';
 import type { EntityMap, HaConfig } from '@/@types/ha';
 import { getEffectiveRoomEntityIds } from '@/utils/roomEntities';
 import {
-  attr,
-  numberAttr,
-  numericState,
   settingFlag,
   settingString,
   stringAttr,
+  isUnavailableState,
 } from '../shared/entity';
-import { haUnit, temperatureReading } from '../shared/units';
+import { roomDimmable } from './roomCapabilities';
 
 export interface RoomFlags {
   showLights: boolean;
@@ -48,6 +46,12 @@ const byDomain = (ids: string[], domain: string) => ids.filter((id) => id.starts
 
 const deviceClass = (entity: HassEntity | undefined) => stringAttr(entity, 'device_class');
 
+export const roomNumber = (value: unknown): number | null =>
+  (typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')) && Number.isFinite(Number(value))
+    ? Number(value) : null;
+export const roomNumberAttr = (entity: HassEntity | undefined, key: string): number | null =>
+  roomNumber(entity?.attributes[key]);
+
 export interface RoomSummary {
   ids: string[];
   lightIds: string[];
@@ -64,6 +68,7 @@ export interface RoomSummary {
   vacuumTone: 'active' | 'danger' | 'neutral';
   coverLabel: string | null;
   doorOpen: boolean;
+  unavailableCount: number;
 }
 
 const VACUUM_LABEL: Record<string, string> = {
@@ -83,19 +88,18 @@ const COVER_LABEL: Record<string, string> = {
 };
 
 /**
- * Everything the card shows, with the legacy detection rules and setting overrides. The
- * temperature is shown in the unit of Home Assistant (`haConfig`), converted from the sensor.
+ * Existing room indicators and explicit role overrides. Sensor values keep their native unit;
+ * only climate readings without their own unit use Home Assistant's configured temperature unit.
  */
 export function roomSummary(
   entities: EntityMap,
   settings: CardSettings,
-  haConfig: HaConfig | null
+  _haConfig: HaConfig | null
 ): RoomSummary {
   const ids = getEffectiveRoomEntityIds(settings);
   const lightIds = byDomain(ids, 'light');
   const configuredMain = settingString(settings, 'mainLightEntityId');
-  const mainLightId =
-    configuredMain && entities[configuredMain] ? configuredMain : (lightIds[0] ?? null);
+  const mainLightId = configuredMain && lightIds.includes(configuredMain) ? configuredMain : (lightIds[0] ?? null);
 
   const doorId =
     settingString(settings, 'doorEntityId') ??
@@ -111,7 +115,7 @@ export function roomSummary(
       const entity = entities[id];
       return (
         Boolean(entity) &&
-        (deviceClass(entity) === 'temperature' || id.includes('temperature') || id.includes('temp'))
+        id.startsWith('sensor.') && deviceClass(entity) === 'temperature'
       );
     }) ??
     null;
@@ -125,26 +129,18 @@ export function roomSummary(
   const climate = climateId ? entities[climateId] : undefined;
   const tempEntity = tempId ? entities[tempId] : undefined;
   const motion = motionId ? entities[motionId] : undefined;
-  // Climate entities already report in the HA unit; a sensor is converted from its own unit.
-  const climateUnit = haUnit(
-    'temperature',
-    haConfig,
-    stringAttr(climate, 'temperature_unit') ?? stringAttr(climate, 'unit_of_measurement') ?? '°C'
-  );
-  const sensorTemperature = numericState(tempEntity);
+  const sensorTemperature = tempEntity && !isUnavailableState(tempEntity.state) ? roomNumber(tempEntity.state) : null;
   const reading =
     sensorTemperature !== null
-      ? temperatureReading(
-          sensorTemperature,
-          stringAttr(tempEntity, 'unit_of_measurement'),
-          haConfig
-        )
-      : { value: numberAttr(climate, 'current_temperature'), unit: climateUnit };
+      ? { value: sensorTemperature, unit: stringAttr(tempEntity, 'unit_of_measurement') ?? '' }
+      : { value: climate && !isUnavailableState(climate.state) ? roomNumberAttr(climate, 'current_temperature') : null,
+          unit: stringAttr(climate, 'temperature_unit') ?? stringAttr(climate, 'unit_of_measurement')
+            ?? _haConfig?.unit_system?.temperature ?? '' };
 
   const activeVacuum =
     byDomain(ids, 'vacuum')
       .map((id) => entities[id])
-      .find((entity) => entity && entity.state !== 'docked') ?? null;
+      .find((entity) => entity && !isUnavailableState(entity.state) && entity.state !== 'docked') ?? null;
   const activeCover =
     byDomain(ids, 'cover')
       .map((id) => entities[id])
@@ -183,19 +179,19 @@ export function roomSummary(
       vacuumState === 'error' ? 'danger' : vacuumState === 'cleaning' ? 'active' : 'neutral',
     coverLabel: activeCover ? (COVER_LABEL[activeCover.state] ?? activeCover.state) : null,
     doorOpen: doorId ? entities[doorId]?.state === 'on' : false,
+    unavailableCount: ids.filter(id => !entities[id] || isUnavailableState(entities[id]?.state)).length,
   };
 }
 
-/** Brightness of a light in percent (attribute 0–255; on without attribute = 100). */
-export function brightnessPercent(entity: HassEntity | undefined): number {
-  const brightness = numberAttr(entity, 'brightness');
-  if (brightness !== null) return Math.round((brightness / 255) * 100);
-  return entity?.state === 'on' ? 100 : 0;
+/** Observed brightness in percent; a missing on-state attribute is not a 100% reading. */
+export function brightnessPercent(entity: HassEntity | undefined): number | null {
+  if (!entity || isUnavailableState(entity.state)) return null;
+  const brightness = roomNumberAttr(entity, 'brightness');
+  if (brightness !== null && brightness >= 0 && brightness <= 255) return Math.round((brightness / 255) * 100);
+  return entity.state === 'off' ? 0 : null;
 }
 
 /** Light that supports dimming (legacy RoomExplorerPage rule). */
 export function isDimmable(entity: HassEntity | undefined): boolean {
-  const modes = attr(entity, 'supported_color_modes');
-  if (!Array.isArray(modes)) return false;
-  return !modes.includes('onoff') || modes.length > 1;
+  return roomDimmable(entity);
 }

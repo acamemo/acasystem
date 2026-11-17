@@ -19,6 +19,8 @@ vi.mock('@/api/haClient', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/haClient')>()),
   getAreas: vi.fn(async () => [{ area_id: 'cucina', name: 'Cucina', icon: null }]),
   getEntitiesForArea: vi.fn(async () => ['light.cucina']),
+  getEntityRegistry: vi.fn(async () => [{ entity_id: 'light.cucina', area_id: 'cucina' }]),
+  getDeviceRegistry: vi.fn(async () => []),
 }));
 
 const entities = fixtureEntities([

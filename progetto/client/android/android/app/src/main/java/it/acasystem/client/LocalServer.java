@@ -22,6 +22,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Server locale del guscio Android, solo su 127.0.0.1 (ADR-0023, schema confermato per Windows
@@ -31,6 +33,13 @@ import java.util.concurrent.Executors;
  * Java puro: si prova con JUnit sul PC.
  */
 public final class LocalServer {
+    public interface PairingMailbox {
+        String pending();
+        boolean acknowledge(String pairingId);
+    }
+
+    private static final Pattern PAIRING_ACK = Pattern.compile(
+            "\\s*\\{\\s*\"pairingId\"\\s*:\\s*\"([a-fA-F0-9-]{36})\"\\s*}\\s*");
     /** Copia della CSP del server (backend/src/config/security.ts): da tenere allineata. */
     static final String CONTENT_SECURITY_POLICY = String.join("; ",
             "default-src 'self'",
@@ -96,6 +105,7 @@ public final class LocalServer {
     });
     private volatile ServerSocket serverSocket;
     private volatile Target target;
+    private volatile PairingMailbox pairingMailbox;
     private volatile int port;
 
     public LocalServer(int port) {
@@ -124,6 +134,8 @@ public final class LocalServer {
     public void setTarget(File bundleDir, URI serverOrigin) {
         target = bundleDir == null ? null : new Target(bundleDir, serverOrigin);
     }
+
+    public void setPairingMailbox(PairingMailbox mailbox) { pairingMailbox = mailbox; }
 
     public synchronized void stop() {
         try {
@@ -204,7 +216,16 @@ public final class LocalServer {
             Target current = target;
             String path = request.target.split("\\?", 2)[0];
             boolean upgrade = "websocket".equalsIgnoreCase(request.header("Upgrade"));
-            if (current == null) {
+            if (path.equals("/__acasystem/endpoint")) {
+                if (!request.method.equals("GET")) {
+                    sendText(output, 405, "Metodo non ammesso");
+                } else {
+                    String endpoint = current == null ? "null" : "\"http://" + current.host + ":" + current.port + "\"";
+                    send(output, 200, "application/json", ("{\"endpoint\":" + endpoint + "}").getBytes(StandardCharsets.UTF_8), true);
+                }
+            } else if (path.equals("/__acasystem/pairing") || path.equals("/__acasystem/pairing/ack")) {
+                handlePairing(request, path, input, output);
+            } else if (current == null) {
                 sendText(output, 503, "Acasystem non è ancora pronto");
             } else if (isProxiedPath(path) && (!upgrade || path.startsWith("/ha/"))) {
                 proxy(request, upgrade, input, output, current);
@@ -218,6 +239,40 @@ public final class LocalServer {
         } finally {
             closeQuietly(client);
         }
+    }
+
+    private void handlePairing(Request request, String path, InputStream input, OutputStream output) throws IOException {
+        PairingMailbox mailbox = pairingMailbox;
+        if (path.equals("/__acasystem/pairing") && request.method.equals("GET")) {
+            String pending = mailbox == null ? null : mailbox.pending();
+            send(output, 200, "application/json", (pending == null ? "null" : pending).getBytes(StandardCharsets.UTF_8), true);
+            return;
+        }
+        if (!path.endsWith("/ack") || !request.method.equals("POST")) {
+            sendText(output, 405, "Metodo non ammesso");
+            return;
+        }
+        String contentType = request.header("Content-Type");
+        int length;
+        try { length = Integer.parseInt(request.header("Content-Length")); }
+        catch (NumberFormatException error) { length = -1; }
+        if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("application/json") ||
+                request.header("Transfer-Encoding") != null || length < 1 || length > 256) {
+            sendText(output, 400, "Conferma non valida");
+            return;
+        }
+        byte[] bytes = new byte[length];
+        int read = 0;
+        while (read < length) {
+            int count = input.read(bytes, read, length - read);
+            if (count == -1) throw new IOException("Conferma incompleta");
+            read += count;
+        }
+        Matcher match = PAIRING_ACK.matcher(new String(bytes, StandardCharsets.UTF_8));
+        if (!match.matches()) { sendText(output, 400, "Conferma non valida"); return; }
+        boolean acknowledged = mailbox != null && mailbox.acknowledge(match.group(1));
+        send(output, acknowledged ? 200 : 409, "application/json",
+                (acknowledged ? "{\"ok\":true}" : "{\"ok\":false}").getBytes(StandardCharsets.UTF_8), true);
     }
 
     private static void proxy(Request request, boolean upgrade, InputStream clientIn, OutputStream clientOut, Target target)
@@ -350,6 +405,7 @@ public final class LocalServer {
         String head = "HTTP/1.1 " + status + " " + reason(status) + "\r\n"
                 + "Content-Type: " + type + "\r\n"
                 + "Content-Length: " + body.length + "\r\n"
+                + "Cache-Control: no-store\r\n"
                 + (nosniff ? "X-Content-Type-Options: nosniff\r\n" : "")
                 + "Connection: close\r\n\r\n";
         output.write(head.getBytes(StandardCharsets.ISO_8859_1));
@@ -363,6 +419,7 @@ public final class LocalServer {
             case 403: return "Forbidden";
             case 404: return "Not Found";
             case 405: return "Method Not Allowed";
+            case 409: return "Conflict";
             case 421: return "Misdirected Request";
             case 502: return "Bad Gateway";
             case 503: return "Service Unavailable";

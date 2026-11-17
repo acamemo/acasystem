@@ -5,7 +5,7 @@ import type { WizardError } from './wizard.ts';
 /** Testi in italiano per le pagine del guscio (ADR-0005), uguali su Windows e Android. */
 
 export const WIZARD_ERROR_TEXT: Record<WizardError, string> = {
-  empty: "Scrivi l'indirizzo IP di Home Assistant, per esempio 192.168.1.184.",
+  empty: "Scrivi l'indirizzo IP del mini PC, per esempio 192.168.1.184.",
   'not-ipv4': 'Non sembra un indirizzo IP. Scrivilo come 192.168.1.184.',
   'not-local':
     "L'indirizzo deve essere della rete di casa (192.168.…, 10.… o 172.16-31.…). Da fuori casa l'app non si collega.",
@@ -24,6 +24,8 @@ export const startupErrorText = (result: ErrorResult): string => {
       return `Il mini PC (${result.origin}) non risponde. Controlla che sia acceso e sulla stessa rete, poi riprova.`;
     case 'not-acasystem':
       return `A ${result.origin} non risponde Acasystem. Usa «Cambia indirizzo» per correggerlo.`;
+    case 'update-in-progress':
+      return 'La centrale sta ancora aggiornando Acasystem. Attendi un momento e premi «Riprova».';
     case 'no-bundle':
       if (result.reason === 'offline') {
         return "Per il primo avvio serve internet: l'app deve scaricare Acasystem. Collegati e riprova.";

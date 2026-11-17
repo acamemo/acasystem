@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { HassEntity } from 'home-assistant-js-websocket';
+import { tvStateWord } from '../media/model/tv';
 
 /**
  * The device name for the small card: its controls carry it in their accessible name, so a
@@ -74,9 +75,11 @@ export function adaptiveStateWord(
           : 'Attiva';
     case 'media':
     case 'sonos':
+      return MEDIA_WORDS[state] ?? null;
+    // A TV says its state with the words of its widget, details and console.
     case 'androidtv':
     case 'appletv':
-      return MEDIA_WORDS[state] ?? null;
+      return tvStateWord(state);
     case 'vacuum':
     case 'mower': {
       if (state === 'docked') {

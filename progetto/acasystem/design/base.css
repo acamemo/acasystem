@@ -1,0 +1,5 @@
+/* Base ACA condivisa dall'app e dalle schermate locali dei contenitori. */
+@import './fonts.css';
+@import './tokens.css';
+@import './html.css';
+@import './layout/primitives.css';

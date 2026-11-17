@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -27,7 +28,7 @@ export const SYSTEM_OUT_MS = 96;
  * - `none`: no page;
  * - `wait`: the page is mounted, still transparent, the launcher is under it, untouched; the cost
  *   of mounting is paid here, before any movement (D-M25);
- * - `in`: it fades in, with a scale of 4 % (an animation of the layer, which waited at scale 1);
+ * - `in`: it fades in, with a short upward movement of the complete page;
  * - `on`: it is there; the launcher is covered and stopped;
  * - `out-wait`: it is asked to leave; the launcher has been shown again and its widgets woken up
  *   under the page, which is still opaque, so that the cost of the return falls out of sight;
@@ -40,6 +41,17 @@ export type OverlayPhase = 'none' | 'wait' | 'in' | 'on' | 'out-wait' | 'out';
  * there (`useSceneReached`). Where there is no scene (the house, a test) it is `on`.
  */
 export const OverlayPhaseContext = createContext<OverlayPhase>('on');
+
+/** A resolved lazy page signals its actual commit from inside its own Suspense boundary. */
+export const OverlayContentReadyContext = createContext<(() => void) | null>(null);
+
+export function OverlayContentReady() {
+  const onReady = useContext(OverlayContentReadyContext);
+  useLayoutEffect(() => {
+    onReady?.();
+  }, [onReady]);
+  return null;
+}
 
 /**
  * True once the scene of the page has reached `on` (a frame later: the fade is over and drawn),
@@ -67,6 +79,8 @@ export interface OverlayScene {
   covered: boolean;
   /** To put on the element that fades, to listen to its transitions. */
   sceneRef: RefObject<HTMLDivElement | null>;
+  /** Signal for this entry only; a closed or superseded entry cannot start the scene. */
+  onContentReady: () => void;
 }
 
 /**
@@ -75,13 +89,36 @@ export interface OverlayScene {
  * A scene ends at the first of the end of its animation (in) or of the transition of `opacity`
  * (out), or a cap of its time plus two frames (P1): nothing waits for an event that may not come.
  */
-export function useOverlayScene(overlay: ReactNode, staged: boolean): OverlayScene {
+export function useOverlayScene(
+  overlay: ReactNode,
+  staged: boolean,
+  waitForContent = false
+): OverlayScene {
   const present = Boolean(overlay);
   const animated = canAnimate();
   const [phase, setPhase] = useState<OverlayPhase>(present ? 'on' : 'none');
   const [wasPresent, setWasPresent] = useState(present);
   const [wasStaged, setWasStaged] = useState(staged);
   const sceneRef = useRef<HTMLDivElement | null>(null);
+  // An initial direct route stays on as before. Only a newly opened, opted-in scene waits.
+  const [contentEntry, setContentEntry] = useState(() => ({
+    token: {},
+    active: present && staged,
+    ready: true,
+  }));
+  const latestContentEntry = useRef(contentEntry);
+  latestContentEntry.current = contentEntry;
+  const contentToken = contentEntry.token;
+  const onContentReady = useCallback(() => {
+    const latest = latestContentEntry.current;
+    // Do not enqueue even a no-op update for a retained, closed or superseded marker.
+    if (latest.token !== contentToken || !latest.active || latest.ready) return;
+    setContentEntry((current) =>
+      current.token === contentToken && current.active && !current.ready
+        ? { ...current, ready: true }
+        : current
+    );
+  }, [contentToken]);
 
   // The page that leaves is the last one that was there, with the look it had.
   const lastNode = useRef<ReactNode>(overlay);
@@ -95,8 +132,10 @@ export function useOverlayScene(overlay: ReactNode, staged: boolean): OverlaySce
 
   if (wasPresent !== present) {
     setWasPresent(present);
+    setContentEntry({ token: {}, active: present && staged, ready: !staged || !waitForContent });
     if (present) {
-      if (staged && animated) setPhase(phase === 'out-wait' || phase === 'out' ? 'in' : 'wait');
+      if (staged && waitForContent) setPhase('wait');
+      else if (staged && animated) setPhase(phase === 'out-wait' || phase === 'out' ? 'in' : 'wait');
       else setPhase('on');
     } else if (lastStaged.current && animated) {
       // From the middle of the way in it goes back from where it is: nothing is covered yet.
@@ -109,6 +148,7 @@ export function useOverlayScene(overlay: ReactNode, staged: boolean): OverlaySce
   }
   if (wasStaged !== staged) {
     setWasStaged(staged);
+    if (!staged) setContentEntry({ token: {}, active: false, ready: true });
     // Another page takes the place (Sistema to the house): no scene is left half way.
     if (present && !staged && phase !== 'on') setPhase('on');
   }
@@ -119,6 +159,11 @@ export function useOverlayScene(overlay: ReactNode, staged: boolean): OverlaySce
   // two steps render the layer and nothing under it (0.9.28, measurement of 2026-10-23).
   useEffect(() => {
     if (phase === 'wait') {
+      if (!contentEntry.ready) return undefined;
+      if (!animated) {
+        setPhase('on');
+        return undefined;
+      }
       return afterNextFrame(() =>
         flushSync(() => setPhase((current) => (current === 'wait' ? 'in' : current)))
       );
@@ -143,7 +188,7 @@ export function useOverlayScene(overlay: ReactNode, staged: boolean): OverlaySce
       );
     }
     return undefined;
-  }, [phase]);
+  }, [phase, contentEntry.ready, animated]);
 
   const leaving = phase === 'out-wait' || phase === 'out';
   const node = present ? overlay : leaving ? lastNode.current : null;
@@ -153,5 +198,6 @@ export function useOverlayScene(overlay: ReactNode, staged: boolean): OverlaySce
     staged: present ? staged : leaving,
     covered: present && phase === 'on',
     sceneRef,
+    onContentReady,
   };
 }

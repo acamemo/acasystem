@@ -7,11 +7,17 @@ export interface TodoItemRowProps {
   item: TodoItemView;
   locale: string;
   pending: boolean;
+  deleting?: boolean;
+  uncertain?: boolean;
+  allowToggle?: boolean;
+  allowRemove?: boolean;
   disabled: boolean;
   onToggle: (item: TodoItemView) => void;
   /** Shown in the detail sheet only. */
   onRemove?: (item: TodoItemView) => void;
   showDetails?: boolean;
+  /** Measured Home overview: complete names/status rows; dates and descriptions in the full list. */
+  condensed?: boolean;
 }
 
 /**
@@ -23,27 +29,34 @@ export function TodoItemRow({
   item,
   locale,
   pending,
+  deleting = false,
+  uncertain = false,
+  allowToggle = true,
+  allowRemove = true,
   disabled,
   onToggle,
   onRemove,
   showDetails = false,
+  condensed = false,
 }: TodoItemRowProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const nameId = `attivita-${uid}`;
   const descriptionId = `attivita-${uid}-info`;
   const done = item.status === 'completed';
-  const due = done ? null : dueText(item.due, locale);
-  const hasDescription = Boolean(due || pending || (showDetails && item.description));
+  const due = done || condensed ? null : dueText(item.due, locale);
+  const brief = item.status === 'unknown' ? 'Stato non disponibile' : !item.commandId ? 'Sola lettura' :
+    pending ? uncertain ? 'Esito da verificare' : deleting ? 'Eliminazione da confermare' : 'In attesa di conferma' : null;
+  const hasDescription = Boolean(due || pending || item.status === 'unknown' || !item.commandId || (showDetails && item.description));
   return (
     <li className="home-todo__item" data-done={done || undefined}>
       <button
         type="button"
         role="checkbox"
-        aria-checked={done}
+        aria-checked={item.status === 'unknown' ? 'mixed' : done}
         aria-busy={pending || undefined}
         aria-labelledby={nameId}
         aria-describedby={hasDescription ? descriptionId : undefined}
-        disabled={disabled}
+        disabled={disabled || pending || !allowToggle || !item.commandId || item.status === 'unknown'}
         className="home-todo__check"
         onClick={() => onToggle(item)}
       >
@@ -67,6 +80,7 @@ export function TodoItemRow({
           </Body>
           {hasDescription && (
             <span id={descriptionId} className="home-stack">
+              {condensed ? <Caption>{brief}</Caption> : <>
               {showDetails && item.description && (
                 <Caption className="home-clamp-2">{item.description}</Caption>
               )}
@@ -76,18 +90,22 @@ export function TodoItemRow({
                   {due.text}
                 </Caption>
               )}
-              {pending && <Caption>In attesa di conferma</Caption>}
+              {item.status === 'unknown' && <Caption>Stato non disponibile</Caption>}
+              {!item.commandId && <Caption>Identificativo non univoco · sola lettura</Caption>}
+              {pending && <Caption>{uncertain ? 'Esito da verificare' : deleting ? 'Eliminazione da confermare' : 'In attesa di conferma'}</Caption>}
+              </>}
             </span>
           )}
         </span>
       </button>
-      {onRemove && (
+      {onRemove && allowRemove && item.commandId && (
         <Button
           variant="control"
           shape="circle"
           size="md"
           aria-label={`Elimina «${item.summary}»`}
-          disabled={disabled}
+          className="home-todo__remove"
+          disabled={disabled || pending}
           onClick={() => onRemove(item)}
         >
           <HomeIcon name="trash" />

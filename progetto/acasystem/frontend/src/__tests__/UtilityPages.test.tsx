@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState, type ComponentType } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PageSettings } from '@/@types/dashboard';
@@ -184,8 +184,8 @@ describe('pagina stanze', () => {
   const deviceRegistry = [{ id: 'termometro', area_id: 'cucina' }];
   const roomEntities = fixtureEntities([
     fixtureEntity('light.cucina', 'on', { brightness: 255, supported_color_modes: ['brightness'] }),
-    fixtureEntity('sensor.cucina_temperature', '22.36', { device_class: 'temperature' }),
-    fixtureEntity('cover.cucina', 'closed'),
+    fixtureEntity('sensor.cucina_temperature', '22.36', { device_class: 'temperature', unit_of_measurement: '°C' }),
+    fixtureEntity('cover.cucina', 'closed', { supported_features: 1 | 2 | 8 }),
     fixtureEntity('light.studio', 'off'),
   ]);
   const connection = () =>
@@ -209,9 +209,10 @@ describe('pagina stanze', () => {
       conn: connection().conn,
       entities: roomEntities,
       callService,
+      services: { light: { turn_on: {}, turn_off: {} }, cover: { open_cover: {}, close_cover: {}, stop_cover: {} } },
     });
     const kitchen = await screen.findByRole('button', {
-      name: 'Cucina: 3 dispositivi, 1 luce accesa',
+      name: 'Cucina: 3 entità, 1 luce accesa',
     });
     expect(screen.getByText('2 stanze · 1 luce accesa · 1 attivo')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Ordina: Nome A–Z/ }));
@@ -220,6 +221,7 @@ describe('pagina stanze', () => {
 
     fireEvent.click(kitchen);
     expect(screen.getByRole('heading', { level: 2, name: 'Cucina' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Spegni tutte' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Spegni tutte' }));
     expect(callService).toHaveBeenCalledWith('light', 'turn_off', { entity_id: 'light.cucina' });
     fireEvent.click(screen.getByRole('button', { name: 'Apri cucina' }));
@@ -232,14 +234,14 @@ describe('pagina stanze', () => {
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
   });
 
-  it('ordinamento e temperatura dalle impostazioni della pagina e da haConfig', async () => {
+  it('ordinamento salvato e temperatura nativa indipendente dall’unità di haConfig', async () => {
     const fixture = renderWithRuntime(
       <RoomsPage pageId="stanze" settings={{ roomSort: 'name-za' }} onSaveSetting={() => {}} />,
       { conn: connection().conn, entities: roomEntities }
     );
     await screen.findByRole('button', { name: /^Cucina:/ });
     const tiles = screen
-      .getAllByRole('button', { name: /dispositivi/ })
+      .getAllByRole('button', { name: /entità/ })
       .map((tile) => tile.getAttribute('aria-label'));
     expect(tiles[0]).toMatch(/^Studio:/);
     expect(screen.getByRole('button', { name: /Ordina: Nome Z–A/ })).toBeInTheDocument();
@@ -248,7 +250,7 @@ describe('pagina stanze', () => {
     fixture.update({
       haConfig: metric && { ...metric, unit_system: { ...metric.unit_system, temperature: '°F' } },
     });
-    expect(screen.getByText('72,3 °F')).toBeInTheDocument();
+    expect(screen.getByText('22,4 °C')).toBeInTheDocument();
   });
 
   it('senza collegamento, errore del registro, nessuna area', async () => {
@@ -263,7 +265,7 @@ describe('pagina stanze', () => {
     ).toBeInTheDocument();
     view.update({ conn: fakeConnection({}).conn });
     expect(
-      await screen.findByText('Impossibile leggere le stanze. Riprova più tardi.')
+      await screen.findByText('Impossibile leggere le stanze.')
     ).toBeInTheDocument();
     view.update({
       conn: fakeConnection({

@@ -5,6 +5,8 @@ import { CASA_PLAN_ROUTE, CASA_ROUTE, casaOpenState, isCasaPath } from '@/casa3d
 import { CASA3D_OPENER_ATTRIBUTE, Casa3dHouseContext } from '@/casa3d/houseContext';
 import { ConnectPage } from '@/pages/connect';
 import { LauncherPage } from '@/pages/launcher/LauncherPage';
+import { useOptionalHomeStartup } from '@/hooks/startup/HomeStartupContext';
+import { OverlayContentReady } from '@/hooks/launcher/useOverlayScene';
 import { afterNextFrame } from '@/utils/launcher/afterFrame';
 import { whenIdle } from '@/utils/launcher/whenIdle';
 
@@ -52,6 +54,9 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
   const location = useLocation();
   const inSystem = location.pathname === ROUTES.system;
   const inCasa = isCasaPath(location.pathname);
+  const startup = useOptionalHomeStartup();
+  const homeManaged = useRef(false);
+  if (startup && !showConnect && !inSystem && !inCasa) homeManaged.current = true;
   const systemTrigger = useRef<HTMLElement | null>(null);
   const wasInSystem = useRef(inSystem);
   const openSystem = useCallback(() => {
@@ -153,6 +158,7 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
   const overlay = inSystem ? (
     <Suspense fallback={<Skeleton variant="panel" rows={2} label="Caricamento del sistema…" />}>
       <SystemPage onClose={closeSystem} />
+      <OverlayContentReady />
     </Suspense>
   ) : inCasa ? (
     <Suspense fallback={<Skeleton variant="panel" rows={2} label="Caricamento della casa…" />}>
@@ -162,8 +168,13 @@ export function AppRoutes({ showConnect, onConnected }: AppRoutesProps) {
 
   return (
     <Casa3dHouseContext.Provider value={house}>
-      <div className="aca-app-root">
-        <LauncherPage onOpenSystem={openSystem} overlay={overlay} overlayStaged={inSystem} />
+      <div className="aca-app-root" data-home-managed={homeManaged.current || undefined}>
+        <LauncherPage
+          onOpenSystem={openSystem}
+          overlay={overlay}
+          overlayStaged={inSystem}
+          overlayWaitForContent={inSystem}
+        />
         <Routes>
           <Route path={ROUTES.launcher} element={null} />
           <Route path={ROUTES.system} element={null} />

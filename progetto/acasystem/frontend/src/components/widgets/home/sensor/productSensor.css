@@ -1,0 +1,93 @@
+@layer components {
+  .product-sensor {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .product-sensor .ctl-widget__body {
+    gap: var(--aca-space-2);
+  }
+  .product-sensor__identity {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--aca-space-2);
+  }
+  .product-sensor__identity .ctl-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-sensor__readings {
+    display: grid;
+    gap: var(--aca-space-2);
+    margin: 0;
+    min-width: 0;
+  }
+  .product-sensor__readings > div {
+    min-width: 0;
+  }
+  .product-sensor__readings dt,
+  .product-sensor__readings dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-sensor__summary {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .product-sensor-details,
+  .product-sensor-details .utility-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .product-sensor-details .utility-value {
+    white-space: normal;
+  }
+  .product-sensor-details .utility-section__head {
+    flex-wrap: wrap;
+  }
+  .product-sensor-details .aca-segmented {
+    max-width: 100%;
+  }
+  .product-sensor-details .aca-segmented__content {
+    flex-wrap: wrap;
+  }
+  .product-sensor-history__events {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--aca-space-3);
+  }
+  .product-sensor-history__events li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--aca-space-2);
+    min-width: 0;
+  }
+  .product-sensor-history__events li > * {
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+  @container ctl-widget (max-height: 9rem) {
+    .product-sensor .ctl-widget__body,
+    .product-sensor__readings {
+      gap: calc(var(--aca-space-1) / 2);
+    }
+    .product-sensor .ctl-name,
+    .product-sensor__readings dd > * {
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+    }
+    .product-sensor__readings > div:has(dt:not(.sr-only)) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--aca-space-1);
+      align-items: baseline;
+    }
+  }
+}

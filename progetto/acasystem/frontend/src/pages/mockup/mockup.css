@@ -20,6 +20,12 @@
     box-shadow: var(--aca-socket-shadow-card);
   }
 
+  /* Operational windows are transparent: keep the demo toolbar out of their background. */
+  :root:has(.aca-console-overlay) .aca-mockup-bar {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   /* Every control of the bar is a 44 px target, like the controls of the app. */
   .aca-mockup-touch {
     min-height: var(--aca-control-height);

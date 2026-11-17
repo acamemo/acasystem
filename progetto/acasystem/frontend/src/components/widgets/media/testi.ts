@@ -29,13 +29,19 @@ export const testi = {
 
   inRiproduzione: 'In riproduzione',
   inPausa: 'In pausa',
+  caricamento: 'Caricamento…',
   acceso: 'Acceso',
   spento: 'Spento',
+  inStandby: 'In standby',
+  nonRaggiungibile: 'Non raggiungibile',
   inattivo: 'Inattivo',
   inAttesa: 'In attesa di conferma',
   nienteInRiproduzione: 'Niente in riproduzione',
   sconosciuto: 'Titolo sconosciuto',
   schermataHome: 'Schermata Home',
+  tvInDiretta: 'TV in diretta',
+  canalePrecedente: 'Canale precedente',
+  canaleSuccessivo: 'Canale successivo',
   stato: (valore: string) => `Stato: ${valore}`,
 
   riproduci: 'Riproduci',
@@ -95,6 +101,7 @@ export const testi = {
 
   scegliContenuto: 'Scegli contenuto',
   contenuti: 'Contenuti',
+  scegliContenutoTvNota: 'Quello che la TV mette a disposizione.',
   scegliContenutoNota: 'Preferiti, playlist e libreria del lettore.',
   chiudiScelta: 'Chiudi la scelta dei contenuti',
   ultimaScelta: (nome: string) => `Di nuovo: ${nome}`,
@@ -112,6 +119,11 @@ export const testi = {
   fonteSconosciuta: 'Fonte sconosciuta',
 
   comandoNonRiuscito: 'Comando non riuscito. Riprova.',
+  tvNonRisponde: 'La TV non ha risposto. Riprova.',
+  // The power key of a TV that cannot be switched on from the network is inert: say why.
+  tvAccensioneDaRete: 'Per accenderla da qui serve l’accensione dalla rete',
+  configuraAccensione: 'Configura l’accensione',
+  modificaAccensione: 'Modifica l’accensione',
   comandoInviato: 'Comando inviato',
 
   telecomando: 'Telecomando',
@@ -135,6 +147,23 @@ export const testi = {
   canaleSuggerimento:
     'Tocca per il canale successivo, trascina in verticale per cambiare canale: su avanti, giù indietro.',
   modalitaAudio: 'Modalità audio',
+  // LG webOS: where the sound comes out (`webostv.select_sound_output`).
+  uscitaAudio: 'Uscita audio',
+  usciteAudio: {
+    tv_speaker: 'Altoparlanti della TV',
+    external_arc: 'Soundbar o impianto (HDMI ARC)',
+    external_optical: 'Uscita ottica',
+    external_speaker: 'Altoparlante esterno',
+    headphone: 'Cuffie',
+  } as Record<string, string>,
+  usciteAudioAltre: {
+    lineout: 'Uscita analogica (line out)',
+    bt_soundbar: 'Soundbar Bluetooth',
+    tv_external_speaker: 'TV e altoparlante esterno',
+    tv_speaker_headphone: 'TV e cuffie',
+    external_arc_headphone: 'Impianto HDMI ARC e cuffie',
+  } as Record<string, string>,
+  uscitaNonCollegata: 'La TV non ha questa uscita collegata',
   canali: 'Canali',
   canalePiu: 'Canale +',
   canaleMeno: 'Canale −',

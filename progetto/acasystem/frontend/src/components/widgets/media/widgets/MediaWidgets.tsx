@@ -1,3 +1,5 @@
+import { mediaProductBinding } from '../../home/media/productMediaModel';
+import { ProductMediaWidget } from '../../home/media/ProductMediaWidget';
 import { Button, Numeric } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
@@ -10,7 +12,11 @@ import { WidgetLoading, WidgetMessage, missingDevice } from '../parts/WidgetShel
 import { PlayerView } from './PlayerView';
 
 /** `media_player.*` widget (legacy MediaPlayerCard). */
-export function MediaPlayerWidget({ id, settings, size, editMode }: WidgetProps) {
+export function MediaPlayerWidget(props: WidgetProps) {
+  if (mediaProductBinding(props.settings)) return <ProductMediaWidget {...props} />;
+  return <LegacyMediaPlayerWidget {...props} />;
+}
+function LegacyMediaPlayerWidget({ id, settings, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
   if (!runtime.entitiesLoaded)
     return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
@@ -58,7 +64,11 @@ export function selectGroupPlayer(
 }
 
 /** `media_group_*` and `sonos_group_*` widgets (legacy MediaGroupCard). */
-export function MediaGroupWidget({ id, settingsKey, settings, size, editMode }: WidgetProps) {
+export function MediaGroupWidget(props: WidgetProps) {
+  if (mediaProductBinding(props.settings)) return <ProductMediaWidget {...props} />;
+  return <LegacyMediaGroupWidget {...props} />;
+}
+function LegacyMediaGroupWidget({ id, settingsKey, settings, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
   const visible = usePageVisible();
   const now = useNow(10000, visible);

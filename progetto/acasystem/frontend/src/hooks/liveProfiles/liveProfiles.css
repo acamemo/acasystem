@@ -1,0 +1,135 @@
+@layer components {
+  .aca-live-choice {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+  .aca-live-choice > .aca-m {
+    width: min(100%, 680px);
+  }
+  .aca-live-choice__content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+  }
+  .aca-live-choice select {
+    display: block;
+    max-width: 100%;
+    margin-top: 8px;
+  }
+  .aca-live-choice p {
+    overflow-wrap: anywhere;
+  }
+  .aca-live-editor-bar {
+    position: fixed;
+    z-index: 110;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 24px), 760px);
+  }
+  .aca-live-profile {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: clip;
+  }
+  .aca-live-app {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    position: relative;
+  }
+  .aca-live-app > .aca-app-root {
+    height: 100%;
+    min-height: 0;
+  }
+  .aca-live-app :is(.aca-launcher-scene, .aca-home-entry, .aca-home-entry__content, .aca-widget-scene) {
+    height: 100%;
+    min-height: 0;
+  }
+  .aca-live-app .aca-shell {
+    height: 100%;
+  }
+  .aca-live-chrome {
+    flex: 0 0 auto;
+    width: min(calc(100% - 24px), 760px);
+    margin: calc(env(safe-area-inset-top, 0px) + var(--aca-space-2)) auto var(--aca-space-1);
+    max-height: max(var(--aca-control-height, 44px), 20dvh);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: var(--aca-space-2);
+    display: grid;
+    justify-items: center;
+    gap: var(--aca-space-2);
+  }
+  .aca-live-chrome:empty {
+    display: none;
+  }
+  .aca-live-editor-bar,
+  .aca-live-sync-status,
+  .aca-live-notice {
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: 12px;
+    border-radius: 20px;
+    background: var(--aca-page);
+    box-shadow: var(--aca-socket-shadow-card);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .aca-live-editor-bar {
+    bottom: 16px;
+  }
+  .aca-live-sync-status {
+    width: fit-content;
+    padding: 8px 12px;
+  }
+  .aca-live-chrome :is(.aca-type, .aca-m__label) {
+    overflow-wrap: anywhere;
+  }
+  .aca-live-chrome > :is(.aca-live-sync-status, .aca-live-notice) > .aca-type {
+    flex-basis: 100%;
+    text-align: center;
+  }
+  .aca-live-chrome .aca-m {
+    max-width: 100%;
+    min-height: var(--aca-control-height, 44px);
+  }
+  .aca-live-chrome .aca-m__label {
+    white-space: normal;
+  }
+  .aca-live-editor-bar > .aca-type {
+    flex-basis: 100%;
+    text-align: center;
+  }
+  .aca-live-widget-presence {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    text-align: center;
+    padding: 12px;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--aca-page) 84%, transparent);
+    pointer-events: none;
+    overflow-wrap: anywhere;
+  }
+  .aca-live-conflict {
+    display: grid;
+    gap: 12px;
+  }
+  .aca-live-conflict pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 12rem;
+    overflow: auto;
+  }
+}

@@ -74,10 +74,12 @@ export function DragGhost({
     copy.removeAttribute('id');
     copy.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
     host.replaceChildren(copy);
-    ghost.classList.add('has-copy');
+    // React rewrites className as the pointer/target changes. Keep the imperative copy marker
+    // separate, so that update cannot show the fallback panel on top of the cloned widget.
+    ghost.setAttribute('data-has-copy', '');
     return () => {
       host.replaceChildren();
-      ghost.classList.remove('has-copy');
+      ghost.removeAttribute('data-has-copy');
     };
   }, [mode, widgetId, sourcePageId]);
 

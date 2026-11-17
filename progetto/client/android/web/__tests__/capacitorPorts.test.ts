@@ -37,6 +37,9 @@ const fakeShell = () => {
       state.config = value;
     },
     launch: async () => {},
+    scanPairingCode: async () => ({ value: '' }),
+    savePairing: async () => {},
+    pairingState: async () => ({ configurationPending: false }),
     consumeIntent: async () => ({ changeAddress: false }),
     shellVersion: async () => ({ version: '0.1.0' }),
     addListener: async () => ({}),

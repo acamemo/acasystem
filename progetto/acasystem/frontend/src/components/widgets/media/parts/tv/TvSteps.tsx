@@ -33,6 +33,7 @@ export function TvSteps({ tv }: { tv: TvDetailsState }) {
           <StepPair
             labels={[testi.canaleMeno, testi.canalePiu]}
             busy={[channel.busy.down, channel.busy.up]}
+            repeat
             onStep={channel.step}
           />
         </section>

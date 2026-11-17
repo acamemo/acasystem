@@ -1,4 +1,6 @@
 import type { DeviceActionOutcome, DeviceModel } from '../../models/deviceModel.ts';
+import { getActivityActor } from '../../v2/activity.ts';
+import type { ActivityService } from '../../v2/activity.ts';
 
 /**
  * Registry of the actions of the device facade (ADR-0022, point 6): who, what, domain, entry
@@ -39,7 +41,7 @@ const CONTROL_CHARACTERS = /[\x00-\x1f\x7f]/g;
 const cleanName = (name: string): string =>
   name.replace(CONTROL_CHARACTERS, '').trim().slice(0, 80);
 
-export const createActionLog = (model: DeviceModel, now: () => number = Date.now): ActionLog => ({
+export const createActionLog = (model: DeviceModel, now: () => number = Date.now, activity?: ActivityService): ActionLog => ({
   record(entry) {
     const action = onlyIf(ACTION, entry.action);
     if (!action) return;
@@ -55,6 +57,17 @@ export const createActionLog = (model: DeviceModel, now: () => number = Date.now
         outcome: entry.outcome,
         code: onlyIf(CODE, entry.code),
       });
+      if (activity) {
+        const contextual = getActivityActor();
+        const actor = entry.user ? contextual?.userId === entry.user.id ? contextual : {
+          userId: entry.user.id, userName: cleanName(entry.user.name), clientId: null, clientName: null, sessionId: null,
+        } : null;
+        activity.record({ kind: 'configuration', actor, action: `devices.${action}`,
+          outcome: entry.outcome === 'ok' ? 'accepted' : 'error',
+          ...(onlyIf(IDENTIFIER, entry.entryId) ? { targetId: entry.entryId } : {}),
+          ...(onlyIf(CODE, entry.code) ? { code: entry.code } : {}) });
+        activity.publish();
+      }
     } catch {
       // The registry must never break the operation it describes.
     }

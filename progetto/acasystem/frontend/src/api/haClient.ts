@@ -16,6 +16,8 @@ import type {
   ServiceData,
 } from '@/@types/ha';
 import { isObject, readKey, type UnknownRecord } from '@/validators/guards';
+import { sendUserCommand } from './commandApi';
+import { getDemoSource } from './demoSource';
 import {
   parseAreaList,
   parseCalendarEvents,
@@ -45,6 +47,7 @@ function requireConnection(conn: MaybeConnection): HaMessageConnection {
   if (!isUsableConnection(conn)) {
     throw new Error('Invalid or disconnected HA connection');
   }
+
   return conn;
 }
 
@@ -57,6 +60,8 @@ export function callService(
   if (!isUsableConnection(conn)) {
     return Promise.reject(new Error('Invalid or disconnected HA connection'));
   }
+
+  if (!getDemoSource()) return sendUserCommand({ kind: 'service', domain, service, data: service_data });
 
   const { target, ...restData } = service_data || {};
   const message: HaMessage = {
@@ -344,14 +349,7 @@ export async function addTodoItem(
   entityId: string,
   summary: string
 ): Promise<unknown> {
-  const connection = requireConnection(conn);
-  return connection.sendMessagePromise({
-    type: 'call_service',
-    domain: 'todo',
-    service: 'add_item',
-    target: { entity_id: entityId },
-    service_data: { item: summary },
-  });
+  return callService(conn, 'todo', 'add_item', { target: { entity_id: entityId }, item: summary });
 }
 
 export async function updateTodoItem(
@@ -360,14 +358,7 @@ export async function updateTodoItem(
   uid: string,
   status: string
 ): Promise<unknown> {
-  const connection = requireConnection(conn);
-  return connection.sendMessagePromise({
-    type: 'call_service',
-    domain: 'todo',
-    service: 'update_item',
-    target: { entity_id: entityId },
-    service_data: { item: uid, status },
-  });
+  return callService(conn, 'todo', 'update_item', { target: { entity_id: entityId }, item: uid, status });
 }
 
 export async function removeTodoItem(
@@ -375,14 +366,7 @@ export async function removeTodoItem(
   entityId: string,
   uid: string
 ): Promise<unknown> {
-  const connection = requireConnection(conn);
-  return connection.sendMessagePromise({
-    type: 'call_service',
-    domain: 'todo',
-    service: 'remove_item',
-    target: { entity_id: entityId },
-    service_data: { item: uid },
-  });
+  return callService(conn, 'todo', 'remove_item', { target: { entity_id: entityId }, item: uid });
 }
 
 // ─── Area / Room registry helpers ─────────────────────────────

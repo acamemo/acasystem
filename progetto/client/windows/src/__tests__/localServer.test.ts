@@ -59,6 +59,15 @@ beforeEach(async () => {
   local = await startLocalServer(0);
 });
 
+it('serve la pagina nativa di pulizia anche senza bundle, senza eseguire codice scaricato', async () => {
+  const response = await fetch(`${local.origin}/__acasystem/storage-reset`);
+  expect(response.status).toBe(200);
+  expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
+  expect(response.headers.get('cache-control')).toBe('no-store');
+  expect(await response.text()).not.toContain('<script');
+  expect(seen).toHaveLength(0);
+});
+
 afterEach(async () => {
   await local.close();
   upstream.closeAllConnections();

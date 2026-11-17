@@ -39,7 +39,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 const connection = () => ({ sendMessagePromise: vi.fn().mockResolvedValue({}) }) as never;
-function mount(type: string, overrides = {}) {
+function mount(type: string, overrides = {}, detailsMode = false) {
   const source = fixtures[type]!;
   const runtime = createFixtureRuntime({
     entities,
@@ -55,6 +55,7 @@ function mount(type: string, overrides = {}) {
     id: 'widget',
     size: { w: 4, h: 4 },
     editMode: false,
+    detailsMode,
   };
   const tree = (current = runtime, settings = props.settings) => (
     <WidgetRuntimeProvider value={current}>
@@ -96,10 +97,11 @@ describe('Percorso operativo dei venti tipi', () => {
           />
         </WidgetRuntimeProvider>
       );
-      const slider = screen.getByRole('slider', { name: 'Temperatura desiderata' });
-      expect(slider).toBeDisabled();
-      if (type === 'car')
-        expect(screen.getByRole('switch', { name: 'Clima dell’auto' })).toBeDisabled();
+      if (type === 'car') {
+        expect(screen.queryByRole('slider', { name: 'Temperatura desiderata' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Spegni clima' })).toBeNull();
+        expect(screen.getByRole('region', { name: 'Clima' })).toHaveTextContent('Riscaldamento');
+      } else expect(screen.getByRole('slider', { name: 'Temperatura desiderata' })).toBeDisabled();
       expect(runtime.callService).not.toHaveBeenCalled();
       await act(async () => undefined);
     }
@@ -130,14 +132,14 @@ describe('Percorso operativo dei venti tipi', () => {
         const callService = accepted
           ? vi.fn().mockResolvedValue(undefined)
           : vi.fn().mockRejectedValue(new Error('Rifiutato'));
-        const view = mount(type, { entities: current, callService });
+        const view = mount(type, { entities: current, callService }, type === 'car');
         const settings = {
           ...fixtures[type]!.settings,
           adaptiveControls: { visible: [id], order: [id] },
         };
         view.rerender(view.tree(view.runtime, settings));
         const control = screen.getByRole(cap.kind === 'range' ? 'slider' : 'button', {
-          name: cap.label,
+          name: type === 'car' ? /^Avvia ricarica/ : cap.label,
         });
         if (cap.kind === 'range') fireEvent.keyDown(control, { key: 'ArrowUp' });
         else {
@@ -183,7 +185,7 @@ describe('Percorso operativo dei venti tipi', () => {
       )
     ).toBeInTheDocument();
     if (type !== 'spacer') {
-      fireEvent.click(screen.getByRole('button', { name: 'Apri dettagli' }));
+      fireEvent.click(screen.getByRole('button', { name: type === 'car' ? /^Auto, apri i dettagli/ : 'Apri dettagli' }));
       expect(openDetails).toHaveBeenCalledOnce();
     }
   });
@@ -191,7 +193,8 @@ describe('Percorso operativo dei venti tipi', () => {
     '%s: entità assente o indisponibile blocca i controlli',
     async (type) => {
       const view = mount(type, { entities: {} });
-      expect(screen.getByText('Dispositivo non disponibile')).toBeInTheDocument();
+      if (type === 'car') expect(screen.getAllByText('Fonte non presente').length).toBeGreaterThan(0);
+      else expect(screen.getByText('Dispositivo non disponibile')).toBeInTheDocument();
       view.rerender(
         view.tree({
           ...view.runtime,
@@ -204,7 +207,8 @@ describe('Percorso operativo dei venti tipi', () => {
         })
       );
       // A room has no entity of its own to be unreachable: it keeps the plain notice.
-      expect(
+      if (type === 'car') expect(screen.getAllByText('Non disponibile').length).toBeGreaterThan(0);
+      else expect(
         screen.getByText(type === 'room' ? 'Dispositivo non disponibile' : 'Non raggiungibile')
       ).toBeInTheDocument();
       expect(view.runtime.callService).not.toHaveBeenCalled();

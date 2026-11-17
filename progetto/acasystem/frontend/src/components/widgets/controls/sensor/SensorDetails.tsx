@@ -1,3 +1,5 @@
+import { ProductSensorDetails } from '../../home/sensor/ProductSensorDetails';
+import { sensorProductBinding } from '@/utils/devices/productBinding';
 import { useId } from 'react';
 import { Body, Caption } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
@@ -16,7 +18,7 @@ import {
 import { useSensorControls } from './useSensorControls';
 
 /** Sheet content of the sensor/entity widget (legacy SensorModal): value, commands, history. */
-export function SensorDetails({ id, settings }: WidgetDetailsProps) {
+function LegacySensorDetails({ id, settings }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const controls = useSensorControls(id, settings, false);
   const { model, entity } = controls;
@@ -95,4 +97,9 @@ export function SensorDetails({ id, settings }: WidgetDetailsProps) {
       <EntityInfoSection entity={entity} />
     </div>
   );
+}
+
+export function SensorDetails(props: WidgetDetailsProps) {
+  if (sensorProductBinding(props.settings)) return <ProductSensorDetails {...props} />;
+  return <LegacySensorDetails {...props} />;
 }

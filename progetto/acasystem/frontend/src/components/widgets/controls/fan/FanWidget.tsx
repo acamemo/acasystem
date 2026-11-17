@@ -1,3 +1,5 @@
+import { ProductFanWidget } from '../../home/fan/ProductFanWidget';
+import { fanProductBinding } from '../../home/fan/productFanModel';
 import type { ReactNode } from 'react';
 import {
   Button,
@@ -120,7 +122,7 @@ export function FanModeButtons({
 }
 
 /** Fan widget (legacy FanCard): power, speed and modes by size. */
-export function FanWidget({ id, size, editMode }: WidgetProps) {
+function LegacyFanWidget({ id, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
   const fan = useFanControl(id, editMode);
   const density = densityOf(size);
@@ -248,4 +250,8 @@ export function FanWidget({ id, size, editMode }: WidgetProps) {
       {body}
     </WidgetContent>
   );
+}
+
+export function FanWidget(props: WidgetProps) {
+  return fanProductBinding(props.settings) ? <ProductFanWidget {...props} /> : <LegacyFanWidget {...props} />;
 }

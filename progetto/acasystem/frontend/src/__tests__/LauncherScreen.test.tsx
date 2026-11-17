@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardSettings } from '@/@types/dashboard';
-import type { DeviceClass, LauncherLayout, WidgetDefinition, WidgetProps } from '@/@types/launcher';
+import type { DeviceClass, LauncherLayout, WidgetDefinition, WidgetProps, WidgetRuntime } from '@/@types/launcher';
 import { PageProvider, usePages } from '@/hooks/context/PageContext';
 import { ToastProvider } from '@/hooks/context/ToastContext';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
@@ -15,7 +15,22 @@ import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fi
 import { LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
 import { LauncherScreen } from '@/templates/launcher/LauncherScreen';
 import { CARD_EXIT_MS } from '@/templates/launcher/Pager';
+import { AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
+import { useRuntimeServiceCatalog } from '@/components/widgets/adaptive/useServiceCatalog';
+import { adaptiveFixtureServices } from '@/utils/fixtures/adaptiveData';
+import { HomeStartupProvider } from '@/hooks/startup/HomeStartupContext';
 import { TWO_FRAMES_MS } from '@/utils/launcher/motion';
+
+// JSDOM supplies no layout. Every screen test starts with a usable physical page box;
+// tests of drag/overview geometry can still supply their own measurements below.
+beforeEach(() => {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const width = this.classList.contains('aca-launcher-page') || this.classList.contains('aca-widget-catalog__pages') ? 973 : 0;
+    const height = this.classList.contains('aca-widget-catalog__pages') ? 600 : this.classList.contains('aca-launcher-page') ? 230 : 0;
+    return { x: 0, y: 0, left: 0, top: 0, right: width, bottom: height,
+      width, height, toJSON: () => ({}) } as DOMRect;
+  });
+});
 
 const tileRenders = new Map<string, number>();
 function TestTile({ id, size }: WidgetProps) {
@@ -96,7 +111,35 @@ const consoleTile: WidgetDefinition = {
   matches: (id) => id.startsWith('test_console'),
   Console: ({ id }) => <p>{`Console di ${id}`}</p>,
 };
-const definitions = [tile, broken, opener, narrow, single, consoleTile];
+const firstServiceTiles: { services: WidgetRuntime['services']; controls: number; loading: boolean }[] = [];
+function ServiceTile({ id, size }: WidgetProps) {
+  const runtime = useWidgetRuntime();
+  const host = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    firstServiceTiles.push({ services: runtime.services,
+      controls: host.current?.querySelectorAll('button, input, [role="slider"]').length ?? 0,
+      loading: host.current?.textContent?.includes('Caricamento dei comandi') ?? false });
+  }, [runtime.services]);
+  return <div ref={host}><AdaptiveCategoryWidget type="fan" entityId="fan.studio" id={id}
+    size={size} editMode={false} /></div>;
+}
+const serviceTile: WidgetDefinition = { ...tile, type: 'test_services',
+  matches: (id) => id.startsWith('test_services'), Widget: ServiceTile };
+const definitions = [tile, broken, opener, narrow, single, consoleTile, serviceTile];
+
+type ServiceInput = Pick<WidgetRuntime, 'conn' | 'services'>;
+function deferredServices() {
+  let resolve!: (value: NonNullable<WidgetRuntime['services']>) => void;
+  let reject!: (reason: Error) => void;
+  const pending = new Promise<NonNullable<WidgetRuntime['services']>>((done, fail) => {
+    resolve = done; reject = fail;
+  });
+  const sendMessagePromise = vi.fn(() => pending);
+  const conn = { connected: true, sendMessagePromise } as unknown as NonNullable<WidgetRuntime['conn']>;
+  return { conn, sendMessagePromise, resolve: (value: NonNullable<WidgetRuntime['services']>) =>
+    act(async () => { resolve(value); await pending; }),
+    reject: () => act(async () => { reject(new Error('Catalogo non disponibile')); await pending.catch(() => undefined); }) };
+}
 const findDefinition = (id: string, settings: CardSettings) =>
   definitions.find((definition) => definition.matches(id, settings));
 
@@ -137,12 +180,17 @@ const openedSystem = vi.fn();
 /** Screen class of the harness: the tablet unless a test sets another one. */
 let harnessDevice: DeviceClass = 'tablet';
 
-function Harness() {
+function Harness({ settingsReady = true, entitiesReady = true, runtimeOverrides, onRetryInitialSnapshot }: {
+  settingsReady?: boolean;
+  entitiesReady?: boolean;
+  runtimeOverrides?: Partial<WidgetRuntime>;
+  onRetryInitialSnapshot?: () => void;
+}) {
   const pages = usePages();
   latestPages = pages;
   const store = useMemo<LauncherStore>(
     () => ({
-      ready: pages.settingsLoaded,
+      ready: pages.settingsLoaded && settingsReady,
       layout: pages.launcherLayout,
       persistLayout: pages.persistLauncherLayout,
       pagesConfig: pages.pagesConfig,
@@ -152,7 +200,7 @@ function Harness() {
       persistPageSettings: pages.persistPageSettings,
       persistCardSettings: pages.persistCardSettings,
     }),
-    [pages]
+    [pages, settingsReady]
   );
   const controller = useLauncherController({
     store,
@@ -164,6 +212,7 @@ function Harness() {
   const runtime = useMemo(
     () =>
       createFixtureRuntime({
+        entitiesLoaded: entitiesReady,
         entities: fixtureEntities([
           fixtureEntity('person.mario', 'home', { friendly_name: 'Mario' }),
         ]),
@@ -176,8 +225,9 @@ function Harness() {
         },
         openDetails: setDetails,
         editMode: controller.editMode,
+        ...runtimeOverrides,
       }),
-    [controller.editMode]
+    [controller.editMode, entitiesReady, runtimeOverrides]
   );
   return (
     <LauncherScreen
@@ -186,6 +236,7 @@ function Harness() {
       connection={{ phase: 'connected', label: 'Connesso' }}
       chips={[]}
       onOpenSystem={openedSystem}
+      onRetryInitialSnapshot={onRetryInitialSnapshot}
       detailsWidgetId={details}
       onCloseDetails={() => setDetails(null)}
       findDefinition={findDefinition}
@@ -220,6 +271,20 @@ function tap(element: Element) {
   fireEvent.click(element, { detail: 1 });
 }
 
+/** Choose through the same visible pages as a person; do not click an inert preview page. */
+function catalogType(type: string) {
+  const tile = document.querySelector<HTMLElement>(`[data-widget-type="${type}"]`);
+  if (!tile) throw new Error(`Tipo non trovato: ${type}`);
+  const target = Number(tile.closest<HTMLElement>('[data-catalog-page]')?.dataset.catalogPage);
+  let current = Number(document.querySelector<HTMLElement>('[data-catalog-page]:not([inert])')?.dataset.catalogPage);
+  while (current !== target) {
+    fireEvent.keyDown(screen.getByLabelText('Pagine del catalogo'), { key: current < target ? 'ArrowRight' : 'ArrowLeft' });
+    current = Number(document.querySelector<HTMLElement>('[data-catalog-page]:not([inert])')?.dataset.catalogPage);
+  }
+  expect(tile.closest('[inert]')).toBeNull();
+  return tile;
+}
+
 describe('launcher screen', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -229,6 +294,157 @@ describe('launcher screen', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
+
+  it('mounts initial cards only with settings and the committed snapshot, then retains them while reconnecting', async () => {
+    const state = (settingsReady: boolean, entitiesReady: boolean) => (
+      <ToastProvider><PageProvider>
+        <Harness settingsReady={settingsReady} entitiesReady={entitiesReady} />
+      </PageProvider></ToastProvider>
+    );
+    const view = render(state(false, false));
+    await waitFor(() => expect(latest).not.toBeNull());
+    expect(view.container.querySelector('.aca-pager')).toBeNull();
+    expect(view.container.querySelector('[data-widget-id]')).toBeNull();
+    expect(screen.getByRole('button', { name: /^Sistema/ })).toBeInTheDocument();
+    view.rerender(state(true, false));
+    await waitFor(() => expect(latest?.ready).toBe(true));
+    expect(view.container.querySelector('.aca-pager')).toBeNull();
+    view.rerender(state(false, true));
+    expect(latest?.ready).toBe(false);
+    expect(view.container.querySelector('.aca-pager')).toBeNull();
+    view.rerender(state(true, true));
+    await waitFor(() => expect(view.container.querySelector('[data-widget-id="test_tile_a"]')).not.toBeNull());
+    const pager = view.container.querySelector('.aca-pager');
+    const widget = view.container.querySelector('[data-widget-id="test_tile_a"]');
+    view.rerender(state(true, false));
+    expect(view.container.querySelector('.aca-pager')).toBe(pager);
+    expect(view.container.querySelector('[data-widget-id="test_tile_a"]')).toBe(widget);
+    view.rerender(state(true, true));
+    expect(view.container.querySelector('[data-widget-id="test_tile_a"]')).toBe(widget);
+  });
+
+
+  it('shares one service catalog and mounts real command controls together in their first DOM', async () => {
+    const request = deferredServices();
+    firstServiceTiles.length = 0;
+    localStorage.setItem(LAUNCHER_LAYOUT_STORAGE_KEY, JSON.stringify({ ...layout,
+      cover: { enabled: false }, pages: [{ id: 'home', label: 'Casa', kind: 'widgets', placements: {
+        tablet: { test_services_a: { x: 0, y: 0, w: 2, h: 2 }, test_services_b: { x: 2, y: 0, w: 2, h: 2 } },
+      } }] }));
+    const overrides: Partial<WidgetRuntime> = { conn: request.conn, entities: {
+      'fan.studio': fixtureEntity('fan.studio', 'on', { percentage: 60, supported_features: 63 }),
+    } };
+    const view = render(<ToastProvider><PageProvider><Harness runtimeOverrides={overrides} /></PageProvider></ToastProvider>);
+    await waitFor(() => expect(request.sendMessagePromise).toHaveBeenCalledTimes(1));
+    expect(request.sendMessagePromise).toHaveBeenCalledWith({ type: 'get_services' });
+    expect(view.container.querySelector('[data-widget-id]')).toBeNull();
+    expect(view.container).not.toHaveTextContent('Caricamento dei comandi');
+    await request.resolve(adaptiveFixtureServices);
+    await waitFor(() => expect(firstServiceTiles).toHaveLength(2));
+    expect(firstServiceTiles.every((first) => first.services === adaptiveFixtureServices && first.controls > 0 && !first.loading)).toBe(true);
+    expect(view.container).not.toHaveTextContent('Caricamento dei comandi');
+    expect(request.sendMessagePromise).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts a provided empty service catalog without a request or a delayed initial page', async () => {
+    const request = deferredServices();
+    const view = render(<ToastProvider><PageProvider><Harness runtimeOverrides={{ conn: request.conn, services: {} }} /></PageProvider></ToastProvider>);
+    await waitFor(() => expect(view.container.querySelector('[data-widget-id="test_tile_a"]')).not.toBeNull());
+    expect(request.sendMessagePromise).not.toHaveBeenCalled();
+  });
+
+  it.each(['empty', 'rejected'] as const)('settles the initial service catalog when %s without blocking the page', async (outcome) => {
+    const request = deferredServices();
+    const view = render(<ToastProvider><PageProvider><Harness runtimeOverrides={{ conn: request.conn }} /></PageProvider></ToastProvider>);
+    await waitFor(() => expect(request.sendMessagePromise).toHaveBeenCalledTimes(1));
+    expect(view.container.querySelector('[data-widget-id]')).toBeNull();
+    if (outcome === 'empty') await request.resolve({});
+    else await request.reject();
+    await waitFor(() => expect(view.container.querySelector('[data-widget-id="test_tile_a"]')).not.toBeNull());
+    expect(request.sendMessagePromise).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a stale connection catalog until the current connection has its own result', async () => {
+    const first = deferredServices();
+    const second = deferredServices();
+    const { result, rerender } = renderHook((input: ServiceInput) => useRuntimeServiceCatalog(input), {
+      initialProps: { conn: first.conn } as ServiceInput,
+    });
+    expect(result.current).toBeNull();
+    rerender({ conn: second.conn });
+    await first.resolve(adaptiveFixtureServices);
+    expect(result.current).toBeNull();
+    await second.resolve({});
+    expect(result.current).toEqual({});
+    expect(first.sendMessagePromise).toHaveBeenCalledTimes(1);
+    expect(second.sendMessagePromise).toHaveBeenCalledTimes(1);
+  });
+
+  it('prepares the measured grid while HA is pending, then reveals complete content only once', async () => {
+    const request = deferredServices();
+    const state = (loaded: boolean) => <HomeStartupProvider eligible identityManaged={false}>
+      <ToastProvider><PageProvider><Harness entitiesReady={loaded} runtimeOverrides={{ conn: request.conn }} /></PageProvider></ToastProvider>
+    </HomeStartupProvider>;
+    const view = render(state(false));
+    await waitFor(() => expect(view.container.querySelector('.aca-launcher-grid')).toHaveAttribute('data-layout-ready', 'true'));
+    const grid = view.container.querySelector<HTMLElement>('.aca-launcher-grid')!;
+    const cell = grid.style.getPropertyValue('--aca-cell');
+    expect(view.container.querySelector('[data-widget-id="test_tile_a"]')).not.toBeNull();
+    expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'preparing');
+    expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('inert');
+    await request.resolve({});
+    expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'preparing');
+    view.rerender(state(true));
+    await waitFor(() => expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'entering'));
+    expect(grid.style.getPropertyValue('--aca-cell')).toBe(cell);
+    const event = new Event('animationend', { bubbles: true }); Object.defineProperty(event, 'animationName', { value: 'aca-home-in' });
+    fireEvent(view.container.querySelector('.aca-home-entry')!, event);
+    expect(view.container.querySelector('.aca-home-entry')).not.toHaveAttribute('inert');
+  });
+
+  it('reuses a valid measured composition when settings become ready without a resize or new runtime data', async () => {
+    // A real observer does not report an unchanged box just because React rendered again.
+    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+    const overrides: Partial<WidgetRuntime> = { services: {}, cardSettings: {} };
+    const state = (settingsReady: boolean) => <HomeStartupProvider eligible identityManaged={false}>
+      <ToastProvider><PageProvider><Harness settingsReady={settingsReady} runtimeOverrides={overrides} /></PageProvider></ToastProvider>
+    </HomeStartupProvider>;
+    try {
+      const view = render(state(false));
+      await waitFor(() => expect(view.container.querySelector('.aca-launcher-grid')).toHaveAttribute('data-layout-ready', 'true'));
+      const grid = view.container.querySelector<HTMLElement>('.aca-launcher-grid')!;
+      const previousLayout = latest?.layout;
+      const previousCell = grid.style.getPropertyValue('--aca-cell');
+      expect(latest?.ready).toBe(false);
+      expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'preparing');
+      view.rerender(state(true));
+      await waitFor(() => expect(latest?.ready).toBe(true));
+      expect(latest?.layout).toBe(previousLayout);
+      expect(grid.style.getPropertyValue('--aca-cell')).toBe(previousCell);
+      await waitFor(() => expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'entering'));
+      const event = new Event('animationend', { bubbles: true });
+      Object.defineProperty(event, 'animationName', { value: 'aca-home-in' });
+      fireEvent(view.container.querySelector('.aca-home-entry')!, event);
+      expect(view.container.querySelector('.aca-home-entry')).not.toHaveAttribute('inert');
+    } finally { vi.unstubAllGlobals(); }
+  });
+
+  it('keeps managed Home blocked when its snapshot is ready but the connection drops before the catalog', async () => {
+    vi.useFakeTimers();
+    const retry = vi.fn();
+    const view = render(<HomeStartupProvider eligible identityManaged={false}>
+      <ToastProvider><PageProvider><Harness onRetryInitialSnapshot={retry} runtimeOverrides={{ conn: null }} /></PageProvider></ToastProvider>
+    </HomeStartupProvider>);
+    await act(async () => { await Promise.resolve(); });
+    expect(view.container.querySelector('.aca-launcher-grid')).not.toBeNull();
+    expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'preparing');
+    expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('inert');
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_001); });
+    fireEvent.click(screen.getByRole('button', { name: 'Riprova' }));
+    expect(retry).toHaveBeenCalledOnce();
+    expect(view.container.querySelector('.aca-home-entry')).toHaveAttribute('data-home-phase', 'preparing');
+    vi.useRealTimers();
+  });
   it('renders widgets, the missing-definition fallback and the error fallback', async () => {
     await openHome();
     expect(screen.getByRole('button', { name: 'Tile test_tile_a 2x2' })).toBeInTheDocument();
@@ -245,13 +461,14 @@ describe('launcher screen', () => {
     expect(casa.getByText('unknown_card_1')).toBeInTheDocument();
   });
 
-  it('opens the details of a widget in the sheet', async () => {
+  it('opens existing widget details in the shared full-screen view', async () => {
     await openHome();
     fireEvent.click(screen.getByRole('button', { name: 'Tile test_tile_a 2x2' }));
     expect(await screen.findByText('Dettagli di test_tile_a')).toBeInTheDocument();
+    expect(screen.getByRole('dialog').querySelector('.aca-console')).not.toBeNull();
   });
 
-  it('opens a widget with a console full screen from its rectangle, and the others in the sheet', async () => {
+  it('opens dedicated consoles and fallback details through the same flight', async () => {
     localStorage.setItem(
       LAUNCHER_LAYOUT_STORAGE_KEY,
       JSON.stringify({
@@ -271,29 +488,45 @@ describe('launcher screen', () => {
         ],
       })
     );
-    const rect = vi
-      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
-      .mockImplementation(function (this: HTMLElement) {
-        return this.dataset.widgetId === 'test_console_a'
-          ? ({ top: 20, left: 10, width: 200, height: 100 } as DOMRect)
-          : ({ top: 0, left: 0, width: 0, height: 0 } as DOMRect);
-      });
     await openHome();
     fireEvent.click(screen.getByRole('button', { name: 'Tile test_console_a 2x2' }));
     expect(await screen.findByText('Console di test_console_a')).toBeInTheDocument();
     const dialog = screen.getByRole('dialog');
     expect(dialog.querySelector('.aca-console')).not.toBeNull();
     expect(document.querySelector('dialog[open]')).toBeNull();
-    expect(dialog.querySelector('.aca-console')?.getAttribute('style')).toContain(
-      'translate(10px, 20px)'
-    );
+    expect(dialog.querySelector('.aca-console')?.getAttribute('style') ?? '').not.toContain('aca-console-from');
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi' }));
     await waitFor(() => expect(screen.queryByText('Console di test_console_a')).toBeNull());
-    // A widget without a console still opens the sheet.
+    // A widget without a dedicated console keeps its existing details in a scrolling column.
     fireEvent.click(screen.getByRole('button', { name: 'Tile test_tile_a 2x2' }));
     expect(await screen.findByText('Dettagli di test_tile_a')).toBeInTheDocument();
-    expect(document.querySelector('.aca-console')).toBeNull();
-    rect.mockRestore();
+    expect(document.querySelector('.aca-console-column .widget-console-details')).not.toBeNull();
+  });
+
+  it('keeps Home inert through the return fade and restores the opener only when visible', async () => {
+    await openHome();
+    const opener = screen.getByRole('button', { name: 'Tile test_tile_a 2x2' });
+    opener.focus();
+    fireEvent.click(opener);
+    await screen.findByText('Dettagli di test_tile_a');
+    const scene = document.querySelector('.aca-widget-scene');
+    const shell = scene?.querySelector('.aca-shell');
+    expect(scene).toHaveAttribute('data-widget-screen', 'open');
+    expect(scene).toHaveAttribute('inert');
+    fireEvent.click(screen.getByRole('button', { name: 'Chiudi' }));
+    await waitFor(() => expect(scene).toHaveAttribute('data-widget-screen', 'returning'));
+    expect(scene).toHaveAttribute('inert');
+    const end = () => {
+      const event = new Event('transitionend', { bubbles: true });
+      Object.defineProperty(event, 'propertyName', { value: 'opacity' });
+      return event;
+    };
+    fireEvent(opener, end());
+    expect(scene).toHaveAttribute('data-widget-screen', 'returning');
+    fireEvent(shell!, end());
+    expect(scene).toHaveAttribute('data-widget-screen', 'closed');
+    expect(scene).not.toHaveAttribute('inert');
+    expect(opener).toHaveFocus();
   });
 
   it('moves and resizes a widget with the keyboard in edit mode', async () => {
@@ -1441,7 +1674,7 @@ describe('page overview (REP-20261007-028)', () => {
       // The sheet is asked for and has not moved yet: the cell covers the wait.
       expect(cell).toHaveClass('is-pressed');
       expect(latest?.overview).toBe(false);
-      const sheet = document.querySelector<HTMLElement>('dialog.aca-sheet');
+      const sheet = document.querySelector<HTMLElement>('.aca-bottom-drawer');
       expect(sheet).not.toBeNull();
       expect(screen.getByRole('dialog', { name: 'Aggiungi un widget' })).toBeInTheDocument();
       // Something else that transitions is not the sheet.
@@ -1700,8 +1933,8 @@ describe('page overview (REP-20261007-028)', () => {
     const button = within(overviewBar()).getByRole('button', { name: 'Aggiungi widget' });
     button.focus();
     fireEvent.click(button);
-    const dialog = screen.getByRole('dialog', { name: 'Aggiungi un widget' });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Annulla' }));
+    expect(await screen.findByRole('dialog', { name: 'Aggiungi un widget' }, { timeout: 4000 })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Aggiungi un widget' })).toBeNull()
     );
@@ -1715,8 +1948,8 @@ describe('page overview (REP-20261007-028)', () => {
   it('«Aggiungi widget» adds a widget from the real sheet: the view closes and the widget is selected on its page (2026-10-23)', async () => {
     await openOverview();
     fireEvent.click(within(overviewBar()).getByRole('button', { name: 'Aggiungi widget' }));
-    const dialog = screen.getByRole('dialog', { name: 'Aggiungi un widget' });
-    fireEvent.click(dialog.querySelector<HTMLElement>('[data-widget-type="spacer"]')!);
+    const dialog = await screen.findByRole('dialog', { name: 'Aggiungi un widget' }, { timeout: 4000 });
+    fireEvent.click(catalogType('spacer'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Aggiungi il widget' }));
     const added = () =>
       latest?.layout.pages
@@ -4183,7 +4416,7 @@ describe('simplified editing of the widgets (REP-20261008-001)', () => {
     };
     const read = (file: string) => fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     const edit = read('src/components/system/edit/edit.css');
-    const launcher = read('src/templates/launcher/launcher.css');
+    const launcher = read('../design/layout/launcher.css');
     // The trash is as wide as the plan asks, measured on the band (not on its own content).
     expect(edit).toMatch(
       /\.aca-page-overview__group\.aca-widget-actions--drop \{[^}]*width: min\(100cqw, 20rem\);/
@@ -4214,7 +4447,7 @@ describe('simplified editing of the widgets (REP-20261008-001)', () => {
     };
     const read = (file: string) => fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     const edit = read('src/components/system/edit/edit.css');
-    const launcher = read('src/templates/launcher/launcher.css');
+    const launcher = read('../design/layout/launcher.css');
     // The field of the name takes the bar and gives way inside it (visual check, 390×844).
     const field = edit.match(/\.aca-page-overview__field \{([^}]*)\}/)?.[1] ?? '';
     expect(field).toMatch(/min-width: 0;/);
@@ -4633,9 +4866,9 @@ describe('a widget just added comes in after the sheet (REP-20261023-006, D-M11,
       .filter(([, id]) => id.startsWith('spacer_card')) ?? [];
 
   /** The sheet of the «+» cells, the spacer chosen and «Aggiungi il widget» pressed. */
-  function addSpacer() {
-    const dialog = screen.getByRole('dialog', { name: 'Aggiungi un widget' });
-    fireEvent.click(dialog.querySelector<HTMLElement>('[data-widget-type="spacer"]')!);
+  async function addSpacer() {
+    const dialog = await screen.findByRole('dialog', { name: 'Aggiungi un widget' }, { timeout: 4000 });
+    fireEvent.click(catalogType('spacer'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Aggiungi il widget' }));
   }
 
@@ -4657,7 +4890,7 @@ describe('a widget just added comes in after the sheet (REP-20261023-006, D-M11,
     act(() => latest?.goToPageId('home'));
     const page = screen.getByRole('region', { name: 'Casa' });
     fireEvent.click(within(page).getAllByRole('button', { name: /^Aggiungi un widget: / })[0]);
-    addSpacer();
+    await addSpacer();
     await waitFor(() => expect(spacers()).toHaveLength(1));
     const [[pageId, widgetId]] = spacers();
     expect(pageId).toBe('home');
@@ -4702,7 +4935,7 @@ describe('a widget just added comes in after the sheet (REP-20261023-006, D-M11,
     act(() => latest?.setOverview(true));
     const bar = document.querySelector<HTMLElement>('.aca-page-overview:not(.aca-widget-actions)')!;
     fireEvent.click(within(bar).getByRole('button', { name: 'Aggiungi widget' }));
-    addSpacer();
+    await addSpacer();
     await waitFor(() => expect(spacers()).toHaveLength(1));
     const [[pageId, widgetId]] = spacers();
     // The page with room is another one, and the widget waits for the pager to be there.
@@ -4721,7 +4954,7 @@ describe('a widget just added comes in after the sheet (REP-20261023-006, D-M11,
     act(() => latest?.goToPageId('home'));
     const page = screen.getByRole('region', { name: 'Casa' });
     fireEvent.click(within(page).getAllByRole('button', { name: /^Aggiungi un widget: / })[0]);
-    addSpacer();
+    await addSpacer();
     await waitFor(() => expect(spacers()).toHaveLength(1));
     const [[, widgetId]] = spacers();
     await waitFor(() => expect(widgetOf(widgetId)).toHaveClass('is-selected'));

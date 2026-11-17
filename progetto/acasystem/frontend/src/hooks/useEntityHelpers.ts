@@ -3,6 +3,7 @@ import type { Translate } from '@/@types/dashboard';
 import type { EntityLike, EntityLikeMap, HaMessageConnection, ServiceData } from '@/@types/ha';
 import { ENTITY_UPDATE_THRESHOLD, MEDIA_TIMEOUT } from '@/utils/config/constants';
 import { callService as haCallService } from '@/api';
+import { CommandResultError } from '@/api/commandApi';
 import { getDemoSource } from '@/api/demoSource';
 import { logger } from '@/utils/logger';
 import { useToast } from '@/hooks/context/ToastContext';
@@ -64,7 +65,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }: EntityHe
       }
       return haCallService(conn, domain, service, data).catch((error: unknown) => {
         const msg = t?.('toast.serviceFailed') || 'Action failed';
-        addToast(`${msg}: ${domain}.${service}`, 'error');
+        addToast(error instanceof CommandResultError && error.code === 'RESULT_UNKNOWN' ? error.message : `${msg}: ${domain}.${service}`, 'error');
         throw error;
       });
     },

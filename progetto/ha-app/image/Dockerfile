@@ -8,8 +8,10 @@ ARG ACASYSTEM_VERSION
 # Versione del pacchetto per HA OS: uguale ad ACASYSTEM_VERSION, oppure <versione>.<revisione>
 # quando cambia solo lo strato (run.sh, detect-ha-url.mjs).
 ARG APP_VERSION=${ACASYSTEM_VERSION}
+ARG ACA_EXECUTOR_SHA256
 # Sul banco la versione arriva dal compose; qui va nell'immagine (/api/health e Sistema).
 ENV ACASYSTEM_VERSION=${ACASYSTEM_VERSION}
+ENV APP_VERSION=${APP_VERSION}
 
 LABEL io.hass.name="Acasystem" \
       io.hass.version="${APP_VERSION}" \
@@ -20,8 +22,12 @@ LABEL io.hass.name="Acasystem" \
       org.opencontainers.image.source="https://github.com/acamemo/acasystem-releases" \
       org.opencontainers.image.licenses="GPL-3.0" \
       org.opencontainers.image.vendor="MeMo Srl"
+LABEL org.acasystem.executor.sha256="${ACA_EXECUTOR_SHA256}"
 
-COPY run.sh detect-ha-url.mjs /haos/
+COPY run.sh detect-ha-url.mjs show-connection.mjs update-environment.mjs qrcode.cjs qrcode-LICENSE.txt /haos/
+COPY prepare-haos-executor.sh /haos/
+COPY executor-tools /haos/executor-tools
+COPY client-bundle /app/client-bundle
 RUN chmod 0755 /haos/run.sh
 
 # WORKDIR resta /app/backend dell'immagine di base.

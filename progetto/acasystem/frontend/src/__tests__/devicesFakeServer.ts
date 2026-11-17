@@ -46,7 +46,7 @@ export const TV_HOST = '192.168.1.26';
 
 export const statusDto = (overrides: Partial<StatusDto> = {}): StatusDto => ({
   user: { isAdmin: false },
-  service: { state: 'active', active: true, message: null },
+  service: { state: 'active', active: true, message: null, repairable: false },
   homeAssistant: { reachable: true, onboarded: true },
   features: { catalog: true, flows: true, power: true },
   ...overrides,

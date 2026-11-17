@@ -4,13 +4,25 @@ import { useConfirmedCommand, useNow, useServiceActions } from '../../hooks/comm
 import { useCastPowerGuard } from '../../hooks/useCastPowerGuard';
 import { useMediaControls } from '../../hooks/useMediaControls';
 import { useTvAppLaunch } from '../../hooks/useTvAppLaunch';
+import { useTvBrowsedApps } from '../../hooks/useTvBrowsedApps';
 import { useTvChannel } from '../../hooks/useTvChannel';
+import { useTvPower } from '../../hooks/useTvPower';
+import { useTvPowerSetup } from '../../hooks/useTvPowerSetup';
 import { useTvVolume } from '../../hooks/useTvVolume';
+import { useTvWake } from '../../hooks/useTvWake';
 import { attrString } from '../../model/entity';
-import { detailsTarget, resolveTv, tvCanPower, tvPowerOffCall, type TvKind } from '../../model/tv';
+import { MEDIA_FEATURE, declares } from '../../model/features';
+import {
+  detailsTarget,
+  resolveTv,
+  tvPowerOffCall,
+  tvPowerWaiting,
+  tvStatusLine,
+  type TvKind,
+} from '../../model/tv';
 import { tvHasKey, tvHasRemote, tvKeyCall, tvRemoteFlavor, type TvKey } from '../../model/tvRemote';
 import { testi } from '../../testi';
-import { readTvConfig, tvStatus } from '../../widgets/TvWidget';
+import { readTvConfig } from '../../widgets/TvWidget';
 
 /**
  * Everything the sections of the TV details share (sheet and console alike): the resolved TV,
@@ -21,22 +33,35 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
   const runtime = useWidgetRuntime();
   const config = readTvConfig(settings, runtime.entities);
   const mediaPlayerId = config.mediaPlayerId;
+  // An LG webOS TV that is off reports `unavailable`: «Spento» when it can be woken.
+  const canWake = useTvWake(runtime.entities[mediaPlayerId]);
+  // «Configura l'accensione»: the power-on step of the TV, opened in place.
+  const powerSetup = useTvPowerSetup(runtime.entities[mediaPlayerId]);
   const view = resolveTv(
     kind,
     runtime.entities,
     id,
     mediaPlayerId,
     config.linkedMediaPlayers,
-    runtime.customNames
+    runtime.customNames,
+    { canWake }
   );
   const actions = useServiceActions();
   const playing = useConfirmedCommand(view.isPlaying);
-  const power = useConfirmedCommand(view.isOn, { ignoreWhilePending: true });
+  const power = useTvPower(view.isOn);
   const channel = useTvChannel(kind, view, config.remoteId);
   const volume = useTvVolume(kind, view, mediaPlayerId, Boolean(config.remoteId));
   // Seek, shuffle and repeat of the player that is shown (a linked player, when it is playing).
   const media = useMediaControls(view.displayId);
   const now = useNow(1000, view.isPlaying);
+  // The apps an Android TV remote lists when browsed replace the fixed list; read while it is on.
+  const browsedApps = useTvBrowsedApps(
+    runtime.conn,
+    mediaPlayerId,
+    view.isOn &&
+      view.entity?.attributes?.platform === 'androidtv_remote' &&
+      declares(view.entity, MEDIA_FEATURE.BROWSE_MEDIA)
+  );
   // An app tapped with the TV off switches it on first (power key pending), then opens.
   const castGuard = useCastPowerGuard(config.castBrand);
   const appLaunch = useTvAppLaunch(view.isOn, runtime.callService, () => {
@@ -62,14 +87,14 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
     if (view.unavailable) return;
     if (castGuard.block()) return;
     const off = tvPowerOffCall(view, mediaPlayerId, config.remoteId);
-    power.request(!power.value, () =>
-      power.value
+    power.request(!power.confirmed, () =>
+      power.confirmed
         ? runtime.callService(off.domain, off.service, off.data)
         : runtime.callService('media_player', 'turn_on', { entity_id: mediaPlayerId })
     );
   };
   const idle = !view.isOn || view.unavailable;
-  const powerWaiting = !power.value && !tvCanPower(kind, view);
+  const powerWaiting = tvPowerWaiting(kind, view, power.confirmed);
   const flavor = tvRemoteFlavor(kind, view.entity);
   const hasRemote = tvHasRemote(flavor, config.remoteId);
   const has = (key: TvKey) => hasRemote && tvHasKey(flavor, key);
@@ -80,14 +105,11 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
     media.error ||
     power.error ||
     channel.failed ||
-    appLaunch.failed;
-  const statusLine = failed
-    ? testi.comandoNonRiuscito
-    : view.unavailable
-      ? tvStatus(view)
-      : !view.isOn
-        ? testi.spento
-        : [view.appName || testi.schermataHome, view.title].filter(Boolean).join(' · ');
+    appLaunch.failed ||
+    power.timedOut !== null;
+  // The message of a request the TV never confirmed says more than the generic failure.
+  const notice = power.timedOut ?? testi.comandoNonRiuscito;
+  const statusLine = failed ? notice : tvStatusLine(view);
 
   const currentSource = attrString(view.entity, 'source').toLowerCase();
   const isCurrentSource = (name: string) =>
@@ -101,6 +123,7 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
     config,
     mediaPlayerId,
     castGuard,
+    powerSetup,
     view,
     actions,
     playing,
@@ -110,6 +133,7 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
     media,
     now,
     appLaunch,
+    browsedApps,
     controlMedia,
     run,
     sendKey,
@@ -119,6 +143,7 @@ export function useTvDetailsState(kind: TvKind, { id, settings }: WidgetDetailsP
     hasRemote,
     has,
     failed,
+    notice,
     statusLine,
     isCurrentSource,
   };

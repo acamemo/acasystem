@@ -1,3 +1,4 @@
+import type { ProductDeviceBinding } from '../../../contracts/productDevice';
 /**
  * Tipi di dominio della dashboard: configurazione salvata, contesti React e
  * contratti degli hook. Derivati dai typedef JSDoc di Tunet 1.22.1.
@@ -58,6 +59,7 @@ export interface HomeAssistantContextValue {
   haUnavailable: boolean;
   haUnavailableVisible: boolean;
   entitiesLoaded: boolean;
+  retryInitialSnapshot?: () => void;
   entityDataStale: boolean;
   oauthExpired: boolean;
   conn: Connection | null;
@@ -86,6 +88,7 @@ export interface AdaptiveControlPreference {
   order: string[];
 }
 export type CardSettings = Record<string, unknown> & {
+  productDevice?: ProductDeviceBinding;
   adaptiveControls?: AdaptiveControlPreference;
   adaptiveBindings?: Record<string, string | null>;
   adaptiveHistoryHours?: number;
@@ -316,18 +319,7 @@ export interface AppUiContextValue {
   setEditMode: Setter<boolean>;
 }
 
-export type ToastType = 'error' | 'success' | 'info';
-
-export interface Toast {
-  id: number;
-  message: string;
-  type?: ToastType;
-}
-
-export interface ToastContextValue {
-  addToast: (message: string, type?: ToastType) => void;
-  toasts: Toast[];
-}
+export type { Toast, ToastContextValue, ToastType } from '../../../ui/toast/types';
 
 // ── Connessione e onboarding ────────────────────────────────────────────────
 

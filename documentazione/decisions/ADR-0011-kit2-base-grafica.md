@@ -32,3 +32,5 @@ Il 2026-10-07 l'utente ha confrontato in `#/ui-kit` il kit Metallo e Kit 2, una 
 Gli esiti stanno nei report di migrazione. Rivedere dopo la prova sul tablet del pilota (contrasto del soft UI con poca luce, ISSUE-030 per i colori relativi).
 
 Annotazione 2026-10-28: la pagina `#/ui-kit` è stata tolta; Kit 2 resta come pagina di riferimento nella sezione «Materiali» di `#/mockup`. Vedi [REP-20261028-005](../reports/REP-20261028-005-piano-mockup.md).
+
+Annotazione 2026-11-04: [ADR-0039](ADR-0039-palette-fissa-tema-classico.md) fissa l’aspetto dell’app su chiaro/viola e denomina ACA Classico il tema condiviso attuale. Le varianti storiche nelle gallerie restano riferimenti; la nuova policy dell’app non ne riscrive gli originali.

@@ -1,18 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Body, Button, Caption, Field, Heading, Icon, Sheet } from '@/components/primitives';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Body, Button, Caption, Field, Heading, Icon, BottomDrawer } from '@/components/primitives';
 import type { PagesConfig } from '@/@types/dashboard';
 import { useAddCard } from '@/hooks/useAddCard';
 import { usePages } from '@/hooks/context';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import {
-  ADD_WIDGET_GROUPS,
   ADD_WIDGET_TYPES,
   candidateEntityIds,
   temperatureSensorIds,
   typeVisuals,
   type AddWidgetType,
-} from './catalog';
-import { cardSettingsKey } from './cardKeys';
+} from '@/utils/launcher/categoryModels';
+import { cardSettingsKey } from '@/domain/launcher/cardKeys';
 import { DeviceFinder } from '@/components/widgets/utilities/discover/DeviceFinder';
 import { AddDeviceEntry } from '../devices/AddDeviceEntry';
 import { DiscoveredAddFlow } from '../devices/DiscoveredAddFlow';
@@ -20,8 +19,10 @@ import { EntityPicker, PickRow, entityName } from './parts/EntityPicker';
 import { ChoiceGroup, Notice } from './parts/Form';
 import { usePresence } from './parts/hooks';
 import { RoomPicker, type RoomSelection } from './RoomPicker';
-import { buildRoomCards } from './roomCards';
+import { buildRoomCards } from '@/domain/launcher/roomCards';
 import type { AddWidgetSelection, AddWidgetSheetProps } from './types';
+import { WidgetCatalogPreview } from './WidgetCatalogPreview';
+import { WidgetCatalogPager } from './WidgetCatalogPager';
 import './sheets.css';
 
 type Step = 'type' | 'details' | 'device';
@@ -46,20 +47,40 @@ export function AddWidgetSheet({
   onClose,
   pageId,
   onAdded,
+  onPlaceType,
   initialType,
   autoAdd = false,
   initialSelection,
+  onOpenChange,
+  interactionRef,
+  onRequestOpen,
+  onProgress,
 }: AddWidgetSheetProps) {
   const runtime = useWidgetRuntime();
   const pages = usePages();
-  const mounted = usePresence(open);
+  const mounted = usePresence(open || Boolean(interactionRef));
+  const [catalogReady, setCatalogReady] = useState(false);
   const [step, setStep] = useState<Step>('type');
   const [rooms, setRooms] = useState<RoomSelection>(EMPTY_ROOMS);
-  const typesRef = useRef<HTMLDivElement>(null);
   const detailsRef = useRef<HTMLHeadingElement>(null);
   const lastTypeRef = useRef<string | null>(null);
   // The person already went through «Aggiungi un dispositivo» for this type: the details stay.
   const [finderHandled, setFinderHandled] = useState(false);
+  const openRef = useRef(open); openRef.current = open;
+  const progressSink = useRef(onProgress); progressSink.current = onProgress;
+  const closedAtRest = useRef(!open);
+  const resetCatalog = useCallback(() => {
+    setStep('type'); setRooms(EMPTY_ROOMS); setFinderHandled(false);
+  }, []);
+  const reportProgress = useCallback((progress: number | null, immediate: boolean) => {
+    closedAtRest.current = progress === null && interactionRef?.current?.progress === 0;
+    if (closedAtRest.current && !openRef.current) resetCatalog();
+    progressSink.current?.(progress, immediate);
+  }, [interactionRef, resetCatalog]);
+  useLayoutEffect(() => {
+    if (open) closedAtRest.current = false;
+    else if (interactionRef && closedAtRest.current) resetCatalog();
+  }, [open, interactionRef, resetCatalog]);
 
   const [wasOpen, setWasOpen] = useState(open);
   // Opened with a device and `autoAdd`: the sheet stays hidden until the widget is added.
@@ -115,11 +136,6 @@ export function AddWidgetSheet({
 
   useEffect(() => {
     if (step === 'details') detailsRef.current?.focus();
-    if (step === 'type' && lastTypeRef.current) {
-      typesRef.current
-        ?.querySelector<HTMLElement>(`[data-widget-type="${lastTypeRef.current}"]`)
-        ?.focus();
-    }
   }, [step]);
 
   const chooseType = (item: AddWidgetType) => {
@@ -132,32 +148,28 @@ export function AddWidgetSheet({
   };
 
   // The accessible name of a tile is its label alone; the hint is its description.
-  const renderTile = (item: AddWidgetType) => {
+  const renderTile = (item: AddWidgetType, previewHeight: number, previewReady: boolean, onPreviewReady?: (ready: boolean) => void) => {
     const labelId = `aca-tile-${item.type}`;
     const hintId = `${labelId}-hint`;
     return (
-      <Button
-        key={item.type}
-        variant="control"
-        shape="card"
-        size="sm"
-        data-widget-type={item.type}
-        className="aca-m--fill aca-type-tile"
-        contentClassName="aca-type-tile__content"
-        aria-labelledby={labelId}
-        aria-describedby={item.tileHint ? hintId : undefined}
-        onClick={() => chooseType(item)}
-      >
-        <Icon name={iconOf(item)} size="lg" />
-        <Body as="span" size="sm" id={labelId}>
-          {labelOf(item)}
-        </Body>
-        {item.tileHint && (
-          <Caption as="span" className="aca-type-tile__hint" id={hintId}>
-            {item.tileHint}
-          </Caption>
-        )}
-      </Button>
+      <article key={item.type} className="aca-catalog-type">
+        {previewReady ? <WidgetCatalogPreview item={item} height={previewHeight} eager={Boolean(interactionRef)} onReady={onPreviewReady} />
+          : <div className="aca-widget-catalog-preview" style={{ height: previewHeight }} aria-hidden="true" inert />}
+        <Button
+          data-widget-type={item.type}
+          className="aca-catalog-type__select"
+          aria-labelledby={labelId}
+          aria-describedby={item.tileHint ? hintId : undefined}
+          onClick={() => onPlaceType ? onPlaceType(item.type) : chooseType(item)}
+        >
+          <span className="aca-catalog-type__caption">
+            <span className="aca-catalog-type__label"><Icon name={iconOf(item)} size="md" />
+              <Body as="span" size="sm" id={labelId}>{labelOf(item)}</Body>
+            </span>
+            {item.tileHint && <Caption as="span" id={hintId}>{item.tileHint}</Caption>}
+          </span>
+        </Button>
+      </article>
     );
   };
 
@@ -322,11 +334,7 @@ export function AddWidgetSheet({
 
   // «Aggiungi un dispositivo» has its own buttons inside the flow: no footer.
   const footer =
-    showFinder ? undefined : step === 'type' ? (
-      <Button variant="secondary" size="md" onClick={onClose}>
-        Annulla
-      </Button>
-    ) : (
+    showFinder || step === 'type' ? undefined : (
       <>
         <Button variant="secondary" size="md" onClick={() => setStep('type')}>
           Indietro
@@ -359,46 +367,22 @@ export function AddWidgetSheet({
   }, [autoSelect, open, selectionPending, entry, canAdd]);
 
   return (
-    <Sheet
+    <BottomDrawer
       open={open && !autoPending && !autoSelect}
       onClose={onClose}
       title="Aggiungi un widget"
-      description={
-        step === 'type'
-          ? 'Scegli che cosa mostrare nella pagina.'
-          : showFinder
-            ? 'Aggiungi prima il dispositivo alla casa, poi collegalo al widget.'
-            : 'Scegli che cosa mostra il widget.'
-      }
+      headerHidden={step === 'type'}
+      gestureMode="reveal"
+      onOpenChange={onOpenChange}
+      interactionRef={interactionRef}
+      interactionReady={open || catalogReady}
+      onRequestOpen={onRequestOpen}
+      onProgress={interactionRef ? reportProgress : onProgress}
       footer={footer}
-      className="aca-add-widget"
     >
       {mounted && step === 'type' && (
-        <div ref={typesRef} role="group" aria-label="Tipi di widget" className="aca-type-groups">
-          {/* «Trova dispositivi» stays first, above the groups. */}
-          <div className="aca-type-grid">
-            {ADD_WIDGET_TYPES.filter((item) => item.group === 'find').map(renderTile)}
-          </div>
-          {ADD_WIDGET_GROUPS.map(({ group, label }) => (
-            <section
-              key={group}
-              className="aca-type-group"
-              aria-labelledby={`aca-type-group-${group}`}
-            >
-              <Heading
-                level={3}
-                size="sm"
-                id={`aca-type-group-${group}`}
-                className="aca-type-group__title"
-              >
-                {label}
-              </Heading>
-              <div className="aca-type-grid">
-                {ADD_WIDGET_TYPES.filter((item) => item.group === group).map(renderTile)}
-              </div>
-            </section>
-          ))}
-        </div>
+        <WidgetCatalogPager items={ADD_WIDGET_TYPES} renderTile={renderTile} initialAnchorType={lastTypeRef.current}
+          onReadyChange={interactionRef ? setCatalogReady : undefined} />
       )}
 
       {mounted && showFinder && (
@@ -461,7 +445,7 @@ export function AddWidgetSheet({
           />
         </div>
       )}
-    </Sheet>
+    </BottomDrawer>
   );
 }
 

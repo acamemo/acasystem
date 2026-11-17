@@ -1,3 +1,5 @@
+import { ProductLockWidget } from '../../home/lock/ProductLockWidget';
+import { lockProductBinding } from '../../home/lock/productLockModel';
 import type { ReactNode } from 'react';
 import { Button, Caption, MaterialLayers, Text, materialClass } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
@@ -107,7 +109,7 @@ export function lockIconColor(lock: LockControl): string | undefined {
 }
 
 /** Lock widget (legacy LockCard): state, lock/unlock/open; a needed code opens the details. */
-export function LockWidget({ id, settings, size, editMode }: WidgetProps) {
+function LegacyLockWidget({ id, settings, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
   const entityId = lockEntityId(id, settings);
   const lock = useLockControl(entityId, editMode);
@@ -233,4 +235,8 @@ export function LockWidget({ id, settings, size, editMode }: WidgetProps) {
       {body}
     </WidgetContent>
   );
+}
+
+export function LockWidget(props: WidgetProps) {
+  return lockProductBinding(props.settings) ? <ProductLockWidget {...props} /> : <LegacyLockWidget {...props} />;
 }

@@ -3,13 +3,17 @@
  * measured from the section and placed on the pager, not where the page is while it scrolls
  * into view. A drag that has just turned the page then snaps to the right cell at once.
  */
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LauncherPage } from '@/@types/launcher';
 import type { GridGeometry } from '@/hooks/launcher/useWidgetDrag';
 import { createLauncherSelection } from '@/hooks/launcher/useLauncherSelection';
 import { LauncherUiContext, type LauncherUi } from '@/templates/launcher/LauncherUiContext';
 import { WidgetGrid } from '@/templates/launcher/WidgetGrid';
+
+vi.mock('@/templates/launcher/WidgetHost', () => ({
+  WidgetHost: ({ widgetId }: { widgetId: string }) => <div data-widget-id={widgetId}>Ready widget</div>,
+}));
 
 const page: LauncherPage = {
   id: 'casa',
@@ -32,7 +36,57 @@ const rectOf = (left: number, top = 0) =>
   }) as DOMRect;
 
 describe('geometry registered by a grid', () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+  it('mounts widgets only after a real positive grid measurement and keeps that layout when skipped', () => {
+    let usable = false;
+    let observer: ResizeObserverCallback | undefined;
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) { observer = callback; }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return { ...rectOf(0), width: usable && this.classList.contains('aca-launcher-page') ? 400 : 0,
+        height: usable && this.classList.contains('aca-launcher-page') ? 200 : 0 } as DOMRect;
+    });
+    const ui = { controller: { editMode: false, classFor: () => 'phoneLandscape',
+      gridFor: () => ({ w: 4, h: 2 }) }, registerGrid: () => () => undefined,
+      isWidgetHidden: () => false, selection: createLauncherSelection() } as unknown as LauncherUi;
+    const view = render(<LauncherUiContext.Provider value={ui}><WidgetGrid page={{ ...page,
+      placements: { phoneLandscape: { probe: { x: 0, y: 0, w: 2, h: 1 } } } }} /></LauncherUiContext.Provider>);
+    const grid = view.container.querySelector<HTMLElement>('.aca-launcher-grid')!;
+    expect(grid).toHaveAttribute('data-layout-ready', 'false');
+    expect(grid).toHaveAttribute('inert');
+    expect(view.container.querySelector('[data-widget-id="probe"]')).toBeNull();
+    usable = true;
+    act(() => observer?.([], {} as ResizeObserver));
+    const widget = view.container.querySelector('[data-widget-id="probe"]');
+    expect(widget).not.toBeNull();
+    expect(grid).toHaveAttribute('data-layout-ready', 'true');
+    expect(grid).not.toHaveAttribute('inert');
+    const cell = grid.style.getPropertyValue('--aca-cell');
+    expect(Number.parseFloat(cell)).toBeGreaterThan(0);
+    usable = false;
+    act(() => observer?.([], {} as ResizeObserver));
+    expect(view.container.querySelector('[data-widget-id="probe"]')).toBe(widget);
+    expect(grid.style.getPropertyValue('--aca-cell')).toBe(cell);
+    expect(grid).toHaveAttribute('data-layout-ready', 'true');
+  });
+
+  it('uses the real initial layout without requiring ResizeObserver support', () => {
+    vi.stubGlobal('ResizeObserver', undefined);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return { ...rectOf(0), width: this.classList.contains('aca-launcher-page') ? 400 : 0,
+        height: this.classList.contains('aca-launcher-page') ? 200 : 0 } as DOMRect;
+    });
+    const ui = { controller: { editMode: false, classFor: () => 'phoneLandscape',
+      gridFor: () => ({ w: 4, h: 2 }) }, registerGrid: () => () => undefined,
+      isWidgetHidden: () => false, selection: createLauncherSelection() } as unknown as LauncherUi;
+    const view = render(<LauncherUiContext.Provider value={ui}><WidgetGrid page={page} /></LauncherUiContext.Provider>);
+    expect(view.container.querySelector('.aca-launcher-grid')).toHaveAttribute('data-layout-ready', 'true');
+  });
 
   it('is measured from the section and placed on the pager while the page scrolls in', () => {
     let measure: (() => GridGeometry | null) | null = null;

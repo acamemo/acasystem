@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { Caption, Text } from '@/components/primitives';
-import { MediaIcon } from '../../icons';
+import { Button, Caption, Text } from '@/components/primitives';
 import type { ConfirmedCommand } from '../../hooks/commands';
 import type { useTvChannel } from '../../hooks/useTvChannel';
 import type { useTvVolume } from '../../hooks/useTvVolume';
-import { tvCanPower, type TvKind, type TvView } from '../../model/tv';
+import { tvPowerWaiting, type TvKind, type TvView } from '../../model/tv';
+import { testi } from '../../testi';
 import { ChannelKey } from '../ChannelKey';
 import { PowerButton } from '../Controls';
 import { VolumeKnob } from '../VolumeKnob';
+import { TvBrandMark } from './TvBrandMark';
 import { classes } from '@/components/primitives/classes';
 
 export type TvKeySize = 'md' | 'lg' | 'xl';
@@ -37,17 +38,23 @@ const keyClass = (size: TvKeySize, waiting: boolean) =>
     waiting && 'aca-media-key--waiting'
   );
 
+/** The power key is inert and the widget says why (`TvHeadContent` shows the sentence). */
+export const tvKeyWaiting = (tv: TvFaceState): boolean =>
+  tvPowerWaiting(tv.kind, tv.view, tv.power.confirmed);
+
 /**
- * Power key, always shown. A TV that cannot be switched on over the network (Samsung on Wi-Fi)
- * keeps the key faded and inert while it is off, with no explanation: only the action is shown.
+ * Power key, always shown. It shows what Home Assistant reports, never the requested state: while
+ * a request waits for confirmation the key pulses (Button `loading`) and the icon stays as it
+ * was. A TV that cannot be switched on over the network (Samsung on Wi-Fi) keeps the key faded
+ * and inert while it is off; the head of the face says what it needs.
  */
 export function TvPowerKey({ tv, size, editMode = false }: KeyProps) {
-  const { kind, view, power } = tv;
-  const waiting = !power.value && !tvCanPower(kind, view);
+  const { view, power } = tv;
+  const waiting = tvKeyWaiting(tv);
   return (
     <PowerButton
-      on={power.value}
-      action={power.value ? 'turn_off' : 'turn_on'}
+      on={power.confirmed}
+      action={power.confirmed ? 'turn_off' : 'turn_on'}
       pending={power.pending}
       disabled={editMode || view.unavailable || waiting}
       size={size}
@@ -95,35 +102,60 @@ export function TvChannelKey({ tv, size, editMode = false }: KeyProps) {
   );
 }
 
-/** TV icon, name (unless the title already names it) and status line. */
+/** Brand logo (or TV icon), name (unless the title already names it) and status line. */
 export function TvHeadContent({
   view,
   failed,
   statusLine,
   showName,
+  hint,
 }: {
   view: TvView;
   failed: boolean;
   statusLine: string;
   showName: boolean;
+  /** Why the power key is inert, under the status line. */
+  hint?: string;
 }) {
+  // Danger only for a fault: «Non raggiungibile» or a command that failed, never off or standby.
   const status = (
     <Caption tone={failed || view.unavailable ? 'danger' : undefined}>{statusLine}</Caption>
   );
+  const note = hint ? <Caption className="aca-media-hint">{hint}</Caption> : null;
   return (
     <>
-      <MediaIcon name="tv" size="md" />
+      <TvBrandMark view={view} />
       {showName ? (
         <span className="aca-media-text">
           <Text className="aca-type aca-type--heading-sm" tone="ink">
             {view.deviceName}
           </Text>{' '}
-          {status}
+          {status} {note}
         </span>
       ) : (
-        status
+        <span className="aca-media-text">
+          {status} {note}
+        </span>
       )}
     </>
+  );
+}
+
+/** «Riprova» after a request that Home Assistant never confirmed. */
+export function TvRetry({ tv }: { tv: TvFaceState }) {
+  if (tv.power.timedOut === null) return null;
+  return (
+    <Button
+      variant="control"
+      size="md"
+      className="aca-media-retry"
+      onClick={(event) => {
+        event.stopPropagation();
+        tv.power.retry();
+      }}
+    >
+      {testi.riprova}
+    </Button>
   );
 }
 
@@ -162,6 +194,7 @@ export function TvFace({
             failed={failed}
             statusLine={statusLine}
             showName={showName}
+            hint={tvKeyWaiting(tv) && !editMode ? testi.tvAccensioneDaRete : undefined}
           />
         </div>
       )}
@@ -170,6 +203,7 @@ export function TvFace({
         <TvVolumeKey tv={tv} size={size} editMode={editMode} />
         <TvChannelKey tv={tv} size={size} editMode={editMode} />
       </div>
+      <TvRetry tv={tv} />
     </div>
   );
 }

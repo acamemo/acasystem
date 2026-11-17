@@ -2,37 +2,26 @@ import { app, BrowserWindow, ipcMain, Menu, Notification, session, shell } from 
 import type { IpcMainInvokeEvent, MenuItemConstructorOptions } from 'electron';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import {
-  completeSetup,
-  createOwner,
-  detectMiniPc,
-  inspectAddress,
-  loginAdmin,
   needsBrowserReset,
   noticeText,
   RELEASE_REPOSITORY,
   resolveStartup,
-  SETUP_ERROR_TEXT,
-  SETUP_STEP_TEXT,
-  SETUP_STEPS,
-  SetupError,
+  serverOrigin,
+  submitAddress,
   startupErrorText,
   WIZARD_ERROR_TEXT,
 } from '../../core/src/index.ts';
 import type {
-  HaSession,
-  HomeConfig,
-  MiniPcState,
   ReleaseRepository,
-  SetupStep,
   StartupResult,
-  WebSocketLike,
 } from '../../core/src/index.ts';
 import { createFileBundleCache, createFileConfigStore, createLastServerStore } from './fileStore.ts';
 import { startLocalServer } from './localServer.ts';
 import type { LocalServer } from './localServer.ts';
-import { createNodeHaHttp, createNodeHttpClient } from './nodeHttp.ts';
-import type { SetupStepView, ShellState, SubmitResult } from './shellState.ts';
+import { createNodeHttpClient } from './nodeHttp.ts';
+import type { ShellState } from './shellState.ts';
 
 /**
  * Guscio Windows di Acasystem (ADR-0023, C5). All'avvio decide con il nucleo: procedura
@@ -53,7 +42,7 @@ const repository: ReleaseRepository = testReleases
   ? { ...RELEASE_REPOSITORY, webBase: testReleases, apiBase: `${testReleases}/api` }
   : RELEASE_REPOSITORY;
 
-const shellDir = fileURLToPath(new URL('../../../shell/', import.meta.url));
+const shellDir = fileURLToPath(new URL('../../../generated-shell/', import.meta.url));
 const shellPage = join(shellDir, 'index.html');
 const shellUrlPrefix = pathToFileURL(shellDir).href;
 const preload = fileURLToPath(new URL('./preload.cjs', import.meta.url));
@@ -63,7 +52,6 @@ const shellVersion = app.getVersion();
 const CLIENT_SHELL_TOKEN = `AcasystemShell/${shellVersion}`;
 const CHANGE_ADDRESS_URL = 'acasystem://change-address';
 const http = createNodeHttpClient(`Acasystem-client/${shellVersion} (Windows)`);
-const haHttp = createNodeHaHttp(`Acasystem-client/${shellVersion} (Windows)`);
 const config = createFileConfigStore(app.getPath('userData'));
 const cache = createFileBundleCache(app.getPath('userData'));
 const lastServer = createLastServerStore(app.getPath('userData'));
@@ -83,11 +71,12 @@ const showShell = async (next: ShellState): Promise<void> => {
 
 const showWizard = async (error?: string): Promise<void> => {
   const saved = await config.load();
+  const remote = saved && !saved.host.startsWith('127.') ? saved : null;
   await showShell({
     view: 'wizard',
     shellVersion,
-    host: saved?.host ?? '',
-    port: saved ? String(saved.port) : '',
+    host: remote?.host ?? '',
+    port: remote ? String(remote.port) : '',
     ...(error ? { message: error } : {}),
   });
 };
@@ -106,10 +95,14 @@ const applyResult = async (result: StartupResult): Promise<void> => {
       return showWizard();
     case 'launch': {
       if (!localServer || !window) return;
-      // Altro mini PC: sessione, localStorage, cache e service worker del precedente non servono.
+      // Pulisce l'identità precedente, conservando le bozze IndexedDB per casa/utente.
       if (needsBrowserReset(await lastServer.load(), result.origin)) {
-        await session.defaultSession.clearStorageData({ origin: localServer.origin });
+        await session.defaultSession.clearStorageData({ origin: localServer.origin,
+          storages: ['cookies', 'filesystem', 'shadercache', 'serviceworkers', 'cachestorage'] });
         await session.defaultSession.clearCache();
+        await window.loadURL(`${localServer.origin}/__acasystem/storage-reset`);
+        const script = await readFile(join(shellDir, 'browser-reset.js'), 'utf8');
+        if (await window.webContents.executeJavaScript(script) !== true) throw new Error('Pulizia della sessione non completata; bozze conservate.');
       }
       await lastServer.save(result.origin);
       localServer.setTarget({ bundleDir: cache.directoryOf(result.version), serverOrigin: result.origin });
@@ -127,184 +120,43 @@ const boot = async (): Promise<void> => {
   booting = true;
   try {
     await showShell({ view: 'loading', shellVersion });
-    const result = await resolveStartup({ http, config, cache, shellVersion, repository });
-    if ((result.kind === 'server-unreachable' || result.kind === 'not-acasystem') && (await resumeSetup())) return;
+    const saved = await config.load();
+    // Il loopback apparteneva all'esperimento VM: la centrale ora è sul mini PC.
+    if (saved?.host.startsWith('127.')) return await showWizard();
+    const result = await resolveStartup({ http, config, cache, shellVersion, repository, preferServerBundle: true });
     await applyResult(result);
   } catch (error) {
     console.error('[acasystem] avvio non riuscito', error);
     await showShell({
       view: 'error',
       shellVersion,
-      message: "Qualcosa non ha funzionato all'avvio. Riprova; se succede ancora, reinstalla l'app.",
+      message: "Non riesco ad aprire ACA. Controlla il collegamento al mini PC e riprova.",
     });
   } finally {
     booting = false;
   }
 };
 
-/**
- * Configurazione del mini PC (REP-20261026-005, S4-S5): HA da configurare o senza Acasystem.
- * La sessione di HA resta in memoria finché l'app è aperta; password e token non si salvano.
- */
-interface SetupRun {
-  host: string;
-  haBase: string;
-  session: HaSession | null;
-  steps: Record<SetupStep, SetupStepView['status']>;
-  confirmHome: ((home: HomeConfig) => void) | null;
-  running: boolean;
-}
-
-let setup: SetupRun | null = null;
-
-const progressState = (message?: string): ShellState => ({
-  view: 'setup-progress',
-  shellVersion,
-  steps: SETUP_STEPS.map((step) => ({ label: SETUP_STEP_TEXT[step], status: setup?.steps[step] ?? 'pending' })),
-  ...(message ? { message } : {}),
-});
-
-const showSetupLogin = async (
-  state: Extract<MiniPcState, { kind: 'ha-new' | 'ha-ready' }>,
-  host: string,
-  message?: string
-): Promise<void> => {
-  setup = {
-    host,
-    haBase: state.haBase,
-    session: null,
-    steps: Object.fromEntries(SETUP_STEPS.map((step) => [step, 'pending'])) as SetupRun['steps'],
-    confirmHome: null,
-    running: false,
-  };
-  await showShell({ view: state.kind === 'ha-new' ? 'setup-owner' : 'setup-admin', shellVersion, host, ...(message ? { message } : {}) });
-};
-
-const setupErrorText = (error: unknown): string =>
-  error instanceof SetupError ? SETUP_ERROR_TEXT[error.kind] : SETUP_ERROR_TEXT.unexpected;
-
-const runSetup = async (): Promise<void> => {
-  const run = setup;
-  if (!run?.session || run.running) return;
-  const saved = await config.load();
-  if (!saved) return showWizard();
-  run.running = true;
-  try {
-    await showShell(progressState());
-    await completeSetup(
-      {
-        http,
-        haHttp,
-        socketFactory: (url) => new WebSocket(url) as unknown as WebSocketLike,
-        config: saved,
-        onProgress: (step, status) => {
-          run.steps[step] = status;
-          void showShell(progressState());
-        },
-        confirmHome: (home) =>
-          new Promise<HomeConfig>((resolveHome) => {
-            run.confirmHome = resolveHome;
-            void showShell({ view: 'setup-home', shellVersion, home: { location_name: 'Casa', ...home } });
-          }),
-      },
-      run.session
-    );
-    setup = null;
-    await boot();
-  } catch (error) {
-    console.error('[acasystem] configurazione non riuscita', error);
-    // Con un accesso scaduto o rifiutato si torna all'accesso amministratore.
-    if (error instanceof SetupError && (error.kind === 'not-admin' || error.kind === 'session-expired')) {
-      return showSetupLogin({ kind: 'ha-ready', haBase: run.haBase }, run.host, setupErrorText(error));
-    }
-    await showShell(progressState(setupErrorText(error)));
-  } finally {
-    run.running = false;
-    run.confirmHome = null;
-  }
-};
-
-/** All'avvio senza Acasystem: se all'indirizzo risponde HA, si riprende la configurazione. */
-const resumeSetup = async (): Promise<boolean> => {
-  const saved = await config.load();
-  if (!saved) return false;
-  const state = await detectMiniPc({ http, haHttp }, saved);
-  if (state.kind !== 'ha-new' && state.kind !== 'ha-ready') return false;
-  await showSetupLogin(state, saved.host);
-  return true;
-};
-
-const startWithSession = async (login: () => Promise<HaSession>): Promise<SubmitResult> => {
-  const run = setup;
-  if (!run || run.running) return { ok: false, message: SETUP_ERROR_TEXT.unexpected };
-  try {
-    run.session = await login();
-  } catch (error) {
-    if (error instanceof SetupError && error.kind === 'owner-exists') {
-      await showSetupLogin({ kind: 'ha-ready', haBase: run.haBase }, run.host, setupErrorText(error));
-      return { ok: true };
-    }
-    return { ok: false, message: setupErrorText(error) };
-  }
-  void runSetup();
-  return { ok: true };
-};
-
-const text = (value: unknown): string => (typeof value === 'string' ? value : '');
-
 /** Le funzioni del guscio rispondono solo alle sue pagine locali, non all'interfaccia scaricata. */
 const fromShell = (event: IpcMainInvokeEvent): boolean =>
   event.senderFrame?.url.startsWith(shellUrlPrefix) === true;
 
 const registerIpc = (): void => {
+  ipcMain.handle('shell:pairing-endpoint', async (event) => {
+    if (!window || !localServer || event.senderFrame !== window.webContents.mainFrame
+      || !event.senderFrame.url.startsWith(`${localServer.origin}/`)) return { endpoint: null };
+    const saved = await config.load();
+    return { endpoint: saved && !saved.host.startsWith('127.') ? serverOrigin(saved) : null };
+  });
   ipcMain.handle('shell:get-state', (event) => (fromShell(event) ? state : null));
   ipcMain.handle('shell:submit', async (event, host: unknown, port: unknown) => {
     if (!fromShell(event) || typeof host !== 'string' || (port !== undefined && typeof port !== 'string')) {
       return { ok: false, message: WIZARD_ERROR_TEXT['not-ipv4'] };
     }
-    const result = await inspectAddress({ host, ...(port ? { port } : {}) }, { http, haHttp, config });
+    const result = await submitAddress({ host, ...(port ? { port } : {}) }, { http, config });
     if (!result.ok) return { ok: false, message: WIZARD_ERROR_TEXT[result.error] };
-    if (result.state.kind === 'acasystem') void boot();
-    else void showSetupLogin(result.state, result.config.host);
+    void boot();
     return { ok: true };
-  });
-  ipcMain.handle('shell:setup-owner', (event, owner: unknown) => {
-    if (!fromShell(event) || typeof owner !== 'object' || owner === null) return { ok: false };
-    const { name, username, password } = owner as Record<string, unknown>;
-    return startWithSession(() =>
-      createOwner(haHttp, setup?.haBase ?? '', { name: text(name).trim(), username: text(username).trim(), password: text(password) })
-    );
-  });
-  ipcMain.handle('shell:setup-admin', (event, username: unknown, password: unknown) => {
-    if (!fromShell(event)) return { ok: false };
-    return startWithSession(() => loginAdmin(haHttp, setup?.haBase ?? '', text(username).trim(), text(password)));
-  });
-  ipcMain.handle('shell:setup-home', (event, home: unknown) => {
-    if (!fromShell(event) || !setup?.confirmHome || typeof home !== 'object' || home === null) return;
-    const value = home as Record<string, unknown>;
-    const confirmed: HomeConfig = {
-      location_name: text(value.location_name).trim() || 'Casa',
-      country: text(value.country).trim().toUpperCase(),
-      currency: text(value.currency).trim().toUpperCase(),
-      time_zone: text(value.time_zone).trim(),
-      unit_system: value.unit_system === 'us_customary' ? 'us_customary' : 'metric',
-      ...(typeof value.latitude === 'number' ? { latitude: value.latitude } : {}),
-      ...(typeof value.longitude === 'number' ? { longitude: value.longitude } : {}),
-    };
-    const resolveHome = setup.confirmHome;
-    setup.confirmHome = null;
-    resolveHome(confirmed);
-  });
-  ipcMain.handle('shell:setup-retry', async (event) => {
-    if (!fromShell(event)) return;
-    // Acasystem può essere partita nel frattempo; altrimenti si ripete dal passo mancante.
-    const saved = await config.load();
-    if (saved && (await detectMiniPc({ http, haHttp }, saved)).kind === 'acasystem') {
-      setup = null;
-      return boot();
-    }
-    if (setup?.session) return runSetup();
-    if (!(await resumeSetup())) return boot();
   });
   ipcMain.handle('shell:retry', (event) => {
     if (fromShell(event)) void boot();

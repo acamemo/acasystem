@@ -17,13 +17,13 @@ import { TOAST_EXIT_MS } from '@/components/system/toast/ToastHost';
 import { SYSTEM_IN_MS, SYSTEM_OUT_MS } from '@/hooks/launcher/useOverlayScene';
 
 const FILES = {
-  tokens: 'src/themes/acasystem/tokens.css',
-  components: 'src/themes/acasystem/components.css',
-  shell: 'src/templates/app-shell/appShell.css',
-  toast: 'src/components/system/toast/toast.css',
+  tokens: '../design/themes/acasystem/tokens.css',
+  components: '../design/themes/acasystem/components.css',
+  shell: '../design/layout/appShell.css',
+  toast: '../design/components/toast.css',
   status: 'src/components/system/status-bar/statusBar.css',
   edit: 'src/components/system/edit/edit.css',
-  indicator: 'src/components/system/page-indicator/pageIndicator.css',
+  indicator: '../design/layout/pageIndicator.css',
 } as const;
 type Sheet = keyof typeof FILES;
 
@@ -165,25 +165,24 @@ describe('choreography of the launcher (block 2 of 0.9.28)', () => {
   });
 
   describe('Sistema (D-M12)', () => {
-    it('is a layer over the launcher that moves only by opacity and a scale of the token', () => {
+    it('is a layer over the launcher that moves only by opacity and a small upward translation', () => {
       const layer = rule('shell', '.aca-overlay-scene');
       expect(layer).toMatch(/position:\s*fixed/);
       expect(layer).toMatch(/inset:\s*0/);
       expect(layer).toMatch(/z-index:\s*var\(--aca-z-overlay/);
       expect(layer).toMatch(/background:\s*var\(--aca-page\)/);
-      // A layer from the wait to the end: one raster, at the scale of rest (tracing of 2026-10-24).
-      expect(layer).toMatch(/will-change:\s*opacity,\s*scale/);
-      // The wait is transparent at the scale of rest; the way out ends transparent and smaller.
+      // A layer from the wait to the end, with no size interpolation or scaled typography.
+      expect(layer).toMatch(/will-change:\s*opacity,\s*transform/);
+      // The wait is transparent at rest; the way out ends transparent and slightly lower.
       expect(rule('shell', ".aca-overlay-scene[data-scene='wait']")).toMatch(/opacity:\s*0/);
       expect(rule('shell', ".aca-overlay-scene[data-scene='wait']")).not.toMatch(/scale:/);
       const away = rules('shell', ".aca-overlay-scene[data-scene='out']");
       expect(away).toMatch(/opacity:\s*0/);
-      expect(away).toMatch(/scale:\s*var\(--aca-scale-page, 0\.96\)/);
+      expect(away).toMatch(/transform:\s*translateY\(var\(--aca-space-5, 1\.5rem\)\)/);
     });
 
-    it('comes in with ease-out and goes with ease-in, shorter, and never slides; the fallbacks equal the tokens', () => {
-      // The way in is an animation of the layer (it waits at scale 1 and has one raster): from
-      // opacity 0 and the scale of the token to the look of rest, the same values as the transition.
+    it('fades up with ease-out and returns down more quickly, keeping the existing timing tokens', () => {
+      // The controller still observes its own animation event; only the visual path changes.
       const coming = rule('shell', ".aca-overlay-scene[data-scene='in']");
       expect(coming).toMatch(
         new RegExp(
@@ -193,17 +192,17 @@ describe('choreography of the launcher (block 2 of 0.9.28)', () => {
       expect(coming).toMatch(/\bboth\b/);
       const from = keyframes('shell', 'aca-system-in');
       expect(from).toMatch(/opacity:\s*0/);
-      expect(from).toMatch(/scale:\s*var\(--aca-scale-page, 0\.96\)/);
-      expect(from).not.toMatch(/translate|rotate|transform/);
+      expect(from).toMatch(/transform:\s*translateY\(var\(--aca-space-5, 1\.5rem\)\)/);
+      expect(from).not.toMatch(/scale|rotate|width:|height:/);
       const going = rules('shell', ".aca-overlay-scene[data-scene='out']");
       expect(going).toMatch(
         new RegExp(
-          String.raw`opacity var\(--aca-dur-system-out, ${token('--aca-dur-system-out')}ms\) var\(--aca-motion-ease-in`
+          String.raw`opacity var\(--aca-dur-system-out, ${token('--aca-dur-system-out')}ms\) var\(--aca-motion-ease-out`
         )
       );
       expect(going).toMatch(
         new RegExp(
-          String.raw`scale var\(--aca-dur-system-out, ${token('--aca-dur-system-out')}ms\) var\(--aca-motion-ease-in`
+          String.raw`transform var\(--aca-dur-system-out, ${token('--aca-dur-system-out')}ms\) var\(--aca-motion-ease-out`
         )
       );
       expect(going).toMatch(/pointer-events:\s*none/);
@@ -211,21 +210,37 @@ describe('choreography of the launcher (block 2 of 0.9.28)', () => {
         css.shell.indexOf('.aca-overlay-scene {'),
         css.shell.indexOf('.aca-app-error')
       );
-      expect(scene).not.toMatch(/translate|rotate|top:\s*[^0]|transform:/);
+      expect(scene).not.toMatch(/scale:|rotate|top:\s*[^0]|width:|height:/);
     });
 
     it('is still on the wait and on the way out-wait: the transitions belong to in and out only', () => {
-      expect(css.shell).not.toMatch(/data-scene='wait'\] \{[^}]*transition/);
-      expect(css.shell).not.toMatch(/data-scene='out-wait'\]/);
+      expect(rule('shell', ".aca-overlay-scene[data-scene='wait']")).not.toMatch(/transition|transform/);
+      expect(rules('shell', ".aca-overlay-scene[data-scene='out-wait']")).toBe('');
+      expect(rule('shell', '.aca-launcher-scene')).toMatch(/opacity:\s*1/);
+      // Home wakes while concealed, then crossfades only when the overlay actually leaves.
+      expect(rules('shell', ".aca-launcher-scene:has(+ .aca-overlay-scene[data-scene='out-wait'])")).toMatch(/opacity:\s*0/);
+      expect(css.shell).toContain(".aca-launcher-scene:has(+ .aca-overlay-scene[data-scene='in'])");
     });
 
-    it('with reduced motion it fades in 120 ms, linear, without the scale', () => {
+    it('keeps Home non-interactive until the outgoing System overlay is removed', () => {
+      expect(rule('shell', '.aca-launcher-scene:has(+ .aca-overlay-scene)')).toMatch(/pointer-events:\s*none/);
+    });
+
+    it('uses the same fade-up direction for widget windows without changing their duration', () => {
+      expect(css.components).toMatch(/@starting-style\s*\{\s*\.aca-console\s*\{\s*transform:\s*translateY\(var\(--aca-space-5, 1\.5rem\)\)/);
+      const leaving = rules('components', "[data-panel-state='exiting'] .aca-console");
+      expect(leaving).toMatch(/transform:\s*translateY\(var\(--aca-space-5, 1\.5rem\)\)/);
+      expect(leaving).toMatch(/var\(--aca-dur-sheet-out, 200ms\)/);
+      expect(rule('components', '.aca-console')).toMatch(/var\(--aca-dur-sheet-in, 280ms\)/);
+    });
+
+    it('with reduced motion it fades in 120 ms, linear, without translation', () => {
       const reduced = css.shell.slice(css.shell.lastIndexOf('prefers-reduced-motion'));
-      expect(reduced).toMatch(/\.aca-overlay-scene\[data-scene='out'\] \{\s*scale:\s*none/);
+      expect(reduced).toMatch(/\.aca-overlay-scene\[data-scene='out'\] \{\s*transform:\s*none/);
       expect(reduced).toMatch(
         /animation:\s*aca-system-in-reduced var\(--aca-dur-reduced, 120ms\) linear/
       );
-      expect(keyframes('shell', 'aca-system-in-reduced')).not.toMatch(/scale/);
+      expect(keyframes('shell', 'aca-system-in-reduced')).not.toMatch(/scale|translate|transform/);
       expect(reduced).toMatch(/transition:\s*opacity var\(--aca-dur-reduced, 120ms\) linear/);
     });
   });

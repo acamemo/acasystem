@@ -84,6 +84,7 @@ const KEYS: Record<TvRemoteFlavor, KeyMap> = {
     home: 'HOME',
     menu: 'MENU',
     info: 'INFO',
+    guide: 'GUIDE',
     exit: 'EXIT',
     red: 'RED',
     green: 'GREEN',

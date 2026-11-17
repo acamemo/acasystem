@@ -1,7 +1,9 @@
+export type { DeviceDto, EntryDto, FlowResponseDto, FlowSummaryDto, DiscoveredListDto, IgnoredListDto, TvListDto, CatalogDto, StatusDto, ActionDto } from '../../../../contracts/devices.ts';
+import type { DeviceDto, EntryDto, FlowResponseDto, FlowSummaryDto, DiscoveredListDto, IgnoredListDto, TvListDto, CatalogDto, StatusDto, ActionDto } from '../../../../contracts/devices.ts';
 import { isRecord } from '../../helpers/objects.ts';
 import type { DeviceFlowRow } from '../../models/deviceModel.ts';
 import { isStartableHandler, isSystemDomain, searchCatalog } from './catalog.ts';
-import type { CatalogEntryDto, CatalogItem } from './catalog.ts';
+import type { CatalogItem } from './catalog.ts';
 import { DEVICE_ERROR_DEFINITIONS, DeviceError, describeForLog } from './deviceErrors.ts';
 import { authorizeOperation, runGuarded } from './deviceContext.ts';
 import type { AuditTrail, DeviceContext, DeviceUser } from './deviceContext.ts';
@@ -13,7 +15,6 @@ import {
 } from './entryTools.ts';
 import { HANDLER_NAMES, isAddableHandler } from '../../config/deviceFamilies.ts';
 import { pickDiscovered, pickIgnored, toDiscoveredDto, toIgnoredDto } from './discovered.ts';
-import type { DiscoveredDeviceDto, IgnoredDeviceDto } from './discovered.ts';
 import { buildFlowInput, buildGenericInput, buildMenuInput, hasInputRules } from './flowInput.ts';
 import {
   MAX_UPLOAD_BYTES,
@@ -23,12 +24,9 @@ import {
 } from './flowExtras.ts';
 import { flowErrorsFromBadRequest, normalizeFlowResult } from './flowModel.ts';
 import type {
-  FlowAbortDto,
   FlowConstants,
-  FlowCreatedDto,
   FlowErrorDto,
   FlowFieldDto,
-  FlowOpenStepDto,
   NormalizedFlow,
 } from './flowModel.ts';
 import { createTranslationCache } from './haTexts.ts';
@@ -39,12 +37,11 @@ import {
   toTvDto,
   withoutKnown,
 } from './tvClassify.ts';
-import type { TvCandidate, TvInReteDto } from './tvClassify.ts';
+import type { TvCandidate } from './tvClassify.ts';
 import type { HandlerTranslations } from './haTexts.ts';
 import type { HaArea, HaBrandImage, HaDevice, HaEntry, HaNetworkDevice } from './haAdapter.ts';
 import { isHaError } from './haTransport.ts';
 import { describeIdentityState } from './serviceIdentity.ts';
-import type { IdentityState } from './serviceIdentity.ts';
 import { publicEntryTitle } from './messagesIt.ts';
 
 /**
@@ -57,101 +54,25 @@ import { publicEntryTitle } from './messagesIt.ts';
  * who opened it.
  */
 
-export interface DeviceDto {
-  id: string;
-  name: string;
-  manufacturer: string | null;
-  model: string | null;
-  areaId: string | null;
-  areaName: string | null;
-}
 
-export interface EntryDto {
-  entryId: string;
-  domain: string;
-  title: string;
-  state: string;
-  loaded: boolean;
-  device: DeviceDto | null;
-  /** Entities of the entry that are visible (the Wake on LAN button is hidden). */
-  entities: string[];
-  mediaPlayerEntityId: string | null;
-  /** Power-on recipe state for a TV; null for other integrations. */
-  power: { configured: boolean } | null;
-  /** What to tell the person when the entry is not loaded (TV off, still starting); else null. */
-  message: string | null;
-}
 
-export type FlowResponseDto =
-  FlowOpenStepDto | FlowAbortDto | (FlowCreatedDto & { entry: EntryDto | null; pending: boolean });
 
-export interface FlowSummaryDto {
-  flowId: string;
-  handler: string;
-  stepId: string | null;
-  createdAt: string;
-  expiresAt: string;
-}
 
-export interface DiscoveredListDto {
-  devices: DiscoveredDeviceDto[];
-}
 
-export interface IgnoredListDto {
-  devices: IgnoredDeviceDto[];
-}
 
-export interface TvListDto {
-  tvs: TvInReteDto[];
-}
 
-export interface CatalogDto {
-  items: CatalogEntryDto[];
-  total: number;
-  /** True in D1: only the flow handlers of HA are listed, without brands and translations. */
-  degraded: boolean;
-  message: string | null;
-}
 
-export interface StatusDto {
-  user: { isAdmin: boolean };
-  service: {
-    state: IdentityState;
-    active: boolean;
-    message: string | null;
-    /**
-     * True when «Ripara il servizio» can fix the service by itself for this person: the app runs
-     * on HA OS (Supervisor token), or the person is a Home Assistant administrator.
-     */
-    repairable: boolean;
-    /** Installer only. */
-    detail?: string;
-    expiresAt?: string | null;
-  };
-  homeAssistant: {
-    reachable: boolean;
-    onboarded: boolean | null;
-    /** Installer only. */
-    version?: string | null;
-    verified?: boolean;
-  };
-  features: { catalog: boolean; flows: boolean; power: boolean };
-  /** Installer only. */
-  warnings?: string[];
-}
 
-export interface ActionDto {
-  id: number;
-  at: string;
-  user: string | null;
-  userName: string | null;
-  source: string;
-  action: string;
-  domain: string | null;
-  entryId: string | null;
-  outcome: string;
-  code: string | null;
-}
+
+
+
+
+
+
+
+
+
+
 
 export interface DeviceService {
   status(user: DeviceUser): Promise<StatusDto>;

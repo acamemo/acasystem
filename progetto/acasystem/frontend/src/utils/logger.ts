@@ -1,3 +1,5 @@
+import { reportDiagnostic } from '@/api/diagnosticApi';
+
 type LogArgs = unknown[];
 
 type Logger = {
@@ -26,5 +28,6 @@ export const logger: Logger = {
   },
   error: (...args) => {
     console.error(...args);
+    reportDiagnostic('client.error');
   },
 };

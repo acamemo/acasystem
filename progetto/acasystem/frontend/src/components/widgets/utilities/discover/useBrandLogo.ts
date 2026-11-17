@@ -46,12 +46,13 @@ export function resetBrandLogos(): void {
 /**
  * The logo of the brand of a device (the integration `handler`), and the icon to draw while it
  * loads or when there is none (404, an error): the icon of the family, or `wifi` without one.
+ * `settled` tells that the answer, a logo or the lack of one, is known (not still loading).
  * Logos come through Acasystem, never from a third party, in the dark variant with the dark theme.
  */
 export function useBrandLogo(
   handler: string,
   family: DeviceFamily | null
-): { url: string | null; icon: UtilityIconName } {
+): { url: string | null; icon: UtilityIconName; settled: boolean } {
   const dark = isDarkTheme();
   const key = keyOf(handler, dark);
   const [loaded, setLoaded] = useState<{ key: string; url: string | null } | null>(null);
@@ -68,5 +69,6 @@ export function useBrandLogo(
   }, [dark, handler, key]);
 
   const url = logos.has(key) ? (logos.get(key) ?? null) : loaded?.key === key ? loaded.url : null;
-  return { url, icon: family ? FAMILY_ICON[family] : 'wifi' };
+  const settled = !handler || logos.has(key) || loaded?.key === key;
+  return { url, icon: family ? FAMILY_ICON[family] : 'wifi', settled };
 }

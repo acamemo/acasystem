@@ -1,0 +1,6 @@
+.zigbee-details { min-inline-size: 0; }
+.zigbee-details .utility-list__main { min-inline-size: 0; overflow-wrap: anywhere; }
+.zigbee-details .utility-list__main > * { white-space: normal; }
+.zigbee-details button.aca-m { max-inline-size: 100%; white-space: normal; min-block-size: 44px; }
+.zigbee-details button .aca-m__content { flex-wrap: wrap; white-space: normal; }
+.zigbee-details .utility-list__end { flex-shrink: 0; }

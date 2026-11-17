@@ -33,6 +33,35 @@ const fieldsOf = (schema: unknown[], handler = 'acme', translations = null as ne
 };
 
 describe('text fields', () => {
+  it('recognizes the string password in the serialized SonoffLAN login without trimming it', () => {
+    // SonoffLAN 3.13.3, serialized by the bank's HA: optional plain strings, not selectors.
+    const { fields, constants } = fieldsOf([
+      { type: 'string', name: 'username', required: true },
+      { type: 'string', name: 'password', required: false, optional: true },
+      {
+        type: 'select',
+        options: [['+39', 'Italy | +39'], ['+33', 'France | +33']],
+        name: 'country_code',
+        required: false,
+        optional: true,
+      },
+    ], 'sonoff');
+    expect(fields.map(({ name, kind, required }) => ({ name, kind, required }))).toEqual([
+      { name: 'username', kind: 'text', required: true },
+      { name: 'password', kind: 'password', required: false },
+      { name: 'country_code', kind: 'select', required: false },
+    ]);
+    expect(buildGenericInput(fields, constants, {
+      username: ' example@example.test ', password: '  fake password  ', country_code: '+39',
+    })).toEqual({
+      ok: true,
+      input: { username: 'example@example.test', password: '  fake password  ', country_code: '+39' },
+    });
+    expect(buildGenericInput(fields, constants, { username: 'example@example.test' })).toEqual({
+      ok: true, input: { username: 'example@example.test' },
+    });
+  });
+
   it('keeps the format of an address, an e-mail and a phone number', () => {
     const { fields } = fieldsOf([
       { name: 'site', required: true, selector: { text: { type: 'url' } } },

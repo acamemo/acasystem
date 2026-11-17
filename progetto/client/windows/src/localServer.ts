@@ -213,8 +213,15 @@ export const startLocalServer = (port: number): Promise<LocalServer> =>
 
     const server = createServer((req, res) => {
       if (!hostAllowed(req)) return sendText(res, 421, 'Host non ammesso');
-      if (!target) return sendText(res, 503, 'Acasystem non è ancora pronto');
       const { pathname } = new URL(req.url ?? '/', 'http://127.0.0.1');
+      // Pagina nativa vuota: nessun asset o script proveniente dal bundle scaricato.
+      if (pathname === '/__acasystem/storage-reset' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+          'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff' });
+        res.end('<!doctype html><html lang="it"><title>Preparazione collegamento</title><body>Preparazione del collegamento…</body></html>');
+        return;
+      }
+      if (!target) return sendText(res, 503, 'Acasystem non è ancora pronto');
       if (isProxiedPath(pathname)) return proxyHttp(req, res, new URL(target.serverOrigin));
       if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'Metodo non ammesso');
       void serveStatic(target.bundleDir, pathname, res);

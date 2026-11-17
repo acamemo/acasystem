@@ -51,6 +51,10 @@ export interface ServiceKeeper {
   /** Checks now (start-up) and starts the periodic check. */
   start(): Promise<void>;
   stop(): void;
+  pauseForUpdate(): Promise<void>;
+  resumeAfterUpdate(): Promise<void>;
+  /** Public registration waits for the existing provisioning; no human admin credentials. */
+  ensureReady(): Promise<RepairAnswer>;
   /** HA refused the service token during a call. Never throws. */
   noteRejected(): void;
   /** A screen of the facade is open and the service may be off: the Supervisor repairs it. */
@@ -96,6 +100,8 @@ const messageForResult = (result: ActivationResult): string => {
       return 'In Home Assistant c’è già un utente «Acasystem (servizio)» creato a mano. Rinominalo da Persone > Utenti e tocca di nuovo «Ripara il servizio».';
     case 'secret_location':
       return 'Su questa installazione il servizio non ha un posto riservato dove salvare il suo accesso. Si risolve con un aggiornamento di Acasystem: riprova più tardi.';
+    case 'not_admin':
+      return MESSAGE_NO_MEANS;
     default:
       return MESSAGE_GENERIC;
   }
@@ -114,6 +120,7 @@ export const createServiceKeeper = (
   let timer: NodeJS.Timeout | null = null;
   let quickTimer: NodeJS.Timeout | null = null;
   let quickLeft = 0;
+  let paused = false;
 
   const nearExpiry = (expiresAt: string | null): boolean => {
     if (!expiresAt) return false;
@@ -185,6 +192,7 @@ export const createServiceKeeper = (
     session: AdminSession | null,
     options: { force: boolean }
   ): Promise<Outcome> => {
+    if (paused) return Promise.resolve({ kind: 'waiting' });
     if (running) return running;
     const run = (async (): Promise<Outcome> => {
       const need = await evaluate(options.force);
@@ -223,7 +231,7 @@ export const createServiceKeeper = (
   const startQuickChecks = (): void => {
     quickLeft = QUICK_CHECKS;
     const next = (): void => {
-      if (quickLeft <= 0) return;
+      if (paused || quickLeft <= 0) return;
       quickTimer = setTimeout(() => {
         quickLeft -= 1;
         void background('startup', supervisorSession(), true).then((outcome) => {
@@ -239,48 +247,63 @@ export const createServiceKeeper = (
 
   let lastDemandAt = 0;
 
+  const start = async (): Promise<void> => {
+    if (paused) return;
+    if (!timer) {
+      timer = setInterval(() => {
+        void background('timer', supervisorSession(), true);
+      }, checkIntervalMs ?? DEVICE_SERVICE_CHECK_INTERVAL_MS);
+      timer.unref();
+    }
+    const outcome = await background('startup', supervisorSession(), true);
+    // HA OS starts the app and Core at the same time: look again soon while Core is not ready.
+    const ready = outcome?.kind === 'active' || outcome?.kind === 'no_means';
+    if (!paused && supervisor && !ready && !(outcome?.kind === 'ran' && outcome.result.ok)) {
+      startQuickChecks();
+    }
+  };
+  const stopTimers = (): void => {
+    if (timer) clearInterval(timer);
+    if (quickTimer) clearTimeout(quickTimer);
+    timer = null;
+    quickTimer = null;
+    quickLeft = 0;
+  };
+
   return {
-    async start() {
-      if (!timer) {
-        timer = setInterval(() => {
-          void background('timer', supervisorSession(), true);
-        }, checkIntervalMs ?? DEVICE_SERVICE_CHECK_INTERVAL_MS);
-        timer.unref();
-      }
-      const outcome = await background('startup', supervisorSession(), true);
-      // HA OS starts the app and Core at the same time: look again soon while Core is not ready.
-      const ready = outcome?.kind === 'active' || outcome?.kind === 'no_means';
-      if (supervisor && !ready && !(outcome?.kind === 'ran' && outcome.result.ok)) {
-        startQuickChecks();
-      }
+    start,
+    stop: stopTimers,
+    async pauseForUpdate() {
+      paused = true;
+      stopTimers();
+      await running?.catch(() => undefined);
+    },
+    async resumeAfterUpdate() {
+      paused = false;
+      await start();
     },
 
-    stop() {
-      if (timer) clearInterval(timer);
-      if (quickTimer) clearTimeout(quickTimer);
-      timer = null;
-      quickTimer = null;
-      quickLeft = 0;
+    async ensureReady() {
+      const outcome = await check('demand', supervisorSession(), { force: true });
+      const active = outcome.kind === 'active' || (outcome.kind === 'ran' && outcome.result.ok);
+      return { active, message: active ? MESSAGE_ACTIVE : 'La centrale sta preparando gli accessi. Riprova fra poco.' };
     },
 
     noteRejected() {
-      if (!supervisor) return;
+      if (paused || !supervisor) return;
       void background('rejected', supervisorSession(), true);
     },
 
     poke() {
-      if (!supervisor || ctx.now() - lastDemandAt < MIN_GAP_MS) return;
+      if (paused || !supervisor || ctx.now() - lastDemandAt < MIN_GAP_MS) return;
       lastDemandAt = ctx.now();
       void background('demand', supervisorSession());
     },
 
     offerAdmin({ token, user }) {
-      if (supervisor || running) return;
-      void (async () => {
-        // Cheap when all is well: the identity answers from its own cache.
-        if ((await evaluate(false)) === 'ok') return;
-        await background('admin', { adapter: ctx.adapter, token, user });
-      })().catch(() => undefined);
+      if (paused || supervisor || running) return;
+      // The same tracked check handles the cached probe and any following repair.
+      void background('admin', { adapter: ctx.adapter, token, user });
     },
 
     canRepairAutomatically(user) {
@@ -288,14 +311,18 @@ export const createServiceKeeper = (
     },
 
     async repair(user, adminToken) {
+      if (paused) return { active: false, message: 'Aggiornamento ACA in corso. Riprova fra poco.' };
       const turn = ctx.limiters.mutation.take(user.id);
       if (!turn.allowed) {
         throw new DeviceError('RATE_LIMITED', { retryAfterSeconds: turn.retryAfterSeconds });
       }
 
-      const session: AdminSession | null =
-        supervisorSession() ??
-        (adminToken ? { adapter: ctx.adapter, token: adminToken, user: { id: user.id, name: user.name } } : null);
+      // Core may require the owner for an existing user's password. The explicit
+      // authenticated session must not be replaced by a less privileged Supervisor.
+      if (adminToken) await running?.catch(() => undefined);
+      const session: AdminSession | null = adminToken
+        ? { adapter: ctx.adapter, token: adminToken, user: { id: user.id, name: user.name } }
+        : supervisorSession();
 
       const report = await ctx.compat.get().catch(() => null);
       if (report?.onboarded === false) {

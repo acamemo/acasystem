@@ -3,9 +3,7 @@ import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import '@/styles/index.css';
-import '@/themes/acasystem/index.css';
-// Kit 2 skin (ADR-0011): remove this line to bring back the Metallo look.
-import '@/themes/kit2/index.css';
+import '@/design/index.css';
 import { ToastHost } from '@/components/system/toast/ToastHost';
 import { ConfigProvider } from '@/hooks/context/ConfigContext';
 import { PageProvider } from '@/hooks/context/PageContext';
@@ -15,6 +13,12 @@ import { isChunkLoadError, reloadForChunkErrorOnce } from '@/utils/launcher/chun
 import { App } from '@/app';
 import { isDemoHash, normalizeDemoPath, resolveDemoMode } from '@/routes/mockupRoutes';
 import { applyAppearance, readAppearance } from '@/utils/appearance';
+import { captureWebPairing } from '@/api/webPairing';
+import { Body, Button, Spinner } from '@/components/primitives';
+import { prepareStartupUpdates } from '@/utils/startupUpdates';
+
+const initialPairingHref = typeof window !== 'undefined' ? window.location.href : '';
+const initialPairing = typeof window !== 'undefined' ? captureWebPairing(window.location, window.history) : null;
 
 // localhost:3002/mockup (or the old /ui-kit, /kit, /ui) typed without the hash: the demo address.
 if (typeof window !== 'undefined') normalizeDemoPath();
@@ -52,14 +56,21 @@ async function start() {
 
   const root = document.getElementById('root');
   if (root) {
-    createRoot(root).render(
+    const reactRoot = createRoot(root);
+    const reload = () => {
+      // Il link gia validato viene ricatturato dal nuovo main: nessun invito perso o salvato su disco.
+      if (initialPairing?.kind === 'ready') window.history.replaceState(window.history.state, '', initialPairingHref);
+      window.location.reload();
+    };
+    const loading = (text: string) => reactRoot.render(<main className="aca-connect"><Spinner /><Body role="status">{text}</Body></main>);
+    const mount = () => reactRoot.render(
       <StrictMode>
         <AppErrorBoundary>
           <ToastProvider>
             <HashRouter>
               <ConfigProvider>
                 <PageProvider>
-                  <App />
+                  <App initialPairing={initialPairing} />
                 </PageProvider>
               </ConfigProvider>
             </HashRouter>
@@ -73,6 +84,30 @@ async function start() {
         </AppErrorBoundary>
       </StrictMode>
     );
+    const proceed = async () => {
+      if (!demo) loading('Verifica degli aggiornamenti…');
+      const result = await prepareStartupUpdates({ demo, appVersion: __APP_VERSION__, userAgent: navigator.userAgent,
+        onUpdating: () => loading('Aggiornamento di Acasystem in corso…') });
+      if (result.kind === 'reload') {
+        const key = 'aca-startup-update-reload';
+        try {
+          if (sessionStorage.getItem(key) !== result.version) {
+            sessionStorage.setItem(key, result.version);
+            reload();
+            return;
+          }
+        } catch { /* Storage non disponibile: mostrare una ripresa esplicita, senza loop di reload. */ }
+      }
+      if (result.kind !== 'ready') {
+        const message = result.kind === 'updating' ? 'La centrale sta ancora aggiornando Acasystem. Attendi un momento e riprova.'
+          : result.kind === 'reload' ? 'La nuova interfaccia non è ancora disponibile. Chiudi e riapri ACA, oppure riprova.'
+            : 'La centrale non risponde ancora. Controlla il collegamento e riprova.';
+        reactRoot.render(<main className="aca-connect"><Body role="status">{message}</Body><Button variant="primary" onClick={result.kind === 'reload' ? reload : () => void proceed()}>{result.kind === 'reload' ? 'Ricarica' : 'Riprova'}</Button></main>);
+        return;
+      }
+      mount();
+    };
+    await proceed();
   }
 }
 

@@ -80,7 +80,8 @@ describe('TV apps: tap with the TV off', () => {
       vi.advanceTimersByTime(TV_WAKE_TIMEOUT_MS);
     });
     expect(callService).not.toHaveBeenCalledWith('media_player', 'play_media', netflix);
-    expect(screen.getAllByText('Comando non riuscito. Riprova.').length).toBeGreaterThan(0);
+    // The TV never came on: the request timed out, and the message says so.
+    expect(screen.getAllByText('La TV non ha risposto. Riprova.').length).toBeGreaterThan(0);
   });
 
   it('with the TV on the app opens at once', async () => {

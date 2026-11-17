@@ -1,6 +1,7 @@
 import { DEFAULT_RELEASE_TIMEOUTS } from './defaults.ts';
 import type { ClientConfig, HostError, PortError } from './config.ts';
 import { parseHost, parsePort, serverOrigin } from './config.ts';
+import { parseConnectionCode } from './connectionCode.ts';
 import { checkServer } from './health.ts';
 import type { ConfigStore, HaHttp, HttpClient } from './ports.ts';
 import { detectMiniPc } from './setup.ts';
@@ -31,11 +32,13 @@ export const submitAddress = async (
     timeoutMs?: number;
   }
 ): Promise<WizardResult> => {
+  const connection = parseConnectionCode(host.trim());
   const parsedHost = parseHost(host);
   if (!parsedHost.ok) return { ok: false, error: parsedHost.error };
-  const parsedPort = parsePort(port);
+  const parsedPort = parsePort(port?.trim() ? port : connection.ok ? connection.value.port : undefined);
   if (!parsedPort.ok) return { ok: false, error: parsedPort.error };
   const candidate: ClientConfig = { host: parsedHost.value, port: parsedPort.value };
+  if (candidate.host.startsWith('127.')) return { ok: false, error: 'not-local' };
 
   const health = await checkServer(http, serverOrigin(candidate), timeoutMs);
   if (health.kind !== 'ok') return { ok: false, error: health.kind };

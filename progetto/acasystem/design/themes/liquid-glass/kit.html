@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>ACA Liquid Glass · UI kit</title>
+    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./kit.css">
+    <script type="module" src="./kit.js"></script>
+  </head>
+  <body>
+    <main class="glass-kit">
+      <header class="glass-kit__heading">
+        <h1 class="aca-type aca-type--title">ACA Liquid Glass</h1>
+        <p class="aca-type aca-type--body-md glass-kit__muted">Superfici satinate. Controlli leggeri.</p>
+      </header>
+      <nav class="glass-kit__nav aca-status-bar__pill" aria-label="Sezioni del kit">
+        <a href="#account" class="glass-kit__link" aria-current="location">Account</a>
+        <a href="#controlli" class="glass-kit__link">Controlli</a>
+        <a href="#attivita" class="glass-kit__link">Attività</a>
+      </nav>
+      <div class="glass-kit__grid">
+        <section id="account" class="glass-kit__panel aca-m aca-card aca-m--static aca-md aca-connect__panel" aria-labelledby="account-title">
+          <div class="aca-m__outer"><div class="aca-m__face"><div class="aca-m__content glass-kit__stack">
+            <h2 id="account-title" class="aca-type aca-type--heading-md">Il tuo account</h2>
+            <div class="glass-kit__person"><span class="glass-kit__avatar" aria-hidden="true">M</span><div class="glass-kit__identity"><strong data-person>Mattia</strong><span class="glass-kit__muted">Casa principale</span></div></div>
+            <label class="glass-kit__stack glass-kit__stack--tight">Nome utente
+              <span class="aca-m aca-well aca-pill aca-md aca-field"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><input class="aca-field__input" name="username" value="Mattia" autocomplete="off"></span></span></span></span>
+            </label>
+            <div class="glass-kit__row" id="account-actions"></div>
+            <p id="kit-result" class="glass-kit__muted" role="status" aria-live="polite">Anteprima locale</p>
+          </div></div></div>
+        </section>
+        <section id="controlli" class="glass-kit__panel aca-m aca-card aca-m--static aca-md" aria-labelledby="controls-title">
+          <div class="aca-m__outer"><div class="aca-m__face"><div class="aca-m__content glass-kit__stack">
+            <h2 id="controls-title" class="aca-type aca-type--heading-md">Controlli</h2>
+            <div class="glass-kit__row glass-kit__row--between"><span>Luce del soggiorno</span>
+              <button type="button" class="aca-toggle" role="switch" aria-checked="true" aria-label="Luce del soggiorno"><span class="aca-toggle__track"><span class="aca-toggle__knob"></span></span></button>
+            </div>
+            <div class="glass-kit__row" id="control-actions"></div>
+            <div class="glass-kit__status"><span class="glass-kit__dot" aria-hidden="true"></span>Connesso alla centrale</div>
+            <p class="glass-kit__error" role="note">Esempio di errore: centrale non raggiungibile.</p>
+          </div></div></div>
+        </section>
+        <section id="attivita" class="glass-kit__activity" aria-labelledby="activity-title">
+          <h2 id="activity-title" class="aca-type aca-type--heading-md">Attività</h2>
+          <div class="glass-kit__activity-list" id="activity-list"></div>
+        </section>
+      </div>
+    </main>
+    <dialog class="aca-sheet" aria-labelledby="kit-dialog-title">
+      <div class="aca-m aca-card aca-m--static aca-md aca-sheet__panel"><div class="aca-m__outer"><div class="aca-m__face"><div class="aca-m__content glass-kit__stack">
+        <h2 id="kit-dialog-title" class="aca-type aca-type--heading-md">Dettagli attività</h2>
+        <p>Questa è una dimostrazione del materiale condiviso.</p>
+        <p class="glass-kit__muted">Nessun comando viene inviato ai dispositivi.</p>
+        <div id="dialog-actions"></div>
+      </div></div></div></div>
+    </dialog>
+    <aside class="glass-kit__tools" aria-label="Dati della dimostrazione">
+      <button type="button" data-data="demo" aria-pressed="true">Dati normali</button>
+      <button type="button" data-data="worst" aria-pressed="false">Dati lunghi</button>
+      <button type="button" data-data="empty" aria-pressed="false">Lista vuota</button>
+    </aside>
+  </body>
+</html>

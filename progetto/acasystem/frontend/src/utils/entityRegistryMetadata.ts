@@ -57,6 +57,7 @@ export const enrichEntitiesWithRegistryMetadata = <T>(
 
     assignIfMissing('platform', entityRegistryEntry?.platform);
     assignIfMissing('integration', entityRegistryEntry?.platform);
+    assignIfMissing('config_entry_id', entityRegistryEntry?.config_entry_id);
     assignIfMissing('manufacturer', readKey(deviceRegistryEntry, 'manufacturer'));
     assignIfMissing('device_manufacturer', readKey(deviceRegistryEntry, 'manufacturer'));
     assignIfMissing('model', readKey(deviceRegistryEntry, 'model'));

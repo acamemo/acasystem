@@ -13,3 +13,5 @@ documentazione/design/componenti/integrita.json text eol=lf
 progetto/acasystem/** -text
 progetto/compose.tunet.yaml text eol=lf
 progetto/tunet-origin.json text eol=lf
+progetto/ha-app/image/run.sh text eol=lf
+progetto/ha-app/bootstrap/*.sh text eol=lf

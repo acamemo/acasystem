@@ -1,0 +1,228 @@
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AuthData } from 'home-assistant-js-websocket';
+const mocks = vi.hoisted(() => ({ status: vi.fn(), attempt: vi.fn(), create: vi.fn(), verify: vi.fn(), bind: vi.fn(), revoke: vi.fn() }));
+vi.mock('@/api/registration', () => ({ readRegistrationStatus: mocks.status, readRegistrationAttempt: mocks.attempt,
+  createHouseMember: mocks.create, verifyRegisteredSession: mocks.verify }));
+vi.mock('@/api/ownerAppearance', async (original) => ({ ...await original<typeof import('@/api/ownerAppearance')>(), bindMemberAppearance: mocks.bind }));
+vi.mock('@/api/haSession', async (original) => ({ ...await original<typeof import('@/api/haSession')>(), revokeSession: mocks.revoke }));
+vi.mock('@/pages/connect/LoginForm', () => ({ LoginForm: ({ initialUsername, onSession }: { initialUsername: string; onSession: (tokens: AuthData) => void }) =>
+  <button onClick={() => onSession({ access_token: 'new-session' } as AuthData)}>Accedi come {initialUsername}</button> }));
+import { RegistrationForm } from '@/pages/connect/RegistrationForm';
+import { USER_COLORS } from '../../../contracts/registration';
+import { rememberOwnerAppearance } from '@/api/ownerAppearance';
+
+const PASSWORD = 'password-temporanea-9';
+const fill = () => {
+  fireEvent.change(screen.getByLabelText('Nome utente'), { target: { value: 'Anna' } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } });
+  fireEvent.change(screen.getByLabelText('Conferma password'), { target: { value: PASSWORD } });
+};
+beforeEach(() => { sessionStorage.clear(); localStorage.clear(); vi.resetAllMocks(); mocks.status.mockResolvedValue({ ready: true }); mocks.attempt.mockResolvedValue(null); });
+afterEach(cleanup);
+describe('nuovo membro HA dalla webapp', () => {
+  it('un nuovo signup non eredita immagini da un intento owner senza il proprio attempt', async () => {
+    rememberOwnerAppearance('owner', '#ffffff', { avatar: 'data:image/jpeg;base64,AQID' });
+    render(<RegistrationForm onSession={vi.fn()} />);
+    await waitFor(() => expect(screen.getByLabelText('Personalizza colore profilo')).toBeEnabled());
+    expect(screen.getByLabelText('Personalizza colore profilo')).toHaveValue(USER_COLORS[0]);
+    expect(screen.queryByRole('button', { name: 'Rimuovi foto profilo' })).toBeNull();
+  });
+  it('mostra una pill con iniziale e picker nativo accessibile senza dettagli o tavolozza', async () => {
+    const { container } = render(<RegistrationForm onSession={vi.fn()} />);
+    const picker = screen.getByLabelText('Personalizza colore profilo');
+    expect(picker).toBeDisabled();
+    await waitFor(() => expect(picker).toBeEnabled());
+    expect(picker).toHaveAttribute('type', 'color');
+    expect(picker).toHaveValue(USER_COLORS[0]);
+    expect(screen.getByText('Personalizza')).toBeVisible();
+    expect(screen.queryByLabelText('Il tuo nome')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    expect(screen.getByRole('img', { name: 'Anteprima profilo: A' })).toHaveTextContent('A');
+    expect(container.querySelector('details')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Colore \d/ })).toBeNull();
+    picker.focus();
+    expect(picker).toHaveFocus();
+    expect(picker.tabIndex).toBe(0);
+    fireEvent.change(screen.getByLabelText('Nome utente'), { target: { value: 'mario' } });
+    expect(screen.getByRole('img', { name: 'Anteprima profilo: M' })).toHaveTextContent('M');
+    fireEvent.change(screen.getByLabelText('Nome utente'), { target: { value: '  Zelda' } });
+    expect(screen.getByRole('img', { name: 'Anteprima profilo: Z' })).toHaveTextContent('Z');
+  });
+  it.each([
+    ['#ffffff', '#000000'],
+    ['#000000', '#ffffff'],
+  ])('mantiene leggibile l’iniziale con lo sfondo %s', async (color, ink) => {
+    render(<RegistrationForm onSession={vi.fn()} />);
+    const picker = screen.getByLabelText('Personalizza colore profilo');
+    await waitFor(() => expect(picker).toBeEnabled());
+    fireEvent.change(picker, { target: { value: color } });
+    expect(picker).toHaveValue(color);
+    expect(screen.getByRole('img', { name: 'Anteprima profilo: A' })).toHaveStyle({ backgroundColor: color, color: ink });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('mostra separatamente password e conferma senza avviare la registrazione', async () => {
+    render(<RegistrationForm onSession={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    fill();
+    const password = screen.getByLabelText('Password');
+    const confirmation = screen.getByLabelText('Conferma password');
+    fireEvent.click(screen.getByRole('button', { name: 'Mostra password' }));
+    expect(password).toHaveAttribute('type', 'text'); expect(confirmation).toHaveAttribute('type', 'password');
+    fireEvent.click(screen.getByRole('button', { name: 'Mostra conferma password' }));
+    expect(confirmation).toHaveAttribute('type', 'text');
+    expect(password).toHaveValue(PASSWORD); expect(confirmation).toHaveValue(PASSWORD);
+    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.verify).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('aca:registration:attempt')).toBeNull();
+  });
+  it('conserva colore separato dal tentativo e lo lega solo dopo la verifica del login', async () => {
+    mocks.create.mockImplementation(async (input: { attemptId: string }) => ({ attemptId: input.attemptId, status: 'created', userId: 'anna-id' }));
+    const onSession = vi.fn();
+    render(<RegistrationForm onSession={onSession} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    fill();
+    fireEvent.change(screen.getByLabelText('Nome utente'), { target: { value: '  ANNA  ' } });
+    fireEvent.change(screen.getByLabelText('Personalizza colore profilo'), { target: { value: '#123abc' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    expect(await screen.findByRole('button', { name: 'Accedi come anna' })).toBeVisible();
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ username: 'anna', name: 'anna', password: PASSWORD }));
+    expect(mocks.create.mock.calls[0]![0]).not.toHaveProperty('color');
+    expect(JSON.parse(sessionStorage.getItem('aca:registration:attempt') || '{}')).toMatchObject({ name: 'anna', username: 'anna' });
+    expect(JSON.parse(sessionStorage.getItem('aca:setup:owner-appearance') || '{}')).toMatchObject({ color: '#123abc', kind: 'member' });
+    expect(JSON.stringify({ ...sessionStorage, ...localStorage })).not.toContain(PASSWORD);
+    expect(sessionStorage.getItem('aca:registration:attempt')).not.toContain('password');
+    fireEvent.click(screen.getByRole('button', { name: 'Accedi come anna' }));
+    await waitFor(() => expect(onSession).toHaveBeenCalledWith({ access_token: 'new-session' }));
+    expect(mocks.verify).toHaveBeenCalledWith({ access_token: 'new-session' }, 'anna-id', false);
+    expect(mocks.bind).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem('aca:registration:attempt')).toBeNull();
+  });
+  it('mantiene lo stesso tentativo e i dati identificativi durante un esito incerto', async () => {
+    mocks.create.mockImplementation(async (input: { attemptId: string }) => ({ attemptId: input.attemptId, status: 'pending', userId: null }));
+    const first = render(<RegistrationForm onSession={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    fill();
+    fireEvent.change(screen.getByLabelText('Personalizza colore profilo'), { target: { value: '#9b27e1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    expect(await screen.findByText(/tentativo è ancora in verifica/)).toBeVisible();
+    expect(screen.getByLabelText('Nome utente')).toBeDisabled();
+    expect(screen.getByLabelText('Personalizza colore profilo')).toBeDisabled();
+    const saved = sessionStorage.getItem('aca:registration:attempt');
+    first.unmount();
+    mocks.attempt.mockResolvedValue({ attemptId: JSON.parse(saved || '{}').attemptId, status: 'pending', userId: null });
+    render(<RegistrationForm onSession={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    expect(screen.getByLabelText('Personalizza colore profilo')).toBeDisabled();
+    expect(screen.getByLabelText('Personalizza colore profilo')).toHaveValue('#9b27e1');
+    expect(screen.getByRole('img', { name: 'Anteprima profilo: A' })).toHaveStyle({ backgroundColor: '#9b27e1' });
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Conferma password'), { target: { value: PASSWORD } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
+    expect(mocks.create.mock.calls[0]?.[0].attemptId).toBe(mocks.create.mock.calls[1]?.[0].attemptId);
+    expect(mocks.create.mock.calls[0]?.[0].color).toBeUndefined();
+    expect(mocks.create.mock.calls[1]?.[0].color).toBeUndefined();
+    expect(sessionStorage.getItem('aca:registration:attempt')).toBe(saved);
+  });
+  it('riprende il tentativo legacy senza normalizzare nome, identificativo o colore', async () => {
+    const legacy = { attemptId: 'legacy-pending', name: 'Nome Storico', username: 'anna.legacy', color: '#245abc' };
+    sessionStorage.setItem('aca:registration:attempt', JSON.stringify(legacy));
+    mocks.attempt.mockResolvedValue({ attemptId: legacy.attemptId, status: 'pending', userId: null });
+    mocks.create.mockResolvedValue({ attemptId: legacy.attemptId, status: 'pending', userId: null });
+    render(<RegistrationForm onSession={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    expect(screen.queryByLabelText('Il tuo nome')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Nome utente')).toHaveValue(legacy.username);
+    expect(screen.getByLabelText('Nome utente')).toBeDisabled();
+    expect(screen.getByLabelText('Personalizza colore profilo')).toHaveValue(legacy.color);
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Conferma password'), { target: { value: PASSWORD } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    await screen.findByText(/tentativo è ancora in verifica/);
+    expect(mocks.create).toHaveBeenCalledWith({ ...legacy, password: PASSWORD });
+    expect(JSON.parse(sessionStorage.getItem('aca:registration:attempt') || '{}')).toEqual(legacy);
+    expect(sessionStorage.getItem('aca:registration:attempt')).not.toContain(PASSWORD);
+  });
+  it('recupera soltanto i campi consentiti di un attempt e non propaga eventuali immagini estranee', async () => {
+    sessionStorage.setItem('aca:registration:attempt', JSON.stringify({ attemptId: 'legacy-pending', name: 'Anna', username: 'anna', avatar: 'data:image/jpeg;base64,AQID' }));
+    mocks.attempt.mockResolvedValue({ status: 'pending', userId: null });
+    mocks.create.mockResolvedValue({ status: 'pending' });
+    render(<RegistrationForm onSession={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Conferma password'), { target: { value: PASSWORD } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledOnce());
+    expect(mocks.create.mock.calls[0]![0]).not.toHaveProperty('avatar');
+    expect(sessionStorage.getItem('aca:registration:attempt')).not.toContain('data:image');
+  });
+  it('recupera un legacy completato tramite login senza creare o rinominare utenti', async () => {
+    const legacy = { attemptId: 'legacy-created', name: 'Nome Storico', username: 'anna.legacy', color: '#245abc' };
+    sessionStorage.setItem('aca:registration:attempt', JSON.stringify(legacy));
+    mocks.attempt.mockResolvedValue({ attemptId: legacy.attemptId, status: 'created', userId: 'legacy-user' });
+    const onSession = vi.fn();
+    render(<RegistrationForm onSession={onSession} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Accedi come anna.legacy' }));
+    await waitFor(() => expect(onSession).toHaveBeenCalledWith({ access_token: 'new-session' }));
+    expect(mocks.verify).toHaveBeenCalledWith({ access_token: 'new-session' }, 'legacy-user', false);
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('aca:registration:attempt')).toBeNull();
+  });
+  it('rilascia un legacy fallito e usa il nome unico nel nuovo tentativo', async () => {
+    sessionStorage.setItem('aca:registration:attempt', JSON.stringify({ attemptId: 'old-id', name: 'Nome Storico', username: 'anna' }));
+    mocks.attempt.mockResolvedValue({ attemptId: 'old-id', status: 'failed', userId: null });
+    mocks.create.mockImplementation(async (input: { attemptId: string }) => ({ attemptId: input.attemptId, status: 'pending', userId: null }));
+    render(<RegistrationForm onSession={vi.fn()} />);
+    expect(await screen.findByText(/tentativo precedente non è stato completato/)).toBeVisible();
+    expect(screen.getByLabelText('Nome utente')).toBeEnabled();
+    expect(sessionStorage.getItem('aca:registration:attempt')).toBeNull();
+    fill();
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    await screen.findByText(/tentativo è ancora in verifica/);
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'anna', username: 'anna' }));
+    expect(mocks.create.mock.calls[0]?.[0].attemptId).not.toBe('old-id');
+  });
+  it('uno username occupato non modifica account esistenti e permette un nuovo tentativo', async () => {
+    mocks.create.mockRejectedValue(new Error('Nome utente già presente.'));
+    mocks.attempt.mockResolvedValue({ status: 'failed' });
+    render(<RegistrationForm onSession={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    fill();
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nome utente già presente.');
+    await waitFor(() => expect(screen.getByLabelText('Nome utente')).toBeEnabled());
+    expect(sessionStorage.getItem('aca:registration:attempt')).toBeNull();
+    expect(mocks.verify).not.toHaveBeenCalled();
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ username: 'anna', name: 'anna' }));
+  });
+  it('non crea utenti finché l’identità servizio non è pronta e controlla la conferma password', async () => {
+    mocks.status.mockResolvedValue({ ready: false });
+    render(<RegistrationForm onSession={vi.fn()} />);
+    expect(await screen.findByText(/centrale sta preparando/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Crea account' })).toBeDisabled();
+    expect(mocks.create).not.toHaveBeenCalled();
+    mocks.status.mockResolvedValue({ ready: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Riprova' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    fill(); fireEvent.change(screen.getByLabelText('Conferma password'), { target: { value: 'diversa' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Le password non coincidono');
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('abbandonare la verifica non accetta una sessione tardiva e revoca soltanto il grant nuovo una volta', async () => {
+    let resolve!: () => void;
+    mocks.create.mockImplementation(async (input: { attemptId: string }) => ({ attemptId: input.attemptId, status: 'created', userId: 'anna-id' }));
+    mocks.verify.mockReturnValue(new Promise<void>((done) => { resolve = done; }));
+    const onSession = vi.fn();
+    const view = render(<RegistrationForm onSession={onSession} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Crea account' })).toBeEnabled());
+    fill(); fireEvent.click(screen.getByRole('button', { name: 'Crea account' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Accedi come anna' }));
+    view.unmount();
+    await act(async () => resolve());
+    expect(onSession).not.toHaveBeenCalled();
+    expect(mocks.bind).not.toHaveBeenCalled();
+    expect(mocks.revoke).toHaveBeenCalledExactlyOnceWith({ access_token: 'new-session' });
+  });
+});

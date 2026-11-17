@@ -1,3 +1,5 @@
+export type { FlowFieldKind, QrLevel, FlowFieldDto, FlowErrorDto, FlowFormDto, FlowMenuDto, FlowProgressDto, FlowExternalDto, FlowAbortDto, FlowCreatedStepDto as FlowCreatedDto, FlowOpenStepDto, FlowTerminalDto } from '../../../../contracts/devices.ts';
+import type { FlowFieldDto, FlowErrorDto, FlowOpenStepDto, FlowTerminalDto } from '../../../../contracts/devices.ts';
 import { isRecord } from '../../helpers/objects.ts';
 import { asString } from '../../helpers/text.ts';
 import { countryOptions } from './countries.ts';
@@ -25,51 +27,7 @@ import {
  * is not English), then from a generic Italian label.
  */
 
-export type FlowFieldKind =
-  | 'text'
-  | 'password'
-  | 'integer'
-  | 'number'
-  | 'boolean'
-  | 'select'
-  | 'multiselect'
-  /** A file the person picks; the answer is the id HA gave to the upload (`file` selector). */
-  | 'file'
-  /** A picture to scan (`qr_code` selector): shown, never answered. */
-  | 'qr';
-
 /** Error correction of a QR code, as the letter the encoder takes. */
-export type QrLevel = 'L' | 'M' | 'Q' | 'H';
-
-export interface FlowFieldDto {
-  name: string;
-  kind: FlowFieldKind;
-  required: boolean;
-  label: string;
-  hint?: string;
-  default?: string | number | boolean;
-  /** A text field that takes several lines. */
-  multiline?: boolean;
-  /** A text field for an address, an e-mail or a phone number (the keyboard and the format). */
-  inputType?: 'url' | 'email' | 'tel';
-  /** A choice that also takes a value of the person's own (HA `custom_value`). */
-  allowCustom?: boolean;
-  /**
-   * Section (HA `expandable`) the field belongs to. `name` is then `section.field`; the answer is
-   * nested again when it is sent to HA.
-   */
-  section?: string;
-  sectionLabel?: string;
-  /** The section itself is required: it is sent even if every field of it is left empty. */
-  sectionRequired?: boolean;
-  min?: number;
-  max?: number;
-  options?: { value: string; label: string }[];
-  /** `file`: what the picker accepts (HTML `accept`: `.json,image/*`). */
-  accept?: string;
-  /** `qr`: the text to encode and the error correction HA asked for. */
-  qr?: { data: string; level: QrLevel };
-}
 
 /**
  * What the server has to look up in HA to give a field its choices (serial ports, entities):
@@ -93,76 +51,7 @@ export type FlowLookup =
       exclude: string[];
     };
 
-export interface FlowErrorDto {
-  /** Field the error belongs to; null for an error of the whole step. */
-  field: string | null;
-  code: string;
-  message: string;
-}
-
-export interface FlowFormDto {
-  type: 'form';
-  flowId: string;
-  handler: string;
-  stepId: string;
-  title: string;
-  description: string | null;
-  waitSeconds: number | null;
-  fields: FlowFieldDto[];
-  errors: FlowErrorDto[];
-}
-
-export interface FlowMenuDto {
-  type: 'menu';
-  flowId: string;
-  handler: string;
-  stepId: string;
-  title: string;
-  description: string | null;
-  options: { id: string; label: string }[];
-}
-
-export interface FlowProgressDto {
-  type: 'progress';
-  flowId: string;
-  handler: string;
-  stepId: string;
-  title: string;
-  /** Italian sentence for the wait. */
-  description: string;
-  /** Machine key of the task (`progress_action`), for the registry and the tests. */
-  progressAction: string | null;
-}
-
 /** A step that continues on another site (the login of the maker's cloud, OAuth). */
-export interface FlowExternalDto {
-  type: 'external';
-  flowId: string;
-  handler: string;
-  stepId: string;
-  title: string;
-  description: string;
-  /** Page to open in a new window; always http or https. */
-  url: string;
-}
-
-export interface FlowAbortDto {
-  type: 'abort';
-  handler: string;
-  reason: string;
-  message: string;
-}
-
-export interface FlowCreatedDto {
-  type: 'create_entry';
-  handler: string;
-  entryId: string;
-  domain: string;
-  title: string;
-}
-
-export type FlowOpenStepDto = FlowFormDto | FlowMenuDto | FlowProgressDto | FlowExternalDto;
-export type FlowTerminalDto = FlowAbortDto | FlowCreatedDto;
 
 /**
  * Values HA wants in every answer of a step (`constant` fields): kept here, never drawn. A
@@ -187,7 +76,6 @@ export type NormalizedFlow =
   | { outcome: 'continue'; flowId: string }
   | { outcome: 'terminal'; dto: FlowTerminalDto; nextFlowId: string | null }
   | { outcome: 'unsupported'; flowId: string | null; reason: string };
-
 
 const unsupported = (flowId: string | null, reason: string): NormalizedFlow => ({
   outcome: 'unsupported',
@@ -382,7 +270,7 @@ const normalizeField = (field: unknown, texts: TextContext, scope?: SectionScope
 
   switch (field.type) {
     case 'string': {
-      result.kind = 'text';
+      result.kind = inner === 'password' ? 'password' : 'text';
       const inputType = typeof field.format === 'string' ? INPUT_TYPES[field.format] : undefined;
       if (inputType) result.inputType = inputType;
       return { kind: 'field', field: result };

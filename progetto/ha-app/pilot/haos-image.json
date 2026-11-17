@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "version": "18.4",
+  "fileName": "haos_ova-18.4.vhdx.zip",
+  "url": "https://github.com/home-assistant/operating-system/releases/download/18.4/haos_ova-18.4.vhdx.zip",
+  "size": 560616192,
+  "sha256": "ab49fec41536c49fb7ca23db0a383f1e6b6078ac3e1a169a177cc8ec58641993",
+  "verifiedOn": "2026-11-16",
+  "source": "https://api.github.com/repos/home-assistant/operating-system/releases/tags/18.4"
+}

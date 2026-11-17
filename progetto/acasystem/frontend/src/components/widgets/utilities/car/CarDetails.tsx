@@ -1,367 +1,262 @@
-import { useId } from 'react';
-import { LockDetails } from '../../controls/lock/LockDetails';
-import { Body, Caption, MaterialLayers, materialClass } from '@/components/primitives';
+import { useId, useState } from 'react';
+import {
+  Body,
+  Caption,
+  ConsoleColumns,
+  Disclosure,
+  DisclosureGroup,
+  Skeleton,
+} from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import {
-  entityOf,
-  friendlyName,
-  isUnavailableState,
-  listAttr,
-  numberAttr,
-  numericState,
-  readableState,
-  safeState,
-  stringAttr,
-} from '../shared/entity';
-import { formatCompact, formatRelative } from '../shared/format';
-import { CommandButton, CommandToggle, ValueStepper } from '../shared/controls';
-import { DetailsBody, OptionPicker, Section, StatList, type StatItem } from '../shared/details';
-import { Chip, Notice, commandNotice } from '../shared/UtilityCard';
-import { useCommand } from '../shared/useCommand';
-import { haUnit, lengthReading, temperatureReading } from '../shared/units';
-import { carPosition, chargeControlCall, oneDecimal, readCar, readCarSettings } from './carData';
+  CAR_SOURCE_FIELDS,
+  carCapabilities,
+  carCoordinates,
+  carReading,
+  carSourceMetadata,
+  configuredCarSources,
+  type CarSourceField,
+} from '@/domain/car/carSources';
+import { DetailsBody, OptionPicker, Section, StatList } from '../shared/details';
+import { CarAction, CarControlScope, CarLock, CarNumeric, CarSelect } from './CarControls';
+import { CarHistory } from './CarHistory';
+import './car.css';
 
-const CLIMATE_MIN = 16;
-const CLIMATE_MAX = 30;
+const historical = new Set<CarSourceField>([
+  'batteryId',
+  'rangeId',
+  'odometerId',
+  'fuelLevelId',
+  'chargingPowerId',
+  'chargeRateId',
+  'timeToFullId',
+  'tempId',
+  'chargeLimitNumberId',
+]);
 
-/** Car details (legacy LeafModal): state, map, readings, climate, charging and vehicle controls. */
 export function CarDetails({ settings }: WidgetDetailsProps) {
-  const runtime = useWidgetRuntime();
-  const { entities, haConfig } = runtime;
-  const car = readCarSettings(settings);
-  const { ids } = car;
-  const data = readCar(entities, car, haConfig);
-  const position = carPosition(entities, car);
-  const climateLabelId = `clima-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const selectCommand = useCommand(entityOf(entities, ids.chargeLimitSelectId));
-
-  const climate = entityOf(entities, ids.climateId);
-  const tempEntity = entityOf(entities, ids.tempId);
-  const odometer = entityOf(entities, ids.odometerId);
-  // Climate entities report in the HA unit; the interior sensor is converted to it.
-  const climateUnit = haUnit(
-    'temperature',
-    haConfig,
-    stringAttr(climate, 'temperature_unit') ?? '°C'
+  const runtime = useWidgetRuntime(),
+    config = configuredCarSources(settings),
+    sectionId = useId();
+  const [selected, setSelected] = useState<string | null>(null),
+    [technicalOpen, setTechnicalOpen] = useState<string | null>(null);
+  const sources = CAR_SOURCE_FIELDS.flatMap((source) => {
+    const id = config.ids[source.key];
+    return id
+      ? [
+          {
+            ...source,
+            id,
+            entity: runtime.entities[id],
+            reading: carReading(runtime.entities[id], source.key),
+          },
+        ]
+      : [];
+  });
+  const histories = sources.filter(
+    (source) =>
+      historical.has(source.key) && carSourceMetadata(source.entity, source.key).compatible
   );
-  const interior = ids.tempId
-    ? temperatureReading(
-        numericState(tempEntity),
-        stringAttr(tempEntity, 'unit_of_measurement'),
-        haConfig
-      )
-    : { value: numberAttr(climate, 'current_temperature'), unit: climateUnit };
-  const odometerReading = lengthReading(
-    numericState(odometer),
-    stringAttr(odometer, 'unit_of_measurement'),
-    haConfig
-  );
-  const target = numberAttr(climate, 'temperature');
-  const climateFeatures = numberAttr(climate, 'supported_features') ?? 0;
-  const lastUpdated = safeState(entityOf(entities, ids.lastUpdatedId));
-  const apiStatus = safeState(entityOf(entities, ids.apiStatusId));
-  const reading = (id: string | undefined) => (id ? readableState(entityOf(entities, id)) : '--');
-
-  const status = data.isCharging ? 'In carica' : data.isClimateOn ? 'Clima acceso' : 'Inattiva';
-  const stats: StatItem[] = [];
-  if (ids.batteryId) {
-    stats.push({
-      key: 'battery',
-      label: 'Batteria',
-      value: formatCompact(oneDecimal(data.battery), 1),
-      unit: '%',
-      note: ids.pluggedId ? <Caption>{data.isPlugged ? 'Collegata' : 'Scollegata'}</Caption> : null,
-    });
-  }
-  if (ids.rangeId) {
-    stats.push({
-      key: 'range',
-      label: 'Autonomia',
-      value: formatCompact(data.range, 1),
-      unit: data.rangeUnit,
-    });
-  }
-  if (ids.tempId || interior.value !== null) {
-    stats.push({
-      key: 'temp',
-      label: 'Temperatura interna',
-      value: formatCompact(interior.value, 1),
-      unit: interior.unit,
-    });
-  }
-  if (ids.odometerId) {
-    stats.push({
-      key: 'odometer',
-      label: 'Contachilometri',
-      value: formatCompact(oneDecimal(odometerReading.value), 1),
-      unit: odometerReading.unit,
-    });
-  }
-  if (ids.fuelLevelId) {
-    stats.push({
-      key: 'fuel',
-      label: 'Carburante',
-      value: formatCompact(oneDecimal(numericState(entityOf(entities, ids.fuelLevelId))), 1),
-      unit: '%',
-    });
-  }
-  if (ids.chargingPowerId)
-    stats.push({ key: 'power', label: 'Potenza di carica', value: reading(ids.chargingPowerId) });
-  if (ids.chargeRateId)
-    stats.push({ key: 'rate', label: 'Velocità di carica', value: reading(ids.chargeRateId) });
-  if (ids.timeToFullId)
-    stats.push({ key: 'full', label: 'Carica completa tra', value: reading(ids.timeToFullId) });
-  if (ids.chargeEndTimeId)
-    stats.push({ key: 'end', label: 'Fine della carica', value: reading(ids.chargeEndTimeId) });
-
-  const limitNumber = entityOf(entities, ids.chargeLimitNumberId);
-  const limitSelect = entityOf(entities, ids.chargeLimitSelectId);
-  const ignition = entityOf(entities, ids.ignitionSwitchId);
-  const selectNotice = commandNotice(selectCommand.errorKey, selectCommand.unconfirmedKey);
-
-  return (
-    <DetailsBody>
-      <Section
-        title="Stato"
-        icon="car"
-        aside={
-          ids.updateButtonId ? (
-            <CommandButton
-              entity={entityOf(entities, ids.updateButtonId)}
-              domain="button"
-              service="press"
-              data={{ entity_id: ids.updateButtonId }}
-              icon="refresh"
-            >
-              Aggiorna dati
-            </CommandButton>
-          ) : null
-        }
-      >
-        <div className="utility-chips">
-          <Chip
-            icon={data.isCharging ? 'energy' : data.isClimateOn ? 'thermostat' : 'car'}
-            tone={data.isCharging || data.isClimateOn ? 'active' : 'neutral'}
-          >
-            {status}
-          </Chip>
-          {lastUpdated && (
-            <Chip icon="clock">Aggiornata {formatRelative(lastUpdated) ?? lastUpdated}</Chip>
-          )}
-          {apiStatus && <Chip icon="wifi">Servizio: {apiStatus}</Chip>}
-        </div>
-      </Section>
-
-      <Section title="Posizione" icon="location">
-        {data.location && safeState(data.location) && (
-          <Body size="sm" tone="ink">
-            {readableState(data.location)}
-          </Body>
-        )}
-        {position ? (
-          <figure className="utility-figure">
-            <div
-              className={materialClass(
-                { behavior: 'well', shape: 'card', size: 'inherit' },
-                'utility-map'
-              )}
-            >
-              <MaterialLayers element="div">
-                <iframe
-                  title="Mappa con l’ultima posizione dell’auto"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${position.lon - 0.005}%2C${position.lat - 0.005}%2C${position.lon + 0.005}%2C${position.lat + 0.005}&layer=mapnik&marker=${position.lat}%2C${position.lon}`}
-                />
-              </MaterialLayers>
-            </div>
-            <Caption as="figcaption">Ultima posizione rilevata</Caption>
-          </figure>
-        ) : (
-          <Notice icon="map">
-            Posizione non disponibile: collega un localizzatore con coordinate.
-          </Notice>
-        )}
-      </Section>
-
-      {stats.length > 0 && (
-        <Section title="Batteria e viaggio" icon="battery">
-          <StatList items={stats} />
-        </Section>
-      )}
-
-      {ids.climateId && (
-        <Section
-          title="Clima"
-          icon="thermostat"
-          aside={
-            <span className="utility-inline">
-              <Caption id={climateLabelId}>{data.isClimateOn ? 'Acceso' : 'Spento'}</Caption>
-              <CommandToggle
-                entity={climate}
-                entityId={ids.climateId}
-                domain="climate"
-                label="Clima dell’auto"
-                disabled={!(climateFeatures & (data.isClimateOn ? 128 : 256))}
-                isOn={(entity) =>
-                  Boolean(entity) && !isUnavailableState(entity?.state) && entity?.state !== 'off'
-                }
+  const history = histories.find((source) => source.key === selected) ?? histories[0];
+  const position = carCoordinates(runtime.entities, settings);
+  const items = (section: string) =>
+    sources
+      .filter((source) => source.section === section)
+      .map((source) => ({
+        key: source.key,
+        label: source.label,
+        value: source.reading.valueText,
+        unit: source.reading.available ? (source.reading.unit ?? undefined) : undefined,
+        note: source.reading.reason ? <Caption>{source.reading.reason}</Caption> : undefined,
+      }));
+  const control = (field: CarSourceField, id = config.ids[field]) => {
+    if (!id || !runtime.entitiesLoaded) return null;
+    const entity = runtime.entities[id],
+      caps = carCapabilities(
+        entity,
+        field,
+        runtime.services,
+        runtime.haConfig?.unit_system?.temperature
+      );
+    if (!caps.length) return null;
+    let child;
+    if (field === 'lockId') child = <CarLock entityId={id} />;
+    else if (field === 'chargeLimitNumberId')
+      child = <CarNumeric entityId={id} field={field} label="Limite di carica" />;
+    else if (field === 'chargeLimitSelectId') child = <CarSelect entityId={id} />;
+    else if (field === 'climateId')
+      child = (
+        <>
+          {caps
+            .filter((action) => action !== 'climate.set_temperature')
+            .map((action) => (
+              <CarAction
+                key={action}
+                entityId={id}
+                action={action}
+                label={action === 'climate.turn_on' ? 'Accendi clima' : 'Spegni clima'}
               />
-            </span>
+            ))}
+          {caps.includes('climate.set_temperature') && (
+            <CarNumeric entityId={id} field={field} label="Temperatura desiderata" />
+          )}
+        </>
+      );
+    else
+      child = caps.map((action) => (
+        <CarAction
+          key={action}
+          entityId={id}
+          action={action}
+          sensitive={field === 'ignitionSwitchId'}
+          targetName={
+            field === 'chargeControlId' && action.startsWith('switch.')
+              ? typeof entity?.attributes.friendly_name === 'string' &&
+                entity.attributes.friendly_name.trim()
+                ? entity.attributes.friendly_name
+                : id
+              : undefined
           }
-        >
-          {target !== null && (
-            <ValueStepper
-              label="Temperatura desiderata"
-              confirmed={target}
-              min={CLIMATE_MIN}
-              max={CLIMATE_MAX}
-              step={0.5}
-              format={(value) => `${formatCompact(value, 1)} ${climateUnit}`}
-              disabled={
-                !climate ||
-                isUnavailableState(climate.state) ||
-                !(climateFeatures & 1) ||
-                target === null
-              }
-              toCall={(value) => ({
-                domain: 'climate',
-                service: 'set_temperature',
-                data: {
-                  entity_id: ids.climateId,
-                  temperature: Math.min(CLIMATE_MAX, Math.max(CLIMATE_MIN, value)),
-                },
-              })}
-            />
-          )}
-          <Caption>
-            Desiderata {target === null ? '—' : formatCompact(target, 1)} {climateUnit}
-          </Caption>
-        </Section>
-      )}
-
-      {(car.chargeControlIds.length > 0 || ids.chargeLimitNumberId || ids.chargeLimitSelectId) && (
-        <Section title="Ricarica" icon="energy">
-          {car.chargeControlIds.length > 0 && (
-            <ul className="utility-list">
-              {car.chargeControlIds.map((controlId) => {
-                const control = entities[controlId];
-                const call = chargeControlCall(controlId, control?.state);
-                const name = friendlyName(control, controlId);
-                return (
-                  <li className="utility-list__row" key={controlId}>
-                    <span className="utility-list__main">
-                      <Body as="span" size="sm" tone="ink" className="utility-truncate">
-                        {name}
-                      </Body>
-                    </span>
-                    <span className="utility-list__end">
-                      {call && controlId.startsWith('switch.') ? (
-                        <CommandToggle
-                          entity={control}
-                          entityId={controlId}
-                          domain="switch"
-                          label={name}
-                        />
-                      ) : call ? (
-                        <CommandButton
-                          entity={control}
-                          domain={call.domain}
-                          service={call.service}
-                          data={{ entity_id: controlId }}
-                          label={`${call.domain === 'script' ? 'Esegui' : 'Premi'}: ${name}`}
-                        >
-                          {call.domain === 'script' ? 'Esegui' : 'Premi'}
-                        </CommandButton>
-                      ) : (
-                        <Caption>Non supportato</Caption>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {ids.chargeLimitNumberId && (
-            <div className="utility-stack">
-              <Caption>{friendlyName(limitNumber, 'Limite di carica')}</Caption>
-              <ValueStepper
-                label="Limite di carica"
-                confirmed={numericState(limitNumber)}
-                min={numberAttr(limitNumber, 'min') ?? 50}
-                max={numberAttr(limitNumber, 'max') ?? 100}
-                step={numberAttr(limitNumber, 'step') ?? 1}
-                format={(value) => `${formatCompact(value, 1)} %`}
-                disabled={!limitNumber || isUnavailableState(limitNumber.state)}
-                toCall={(value) => ({
-                  domain: 'number',
-                  service: 'set_value',
-                  data: { entity_id: ids.chargeLimitNumberId, value },
-                })}
-              />
-            </div>
-          )}
-          {ids.chargeLimitSelectId && (
-            <div className="utility-stack">
-              <OptionPicker
-                label={friendlyName(limitSelect, 'Limite di carica')}
-                value={safeState(limitSelect)}
-                options={listAttr(limitSelect, 'options').map((option) => ({
-                  value: option,
-                  label: option,
-                }))}
-                pending={selectCommand.pendingKey === 'select'}
-                disabled={!limitSelect || isUnavailableState(limitSelect.state)}
-                onSelect={(option) =>
-                  selectCommand.run({
-                    key: 'select',
-                    domain: 'select',
-                    service: 'select_option',
-                    data: { entity_id: ids.chargeLimitSelectId, option },
-                    confirm: (entity) => entity?.state === option,
-                  })
-                }
-              />
-              {selectNotice && (
-                <Notice tone={selectNotice.tone} icon="warning" live>
-                  {selectNotice.text}
-                </Notice>
-              )}
-            </div>
-          )}
-        </Section>
-      )}
-
-      {(ids.lockId || ids.ignitionSwitchId) && (
-        <Section title="Veicolo" icon="key">
-          <div className="utility-toolbar">
-            {ids.ignitionSwitchId && (
-              <CommandButton
-                entity={ignition}
-                domain="switch"
-                service={ignition?.state === 'on' ? 'turn_off' : 'turn_on'}
-                data={{ entity_id: ids.ignitionSwitchId }}
-                icon="key"
-                confirm={(entity) =>
-                  ignition?.state === 'on' ? entity?.state === 'off' : entity?.state === 'on'
-                }
-                disabled={!ignition || isUnavailableState(ignition.state)}
-              >
-                {ignition?.state === 'on' ? 'Spegni il motore' : 'Avvia il motore'}
-              </CommandButton>
+          label={
+            field === 'updateButtonId'
+              ? 'Aggiorna dati'
+              : field === 'ignitionSwitchId'
+                ? action === 'switch.turn_on'
+                  ? 'Avvio motore'
+                  : 'Spegnimento motore'
+                : action === 'switch.turn_on'
+                  ? 'Avvia ricarica'
+                  : action === 'switch.turn_off'
+                    ? 'Interrompi ricarica'
+                    : typeof entity?.attributes.friendly_name === 'string'
+                      ? entity.attributes.friendly_name
+                      : 'Esegui ricarica'
+          }
+        />
+      ));
+    return (
+      <CarControlScope key={field + '|' + id} field={field} entityId={id} settings={settings}>
+        {child}
+      </CarControlScope>
+    );
+  };
+  return (
+    <div className="car-details">
+      <DetailsBody label="Auto">
+        {!runtime.entitiesLoaded ? (
+          <Skeleton variant="list" label="Caricamento dell’auto…" />
+        ) : !sources.length && !config.chargeControlIds.length ? (
+          <Body size="sm">Collega le fonti dell’auto nelle impostazioni del widget.</Body>
+        ) : (
+          <>
+            {items('Batteria e viaggio').length > 0 && (
+              <Section title="Telemetria">
+                <StatList items={items('Batteria e viaggio')} />
+              </Section>
             )}
-          </div>
-          {ids.lockId && (
-            <LockDetails
-              id={ids.lockId}
-              settingsKey={ids.lockId}
-              settings={{ entityId: ids.lockId }}
-              onClose={() => undefined}
-            />
-          )}
-        </Section>
-      )}
-    </DetailsBody>
+            {(items('Ricarica').length > 0 || config.chargeControlIds.length > 0) && (
+              <Section title="Ricarica">
+                <StatList items={items('Ricarica')} />
+                {config.chargeControlIds.map((id) => (
+                  <div className="car-control" key={id}>
+                    <Body size="sm">
+                      {typeof runtime.entities[id]?.attributes.friendly_name === 'string' &&
+                      runtime.entities[id]?.attributes.friendly_name.trim()
+                        ? runtime.entities[id]?.attributes.friendly_name
+                        : id}
+                    </Body>
+                    {control('chargeControlId', id)}
+                  </div>
+                ))}
+                {control('chargeLimitNumberId')}
+                {control('chargeLimitSelectId')}
+              </Section>
+            )}
+            {items('Clima').length > 0 && (
+              <Section title="Clima">
+                <StatList items={items('Clima')} />
+                {control('climateId')}
+              </Section>
+            )}
+            {items('Veicolo').length > 0 && (
+              <Section title="Veicolo">
+                <StatList items={items('Veicolo')} />
+                {control('lockId')}
+                {control('ignitionSwitchId')}
+              </Section>
+            )}
+            {items('Posizione').length > 0 && (
+              <Section title="Posizione">
+                <StatList items={items('Posizione')} />
+                {position ? (
+                  <a
+                    className="car-map-link"
+                    href={`https://www.openstreetmap.org/?mlat=${position.lat}&mlon=${position.lon}#map=16/${position.lat}/${position.lon}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    referrerPolicy="no-referrer"
+                  >
+                    Apri la posizione sulla mappa
+                  </a>
+                ) : (
+                  <Caption>Coordinate non disponibili.</Caption>
+                )}
+              </Section>
+            )}
+            {histories.length > 0 && (
+              <>
+                {histories.length > 1 && (
+                  <OptionPicker
+                    label="Fonte della cronologia"
+                    value={history?.key ?? null}
+                    options={histories.map((source) => ({
+                      value: source.key,
+                      label: source.label,
+                    }))}
+                    onSelect={setSelected}
+                    isolateEscape
+                  />
+                )}
+                {history?.entity && (
+                  <CarHistory
+                    key={history.key + '|' + history.id}
+                    entity={history.entity}
+                    field={history.key}
+                    initialHours={settings.adaptiveHistoryHours}
+                  />
+                )}
+              </>
+            )}
+            <DisclosureGroup value={technicalOpen} onValueChange={setTechnicalOpen}>
+              <Disclosure id={sectionId} title="Tecnica e manutenzione">
+                <StatList items={items('Tecnica')} />
+                {technicalOpen && control('updateButtonId')}
+                <StatList
+                  items={sources.map((source) => ({
+                    key: source.key,
+                    label: source.label,
+                    value: source.reading.label,
+                    note: <Caption>{source.id}</Caption>,
+                  }))}
+                />
+              </Disclosure>
+            </DisclosureGroup>
+          </>
+        )}
+      </DetailsBody>
+    </div>
+  );
+}
+
+export function CarConsole(props: WidgetDetailsProps) {
+  return (
+    <ConsoleColumns
+      main={
+        <div className="widget-console-details">
+          <CarDetails {...props} />
+        </div>
+      }
+    />
   );
 }

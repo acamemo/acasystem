@@ -493,6 +493,22 @@ describe('rotating the token and finding the user', () => {
     ).toHaveLength(0);
   });
 
+  it('recovers a lost secret while the old named token still exists in HA', async () => {
+    const first = await firstActivation();
+    buildDependencies().store.remove();
+    fake.knobs.ownerOnlyPasswordReset = true;
+    fake.knobs.version = '2026.11.1';
+    const recovered = await activate(
+      { visible: ['proprietario'], hidden: [OWNER_PASSWORD] },
+      { allowUnverifiedVersion: true }
+    );
+    expect(recovered.result).toMatchObject({ ok: true, code: 'activated' });
+    const secret = JSON.parse(secretContent()) as { token: string; userId: string };
+    expect(secret.userId).toBe(first.userId);
+    expect(secret.token).not.toBe(first.token);
+    expect(longLivedOf(first.userId)).toEqual([secret.token]);
+  });
+
   it('succeeds and says so when an old token cannot be deleted', async () => {
     const first = await firstActivation();
     fake.knobs.tokenDeletionFails = true;

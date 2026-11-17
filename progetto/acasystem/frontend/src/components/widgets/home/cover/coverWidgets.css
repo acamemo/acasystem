@@ -16,4 +16,10 @@
     height: 100%;
     aspect-ratio: auto;
   }
+  .aca-cover-widget .aca-cover__time {
+    font-size: max(var(--aca-step--1), calc(var(--aca-cover-side) * 0.12));
+  }
+  .aca-cover-widget .aca-cover-calendar__weekday {
+    font-size: max(var(--aca-step--1), calc(var(--aca-cover-side) * 0.13));
+  }
 }

@@ -115,3 +115,9 @@ Dell'annotazione del 2026-10-08 supera il menu «Nuova» con le pagine pronte. R
 Il testo storico resta com'è; la nuova scelta è registrata in [ADR-0013](ADR-0013-barra-unica.md) (accettata dall'utente il 2026-10-13, piano [REP-20261013-002](../reports/REP-20261013-002-piano-barra-unica.md)).
 - **Interfaccia OS.** La «barra di stato» descritta in design.md come parte dell'interfaccia OS non sta più in alto: sta nella fascia in basso, con ora, connessione, Sistema, chip e «Modifica». In alto resta solo l'area sicura. L'indicatore a pallina (UI-009, riga 26) non cambia.
 - **Riga 98, barra del widget.** «Rimuovi · Annulla · Conferma» è superata dalla 0.9.2 ([REP-20261013-001](../reports/REP-20261013-001-barre-ridondanze.md)): la barra del widget è «Rimuovi · Annulla · Fine»; un solo tocco su «Fine» tiene le modifiche ed esce dalla modifica.
+
+## Annotazione del 2026-11-02 — ordine comune dei profili live
+
+Il piano umano U52, recepito in [ADR-0035](ADR-0035-profili-live-client-e-tavano.md), supera per i profili live la disposizione condivisa come coordinate indipendenti per classe/griglia. Il documento autorevole conserva l'ordine logico comune e le indicazioni di dimensione; ciascuno schermo adatta celle e overflow senza pubblicare nuove posizioni alla sola apertura o rotazione. Le configurazioni precedenti restano recuperabili e la fonte di migrazione viene mostrata prima della conferma.
+
+La modifica condivisa usa riserve temporanee, bozza e Salva/Annulla espliciti; il vecchio ripristino di un intero layout non deve sovrascrivere cambi successivi. Restano stile, pagine, swipe e alternative da tastiera, adattati a questa autorità dei dati. Implementazione locale ed esiti software in [report012](../reports/REP-20261102-012-profili-client-editing-tavano.md); nessun collaudo HA/hardware reale in questo lotto. Le annotazioni sopra conservano il comportamento storico.

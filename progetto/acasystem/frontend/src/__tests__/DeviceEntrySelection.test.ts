@@ -18,6 +18,11 @@ const entities = fixtureEntities([
 ]);
 
 describe('selectionForNewEntry', () => {
+  it('preserves Apple TV while the device registry is still catching up', () => {
+    const empty = { devices: [], entityRegistry: [], entities: fixtureEntities([]) };
+    expect(selectionForNewEntry(empty, { deviceId: 'apple', domain: 'apple_tv', entityIds: ['media_player.apple'], mediaPlayerEntityId: 'media_player.apple' }, 'tv'))
+      .toEqual({ type: 'appletv', entityIds: ['media_player.apple'] });
+  });
   it('uses the classifier when the registries know the device, with the remote of a TV', () => {
     const selection = selectionForNewEntry(
       { devices, entityRegistry, entities },
@@ -60,14 +65,14 @@ describe('selectionForNewEntry', () => {
         'light'
       )
     ).toEqual({ type: 'light', entityIds: ['light.a', 'light.b'] });
-    // A plug lands in «Sensori e comandi», like in the classifier.
+    // The existing dedicated plug family keeps the same fallback as the classifier.
     expect(
       selectionForNewEntry(
         empty,
         { deviceId: 'x', entityIds: ['switch.p'], mediaPlayerEntityId: null },
         'plug'
       )
-    ).toEqual({ type: 'sensor', entityIds: ['switch.p'] });
+    ).toEqual({ type: 'plug', entityIds: ['switch.p'] });
   });
 
   it('gives nothing when neither the registries nor the family say anything', () => {

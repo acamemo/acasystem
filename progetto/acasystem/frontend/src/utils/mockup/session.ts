@@ -130,6 +130,8 @@ export function openMockupSession(options: MockHaStoreOptions = {}): MockupSessi
   const handle = (request: Parameters<MockDeviceFacade['handle']>[0]) => facade.handle(request);
   setBackendOverride(handle);
   const restoreFetch = installFetchGuard(handle);
+  // The tester reads the service calls of the visit from the console: `__acaDemo.calls()`.
+  Object.assign(globalThis, { __acaDemo: { calls: () => store.calls() } });
   setDemoSource({
     auth: demoAuth(),
     conn,
@@ -148,6 +150,7 @@ export function openMockupSession(options: MockHaStoreOptions = {}): MockupSessi
     seed,
     close() {
       tabStorage = null;
+      Reflect.deleteProperty(globalThis, '__acaDemo');
       setDemoSource(null);
       setBackendOverride(null);
       restoreFetch();

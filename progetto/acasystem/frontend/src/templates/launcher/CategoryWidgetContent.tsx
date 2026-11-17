@@ -3,8 +3,8 @@ import type { WidgetDefinition, WidgetProps } from '@/@types/launcher';
 import { WidgetRuntimeProvider, useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { AdaptiveCategoryWidget } from './AdaptiveCategoryWidget';
 import { ADAPTIVE_WIDGET_TYPES } from '@/components/widgets/adaptive/widgetTypes';
-import { ADD_WIDGET_TYPES, type AddWidgetType } from '../sheets/catalog';
-import { BINDING_KEYS, categoryDeviceId, isCategoryWidgetReady } from '../sheets/categoryPages';
+import { ADD_WIDGET_TYPES, type AddWidgetType } from '@/domain/launcher/catalog';
+import { BINDING_KEYS, categoryDeviceId, isCategoryWidgetReady } from '@/domain/launcher/categoryPages';
 import { pagerMoving } from '@/utils/launcher/pagerMoving';
 
 const UNBOUND_AS_IS = new Set(['calendar', 'todo']);
@@ -24,6 +24,7 @@ const NEUTRAL = '–';
 const PLACEHOLDER_STATE: Record<string, { state: string; attributes?: Record<string, unknown> }> = {
   sensor: { state: NEUTRAL },
   light: { state: 'off', attributes: { supported_color_modes: ['brightness'] } },
+  plug: { state: 'off' },
   fan: { state: 'off', attributes: { supported_features: 49, percentage: 0 } },
   lock: { state: NEUTRAL, attributes: { icon: 'key' } },
   vacuum: { state: 'idle' },

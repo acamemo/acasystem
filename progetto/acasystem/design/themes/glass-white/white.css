@@ -1,0 +1,391 @@
+/* Prova opt-in: un solo pigmento, il bianco, su vetro e fotografia locale. */
+:root {
+  --aca-white-photo: url('./landscape.webp');
+  --aca-white-veil: rgb(0 0 0 / 58%);
+  --aca-white-film: rgb(255 255 255 / 9%);
+  --aca-white-control: rgb(255 255 255 / 6%);
+  --aca-white-rim: inset 0 1px 1px rgb(255 255 255 / 60%), inset 1px 0 1px rgb(255 255 255 / 25%), inset -1px -1px 1px rgb(255 255 255 / 16%);
+  --aca-white-blur: 16px;
+  --aca-glass-page: #ffffff;
+  --aca-glass-solid: #ffffff;
+  --aca-glass-surface: #ffffff;
+  --aca-glass-control: #ffffff;
+  --aca-glass-overlay: #ffffff;
+  --aca-glass-scene: none;
+  --aca-glass-shadow: 0 12px 40px rgb(0 0 0 / 14%);
+  --aca-glass-control-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+}
+/* An accepted local fallback stays real and stable for the current Home preparation. */
+:root[data-aca-home-font-fallback] {
+  --aca-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+:root[data-aca-home-photo-fallback] {
+  --aca-white-photo: none;
+}
+
+/* Solo il catalogo sotto la barra di prova: il titolo non deve finire dietro al chrome. */
+.white-preview-bar ~ .glass-kit { padding-top: 5rem; }
+
+/* Reveal keeps the full viewport photograph still; only its opacity follows entry/exit. */
+@layer components {
+  .aca-bottom-drawer-scene[data-gesture-mode='reveal'] { clip-path: none; transition-property: opacity; }
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --aca-glass-page: #101b19;
+    --aca-glass-solid: rgb(255 255 255 / 4%);
+    --aca-glass-surface: var(--aca-white-film);
+    --aca-glass-control: var(--aca-white-control);
+    --aca-glass-overlay: rgb(255 255 255 / 10%);
+    --aca-white-popup: rgb(255 255 255 / 14%);
+    --aca-glass-line: rgb(255 255 255 / 30%);
+    --aca-glass-control-line: rgb(255 255 255 / 65%);
+    --aca-glass-edge: rgb(255 255 255 / 35%);
+    --aca-glass-rim: var(--aca-white-rim);
+    --aca-socket-well: transparent;
+    --k2-ink: #ffffff;
+    --k2-ink-muted: rgb(255 255 255 / 92%);
+    --k2-light: #ffffff;
+    --k2-shade: rgb(255 255 255 / 12%);
+    /* Gli stati storici Kit2 leggono accent direttamente, non gli ink del testo. */
+    --aca-white-accent: #e0d5ff;
+    --aca-white-on-accent: #28213d;
+    --k2-accent: var(--aca-white-accent);
+    --k2-accent-text: #e0d5ff;
+    --aca-on-blue: var(--aca-white-on-accent);
+    --aca-on-orange: var(--aca-white-on-accent);
+    --aca-fill: linear-gradient(90deg, #c8b8ff, #eee8ff);
+    --aca-fill-vertical: linear-gradient(0deg, #c8b8ff, #eee8ff);
+    --aca-ink-solid: #ffffff;
+    --aca-ink-muted: var(--k2-ink-muted);
+    --aca-ink: linear-gradient(#ffffff, #ffffff);
+    --aca-ink-strong: var(--aca-ink);
+    --aca-focus: #e0d5ff;
+    --aca-blue-ink: #e0d5ff;
+    --aca-blue-ink-icon: #e0d5ff;
+    --aca-orange-ink: #ffffff;
+    --aca-orange-ink-icon: #ffffff;
+    --aca-danger-ink: #ffb8b8;
+    --aca-danger-ink-icon: #ffb8b8;
+    --aca-orb: linear-gradient(135deg, rgb(255 255 255 / 65%), rgb(255 255 255 / 16%));
+  }
+
+  @layer components {
+    :root :is(.aca-app-root, .aca-shell, .aca-connect, .aca-system, .connection-screen) {
+      background: transparent;
+    }
+    :root body {
+      position: relative;
+      isolation: isolate;
+      min-height: 100dvh;
+      background: var(--aca-glass-page);
+      color: var(--aca-ink-solid);
+    }
+    :root body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image: linear-gradient(var(--aca-white-veil), var(--aca-white-veil)), var(--aca-white-photo);
+      background-size: cover;
+      background-position: center;
+    }
+    /* Keep the same photograph inside Home's fading group so its glass samples one scene. */
+    :root .aca-home-entry:is([data-home-phase='preparing'], [data-home-phase='entering']),
+    :root .aca-widget-scene[data-catalog-gesture] > .aca-shell,
+    :root .aca-widget-scene:is([data-widget-screen='open'], [data-widget-screen='returning']) > .aca-shell {
+      background-color: var(--aca-glass-page);
+      background-image: linear-gradient(var(--aca-white-veil), var(--aca-white-veil)), var(--aca-white-photo);
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
+    }
+    /* Fixed viewport geometry: page-sized background attachment would crop and zoom the photograph. */
+    :root .aca-widget-catalog__page { isolation: isolate; background: transparent; }
+    :root .aca-widget-catalog__page::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-color: var(--aca-glass-page);
+      background-image: linear-gradient(var(--aca-white-veil), var(--aca-white-veil)), var(--aca-white-photo);
+      background-size: cover;
+      background-position: center;
+    }
+    :root .aca-bottom-drawer[data-drawer-moving] .aca-widget-catalog__page::before,
+    :root [data-panel-state='exiting'] .aca-widget-catalog__page::before { display: none; }
+    /* The catalog photograph belongs to its fixed scene, never to the moving content. */
+    :root .aca-bottom-drawer-scene {
+      background-image: linear-gradient(var(--aca-white-veil), var(--aca-white-veil)), var(--aca-white-photo);
+      background-size: cover;
+      background-position: center;
+    }
+    /* Le altre viste mantengono una scena propria; Sistema e dettagli usano il paesaggio fisso. */
+    :root :is(.aca-mockup-materials, .aca-app-error) {
+      background-color: var(--aca-glass-page);
+      background-image: linear-gradient(var(--aca-white-veil), var(--aca-white-veil)), var(--aca-white-photo);
+      background-size: cover;
+      background-position: center;
+    }
+    /* Nessun velo a tutto schermo: il vetro resta sui controlli e sulle superfici della vista. */
+    :root :is(.aca-overlay-scene, .aca-console__sheet) {
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    :root .aca-m > .aca-m__outer > .aca-m__face {
+      background: var(--aca-white-film);
+      box-shadow: var(--aca-white-rim);
+      clip-path: none;
+      overflow: hidden;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    /* Un solo piano filtrato per pannello: il gradiente della maschera sfuma il blur ai bordi. */
+    :root .aca-m.aca-card:not(.aca-m .aca-card) > .aca-m__outer > .aca-m__face::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 20% 0%, rgb(255 255 255 / 13%), transparent 65%);
+      -webkit-backdrop-filter: blur(var(--aca-white-blur));
+      backdrop-filter: blur(var(--aca-white-blur));
+      -webkit-mask-image: radial-gradient(ellipse farthest-corner at center, #000 64%, transparent 100%);
+      mask-image: radial-gradient(ellipse farthest-corner at center, #000 64%, transparent 100%);
+    }
+    /* The moving copy has one light glass plane, including bare widgets and stacks. */
+    :root .aca-drag-ghost--move {
+      --aca-white-blur: 2px;
+      --aca-white-film: rgb(255 255 255 / 5%);
+    }
+    :root .aca-drag-ghost--move .aca-drag-ghost__copy {
+      background: var(--aca-white-film);
+      box-shadow: var(--aca-white-rim);
+      -webkit-backdrop-filter: blur(var(--aca-white-blur));
+      backdrop-filter: blur(var(--aca-white-blur));
+    }
+    :root .aca-drag-ghost--move .aca-drag-ghost__copy::before {
+      box-shadow: 0 0.5rem 1.25rem rgb(0 0 0 / 14%);
+    }
+    :root .aca-drag-ghost--move .aca-drag-ghost__copy .aca-m.aca-card > .aca-m__outer > .aca-m__face::before {
+      content: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :root .aca-drag-ghost--move .aca-drag-ghost__copy > .aca-launcher-widget__frame > .aca-m__outer > .aca-m__face {
+      background: transparent;
+      box-shadow: none;
+    }
+    :root .aca-drag-ghost--move.is-invalid:not(.is-removing):not(.is-flying--remove) .aca-drag-ghost__copy {
+      opacity: 1;
+    }
+    /* Origin and destination are empty outlines; neither adds a second filtered panel. */
+    :root .aca-launcher-origin { border-color: var(--aca-glass-control-line); }
+    :root .aca-launcher-drop--move.aca-m > .aca-m__outer > .aca-m__face {
+      background: transparent;
+      box-shadow: inset 0 0 0 1px var(--aca-glass-control-line);
+    }
+    :root .aca-launcher-drop--move.aca-m.aca-card:not(.aca-m .aca-card) > .aca-m__outer > .aca-m__face::before {
+      display: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :root .aca-launcher-grid[data-widget-drag-mode='move'] .aca-launcher-cell.aca-m,
+    :root .aca-launcher-grid[data-widget-drag-mode='move'] .aca-launcher-cell.aca-m > .aca-m__outer,
+    :root .aca-launcher-grid[data-widget-drag-mode='move'] .aca-launcher-cell.aca-m > .aca-m__outer > .aca-m__face {
+      background: transparent;
+      box-shadow: none;
+    }
+    :root .aca-launcher-grid[data-widget-drag-mode='move'] .aca-launcher-cell.aca-m.aca-card:not(.aca-m .aca-card) > .aca-m__outer > .aca-m__face::before {
+      display: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :root .aca-m:is(button, a) > .aca-m__outer > .aca-m__face,
+    :root .aca-m:is(button, a):is(.aca-tone-primary, .aca-m--primary) > .aca-m__outer > .aca-m__face {
+      background: radial-gradient(ellipse at 18% 0%, rgb(255 255 255 / 16%), transparent 70%), var(--aca-white-control);
+      box-shadow: var(--aca-white-rim);
+    }
+    :root .aca-m:is(button, a):is(.aca-tone-primary, .aca-m--primary) > .aca-m__outer > .aca-m__face > .aca-m__content {
+      color: var(--aca-ink-solid);
+    }
+    :root .aca-m:is(button, a):is(.aca-tone-primary, .aca-m--primary) .aca-m__label {
+      color: var(--aca-ink-solid);
+      background-image: var(--aca-ink);
+    }
+    :root :is(.aca-well, .aca-m--well, .aca-well-soft, .aca-m--well-soft) > .aca-m__outer > .aca-m__face {
+      background: var(--aca-white-control);
+      box-shadow: inset 0 0 0 1px var(--aca-glass-line);
+    }
+    :root :is(.aca-well, .aca-m--well, .aca-well-soft, .aca-m--well-soft) {
+      background-color: transparent;
+    }
+    :root .aca-m.aca-field > .aca-m__outer > .aca-m__face {
+      box-shadow: inset 0 0 0 1px var(--aca-glass-control-line);
+    }
+    :root .aca-m:is(button, a):is(.aca-selected, .aca-current, [aria-pressed='true'], [aria-selected='true']) > .aca-m__outer > .aca-m__face {
+      box-shadow: inset 0 0 0 1.5px var(--aca-focus), var(--aca-white-rim);
+    }
+    :root .aca-m:not(.aca-on):is(.aca-selected, .aca-current, [aria-current='true'], [aria-current='page'], [aria-pressed='true'], [aria-selected='true']) > .aca-m__outer > .aca-m__face > .aca-m__content {
+      color: var(--aca-focus);
+    }
+    :root .aca-m:not(.aca-on):is(.aca-selected, .aca-current, [aria-current='true'], [aria-current='page'], [aria-pressed='true'], [aria-selected='true']) > .aca-m__outer > .aca-m__face > .aca-m__content .aca-m__label {
+      background-image: linear-gradient(var(--aca-focus), var(--aca-focus));
+    }
+    :root .aca-m:is(.aca-error, .aca-m--error, [aria-invalid='true']) > .aca-m__outer > .aca-m__face,
+    :root .aca-m:is(button, a):is(.aca-error, .aca-m--error, [aria-invalid='true']) > .aca-m__outer > .aca-m__face {
+      box-shadow: inset 0 0 0 2px var(--aca-danger-ink), var(--aca-white-rim);
+    }
+    :root :is(.aca-connect__panel, .connection-card, :where(main.card), .aca-sheet__panel, .aca-popover__panel) > .aca-m__outer > .aca-m__face {
+      background: var(--aca-white-film);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    /* Su testo sovrapposto il blur arriva al bordo: evita lettere leggibili sotto al popup. */
+    :root :is(.aca-sheet__panel, .aca-popover__panel) > .aca-m__outer > .aca-m__face {
+      background: var(--aca-white-popup);
+    }
+    :root .aca-m.aca-card:is(.aca-sheet__panel, .aca-popover__panel):not(.aca-m .aca-card) > .aca-m__outer > .aca-m__face::before {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    :root :is(.aca-status-bar__pill, .aca-edit-toolbar__group, .aca-system__nav) {
+      background: var(--aca-white-film);
+      box-shadow: var(--aca-white-rim), var(--aca-glass-control-shadow);
+      -webkit-backdrop-filter: blur(var(--aca-white-blur));
+      backdrop-filter: blur(var(--aca-white-blur));
+    }
+    /* Barre secondarie e segnalini condividono il materiale, senza un altro filtro. */
+    :root :is(.aca-page-overview__group, .aca-undo__pill, .aca-live-editor-bar,
+        .aca-live-sync-status, .aca-live-notice, .aca-launcher-widget__badge,
+        .aca-launcher-widget__stack-badge, .aca-drag-ghost__hint) {
+      background: var(--aca-white-film);
+      box-shadow: var(--aca-white-rim), var(--aca-glass-control-shadow);
+    }
+    :root .aca-live-chrome > :is(.aca-live-sync-status, .aca-live-notice) {
+      background: var(--aca-white-popup);
+      -webkit-backdrop-filter: blur(var(--aca-white-blur));
+      backdrop-filter: blur(var(--aca-white-blur));
+    }
+    :root .aca-pager:is(.is-overview, .is-closing) > .aca-pager__page > .aca-pager__body > .aca-pager__clip {
+      background: var(--aca-white-film);
+      box-shadow: var(--aca-white-rim);
+    }
+    :root .aca-account-card__cover {
+      background: radial-gradient(ellipse at 50% 0%, rgb(255 255 255 / 22%), var(--aca-white-film));
+    }
+    :root .aca-connect__auth-footer {
+      background: transparent;
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 18%);
+    }
+    :root .aca-toggle__knob {
+      background: rgb(255 255 255 / 92%);
+    }
+    :root .aca-toggle__track::before {
+      background: var(--k2-accent);
+    }
+    :root .aca-toggle[aria-checked='true'] .aca-toggle__knob {
+      background: var(--aca-white-on-accent);
+      box-shadow: inset 0 1px 1px rgb(255 255 255 / 24%), 0 1px 3px rgb(0 0 0 / 18%);
+    }
+    :root .aca-indicator__ball {
+      background: var(--aca-orb);
+    }
+    :root select {
+      color-scheme: dark;
+    }
+    :root .connection-qr {
+      background: #ffffff;
+    }
+    :root .connection-address { color: var(--aca-ink-solid); }
+    :root :is(.aca-system-gear, .aca-system-gear *, .casa, .casa *, .c3d-shell, .c3d-shell *)::before {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      :root .aca-m:is(button, a):hover:not(:disabled, [aria-disabled='true']) > .aca-m__outer > .aca-m__face {
+        background-color: rgb(255 255 255 / 14%);
+      }
+    }
+  }
+
+  /* Override del solo fondo storico unlayered, senza alterare layout e stati delle utility. */
+  :root body { background: var(--aca-glass-page); }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root {
+    --aca-glass-page: #ffffff;
+    --aca-glass-solid: #ffffff;
+    --aca-glass-surface: #ffffff;
+    --aca-glass-control: #ffffff;
+    --aca-glass-overlay: #ffffff;
+    --aca-white-film: #ffffff;
+    --aca-white-control: #ffffff;
+    --aca-white-popup: #ffffff;
+    --k2-ink: #222235;
+    --k2-ink-muted: #545368;
+    --aca-white-accent: #5036b8;
+    --aca-white-on-accent: #ffffff;
+    --k2-accent: #5036b8;
+    --k2-accent-text: #5036b8;
+    --aca-on-blue: #ffffff;
+    --aca-on-orange: #ffffff;
+    --aca-fill: linear-gradient(90deg, #5036b8, #6145d7);
+    --aca-fill-vertical: linear-gradient(0deg, #5036b8, #6145d7);
+    --aca-ink-solid: #222235;
+    --aca-ink-muted: #545368;
+    --aca-ink: linear-gradient(#222235, #222235);
+    --aca-focus: #5036b8;
+    --aca-blue-ink: #5036b8;
+    --aca-blue-ink-icon: #5036b8;
+    --aca-orange-ink: #5036b8;
+    --aca-orange-ink-icon: #5036b8;
+    --aca-danger-ink: #9b2020;
+    --aca-danger-ink-icon: #9b2020;
+    --aca-glass-control-line: #8b849f;
+    --aca-glass-line: #8b849f;
+    --aca-white-rim: inset 0 0 0 1px #8b849f;
+  }
+  :root .aca-drag-ghost--move {
+    --aca-white-blur: 0px;
+    --aca-white-film: #ffffff;
+  }
+  @layer components {
+    :root .aca-drag-ghost--move .aca-drag-ghost__copy {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :root .aca-live-chrome > :is(.aca-live-sync-status, .aca-live-notice) {
+      background: var(--aca-white-film);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :root .aca-home-entry:is([data-home-phase='preparing'], [data-home-phase='entering']),
+    :root .aca-widget-scene:is([data-widget-screen='open'], [data-widget-screen='returning']) > .aca-shell,
+    :root .aca-widget-scene[data-catalog-gesture] > .aca-shell,
+    :root .aca-widget-catalog__page::before,
+    :root :is(.aca-overlay-scene, .aca-console__sheet, .aca-bottom-drawer-scene, .aca-mockup-materials, .aca-app-error) {
+      background-image: none;
+    }
+    :root :is(.aca-overlay-scene, .aca-console__sheet) {
+      background-color: var(--aca-glass-page);
+    }
+    :root body::before,
+    :root .aca-widget-catalog__page::before,
+    :root .aca-m.aca-card > .aca-m__outer > .aca-m__face::before { display: none; }
+    :root .aca-m.aca-card:not(.aca-m .aca-card) > .aca-m__outer > .aca-m__face::before {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :root :is(.aca-status-bar__pill, .aca-edit-toolbar__group, .aca-system__nav) {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}

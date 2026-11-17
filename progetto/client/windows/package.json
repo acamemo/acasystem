@@ -2,20 +2,20 @@
   "name": "acasystem-client-windows",
   "productName": "Acasystem",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Acasystem per Windows",
   "author": "MeMo Srl",
   "license": "GPL-3.0",
   "type": "module",
   "main": "build/windows/src/main.js",
   "scripts": {
-    "build": "node scripts/clean-build.mjs && tsc -p tsconfig.build.json && tsc -p tsconfig.renderer.json",
+    "build": "node scripts/prepare-design.mjs && node scripts/clean-build.mjs && tsc -p tsconfig.build.json && tsc -p tsconfig.renderer.json",
     "start": "npm run build && electron .",
-    "test": "vitest run",
+    "test": "vitest run --dir src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:smoke": "npm run build && node e2e/smoke.check.mjs",
     "dist": "npm run build && electron-builder --win nsis --x64 --publish never",
-    "dist:zip": "npm run build && electron-builder --win zip --x64 --publish never"
+    "dist:zip": "npm run build && electron-builder --win zip --x64 --publish never --config.asar=false --config.win.signAndEditExecutable=false"
   },
   "devDependencies": {
     "@types/node": "26.6.4",
@@ -35,12 +35,13 @@
     },
     "files": [
       "build/**/*",
-      "shell/**/*",
+      "!build/windows/src/engine/**/*",
+      "generated-shell/**/*",
       "package.json"
     ],
     "win": {
       "target": "nsis",
-      "icon": "shell/icon.png",
+      "icon": "generated-shell/icon.png",
       "artifactName": "Acasystem-${version}-win-${arch}.${ext}"
     },
     "nsis": {

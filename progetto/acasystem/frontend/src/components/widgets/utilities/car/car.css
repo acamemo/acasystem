@@ -1,0 +1,155 @@
+@layer components {
+  .car-widget {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .car-widget__card {
+    gap: var(--aca-space-2);
+  }
+  .car-widget__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .car-widget__summary {
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-2);
+    min-width: 0;
+  }
+  .car-widget__readings {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--aca-space-2);
+    margin: 0;
+    min-width: 0;
+    flex: 1;
+  }
+  .car-widget__readings > div,
+  .car-widget__readings dt,
+  .car-widget__readings dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .car-widget__readings dt {
+    margin-bottom: var(--aca-space-1);
+  }
+  .car-widget__status {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .car-widget__image {
+    width: 4rem;
+    height: 3rem;
+    flex: 0 0 4rem;
+    object-fit: contain;
+  }
+  .car-map-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding-block: var(--aca-space-2);
+  }
+  .car-details {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .car-details .utility-section__head {
+    flex-wrap: wrap;
+  }
+  .car-details .utility-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .car-details .aca-segmented {
+    max-width: 100%;
+  }
+  .car-details .aca-segmented__content {
+    flex-wrap: wrap;
+  }
+  .car-control,
+  .car-numeric {
+    display: grid;
+    gap: var(--aca-space-2);
+    min-width: 0;
+  }
+  .car-control__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--aca-space-2);
+    min-width: 0;
+  }
+  .car-control__actions > *,
+  .car-details a {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .car-details button,
+  .car-details [role='combobox'] {
+    min-height: 2.5rem;
+  }
+  .car-widget--compact {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .car-widget--compact .utility-head {
+    flex: 1;
+    min-width: 0;
+  }
+  .car-widget--compact .car-widget__summary {
+    flex: 0 1 auto;
+    max-width: 65%;
+  }
+  .car-widget--compact .car-widget__readings {
+    display: block;
+  }
+  .car-widget__reading-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--aca-space-1);
+    font-variant-numeric: tabular-nums;
+  }
+  .car-widget__number {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .car-widget__unit {
+    flex: 0 0 auto;
+  }
+  .car-widget__compact-value {
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .car-widget--compact .car-widget__name,
+  .car-widget--compact .car-widget__status {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+  @container (max-height: 9rem) {
+    .car-widget__card {
+      gap: var(--aca-space-1);
+    }
+    .car-widget__name,
+    .car-widget__readings .ctl-clamp-2,
+    .car-widget__status {
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+    }
+    .car-widget__readings dt {
+      margin-bottom: 0;
+    }
+    .car-widget__image {
+      display: none;
+    }
+  }
+}

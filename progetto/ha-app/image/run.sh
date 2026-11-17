@@ -3,12 +3,20 @@
 # dell'app in /data e scrive /data/options.json: senza quel file (banco Docker) parte come prima.
 set -e
 
+if [ "${ACA_PROCESS_ROLE:-}" = updater ]; then
+  exec node /haos/executor-tools/progetto/ha-app/pilot/haos-update.mjs
+fi
+
 if [ -f /data/options.json ]; then
   # Dati in /data/app; il segreto dell'utente di servizio (ADR-0022) fuori da DATA_DIR,
   # in /data/service-secret, escluso dai backup di HA (backup_exclude in config.yaml).
   export DATA_DIR=/data/app
   export TUNET_SERVICE_SECRET_FILE="${TUNET_SERVICE_SECRET_FILE:-/data/service-secret/service-identity.json}"
   export TUNET_ENCRYPTION_MODE="${TUNET_ENCRYPTION_MODE:-off}"
+  # In assenza della predisposizione privata il comportamento corrente resta invariato.
+  # Il modulo emette solo ID/percorso validati, mai la credenziale.
+  update_environment="$(node /haos/update-environment.mjs)"
+  eval "$update_environment"
   if [ -z "${TUNET_INTERNAL_HA_URL}" ]; then
     # La porta di HA cambia da impianto a impianto (80 o 8123): la dice il Supervisor.
     TUNET_INTERNAL_HA_URL="$(node /haos/detect-ha-url.mjs)"

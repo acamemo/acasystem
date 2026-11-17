@@ -2,6 +2,7 @@
 export const ADAPTIVE_WIDGET_TYPES = new Set([
   'sensor',
   'light',
+  'plug',
   'fan',
   'climate',
   'cover',

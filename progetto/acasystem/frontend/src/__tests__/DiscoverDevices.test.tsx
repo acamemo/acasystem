@@ -3,12 +3,13 @@
  * sheet opened with a device already chosen.
  */
 import type { ReactNode } from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EntityMap } from '@/@types/ha';
 import type { AddWidgetSelection, LauncherApi, LauncherLayout } from '@/@types/launcher';
 import { DiscoverDetails } from '@/components/widgets/utilities/discover/DiscoverDetails';
 import { DiscoverWidget } from '@/components/widgets/utilities/discover/DiscoverWidget';
+import { useConnectedDevices } from '@/components/widgets/utilities/discover/useConnectedDevices';
 import { findWidgetDefinition } from '@/components/widgets/registry';
 import { PageProvider } from '@/hooks/context/PageContext';
 import { AddWidgetRequestProvider } from '@/hooks/launcher/AddWidgetRequestContext';
@@ -98,6 +99,35 @@ const wrap = (node: ReactNode, state: EntityMap = entities(), conn = connection(
 );
 
 beforeEach(seed);
+
+describe('registro dei dispositivi consultabile durante un errore di refresh', () => {
+  it('mantiene l’ultima lettura e segnala il problema, poi recupera senza duplicazioni', async () => {
+    let failing = false;
+    const conn = fakeConnection({
+      'config/device_registry/list': () => {
+        if (failing) throw new Error('offline');
+        return deviceRegistry.map((device) => ({ ...device, area_id: 'studio' }));
+      },
+      'config/entity_registry/list': () => entityRegistry,
+      'config/area_registry/list': () => [{ area_id: 'studio', name: 'Studio' }],
+    });
+    const view = renderHook(() => useConnectedDevices(), {
+      wrapper: ({ children }) => wrap(children, entities(), conn.conn),
+    });
+    await waitFor(() => expect(view.result.current.status).toBe('ready'));
+    const first = view.result.current;
+    expect(first.status === 'ready' && first.devices.find((device) => device.deviceId === 'lampada')?.areaName).toBe('Studio');
+    failing = true;
+    act(() => view.result.current.refresh());
+    await waitFor(() => expect(view.result.current.status === 'ready' && view.result.current.refreshError).toBe(true));
+    expect(view.result.current.status === 'ready' && view.result.current.devices.map((device) => device.deviceId)).toEqual(
+      first.status === 'ready' && first.devices.map((device) => device.deviceId)
+    );
+    failing = false;
+    act(() => view.result.current.refresh());
+    await waitFor(() => expect(view.result.current.status === 'ready' && view.result.current.refreshError).toBe(false));
+  });
+});
 afterEach(cleanup);
 
 describe('widget «Trova dispositivi»', () => {
@@ -135,7 +165,7 @@ describe('widget «Trova dispositivi»', () => {
     );
     const list = await screen.findByRole('list', { name: 'Primi dispositivi' });
     await waitFor(() => expect(list).toHaveTextContent('Samsung salotto'));
-    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('3 da collegare')).toBeInTheDocument();
     expect(list).toHaveTextContent('Reolink ingresso');
     expect(list).toHaveTextContent('Philips Hue');
     vi.unstubAllGlobals();
@@ -219,15 +249,15 @@ describe('Details di «Trova dispositivi»', () => {
 
   it('mentre legge i registri dice che sta caricando', () => {
     details();
-    expect(screen.getByText('Cerco i dispositivi della casa…')).toBeInTheDocument();
+    expect(screen.getByText('Caricamento dei dispositivi…')).toBeInTheDocument();
   });
 
   it('elenca per famiglia sotto «Pronti da aggiungere», senza i dispositivi già in un widget', async () => {
     details();
-    expect(await screen.findByText('Pronti da aggiungere')).toBeInTheDocument();
-    const tv = await screen.findByRole('group', { name: 'Televisori' });
-    expect(tv).toHaveTextContent('LG webOS TV');
-    expect(screen.getByRole('group', { name: 'Luci' })).toHaveTextContent('Lampada studio');
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (2)' }));
+    const list = screen.getByRole('list', { name: 'Dispositivi pronti' });
+    expect(list).toHaveTextContent('LG webOS TV');
+    expect(list).toHaveTextContent('Lampada studio');
     expect(screen.queryByText('Luce cucina')).toBeNull();
     expect(screen.queryByText('Sun')).toBeNull();
   });
@@ -236,7 +266,8 @@ describe('Details di «Trova dispositivi»', () => {
     const onClose = vi.fn();
     const openAddWidget = vi.fn();
     details(onClose, openAddWidget);
-    fireEvent.click(await screen.findByRole('button', { name: /LG webOS TV/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: /LG webOS TV/ }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(openAddWidget).toHaveBeenCalledWith('home', {
       type: 'androidtv',
@@ -256,17 +287,15 @@ describe('Details di «Trova dispositivi»', () => {
         />
       )
     );
-    expect(await screen.findByRole('button', { name: /LG webOS TV/ })).toBeDisabled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (2)' }));
+    expect(screen.getByRole('button', { name: /LG webOS TV/ })).toBeDisabled();
   });
 
   it('senza dispositivi nuovi lo dice', async () => {
     const only = fixtureEntities([fixtureEntity('light.cucina', 'on')]);
     details(vi.fn(), vi.fn(), only);
-    expect(
-      await screen.findByText(
-        'Nessun dispositivo nuovo: quelli della casa sono già nei widget.'
-      )
-    ).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (0)' }));
+    expect(screen.getByText('Nessun dispositivo pronto da aggiungere.')).toBeInTheDocument();
   });
 
   it('se Home Assistant non risponde lo dice', async () => {
@@ -288,9 +317,8 @@ describe('Details di «Trova dispositivi»', () => {
         failing.conn
       )
     );
-    expect(
-      await screen.findByText('Non riesco a leggere i dispositivi della casa.')
-    ).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (0)' }));
+    expect(await screen.findByText('Non riesco a leggere i dispositivi della casa.')).toBeInTheDocument();
   });
 });
 

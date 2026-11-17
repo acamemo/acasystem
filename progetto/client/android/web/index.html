@@ -4,110 +4,61 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Acasystem</title>
-    <!-- Stessa grafica della pagina Windows: shell.css e icon.png copiati da ../windows/shell al build. -->
     <link rel="stylesheet" href="shell.css" />
   </head>
   <body data-view="loading">
-    <main class="card">
+    <main class="card aca-m aca-raised aca-card aca-md aca-m--static aca-m--card aca-m--md">
+      <div class="aca-m__outer"><div class="aca-m__face"><div class="aca-m__content shell-content">
       <img class="logo" src="icon.png" alt="" width="72" height="72" />
-      <h1>Acasystem</h1>
-
+      <h1 class="aca-type aca-type--title">Acasystem</h1>
       <section class="view view-loading" aria-live="polite">
         <div class="spinner" aria-hidden="true"></div>
         <p>Avvio in corso…</p>
       </section>
-
       <section class="view view-wizard">
-        <p class="lead">Scrivi l'indirizzo IP del mini PC con Home Assistant.</p>
+        <p class="lead">Collega ACA al mini PC della tua casa.</p>
         <form id="wizard-form" novalidate>
-          <label for="host">Indirizzo IP</label>
-          <input id="host" name="host" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="192.168.1.184" required />
+          <label class="shell-label aca-type aca-type--label-sm" for="host">Indirizzo IP o collegamento della centrale</label>
+          <label class="shell-field aca-m aca-well aca-pill aca-md aca-m--well aca-m--pill aca-m--md aca-field" for="host"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content aca-field__content"><input class="aca-field__input" id="host" name="host" inputmode="url" autocomplete="off" spellcheck="false" placeholder="192.168.1.184" required /></span></span></span></label>
           <details>
             <summary>Impostazioni avanzate</summary>
-            <label for="port">Porta di Acasystem</label>
-            <input id="port" name="port" inputmode="numeric" autocomplete="off" placeholder="3002" />
+            <label class="shell-label aca-type aca-type--label-sm" for="port">Porta di Acasystem</label>
+            <label class="shell-field aca-m aca-well aca-pill aca-md aca-m--well aca-m--pill aca-m--md aca-field" for="port"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content aca-field__content"><input class="aca-field__input" id="port" name="port" inputmode="numeric" autocomplete="off" placeholder="3002" /></span></span></span></label>
           </details>
           <p id="wizard-message" class="message" role="alert"></p>
-          <button id="submit" type="submit" class="primary">Collega</button>
+          <button id="submit" type="submit" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Collega</span></span></span></span></button>
         </form>
+        <button id="show-scan" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Scansiona un codice QR</span></span></span></span></button>
       </section>
-
+      <section class="view view-scan">
+        <p id="scan-intro" class="lead"></p>
+        <button id="scan" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary" type="button"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Scansiona il codice QR</span></span></span></span></button>
+        <p id="scan-message" class="message" role="status" aria-live="polite"></p>
+        <button id="use-address" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Usa l’indirizzo IP</span></span></span></span></button>
+      </section>
+      <section class="view view-pairing-choice">
+        <p class="lead">Come vuoi usare questo codice?</p>
+        <p id="pairing-source" class="version"></p>
+        <div class="actions">
+          <button id="pair-account" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary" type="button"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Collega account</span></span></span></span></button>
+          <p>Collega questa casa e accedi con le tue credenziali. Le impostazioni dell’account restano sincronizzate.</p>
+          <button id="pair-configuration" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Importa layout</span></span></span></span></button>
+          <p id="configuration-description">Copia soltanto l’interfaccia, anche da un’altra casa. Mantieni il tuo account e collega i widget ai tuoi dispositivi.</p>
+          <button id="scan-again" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Scansiona un altro codice</span></span></span></span></button>
+        </div>
+        <p id="pairing-message" class="message" role="status" aria-live="polite"></p>
+      </section>
       <section class="view view-error">
         <p id="error-message" class="message" role="alert"></p>
         <div class="actions">
-          <button id="retry" type="button" class="primary">Riprova</button>
-          <button id="change-address" type="button">Cambia indirizzo</button>
+          <button id="retry" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary" type="button"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Riprova</span></span></span></span></button>
+          <button id="change-address" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Cambia indirizzo</span></span></span></span></button>
         </div>
       </section>
-
-      <section class="view view-setup-owner">
-        <p class="lead">Home Assistant è da configurare. Crea l'account del proprietario: poi l'app installa Acasystem sul mini PC.</p>
-        <form id="owner-form" novalidate>
-          <label for="owner-name">Nome</label>
-          <input id="owner-name" name="name" autocomplete="name" required />
-          <label for="owner-username">Nome utente</label>
-          <input id="owner-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required />
-          <label for="owner-password">Password</label>
-          <input id="owner-password" name="password" type="password" autocomplete="new-password" required />
-          <label for="owner-confirm">Conferma la password</label>
-          <input id="owner-confirm" name="confirm" type="password" autocomplete="new-password" required />
-          <p id="owner-message" class="message" role="alert"></p>
-          <div class="actions">
-            <button id="owner-submit" type="submit" class="primary">Crea account e installa</button>
-            <button id="owner-change-address" type="button">Cambia indirizzo</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="view view-setup-admin">
-        <p class="lead">Su questo mini PC Acasystem non è ancora installata. Accedi con un amministratore di Home Assistant per installarla.</p>
-        <form id="admin-form" novalidate>
-          <label for="admin-username">Nome utente</label>
-          <input id="admin-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required />
-          <label for="admin-password">Password</label>
-          <input id="admin-password" name="password" type="password" autocomplete="current-password" required />
-          <p id="admin-message" class="message" role="alert"></p>
-          <div class="actions">
-            <button id="admin-submit" type="submit" class="primary">Accedi e installa</button>
-            <button id="admin-change-address" type="button">Cambia indirizzo</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="view view-setup-home">
-        <p class="lead">Controlla i dati della casa rilevati da Home Assistant.</p>
-        <form id="home-form" novalidate>
-          <label for="home-name">Nome della casa</label>
-          <input id="home-name" name="location_name" autocomplete="off" required />
-          <label for="home-country">Paese (codice, per esempio IT)</label>
-          <input id="home-country" name="country" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="2" required />
-          <label for="home-time-zone">Fuso orario</label>
-          <input id="home-time-zone" name="time_zone" autocomplete="off" spellcheck="false" required />
-          <label for="home-currency">Valuta</label>
-          <input id="home-currency" name="currency" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="3" required />
-          <label for="home-units">Unità di misura</label>
-          <select id="home-units" name="unit_system">
-            <option value="metric">Metriche (°C, km)</option>
-            <option value="us_customary">Anglosassoni (°F, miglia)</option>
-          </select>
-          <button id="home-submit" type="submit" class="primary">Conferma</button>
-        </form>
-      </section>
-
-      <section class="view view-setup-progress" aria-live="polite">
-        <p class="lead">Configurazione del mini PC. Tieni l'app aperta finché non compare Acasystem.</p>
-        <ol id="setup-steps" class="steps"></ol>
-        <p id="progress-message" class="message" role="alert"></p>
-        <div class="actions failed-only">
-          <button id="setup-retry" type="button" class="primary">Riprova</button>
-          <button id="progress-change-address" type="button">Cambia indirizzo</button>
-        </div>
-      </section>
-
       <p id="version" class="version"></p>
+      </div></div></div>
     </main>
-    <!-- @capacitor/core copiato da node_modules al build: senza bundler serve la import map. -->
-    <script type="importmap">{ "imports": { "@capacitor/core": "./vendor/capacitor-core.js" } }</script>
+    <script type="importmap">{"imports":{"@capacitor/core":"./vendor/capacitor-core.js"}}</script>
     <script type="module" src="build/android/web/main.js"></script>
   </body>
 </html>

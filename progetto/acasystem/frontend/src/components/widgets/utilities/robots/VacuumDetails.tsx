@@ -1,4 +1,6 @@
 import type { WidgetDetailsProps } from '@/@types/launcher';
+import { ProductVacuumDetails } from '../../home/vacuum/ProductVacuumDetails';
+import { vacuumProductBinding } from '../../home/vacuum/productVacuumModel';
 import { DetailsBody } from '../shared/details';
 import { Notice } from '../shared/UtilityCard';
 import { VacuumMapSection } from './parts/VacuumMapSection';
@@ -26,7 +28,10 @@ export function VacuumMissing(_props: { id: string }) {
  * Vacuum details (legacy VacuumModal) in one column: commands, cleaning options, rooms, map,
  * statistics, maintenance. The console (VacuumConsole) lays out the same sections in two columns.
  */
-export function VacuumDetails({ id, settings }: WidgetDetailsProps) {
+export function VacuumDetails(props: WidgetDetailsProps) {
+  return vacuumProductBinding(props.settings) ? <ProductVacuumDetails {...props} /> : <LegacyVacuumDetails {...props} />;
+}
+function LegacyVacuumDetails({ id, settings }: WidgetDetailsProps) {
   const v = useVacuumDetailsState(id, settings);
   if (!v) return <VacuumMissing id={id} />;
   return (

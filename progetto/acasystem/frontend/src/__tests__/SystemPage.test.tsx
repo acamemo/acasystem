@@ -4,6 +4,7 @@ import type { PagesConfig, StatusPillConfig } from '@/@types/dashboard';
 import type { LauncherApi } from '@/@types/launcher';
 import { getClientId, getHassUrl } from '@/api/haUrl';
 import { saveTokens } from '@/api/oauthStorage';
+import * as clientApi from '@/api/clientSession';
 import { Casa3dHouseContext } from '@/casa3d/houseContext';
 import { ConnectPageControlProvider } from '@/hooks/context/ConfigContext';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
@@ -20,6 +21,8 @@ const mocks = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   deleteProfile: vi.fn(),
   createConnection: vi.fn(),
+  live: null as Record<string, unknown> | null,
+  session: null as Record<string, unknown> | null,
 }));
 
 vi.mock('@/hooks/context', () => ({
@@ -48,6 +51,14 @@ vi.mock('home-assistant-js-websocket', async (importOriginal) => ({
 
 // The background sync talks to the backend; the profiles UI does not need it here.
 vi.mock('@/hooks/useSettingsSync', () => ({ useSettingsSync: () => ({ status: 'idle' }) }));
+vi.mock('@/hooks/liveProfiles/LiveProfilesContext', () => ({
+  useOptionalLiveProfiles: () => mocks.live,
+  useLiveProfiles: () => mocks.live,
+}));
+vi.mock('@/components/account/AccountView', () => ({
+  AccountView: ({ onClose }: { onClose: () => void }) => <main><h1>Account di prova</h1><button onClick={onClose}>Torna a Sistema</button></main>,
+}));
+vi.mock('@/hooks/client/ClientAccessGate', () => ({ useClientSession: () => mocks.session }));
 
 // Shared snapshot setters of the launcher: the page context functions, layout included.
 vi.mock('@/hooks/launcher/useSnapshotSetters', () => ({ useSnapshotSetters: () => mocks.pages }));
@@ -133,15 +144,17 @@ function renderSystem(
   onClose = vi.fn(),
   control = { open: vi.fn(), cancel: null }
 ) {
-  render(
+  const view = render(
     <ConnectPageControlProvider value={control}>
       <LauncherProvider value={launcher}>
         <SystemPage onClose={onClose} />
       </LauncherProvider>
     </ConnectPageControlProvider>
   );
-  return { launcher, onClose, control };
+  return { launcher, onClose, control, view };
 }
+
+const openSection = (name: string) => fireEvent.click(screen.getByRole('tab', { name }));
 
 /** Session of the Acasystem login, bound to the proxy. */
 function saveSession(refreshToken = 'rinnovo-1') {
@@ -164,6 +177,8 @@ const revokeCalls = () =>
 const pages = () => mocks.pages as ReturnType<typeof makePages>;
 
 beforeEach(() => {
+  mocks.live = null;
+  mocks.session = null;
   mocks.pages = makePages();
   mocks.config = { url: getHassUrl(), fallbackUrl: '', token: '', authMethod: 'oauth' };
   mocks.setConfig.mockReset();
@@ -219,33 +234,30 @@ describe('SystemPage', () => {
       'Casa 3D',
       'Informazioni',
     ]) {
-      expect(screen.getByRole('heading', { level: 2, name: title })).toBeInTheDocument();
-      expect(within(nav).getByRole('button', { name: title })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2, name: title, hidden: true })).toBeInTheDocument();
+      expect(within(nav).getByRole('tab', { name: title })).toBeInTheDocument();
     }
     // The index marks the section in view; before any scroll it is the first, and a click moves it.
-    const first = within(nav).getByRole('button', { name: 'Collegamento' });
-    expect(first).toHaveAttribute('aria-current', 'true');
-    fireEvent.click(within(nav).getByRole('button', { name: 'Profili' }));
-    expect(within(nav).getByRole('button', { name: 'Profili' })).toHaveAttribute(
-      'aria-current',
+    const first = within(nav).getByRole('tab', { name: 'Collegamento' });
+    expect(first).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(within(nav).getByRole('tab', { name: 'Profili' }));
+    expect(within(nav).getByRole('tab', { name: 'Profili' })).toHaveAttribute(
+      'aria-selected',
       'true'
     );
-    expect(first).not.toHaveAttribute('aria-current');
-    // Aspetto (ADR-0011, REP-20261007-008) holds the Kit 2 theme and accent, and since
-    // REP-20261007-038 the wallpaper the user asked for; the other legacy appearance
-    // preferences stay gone (ADR-0007).
-    expect(screen.getByRole('group', { name: 'Tema' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Colore d’accento' })).toBeInTheDocument();
+    expect(first).toHaveAttribute('aria-selected', 'false');
+    openSection('Aspetto');
+    expect(screen.getByRole('heading', { name: 'Vetro Bianco' })).toBeVisible();
+    expect(screen.getByText('Superfici trasparenti e paesaggio naturale.')).toBeVisible();
+    expect(screen.queryByRole('group', { name: 'Tema' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Colore d’accento' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Sfondo' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Scegli una foto per lo sfondo')).not.toBeInTheDocument();
     const text = document.body.textContent ?? '';
-    expect(screen.getByRole('group', { name: 'Sfondo' })).toBeInTheDocument();
-    // The hidden file input behind �Una foto�� has a name of its own.
-    expect(document.querySelector('.aca-system__wallpapers input[type="file"]')).toHaveAttribute(
-      'aria-label',
-      'Scegli una foto per lo sfondo'
-    );
     expect(text).not.toMatch(/\b(lingua|unità di misura|carattere|blocco)\b/i);
     expect(screen.queryByRole('heading', { name: 'Lingua' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Lingua' })).not.toBeInTheDocument();
+    openSection('Informazioni');
     expect(await screen.findByText('9.9.9')).toBeVisible();
     expect(screen.getByText('GPL-3.0')).toBeVisible();
     expect(screen.getByText(/deriva da Tunet 1\.22\.1/)).toBeVisible();
@@ -263,9 +275,10 @@ describe('SystemPage', () => {
     expect(screen.getByText('Collegato a Home Assistant tramite Acasystem')).toBeVisible();
     expect(screen.getByText('Utente e password')).toBeVisible();
     expect(screen.getByText('Mario · Proprietario')).toBeVisible();
-    expect(screen.queryByText(/indirizzo/i)).toBeNull();
-    expect(screen.queryByText(/OAuth/)).toBeNull();
-    expect(screen.queryByRole('textbox', { name: /indirizzo/i })).toBeNull();
+    const connection = within(screen.getByRole('tabpanel', { name: 'Collegamento' }));
+    expect(connection.queryByText(/indirizzo/i)).toBeNull();
+    expect(connection.queryByText(/OAuth/)).toBeNull();
+    expect(connection.queryByRole('textbox', { name: /indirizzo/i })).toBeNull();
   });
 
   it('senza collegamento non dice «Collegato»', () => {
@@ -334,6 +347,7 @@ describe('SystemPage', () => {
 
   it('sceglie la qualità della vista 3D di questo dispositivo (ADR-0014, T5)', () => {
     renderSystem();
+    openSection('Casa 3D');
     const group = screen.getByRole('group', { name: 'Qualità della vista 3D' });
     expect(within(group).getByRole('button', { name: 'Leggera' })).toHaveAttribute(
       'aria-pressed',
@@ -358,6 +372,7 @@ describe('SystemPage', () => {
         <SystemPage onClose={vi.fn()} />
       </Casa3dHouseContext.Provider>
     );
+    openSection('Casa 3D');
     const button = screen.getByRole('button', { name: 'Apri la casa' });
     fireEvent.click(button);
     expect(open).toHaveBeenCalledTimes(1);
@@ -368,6 +383,7 @@ describe('SystemPage', () => {
 
   it('blocca la disposizione dalla Schermata Home (REP-20261007-033)', () => {
     const { launcher } = renderSystem();
+    openSection('Schermata Home');
     const toggle = screen.getByRole('switch', { name: 'Blocca la disposizione' });
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(toggle);
@@ -376,6 +392,7 @@ describe('SystemPage', () => {
 
   it('«Modifica le pagine» chiude Sistema e apre la vista pagine del launcher (ADR-0016, C3; 2026-10-23)', () => {
     const { launcher, onClose } = renderSystem();
+    openSection('Schermata Home');
     const button = screen.getByRole('button', { name: 'Modifica le pagine' });
     expect(button).toBeEnabled();
     fireEvent.click(button);
@@ -393,6 +410,7 @@ describe('SystemPage', () => {
       launcherLayout: { ...pages().launcherLayout, locked: true },
     };
     const { onClose } = renderSystem(launcher);
+    openSection('Schermata Home');
     expect(screen.getByRole('button', { name: 'Modifica le pagine' })).toBeDisabled();
     expect(screen.getByText(/La disposizione è bloccata: sbloccala qui sotto/)).toBeVisible();
     expect(launcher.setEditMode).not.toHaveBeenCalled();
@@ -411,6 +429,7 @@ describe('SystemPage', () => {
 
   it('sceglie la densità della griglia (REP-20261007-034)', () => {
     const { launcher } = renderSystem();
+    openSection('Schermata Home');
     // The density is the default of the pages without their own columns (REP-20261008-001, E9).
     expect(
       screen.getByText(
@@ -423,6 +442,7 @@ describe('SystemPage', () => {
 
   it('attiva e disattiva la copertina con il launcher', () => {
     const { launcher } = renderSystem();
+    openSection('Copertina');
     const toggle = screen.getByRole('switch', { name: 'Mostra la copertina' });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
@@ -434,6 +454,7 @@ describe('SystemPage', () => {
     const launcher = createLauncherMock();
     launcher.layout = { ...launcher.layout, cover: { enabled: false } };
     renderSystem(launcher);
+    openSection('Copertina');
     const toggle = screen.getByRole('switch', { name: 'Mostra la copertina' });
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     expect(toggle).toBeEnabled();
@@ -444,6 +465,7 @@ describe('SystemPage', () => {
 
   it('fuori dal launcher salva la copertina nella disposizione salvata', () => {
     render(<SystemPage onClose={vi.fn()} />);
+    openSection('Copertina');
     fireEvent.click(screen.getByRole('switch', { name: 'Mostra la copertina' }));
     expect(pages().persistLauncherLayout).toHaveBeenCalledWith(
       expect.objectContaining({ cover: { enabled: false } })
@@ -454,6 +476,7 @@ describe('SystemPage', () => {
 describe('Profili', () => {
   it('elenca, salva e carica i profili tramite le API mockate', async () => {
     renderSystem();
+    openSection('Profili');
     expect(await screen.findByText('Tablet ingresso')).toBeVisible();
     expect(mocks.fetchProfiles).toHaveBeenCalledWith('u1');
 
@@ -483,6 +506,7 @@ describe('Profili', () => {
 
   it('elimina un profilo dopo la conferma', async () => {
     renderSystem();
+    openSection('Profili');
     fireEvent.click(await screen.findByRole('button', { name: 'Elimina Tablet ingresso' }));
     fireEvent.click(screen.getByRole('button', { name: 'Elimina' }));
     await waitFor(() => expect(mocks.deleteProfile).toHaveBeenCalledWith('p1', 'u1'));
@@ -499,6 +523,7 @@ describe('Profili', () => {
     );
     renderSystem();
 
+    openSection('Profili');
     fireEvent.click(screen.getByRole('button', { name: 'Esporta in un file' }));
     expect(createObjectURL).toHaveBeenCalled();
     expect(screen.getByText('File della configurazione creato.')).toBeVisible();
@@ -527,6 +552,7 @@ describe('Profili', () => {
   it('senza utente HA spiega che i profili non sono disponibili', () => {
     mocks.meta = { ...mocks.meta, haUser: null, connected: false };
     renderSystem();
+    openSection('Profili');
     expect(
       screen.getByText('Accedi con un utente per salvare e caricare i profili.')
     ).toBeVisible();
@@ -537,6 +563,7 @@ describe('Profili', () => {
 describe('Barra di stato', () => {
   it('modifica titolo, persone fissate e indicatori', () => {
     renderSystem();
+    openSection('Barra di stato');
     const title = screen.getByRole('textbox', { name: 'Titolo' });
     fireEvent.change(title, { target: { value: 'Ufficio' } });
     fireEvent.blur(title);
@@ -569,5 +596,84 @@ describe('Barra di stato', () => {
       expect.objectContaining({ id: 'pill_1' }),
       expect.objectContaining({ type: 'conditional', entityId: 'person.anna', visible: true }),
     ]);
+  });
+});
+
+describe('Sistema nel percorso live autenticato', () => {
+  const profile = (id: string) => ({ id, name: id, configuration: { snapshot: { version: 1, layout: {} } } });
+  const live = () => ({ profile: profile('p1'), profiles: [], drafts: [], editor: null, clientName: 'PC', offline: false, error: null });
+
+  it('conserva le undici sezioni senza riproporre lock, nome dispositivo o writer snapshot legacy', () => {
+    mocks.live = { state: live(), coordinator: {}, create: vi.fn() };
+    const launcher = createLauncherMock(); launcher.layout = { ...launcher.layout, locked: true };
+    const result = renderSystem(launcher);
+    expect(screen.getAllByRole('tab')).toHaveLength(11);
+    openSection('Schermata Home');
+    expect(screen.queryByRole('switch', { name: 'Blocca la disposizione' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
+    expect(result.launcher.setOverview).toHaveBeenCalledWith(true);
+    openSection('Profili');
+    expect(screen.getByRole('button', { name: 'Crea una copia come nuovo profilo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Salva il profilo' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Dispositivo' })).toBeNull();
+    expect(mocks.fetchProfiles).not.toHaveBeenCalled();
+  });
+
+  it('la vera composizione Sistema separa titolo e bozza per profilo e identità account', () => {
+    const state = live(); mocks.live = { state, coordinator: {}, create: vi.fn() };
+    const { view, control, launcher, onClose } = renderSystem();
+    const rerender = () => view.rerender(<ConnectPageControlProvider value={control}><LauncherProvider value={launcher}><SystemPage onClose={onClose} /></LauncherProvider></ConnectPageControlProvider>);
+    openSection('Barra di stato');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Titolo' }), { target: { value: 'Bozza p1' } });
+    state.profile = profile('p2'); mocks.pages = { ...pages(), headerTitle: 'Secondo profilo' }; rerender();
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).toHaveValue('Secondo profilo');
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Titolo' }));
+    expect(pages().updateHeaderTitle).not.toHaveBeenCalled();
+    state.profile = profile('p1'); mocks.pages = { ...pages(), headerTitle: 'Casa' }; rerender();
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).toHaveValue('Bozza p1');
+    mocks.meta = { ...mocks.meta, haUser: { id: 'another-user', name: 'Altro account' } };
+    mocks.pages = { ...pages(), headerTitle: 'Casa altro account' }; rerender();
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).toHaveValue('Casa altro account');
+    expect(screen.queryByText(/Bozza temporanea/)).toBeNull();
+  });
+
+  it('l’andata e ritorno Account conserva pannello e bozza temporanea, poi rimette il focus sul trigger', () => {
+    mocks.live = { state: live(), coordinator: {}, create: vi.fn() };
+    renderSystem(); openSection('Barra di stato');
+    const title = screen.getByRole('textbox', { name: 'Titolo' });
+    fireEvent.change(title, { target: { value: 'Bozza prima di Account' } });
+    const trigger = screen.getByRole('button', { name: 'Apri il mio account' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('heading', { name: 'Account di prova' })).toBeVisible();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(title).toBeInTheDocument(); expect(title).not.toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Torna a Sistema' }));
+    expect(screen.getByRole('tabpanel', { name: 'Barra di stato' })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).toBe(title);
+    expect(title).toHaveValue('Bozza prima di Account');
+    expect(trigger).toHaveFocus();
+  });
+
+  it('usa l’identità client verificata durante haUser=null e isola casa e account successivi', () => {
+    vi.spyOn(clientApi, 'listClients').mockResolvedValue([]);
+    mocks.session = { houseId: 'house-a', user: { id: 'u1' }, client: { id: 'client-a', label: 'PC' } };
+    mocks.live = { state: live(), coordinator: {}, create: vi.fn() };
+    const { view, control, launcher, onClose } = renderSystem();
+    const rerender = () => view.rerender(<ConnectPageControlProvider value={control}><LauncherProvider value={launcher}><SystemPage onClose={onClose} /></LauncherProvider></ConnectPageControlProvider>);
+    openSection('Barra di stato');
+    const original = screen.getByRole('textbox', { name: 'Titolo' });
+    fireEvent.change(original, { target: { value: 'Bozza account verificato' } });
+    mocks.meta = { ...mocks.meta, haUser: null }; rerender();
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).toBe(original);
+    expect(original).toHaveValue('Bozza account verificato');
+    mocks.session = { houseId: 'house-a', user: { id: 'u2' }, client: { id: 'client-b', label: 'Telefono' } };
+    mocks.pages = { ...pages(), headerTitle: 'Altro account' }; rerender();
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).toHaveValue('Altro account');
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).not.toBe(original);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Titolo' }), { target: { value: 'Bozza casa A' } });
+    mocks.session = { houseId: 'house-b', user: { id: 'u2' }, client: { id: 'client-c', label: 'PC' } };
+    mocks.pages = { ...pages(), headerTitle: 'Altra casa' }; rerender();
+    expect(screen.getByRole('textbox', { name: 'Titolo' })).toHaveValue('Altra casa');
+    expect(screen.queryByText(/Bozza temporanea/)).toBeNull();
   });
 });

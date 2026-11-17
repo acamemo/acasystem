@@ -1,0 +1,167 @@
+name: ACA candidata banco
+
+# Nessun PR pubblico avvia un runner locale o riceve credenziali di pubblicazione.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.repository == 'acamemo/acasystem' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      version: ${{ steps.target.outputs.version }}
+      app_version: ${{ steps.target.outputs.app_version }}
+      revision: ${{ steps.target.outputs.revision }}
+      haos: ${{ steps.target.outputs.haos }}
+      core: ${{ steps.target.outputs.core }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6, verificato 2026-11-16
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '26'
+      - name: Versione candidata e revisione univoca del push
+        id: target
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
+          import { readFile } from 'node:fs/promises';
+          import { validateTarget } from './progetto/ha-app/pilot/release-artifacts.mjs';
+          const target = validateTarget(JSON.parse(await readFile('progetto/ha-app/pilot/release-target.json', 'utf8')));
+          if (!/^[1-9]\d{0,2}$/.test(process.env.GITHUB_RUN_NUMBER)) throw new Error('Revisione CI oltre 999: serve una nuova versione base e una nuova sequenza workflow, nessun tag viene sovrascritto');
+          target.appVersion = `${target.version}.${process.env.GITHUB_RUN_NUMBER}`;
+          for (const [key, value] of Object.entries({version:target.version, app_version:target.appVersion, revision:target.appVersion.split('.')[3], haos:target.haosVersion, core:target.coreVersion})) console.log(`${key}=${value}`);
+          NODE
+      - name: Dipendenze bloccate
+        run: npm ci --prefix progetto/acasystem
+      - name: Archivio Sonoff originale verificato dal generatore
+        run: curl --fail --location --retry 3 'https://github.com/AlexxIT/SonoffLAN/archive/refs/tags/v3.13.3.zip' --output "$RUNNER_TEMP/SonoffLAN-v3.13.3.zip"
+      - name: Controlli bootstrap, updater, provenienza e pubblicazione
+        env:
+          ACA_TEST_SONOFF_ARCHIVE: ${{ runner.temp }}/SonoffLAN-v3.13.3.zip
+        run: |
+          node --test progetto/ha-app/pilot/*.test.mjs progetto/ha-app/bootstrap/bootstrap.test.mjs progetto/ha-app/source-provenance.test.mjs progetto/ha-app/client-bundle.test.mjs
+          python3 -B -m unittest discover -s progetto/ha-app/bootstrap -p 'test_*.py'
+          npm run test -w backend --prefix progetto/acasystem
+          npm run test -w frontend --prefix progetto/acasystem -- src/__tests__/StartupUpdates.test.ts
+          npm run typecheck -w frontend --prefix progetto/acasystem
+
+  windows-client:
+    needs: verify
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '26'
+      - name: Client dalla stessa revisione
+        working-directory: progetto/client
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          npm ci
+          npm run test -w core
+          npm run test -w windows
+          npm run dist -w windows
+      - name: Guardie setup con runtime simulato
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          node --test progetto/ha-app/pilot/bank-update.test.mjs
+          powershell.exe -NoProfile -File progetto/ha-app/pilot/pilot-guards.test.ps1
+          powershell.exe -NoProfile -File progetto/ha-app/pilot/pilot-runtime.test.ps1
+          powershell.exe -NoProfile -File progetto/ha-app/pilot/pilot-vm.test.ps1
+          powershell.exe -NoProfile -File progetto/ha-app/pilot/pilot-virtualbox.test.ps1
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: windows-client-${{ github.sha }}
+          path: progetto/client/windows/release/Acasystem-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: [verify, windows-client]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ACA_VERSION: ${{ needs.verify.outputs.version }}
+      ACA_APP_VERSION: ${{ needs.verify.outputs.app_version }}
+      ACA_REVISION: ${{ needs.verify.outputs.revision }}
+      ACA_HAOS: ${{ needs.verify.outputs.haos }}
+      ACA_CORE: ${{ needs.verify.outputs.core }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '26'
+      - name: Prerequisito cross-repository e collisione versione
+        env:
+          ACA_RELEASES_TOKEN: ${{ secrets.ACA_RELEASES_TOKEN }}
+        run: |
+          test -n "$ACA_RELEASES_TOKEN" || { echo 'Manca ACA_RELEASES_TOKEN: Contents write su acamemo/acasystem-releases'; exit 1; }
+          node --input-type=module <<'NODE'
+          import {checkRegistryTagAbsent} from './progetto/ha-app/pilot/release-artifacts.mjs';
+          const response = await fetch(`https://api.github.com/repos/acamemo/acasystem-releases/releases/tags/v${process.env.ACA_APP_VERSION}`, {headers:{Authorization:`Bearer ${process.env.ACA_RELEASES_TOKEN}`, 'X-GitHub-Api-Version':'2026-03-10'}, redirect:'error'});
+          if (response.status !== 404) throw new Error('Tag già esistente o collisione non verificabile; incrementare appVersion in release-target.json');
+          await checkRegistryTagAbsent(process.env.ACA_APP_VERSION);
+          NODE
+      - name: Configurazione esatta di questa build
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          import {join} from 'node:path';
+          import {validateTarget} from './progetto/ha-app/pilot/release-artifacts.mjs';
+          const target=JSON.parse(await readFile('progetto/ha-app/pilot/release-target.json','utf8'));
+          target.appVersion=process.env.ACA_APP_VERSION;
+          target.build={runNumber:Number(process.env.GITHUB_RUN_NUMBER),runId:process.env.GITHUB_RUN_ID,attempt:Number(process.env.GITHUB_RUN_ATTEMPT)};
+          validateTarget(target);
+          await writeFile(join(process.env.RUNNER_TEMP,'release-target.json'),JSON.stringify(target,null,2)+'\n',{flag:'wx'});
+          NODE
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: windows-client-${{ github.sha }}
+          path: ${{ runner.temp }}/windows-client
+      - name: Prerequisiti di build
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes imagemagick
+          npm ci --ignore-scripts --prefix progetto/acasystem
+          curl --fail --location --retry 3 'https://github.com/AlexxIT/SonoffLAN/archive/refs/tags/v3.13.3.zip' --output "$RUNNER_TEMP/SonoffLAN-v3.13.3.zip"
+      - name: Una sola sorgente per immagine, bundle, bootstrap e kit
+        run: |
+          ACA_WINDOWS_CLIENT=$(node --input-type=module -e 'import {readdir} from "node:fs/promises"; import {join} from "node:path"; const directory=join(process.env.RUNNER_TEMP,"windows-client"); const files=(await readdir(directory)).filter(name=>/^Acasystem-Setup-\d+\.\d+\.\d+\.exe$/.test(name)); if(files.length!==1) throw new Error("Atteso un unico client Windows compilato"); console.log(join(directory,files[0]));')
+          node progetto/ha-app/build-base.mjs --version "$ACA_VERSION"
+          node progetto/ha-app/prepare.mjs --version "$ACA_VERSION" --revision "$ACA_REVISION" --haos-version "$ACA_HAOS" --core-version "$ACA_CORE" --sonoff-archive "$RUNNER_TEMP/SonoffLAN-v3.13.3.zip"
+          node progetto/ha-app/pilot/prepare-pilot.mjs --version "$ACA_VERSION" --app-version "$ACA_APP_VERSION" --haos-version "$ACA_HAOS" --core-version "$ACA_CORE" --sonoff-archive "$RUNNER_TEMP/SonoffLAN-v3.13.3.zip" --windows-client "$ACA_WINDOWS_CLIENT" --output "$RUNNER_TEMP/pilot-kit"
+          cp "$RUNNER_TEMP/pilot-kit/acasystem-pilot-candidate-$ACA_APP_VERSION.zip" "progetto/ha-app/out/$ACA_APP_VERSION/"
+      - name: Executor e manutenzione nell'immagine isolata prima del push
+        run: node progetto/ha-app/pilot/smoke-executor-image.mjs --image "ghcr.io/acamemo/acasystem:$ACA_APP_VERSION"
+      - name: Immagine GHCR e digest effettivo
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+        run: |
+          node --input-type=module -e 'import {checkRegistryTagAbsent} from "./progetto/ha-app/pilot/release-artifacts.mjs"; await checkRegistryTagAbsent(process.env.ACA_APP_VERSION);'
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_ACTOR" --password-stdin
+          docker push "ghcr.io/acamemo/acasystem:$ACA_APP_VERSION"
+          docker image inspect "ghcr.io/acamemo/acasystem:$ACA_APP_VERSION" --format '{{index .RepoDigests 0}}' > "$RUNNER_TEMP/image-digest.txt"
+          docker logout ghcr.io
+      - name: Integrità pubblica e vincolo immagine-bundle-sorgente
+        run: |
+          node progetto/ha-app/pilot/release-artifacts.mjs --target "$RUNNER_TEMP/release-target.json" --directory "progetto/ha-app/out/$ACA_APP_VERSION" --image "$(cat "$RUNNER_TEMP/image-digest.txt")" --source-commit "$GITHUB_SHA" --root .
+      - name: Bozza, verifica asset, pubblicazione bank e verifica anonima
+        env:
+          ACA_RELEASES_TOKEN: ${{ secrets.ACA_RELEASES_TOKEN }}
+        run: node progetto/ha-app/pilot/publish-release.mjs --directory "progetto/ha-app/out/$ACA_APP_VERSION"

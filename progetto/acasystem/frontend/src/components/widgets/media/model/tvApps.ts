@@ -4,12 +4,15 @@
  *
  * - LG webOS, Apple TV and the Samsung models that list them: the apps are in `source_list`
  *   (next to the inputs, for LG and Samsung) and open with `media_player.select_source`.
- * - Android TV remote (`androidtv_remote`): no list; the common apps open with the deep links
- *   of the integration's documentation (`play_media`, type `url`), which the docs advise over the
- *   package name (home-assistant.io/integrations/androidtv_remote, read 2026-10-27).
+ * - Android TV remote (`androidtv_remote`): the apps the integration lists when browsed (type
+ *   `app`, opened with `play_media` and their own id and type); when it lists none, or the browse
+ *   fails, a fixed list of the common apps, opened with the deep links of the integration's
+ *   documentation (`play_media`, type `url`), which the docs advise over the package name
+ *   (home-assistant.io/integrations/androidtv_remote, read 2026-10-27).
  */
 import type { TvKind, TvView } from './tv';
 import { tvShowsApps } from './tv';
+import type { MediaChoice } from './choices';
 import type { TvKeyCall } from './tvRemote';
 
 export interface TvApp {
@@ -35,8 +38,16 @@ export const ANDROID_TV_APPS: readonly { name: string; link: string }[] = [
 
 const platformOf = (view: TvView): unknown => view.entity?.attributes?.platform;
 
-/** The apps the TV can open, in the order of the TV's list (or of the documentation). */
-export function tvApps(kind: TvKind, view: TvView, mediaPlayerId: string): TvApp[] {
+/**
+ * The apps the TV can open, in the order of the TV's list (or of the documentation). `browsed`
+ * are the apps the TV listed when browsed, for the platform that has no `source_list`.
+ */
+export function tvApps(
+  kind: TvKind,
+  view: TvView,
+  mediaPlayerId: string,
+  browsed: readonly MediaChoice[] = []
+): TvApp[] {
   if (tvShowsApps(kind, view)) {
     return view.sources
       .filter((source) => kind === 'apple' || !isTvInput(source))
@@ -50,6 +61,16 @@ export function tvApps(kind: TvKind, view: TvView, mediaPlayerId: string): TvApp
       }));
   }
   if (platformOf(view) !== 'androidtv_remote') return [];
+  if (browsed.length > 0) {
+    return browsed.map(({ id, label, type }) => ({
+      name: label,
+      call: {
+        domain: 'media_player',
+        service: 'play_media',
+        data: { entity_id: mediaPlayerId, media_content_type: type || 'app', media_content_id: id },
+      },
+    }));
+  }
   return ANDROID_TV_APPS.map(({ name, link }) => ({
     name,
     call: {

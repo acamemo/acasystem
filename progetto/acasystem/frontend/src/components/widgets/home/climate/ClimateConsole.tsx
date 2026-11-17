@@ -1,3 +1,5 @@
+import { ProductClimateDetails } from './ProductClimateDetails';
+import { climateProductBinding } from './productClimateModel';
 import { ConsoleColumns } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { ClimateBoundary } from './parts/ClimateBoundary';
@@ -13,7 +15,7 @@ import {
  * Left, the thermostat: current temperature, power and the target. Right, the choices: HVAC modes,
  * presets, fan and swing. On a narrow screen the columns stack in that order.
  */
-export function ClimateConsole({ id, settings }: WidgetDetailsProps) {
+function LegacyClimateConsole({ id, settings }: WidgetDetailsProps) {
   return (
     <ClimateBoundary id={id} settings={settings}>
       {(state) => (
@@ -33,5 +35,19 @@ export function ClimateConsole({ id, settings }: WidgetDetailsProps) {
         />
       )}
     </ClimateBoundary>
+  );
+}
+
+export function ClimateConsole(props: WidgetDetailsProps) {
+  return climateProductBinding(props.settings) ? (
+    <ConsoleColumns
+      main={
+        <div className="widget-console-details">
+          <ProductClimateDetails {...props} />
+        </div>
+      }
+    />
+  ) : (
+    <LegacyClimateConsole {...props} />
   );
 }

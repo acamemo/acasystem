@@ -1,11 +1,13 @@
-import type { ReactNode } from 'react';
-import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { useLayoutEffect, type ReactNode } from 'react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AuthData } from 'home-assistant-js-websocket';
+import type { AuthData, HassEntities } from 'home-assistant-js-websocket';
 import type { HomeAssistantConfig } from '@/@types/dashboard';
 import { getClientId, getHassUrl } from '@/api/haUrl';
+import { getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
+import { fixtureEntity } from '@/utils/fixtures/runtime';
 import { loadTokens, saveTokens } from '@/api/oauthStorage';
-import { HomeAssistantProvider, useHomeAssistantMeta } from '@/hooks/context/HomeAssistantContext';
+import { HomeAssistantProvider, useHomeAssistant } from '@/hooks/context/HomeAssistantContext';
 
 /**
  * REP-20261007-002, corsia accesso: il provider di Home Assistant si collega sempre al proxy di
@@ -15,7 +17,7 @@ import { HomeAssistantProvider, useHomeAssistantMeta } from '@/hooks/context/Hom
 
 const mocks = vi.hoisted(() => ({
   createConnection: vi.fn(),
-  subscribeEntities: vi.fn(() => () => undefined),
+  subscribeEntities: vi.fn((_conn: unknown, _callback: (entities: HassEntities) => void) => () => undefined),
 }));
 
 vi.mock('home-assistant-js-websocket', async (importOriginal) => ({
@@ -67,7 +69,7 @@ function renderProvider(config: Partial<HomeAssistantConfig>) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <HomeAssistantProvider config={full}>{children}</HomeAssistantProvider>
   );
-  return renderHook(useHomeAssistantMeta, { wrapper });
+  return renderHook(useHomeAssistant, { wrapper });
 }
 
 const lastAuth = () => (mocks.createConnection.mock.calls.at(-1)?.[0] as ConnectionArgs).auth;
@@ -85,6 +87,29 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
+
+
+/** The provider must publish snapshot readiness in the same real frame as that snapshot. */
+function manualEntityFrames() {
+  const frames = new Map<number, FrameRequestCallback>();
+  let next = 0;
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    const id = ++next;
+    frames.set(id, callback);
+    return id;
+  });
+  vi.spyOn(window, 'cancelAnimationFrame').mockImplementation((id) => frames.delete(id));
+  return () => act(() => {
+    const pending = [...frames.values()];
+    frames.clear();
+    pending.forEach((callback) => callback(performance.now()));
+  });
+}
+
+const snapshot = (state = 'on'): HassEntities => ({
+  'light.soggiorno': fixtureEntity('light.soggiorno', state),
+});
+const subscriber = (index = 0) => mocks.subscribeEntities.mock.calls[index][1];
 
 describe('provider di Home Assistant dietro Acasystem', () => {
   it('si collega al proxy con la sessione dell’accesso e usa il proxy per le immagini', async () => {
@@ -136,4 +161,109 @@ describe('provider di Home Assistant dietro Acasystem', () => {
     expect(result.current.oauthExpired).toBe(false);
     expect(loadTokens()).toMatchObject({ refresh_token: 'rinnovo-1' });
   });
+
+  it('commits the first snapshot and loaded flag together, including registry enrichment before the frame', async () => {
+    const commitFrame = manualEntityFrames();
+    let resolveRegistry!: (entries: never[]) => void;
+    const registry = new Promise<never[]>((resolve) => { resolveRegistry = resolve; });
+    vi.mocked(getDeviceRegistry).mockReturnValueOnce(registry);
+    vi.mocked(getEntityRegistry).mockReturnValueOnce(registry);
+    mocks.createConnection.mockResolvedValue(fakeConnection());
+    const committed: { loaded: boolean; ids: string[] }[] = [];
+    const config: HomeAssistantConfig = { url: getHassUrl(), fallbackUrl: '', token: 'first', authMethod: 'token' };
+    const wrapper = ({ children }: { children: ReactNode }) => <HomeAssistantProvider config={config}>{children}</HomeAssistantProvider>;
+    const { result } = renderHook(() => {
+      const value = useHomeAssistant();
+      useLayoutEffect(() => { committed.push({ loaded: value.entitiesLoaded, ids: Object.keys(value.entities) }); }, [value]);
+      return value;
+    }, { wrapper });
+    await waitFor(() => expect(mocks.subscribeEntities).toHaveBeenCalledTimes(1));
+    act(() => subscriber()(snapshot()));
+    expect(result.current.entitiesLoaded).toBe(false);
+    expect(result.current.entities).toEqual({});
+    await act(async () => { resolveRegistry([]); await registry; });
+    expect(result.current.entitiesLoaded).toBe(false);
+    commitFrame();
+    expect(result.current.entitiesLoaded).toBe(true);
+    expect(result.current.entities['light.soggiorno'].state).toBe('on');
+    expect(committed.filter((value) => value.loaded).every((value) => value.ids.includes('light.soggiorno'))).toBe(true);
+  });
+
+  it('accepts an empty authoritative snapshot without waiting for an entity count', async () => {
+    const commitFrame = manualEntityFrames();
+    mocks.createConnection.mockResolvedValue(fakeConnection());
+    const { result } = renderProvider({ authMethod: 'token', token: 'empty' });
+    await waitFor(() => expect(mocks.subscribeEntities).toHaveBeenCalledTimes(1));
+    act(() => subscriber()({}));
+    expect(result.current.entitiesLoaded).toBe(false);
+    commitFrame();
+    expect(result.current.entitiesLoaded).toBe(true);
+    expect(result.current.entities).toEqual({});
+  });
+
+  it('does not publish readiness from a cancelled attempt and keeps the newest pending snapshot', async () => {
+    const commitFrame = manualEntityFrames();
+    mocks.createConnection.mockResolvedValue(fakeConnection());
+    let token = 'attempt-one';
+    const wrapper = ({ children }: { children: ReactNode }) => <HomeAssistantProvider config={{
+      url: getHassUrl(), fallbackUrl: '', token, authMethod: 'token',
+    }}>{children}</HomeAssistantProvider>;
+    const { result, rerender } = renderHook(useHomeAssistant, { wrapper });
+    await waitFor(() => expect(mocks.subscribeEntities).toHaveBeenCalledTimes(1));
+    const cancelled = subscriber();
+    act(() => cancelled(snapshot('on')));
+    token = 'attempt-two';
+    rerender();
+    await waitFor(() => expect(mocks.subscribeEntities).toHaveBeenCalledTimes(2));
+    commitFrame();
+    expect(result.current.entitiesLoaded).toBe(false);
+    act(() => cancelled(snapshot('unavailable')));
+    act(() => {
+      subscriber(1)(snapshot('on'));
+      subscriber(1)(snapshot('off'));
+    });
+    expect(result.current.entitiesLoaded).toBe(false);
+    commitFrame();
+    expect(result.current.entitiesLoaded).toBe(true);
+    expect(result.current.entities['light.soggiorno'].state).toBe('off');
+  });
+
+  it('retains the committed snapshot and readiness during reconnect events', async () => {
+    const commitFrame = manualEntityFrames();
+    const connection = fakeConnection();
+    mocks.createConnection.mockResolvedValue(connection);
+    const { result } = renderProvider({ authMethod: 'token', token: 'reconnect' });
+    await waitFor(() => expect(mocks.subscribeEntities).toHaveBeenCalledTimes(1));
+    act(() => subscriber()(snapshot()));
+    commitFrame();
+    const entities = result.current.entities;
+    const listener = (name: string) => connection.addEventListener.mock.calls.find((call) => call[0] === name)?.[1] as (() => void);
+    act(() => listener('disconnected')());
+    expect(result.current.connected).toBe(false);
+    expect(result.current.entitiesLoaded).toBe(true);
+    expect(result.current.entities).toBe(entities);
+    act(() => listener('ready')());
+    expect(result.current.connected).toBe(true);
+    expect(result.current.entitiesLoaded).toBe(true);
+    expect(result.current.entities).toBe(entities);
+  });
+
+  it('retries the initial snapshot through its owner without changing credentials and ignores old subscribers', async () => {
+    const commitFrame = manualEntityFrames();
+    mocks.createConnection.mockResolvedValue(fakeConnection());
+    const { result } = renderProvider({ authMethod: 'token', token: 'owner-retry' });
+    await waitFor(() => expect(mocks.subscribeEntities).toHaveBeenCalledTimes(1));
+    const old = subscriber();
+    act(() => result.current.retryInitialSnapshot?.());
+    await waitFor(() => expect(mocks.subscribeEntities).toHaveBeenCalledTimes(2));
+    act(() => old(snapshot('unavailable')));
+    commitFrame();
+    expect(result.current.entitiesLoaded).toBe(false);
+    act(() => subscriber(1)({}));
+    commitFrame();
+    expect(result.current.entitiesLoaded).toBe(true);
+    expect(result.current.entities).toEqual({});
+    expect(lastAuth().accessToken).toBe('owner-retry');
+  });
+
 });

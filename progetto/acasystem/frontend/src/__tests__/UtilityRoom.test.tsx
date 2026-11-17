@@ -1,13 +1,22 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { LauncherApi } from '@/@types/launcher';
+import type { ReactElement } from 'react';
+import type { LauncherApi, WidgetRuntime } from '@/@types/launcher';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import { RoomWidget, pagerIndex } from '@/components/widgets/utilities/room/RoomWidget';
 import { RoomDetails } from '@/components/widgets/utilities/room/RoomDetails';
 import { roomSummary } from '@/components/widgets/utilities/room/roomData';
 import { SpacerWidget } from '@/components/widgets/utilities/spacer/SpacerWidget';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
-import { renderWithRuntime } from './UtilityHarness';
+import { fakeConnection, renderWithRuntime as renderBase } from './UtilityHarness';
+
+const conn = fakeConnection({
+  'config/area_registry/list': () => [], 'config/entity_registry/list': () => [], 'config/device_registry/list': () => [],
+}).conn;
+const services = { light: { turn_on: {}, turn_off: {} }, media_player: { media_play_pause: {}, media_next_track: {}, media_previous_track: {} },
+  vacuum: { start: {}, pause: {}, return_to_base: {} }, cover: { open_cover: {}, close_cover: {}, stop_cover: {} } };
+const renderWithRuntime = (ui: ReactElement, overrides: Partial<WidgetRuntime> = {}) =>
+  renderBase(ui, { conn, services, ...overrides });
 
 const roomSettings = {
   areaName: 'Soggiorno',
@@ -36,9 +45,9 @@ const entities = fixtureEntities([
     unit_of_measurement: '°C',
   }),
   fixtureEntity('binary_sensor.soggiorno_motion', 'on', { device_class: 'motion' }),
-  fixtureEntity('media_player.soggiorno_tv', 'playing', { media_title: 'Notiziario' }),
-  fixtureEntity('vacuum.robot', 'cleaning', { battery_level: 60 }),
-  fixtureEntity('cover.soggiorno', 'open'),
+  fixtureEntity('media_player.soggiorno_tv', 'playing', { media_title: 'Notiziario', supported_features: 1 | 16 | 32 | 16384 }),
+  fixtureEntity('vacuum.robot', 'cleaning', { battery_level: 60, supported_features: 8192 | 4 | 16 }),
+  fixtureEntity('cover.soggiorno', 'open', { supported_features: 1 | 2 | 8 }),
   fixtureEntity('binary_sensor.porta', 'on', { device_class: 'door' }),
   fixtureEntity('switch.presa', 'on'),
 ]);
@@ -83,16 +92,16 @@ describe('stanza: riepilogo', () => {
     expect(summary.activeDevices).toBe(2);
   });
 
-  it('temperatura nell’unità di Home Assistant, convertita dal sensore', () => {
-    expect(roomSummary(entities, roomSettings, imperial)).toMatchObject({ temperatureUnit: '°F' });
-    expect(roomSummary(entities, roomSettings, imperial).temperature).toBeCloseTo(70.52, 2);
-    // Not loaded yet: the sensor reading as it is.
+  it('temperatura nell’unità nativa del sensore anche con casa in °F', () => {
+    expect(roomSummary(entities, roomSettings, imperial)).toMatchObject({ temperatureUnit: '°C' });
+    expect(roomSummary(entities, roomSettings, imperial).temperature).toBe(21.4);
+    // The reading remains in its native unit before the HA config is loaded too.
     expect(roomSummary(entities, roomSettings, null)).toMatchObject({
       temperature: 21.4,
       temperatureUnit: '°C',
     });
     renderWithRuntime(<RoomWidget {...props()} />, { entities, haConfig: imperial });
-    expect(screen.getByText('70,5 °F')).toBeInTheDocument();
+    expect(screen.getByText('21,4 °C')).toBeInTheDocument();
   });
 
   it('le impostazioni show* nascondono i chip', () => {
@@ -107,7 +116,7 @@ describe('stanza: riepilogo', () => {
 });
 
 describe('stanza: widget', () => {
-  it('2×2: nome, chip e luce principale (light.turn_off/turn_on)', () => {
+  it('2×2: nome, chip e luce principale (light.turn_off/turn_on)', async () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(<RoomWidget {...props()} />, { entities, callService });
     expect(screen.getByText('Soggiorno')).toBeInTheDocument();
@@ -116,6 +125,7 @@ describe('stanza: widget', () => {
     expect(screen.getAllByText('Movimento')).toHaveLength(2);
     expect(screen.getByText('1 luce accesa')).toBeInTheDocument();
     expect(screen.getByText('Porta aperta')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Luce principale di Soggiorno' })).not.toBeDisabled());
     const toggle = screen.getByRole('switch', { name: 'Luce principale di Soggiorno' });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
@@ -125,7 +135,7 @@ describe('stanza: widget', () => {
     expect(toggle).toHaveAttribute('aria-busy', 'true');
   });
 
-  it('luce principale scelta nelle impostazioni e taglia 2×1', () => {
+  it('luce principale scelta nelle impostazioni e taglia 2×1', async () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(
       <RoomWidget {...props({ ...roomSettings, mainLightEntityId: 'light.lampada' }, 2, 1)} />,
@@ -135,6 +145,7 @@ describe('stanza: widget', () => {
       }
     );
     expect(screen.getByText('21,4 °C · 1 luce accesa · Movimento')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Luce principale di Soggiorno' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('switch', { name: 'Luce principale di Soggiorno' }));
     expect(callService).toHaveBeenCalledWith('light', 'turn_on', { entity_id: 'light.lampada' });
   });
@@ -208,15 +219,17 @@ describe('stanza: dettagli (servizi di RoomModal)', () => {
   it('accendi o spegni tutte le luci, una chiamata per luce', async () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(details(), { entities, callService });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Spegni tutte' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Spegni tutte' }));
     await waitFor(() => expect(callService).toHaveBeenCalledTimes(2));
     expect(callService).toHaveBeenCalledWith('light', 'turn_off', { entity_id: 'light.soggiorno' });
     expect(callService).toHaveBeenCalledWith('light', 'turn_off', { entity_id: 'light.lampada' });
   });
 
-  it('media con media_play_pause, aspirapolvere con pause e return_to_base', () => {
+  it('media con media_play_pause, aspirapolvere con pause e return_to_base', async () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(details(), { entities, callService });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Metti in pausa soggiorno tv/ })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: /Metti in pausa soggiorno tv/ }));
     expect(callService).toHaveBeenLastCalledWith('media_player', 'media_play_pause', {
       entity_id: 'media_player.soggiorno_tv',
@@ -233,9 +246,10 @@ describe('stanza: dettagli (servizi di RoomModal)', () => {
     });
   });
 
-  it('altre entità: tapparella aperta/ferma/chiusa; sezioni ripiegabili salvate come il legacy', () => {
+  it('altre entità: tapparella aperta/ferma/chiusa; sezioni ripiegabili salvate come il legacy', async () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(details(), { entities, callService });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Chiudi soggiorno' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi soggiorno' }));
     expect(callService).toHaveBeenLastCalledWith('cover', 'close_cover', {
       entity_id: 'cover.soggiorno',
@@ -256,6 +270,7 @@ describe('stanza: dettagli (servizi di RoomModal)', () => {
   it('luminosità di una luce: turn_on con brightness_pct, a 0 turn_off', async () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     renderWithRuntime(details(), { entities, callService });
+    await waitFor(() => expect(screen.getByRole('slider', { name: 'Luminosità di lampada' })).not.toBeDisabled());
     const lights = screen.getByRole('button', { name: /Luci/ }).closest('section') as HTMLElement;
     // The slider holds the pointer: it never starts the launcher's long press.
     expect(

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const read = (file) => readFileSync(resolve(process.cwd(), 'src/themes/acasystem', file), 'utf8');
+const read = (file) => readFileSync(resolve(process.cwd(), '../design/themes/acasystem', file), 'utf8');
 const tokens = read('tokens.css');
 const material = read('material.css');
 const components = read('components.css');
@@ -444,7 +444,7 @@ describe('materiale Metallo (UI-003)', () => {
   });
 
   it('tiene le primitive al primo livello: niente import da strati superiori o components/ui', () => {
-    const root = resolve(process.cwd(), 'src/components/primitives');
+    const root = resolve(process.cwd(), '../ui/primitives');
     const files = readdirSync(root, { recursive: true, encoding: 'utf8' }).filter((file) =>
       /\.tsx?$/.test(file)
     );

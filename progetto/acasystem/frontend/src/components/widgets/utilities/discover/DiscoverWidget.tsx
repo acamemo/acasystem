@@ -3,7 +3,7 @@ import { Body, Caption } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
 import { useDiscoveryScreenOpener } from '@/hooks/launcher/DiscoveryScreenContext';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
-import { CardMessage, CardSkeleton, Chip, IconWell, UtilityCard } from '../shared/UtilityCard';
+import { CardMessage, CardSkeleton, IconWell, UtilityCard } from '../shared/UtilityCard';
 import { UtilityIcon } from '../shared/UtilityIcon';
 import { FAMILY_ICON } from './familyIcon';
 import { useDiscoveredDevices } from './useDiscoveredDevices';
@@ -27,6 +27,7 @@ export function DiscoverWidget({ id, size, editMode }: WidgetProps) {
   const row = size.h <= 1;
   const card = (children: ReactNode) => (
     <UtilityCard
+      className="discover-widget"
       openLabel={`${DISCOVER_NAME}, apri l’elenco`}
       // The screen over the launcher; without a launcher (previews) the old details open.
       onOpen={() => (showDiscovery ? showDiscovery() : runtime.openDetails(id))}
@@ -86,12 +87,7 @@ export function DiscoverWidget({ id, size, editMode }: WidgetProps) {
           <Body as="span" size="md" tone="ink" className="utility-truncate">
             {DISCOVER_NAME}
           </Body>
-          <Caption className="utility-truncate">Pronti da collegare</Caption>
-        </div>
-        <div className="utility-head__aside">
-          <Chip tone="active" label={count}>
-            {names.length}
-          </Chip>
+          <Caption className="utility-truncate">{count}</Caption>
         </div>
       </div>
       <ul className="utility-stack utility-grow" aria-label="Primi dispositivi">

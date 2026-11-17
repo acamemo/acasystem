@@ -54,7 +54,7 @@ describe('meteo della copertina (REP-20261007-019)', () => {
       </WidgetRuntimeProvider>
     );
     expect(
-      screen.getByRole('group', { name: 'Meteo non raggiungibile: nuovo tentativo a breve' })
+      screen.getByRole('group', { name: 'Meteo non raggiungibile' })
     ).toBeInTheDocument();
     expect(screen.queryByText('—')).toBeNull();
   });

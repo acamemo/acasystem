@@ -1,13 +1,9 @@
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, relative, sep } from 'node:path';
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { MAX_ARCHIVE_BYTES, parseManifest } from '../core/src/index.ts';
-import type { ReleaseManifest } from '../core/src/index.ts';
-import { readZip } from '../windows/src/zip.ts';
-import { writeZip } from './zipWriter.ts';
+import { createClientBundle } from '../shared/packaging/webBundle.mjs';
 
 /**
  * Prepara una Release dell'interfaccia (ADR-0023, C3): `acasystem-web-<versione>.zip` (frontend
@@ -40,14 +36,6 @@ if (tag && /^\d+\.\d+\.\d+$/.test(tag) && tag !== version) {
   process.exit(1);
 }
 
-const listFiles = async (root: string): Promise<string[]> => {
-  const entries = await readdir(root, { recursive: true, withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => relative(root, join(entry.parentPath, entry.name)).split(sep).join('/'))
-    .sort();
-};
-
 const work = await mkdtemp(join(tmpdir(), 'aca-release-'));
 try {
   // Copia dall'immagine senza avviarla: contenitore creato, letto e rimosso.
@@ -59,34 +47,13 @@ try {
     execFileSync('docker', ['rm', container]);
   }
 
-  const entries: { name: string; data: Uint8Array }[] = [];
-  for (const path of await listFiles(join(work, 'frontend'))) {
-    if (path.startsWith('casa3d/')) throw new Error(`Il frontend contiene già ${path}`);
-    entries.push({ name: path, data: await readFile(join(work, 'frontend', path)) });
-  }
-  for (const path of await listFiles(join(work, 'casa3d'))) {
-    entries.push({ name: `casa3d/${path}`, data: await readFile(join(work, 'casa3d', path)) });
-  }
-  if (!entries.some((entry) => entry.name === 'index.html')) throw new Error('index.html mancante');
-
-  const archive = writeZip(entries);
-  if (archive.byteLength > MAX_ARCHIVE_BYTES) throw new Error('Archivio oltre il limite dei gusci');
-  // Controllo con lo stesso lettore del guscio Windows: percorsi, CRC e dimensioni.
-  const check = readZip(archive);
-  if (check.length !== entries.length) throw new Error('Rilettura dello zip non coerente');
-
-  const manifest: ReleaseManifest = {
-    schema: 1,
+  const { manifest, archive, entryCount } = await createClientBundle({
+    frontend: join(work, 'frontend'),
+    casa3d: join(work, 'casa3d'),
     version,
-    archive: {
-      name: `acasystem-web-${version}.zip`,
-      sha256: createHash('sha256').update(archive).digest('hex'),
-      size: archive.byteLength,
-    },
     minServer: values['min-server'] ?? version,
     minShell: values['min-shell'] ?? '0.1.0',
-  };
-  if (!parseManifest(manifest)) throw new Error('Manifesto non valido per il nucleo');
+  });
 
   const out = new URL(`../release-out/v${version}/`, import.meta.url);
   await rm(out, { recursive: true, force: true });
@@ -94,7 +61,7 @@ try {
   await writeFile(new URL(manifest.archive.name, out), archive);
   await writeFile(new URL('manifest.json', out), `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(
-    `Release v${version}: ${entries.length} file, ${(archive.byteLength / 1024 / 1024).toFixed(1)} MB, SHA-256 ${manifest.archive.sha256}`
+    `Release v${version}: ${entryCount} file, ${(archive.byteLength / 1024 / 1024).toFixed(1)} MB, SHA-256 ${manifest.archive.sha256}`
   );
   console.log(`Cartella: ${out.pathname}`);
 } finally {

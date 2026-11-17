@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { HaMessageConnection } from '@/@types/ha';
 import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
-import { browseMediaChoices, type BrowseChoices } from '../model/choices';
+import { browseMediaChoices, type BrowseChoices, type BrowseOptions } from '../model/choices';
 
 export interface MediaBrowseState {
   choices: BrowseChoices | null;
@@ -22,8 +22,10 @@ const canBrowse = (conn: unknown): conn is HaMessageConnection =>
 export function useMediaBrowse(
   conn: unknown,
   entityId: string | null,
-  enabled: boolean
+  enabled: boolean,
+  options: BrowseOptions = {}
 ): MediaBrowseState {
+  const { skipApps, allowVideo } = options;
   const visible = usePageVisible();
   const [results, setResults] = useState<Record<string, BrowseChoices | 'error'>>({});
   const known = entityId ? results[entityId] !== undefined : true;
@@ -32,7 +34,7 @@ export function useMediaBrowse(
   useEffect(() => {
     if (!enabled || !visible || !entityId || !usable || known) return undefined;
     let cancelled = false;
-    browseMediaChoices(usable, entityId, () => cancelled).then(
+    browseMediaChoices(usable, entityId, () => cancelled, { skipApps, allowVideo }).then(
       (choices) => {
         if (!cancelled) setResults((prev) => ({ ...prev, [entityId]: choices }));
       },
@@ -43,7 +45,7 @@ export function useMediaBrowse(
     return () => {
       cancelled = true;
     };
-  }, [enabled, visible, entityId, usable, known]);
+  }, [enabled, visible, entityId, usable, known, skipApps, allowVideo]);
 
   const retry = useCallback(() => {
     if (!entityId) return;

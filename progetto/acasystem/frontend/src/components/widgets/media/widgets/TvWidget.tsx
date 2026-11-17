@@ -1,18 +1,36 @@
+import { ProductTvWidget } from '../../home/tv/ProductTvWidget';
+import { tvProductBinding } from '../../home/tv/productTvModel';
 import { Caption, Display, IconText, Text } from '@/components/primitives';
 import { castOnlyBrand, nativeCounterpart, type NativeTvBrand } from '@/utils/devices/tvBrand';
 import type { CardSettings } from '@/@types/dashboard';
 import type { EntityMap } from '@/@types/ha';
 import type { WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
-import { useConfirmedCommand } from '../hooks/commands';
 import { useCastPowerGuard } from '../hooks/useCastPowerGuard';
+import { useTvBrandLogo } from '../hooks/useTvBrandLogo';
 import { useTvChannel } from '../hooks/useTvChannel';
+import { useTvPower } from '../hooks/useTvPower';
 import { useTvVolume } from '../hooks/useTvVolume';
+import { useTvWake } from '../hooks/useTvWake';
 import { readString, resolveImage, stringList } from '../model/entity';
-import { pairedRemoteId, resolveTv, tvPowerOffCall, type TvKind, type TvView } from '../model/tv';
+import {
+  pairedRemoteId,
+  resolveTv,
+  tvCover,
+  tvPowerOffCall,
+  tvStatusLine,
+  tvStatusOf,
+  type TvKind,
+} from '../model/tv';
 import { testi } from '../testi';
 import { Artwork } from '../parts/Artwork';
-import { TvFace, TvHeadContent, TvPowerKey, TvVolumeKey } from '../parts/tv/TvFace';
+import {
+  TvFace,
+  TvHeadContent,
+  TvPowerKey,
+  TvVolumeKey,
+  tvKeyWaiting,
+} from '../parts/tv/TvFace';
 import { TvLinkHint } from '../parts/tv/TvLinkHint';
 import {
   OpenButton,
@@ -57,12 +75,6 @@ export const readTvConfig = (settings: CardSettings, entities?: EntityMap): TvCo
   };
 };
 
-export function tvStatus(view: TvView): string {
-  if (view.unavailable) return testi.nonDisponibile;
-  if (!view.isOn) return testi.spento;
-  return view.isPlaying ? testi.inRiproduzione : testi.acceso;
-}
-
 /**
  * Android TV (`androidtv_card_*`) and Apple TV (`appletv_card_*`) widgets: device, app and title,
  * and the basic keys, always on the tile also while the TV is off: power, the single volume knob
@@ -72,21 +84,25 @@ export function tvStatus(view: TvView): string {
  * that cannot be switched on over the network keeps the power key and a tap says how to turn it on.
  * For Apple TV, the optional tap-to-toggle.
  */
-export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & { kind: TvKind }) {
+function LegacyTvWidget({ kind, id, settings, size, editMode }: WidgetProps & { kind: TvKind }) {
   const runtime = useWidgetRuntime();
   const config = readTvConfig(settings, runtime.entities);
+  // An LG webOS TV that is off reports `unavailable`: «Spento» when it can be woken.
+  const canWake = useTvWake(runtime.entities[config.mediaPlayerId]);
   const view = resolveTv(
     kind,
     runtime.entities,
     id,
     config.mediaPlayerId,
     config.linkedMediaPlayers,
-    runtime.customNames
+    runtime.customNames,
+    { canWake }
   );
-  const power = useConfirmedCommand(view.isOn, { ignoreWhilePending: true });
+  const power = useTvPower(view.isOn);
   const volume = useTvVolume(kind, view, config.mediaPlayerId, Boolean(config.remoteId));
   const channel = useTvChannel(kind, view, config.remoteId);
   const castGuard = useCastPowerGuard(config.castBrand);
+  const brandLogo = useTvBrandLogo(view);
 
   if (!runtime.entitiesLoaded)
     return <WidgetLoading size={size} label={testi.caricamentoLettore} />;
@@ -101,8 +117,8 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
     if (editMode || view.unavailable) return;
     if (castGuard.block()) return;
     const off = tvPowerOffCall(view, config.mediaPlayerId, config.remoteId);
-    power.request(!power.value, () =>
-      power.value
+    power.request(!power.confirmed, () =>
+      power.confirmed
         ? runtime.callService(off.domain, off.service, off.data)
         : runtime.callService('media_player', 'turn_on', { entity_id: config.mediaPlayerId })
     );
@@ -111,9 +127,15 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
   const compact = size.h <= 1;
   const picture = resolveImage(view.picture, runtime.getEntityImageUrl);
   const logo = resolveImage(view.logo, runtime.getEntityImageUrl);
-  const app = !view.isOn ? testi.spento : view.appName || testi.schermataHome;
-  const failed = power.error || volume.failed || channel.failed;
-  const status = tvStatus(view);
+  const status = tvStatusOf(view);
+  const app = !view.isOn ? status : view.place;
+  // A command that failed, or that the TV never confirmed, replaces the status until it changes.
+  const notice =
+    power.timedOut ??
+    (power.error || volume.failed || channel.failed ? testi.comandoNonRiuscito : '');
+  const failed = notice !== '';
+  // The one-row card shows the state word beside the title unless the status cue already does.
+  const caption = [view.isOn && size.w < 3 ? status : '', view.title].filter(Boolean).join(' · ');
 
   const info = (
     <>
@@ -134,13 +156,13 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
           </Display>
         )}{' '}
         {failed ? (
-          <Caption tone="danger">{testi.comandoNonRiuscito}</Caption>
+          <Caption tone="danger">{notice}</Caption>
         ) : (
-          view.title && <Caption tone="ink">{view.title}</Caption>
+          caption && <Caption tone="ink">{caption}</Caption>
         )}
       </OpenButton>
       <span className="sr-only" role="status">
-        {failed ? testi.comandoNonRiuscito : ''}
+        {notice}
       </span>
     </>
   );
@@ -160,8 +182,9 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
   const bigKeys = !compact && size.w >= 3;
   const keySize = compact ? 'md' : bigKeys ? 'xl' : 'lg';
   const face = { kind, view, power, volume, channel, togglePower };
+  const hint = tvKeyWaiting(face) && !editMode ? testi.tvAccensioneDaRete : '';
 
-  const art = picture ?? logo;
+  const cover = tvCover(picture, logo, brandLogo);
   let content;
   if (castGuard.shown) {
     content = <TvLinkHint guard={castGuard} />;
@@ -169,9 +192,9 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
     content = (
       <>
         <Artwork
-          src={art}
+          src={cover.src}
           icon="tv"
-          fit={picture ? 'cover' : 'contain'}
+          fit={cover.fit}
           variant="compact"
           className="aca-media-show-13"
         />
@@ -184,11 +207,7 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
   } else {
     // Two rows: TV icon and name, a small status line (failure, hint, «Spento», or the app and
     // title), then the three keys; the space is shared evenly in both directions.
-    const statusLine = failed
-      ? testi.comandoNonRiuscito
-      : view.unavailable
-        ? status
-        : [app, view.isOn ? view.title : ''].filter(Boolean).join(' · ');
+    const statusLine = failed ? notice : tvStatusLine(view);
     content = (
       <>
         <TvFace
@@ -204,12 +223,18 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
               stretch={!tapToggle}
               className="aca-media-remote__head"
             >
-              <TvHeadContent view={view} failed={failed} statusLine={statusLine} showName />
+              <TvHeadContent
+                view={view}
+                failed={failed}
+                statusLine={statusLine}
+                showName
+                hint={hint}
+              />
             </OpenButton>
           }
         />
         <span className="sr-only" role="status">
-          {failed ? testi.comandoNonRiuscito : ''}
+          {notice}
         </span>
       </>
     );
@@ -226,6 +251,11 @@ export function TvWidget({ kind, id, settings, size, editMode }: WidgetProps & {
       {content}
     </WidgetShell>
   );
+}
+
+export function TvWidget({ kind, ...props }: WidgetProps & { kind: TvKind }) {
+  if (tvProductBinding(props.settings)) return <ProductTvWidget {...props} kind={kind} />;
+  return <LegacyTvWidget kind={kind} {...props} />;
 }
 
 export const AndroidTvWidget = (props: WidgetProps) => <TvWidget kind="android" {...props} />;

@@ -244,6 +244,85 @@ describe('Popover', () => {
       }
     }
   });
+
+  it('ricalcola posizione e origine dopo il toggle nativo quando il pannello diventa misurabile', () => {
+    const proto = HTMLElement.prototype as HTMLElement & Record<string, unknown>;
+    const original = proto.showPopover;
+    proto.showPopover = vi.fn();
+    try {
+      render(<PopoverHarness />);
+      const trigger = screen.getByRole('button', { name: 'Ordina' });
+      const panel = document.getElementById(trigger.getAttribute('aria-controls') as string)!;
+      vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
+        x: 100, y: 600, top: 600, bottom: 644, left: 100, right: 200,
+        width: 100, height: 44, toJSON: () => ({}),
+      });
+      let measurable = false;
+      Object.defineProperties(panel, {
+        offsetWidth: { configurable: true, get: () => measurable ? 240 : 0 },
+        offsetHeight: { configurable: true, get: () => measurable ? 200 : 0 },
+      });
+      act(() => {
+        panel.dispatchEvent(Object.assign(new Event('beforetoggle'), { newState: 'open' }));
+      });
+      expect(panel.style.top).toBe('652px');
+      measurable = true;
+      act(() => {
+        panel.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+      });
+      expect(panel.style.top).toBe('392px');
+      expect(panel.style.left).toBe('100px');
+      expect(panel.style.getPropertyValue('--aca-popover-origin')).toBe('50px 200px');
+    } finally {
+      if (original === undefined) Reflect.deleteProperty(proto, 'showPopover');
+      else proto.showPopover = original;
+    }
+  });
+
+  it('ritenta il focus al toggle nativo se beforetoggle era ancora nascosto, senza riprenderlo dopo', () => {
+    const proto = HTMLElement.prototype as HTMLElement & Record<string, unknown>;
+    const original = proto.showPopover;
+    const nativeFocus = HTMLElement.prototype.focus;
+    let visible = false;
+    proto.showPopover = vi.fn();
+    // jsdom does not hide a native popover: reproduce a browser rejecting focus before display.
+    vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (
+      this: HTMLElement, options?: FocusOptions
+    ) {
+      if (this.hasAttribute('data-autofocus') && !visible) return;
+      nativeFocus.call(this, options);
+    });
+    try {
+      render(
+        <Popover label="Periodo" trigger={(props) => <Button {...props}>Apri periodo</Button>}>
+          <Button data-autofocus>24 ore</Button>
+          <Button>7 giorni</Button>
+        </Popover>
+      );
+      const trigger = screen.getByRole('button', { name: 'Apri periodo' });
+      const panel = document.getElementById(trigger.getAttribute('aria-controls') as string)!;
+      trigger.focus();
+      act(() => {
+        panel.dispatchEvent(Object.assign(new Event('beforetoggle'), { newState: 'open' }));
+      });
+      expect(trigger).toHaveFocus();
+      visible = true;
+      act(() => {
+        panel.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+      });
+      expect(screen.getByRole('button', { name: '24 ore', hidden: true })).toHaveFocus();
+
+      const other = screen.getByRole('button', { name: '7 giorni', hidden: true });
+      other.focus();
+      act(() => {
+        panel.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+      });
+      expect(other).toHaveFocus();
+    } finally {
+      if (original === undefined) Reflect.deleteProperty(proto, 'showPopover');
+      else proto.showPopover = original;
+    }
+  });
 });
 
 describe('Modal sulle primitive', () => {

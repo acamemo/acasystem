@@ -1,0 +1,59 @@
+/* Toasts: bottom centre, above the page indicator, on the toast layer of the z-index scale. */
+@layer components {
+  .aca-toasts {
+    position: fixed;
+    z-index: var(--aca-z-toast);
+    bottom: calc(var(--aca-toast-bottom, 5.5rem) + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    display: grid;
+    justify-items: center;
+    gap: 0.6rem;
+    width: min(28rem, calc(100vw - 2rem));
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .aca-toast {
+    pointer-events: auto;
+    animation: aca-toast-in var(--aca-dur-toast-in, 200ms) var(--aca-motion-ease-out, ease-out);
+  }
+  /* The exit is shorter than the entrance, ease-in, and holds its last frame (D-M14). */
+  .aca-toast.is-leaving {
+    pointer-events: none;
+    animation: aca-toast-out var(--aca-dur-exit-sm, 160ms) var(--aca-motion-ease-in, ease-in)
+      forwards;
+  }
+  .aca-toast > .aca-m.aca-m--card {
+    --aca-pad: 0.75em 1.1em;
+    --aca-radius: var(--aca-radius-rounded);
+    font-size: var(--aca-step--1);
+  }
+  .aca-toast__content {
+    text-align: start;
+  }
+  /* In and out by a small scale and a fade, no slide (the user's answer of 2026-10-23). */
+  @keyframes aca-toast-in {
+    from {
+      opacity: 0;
+      scale: var(--aca-scale-enter, 0.92);
+    }
+  }
+  @keyframes aca-toast-out {
+    to {
+      opacity: 0;
+      scale: var(--aca-scale-enter, 0.92);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-toast {
+      animation: none;
+    }
+    .aca-toast.is-leaving {
+      animation: aca-toast-fade-out var(--aca-dur-reduced, 120ms) linear forwards;
+    }
+    @keyframes aca-toast-fade-out {
+      to {
+        opacity: 0;
+      }
+    }
+  }
+}

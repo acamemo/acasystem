@@ -1,3 +1,4 @@
+import { isProductDeviceBinding } from '@/utils/devices/productBinding';
 import { useState } from 'react';
 import { Body, Button, Caption, Field } from '@/components/primitives';
 import type { CardSettings } from '@/@types/dashboard';
@@ -7,7 +8,7 @@ import {
   normalizeGo2rtcMode,
 } from '@/components/widgets/media/model/camera';
 import { readKey } from '@/validators/guards';
-import type { EditKind } from '../editTarget';
+import type { EditKind } from '@/domain/launcher/editTarget';
 import { EntityPicker, EntitySelect } from '../parts/EntityPicker';
 import { ChoiceGroup, FormRow, SheetSection, ToggleRow } from '../parts/Form';
 import { useDomId } from '../parts/hooks';
@@ -321,22 +322,8 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
   );
   switch (kind) {
     case 'todo':
-      return (
-        <SheetSection title="Attività">
-          {entity('Lista di attività', 'todoEntityId', ids('todo.'))}
-        </SheetSection>
-      );
     case 'calendar':
-      return (
-        <SheetSection title="Calendario">
-          <MultipleEntities
-            {...common}
-            label="Calendari"
-            setting="calendars"
-            ids={ids('calendar.')}
-          />
-        </SheetSection>
-      );
+      return null; // Source association is shared by native and category widgets.
     case 'weather':
       return (
         <SheetSection title="Meteo">
@@ -514,17 +501,19 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
         </SheetSection>
       );
     }
-    case 'vacuum':
+    case 'vacuum': {
+      const product = isProductDeviceBinding(settings.productDevice) && settings.productDevice.family === 'vacuum'
+        && settings.bindingEntityId === settings.productDevice.primaryEntityId;
       return (
         <SheetSection
           title="Aspirapolvere"
-          description={`Le associazioni vuote conservano il rilevamento automatico. ${DEVICE_SCOPE_NOTE}.`}
+          description={product ? `Associazioni facoltative. ${DEVICE_SCOPE_NOTE}.` : `Le associazioni vuote conservano il rilevamento automatico. ${DEVICE_SCOPE_NOTE}.`}
         >
           {VACUUM_MAPPINGS.map(([key, label, prefix]) => (
             <EntitySelect
               key={key}
               label={label}
-              noneLabel="Automatico"
+              noneLabel={product ? "Non associato" : "Automatico"}
               value={text(settings[key]) || null}
               entities={entities}
               ids={
@@ -542,6 +531,7 @@ export function AdditionalTypeSections({ kind, settings, entities, save }: Props
           <RoomScripts {...common} />
         </SheetSection>
       );
+    }
     default:
       return null;
   }

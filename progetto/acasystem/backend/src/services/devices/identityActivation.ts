@@ -375,7 +375,23 @@ export const activateServiceIdentity = async ({
         }
         // The old password is unknown by design: replace it.
         if (found.username) {
-          await api.changePassword(found.id, password);
+          try {
+            await api.changePassword(found.id, password);
+          } catch (error) {
+            const saved = store.load();
+            // Core reserves password resets to the owner. A lost file on HAOS may
+            // recreate only our unambiguous local service identity, never a person.
+            if (!isHaError(error) || !['forbidden', 'unauthorized'].includes(error.kind) ||
+              !admin || admin.user !== null || !reactivate || saved.ok || saved.reason !== 'missing' ||
+              found.name !== DEVICE_SERVICE_USER_NAME || found.username !== DEVICE_SERVICE_USERNAME ||
+              !found.localOnly || !found.isAdmin || found.isOwner || found.systemGenerated ||
+              sameName.length !== 1 || sameName[0]?.id !== found.id) throw error;
+            await api.deleteUser(found.id);
+            actions.record({ user: ownerUser, source, action: 'service.identity_removed', outcome: 'ok', code: 'missing_secret' });
+            const recreated = await api.createUser(DEVICE_SERVICE_USER_NAME, true);
+            await api.createCredentials(recreated.id, DEVICE_SERVICE_USERNAME, password);
+            return recreated;
+          }
         } else {
           try {
             await api.createCredentials(found.id, DEVICE_SERVICE_USERNAME, password);
@@ -398,8 +414,9 @@ export const activateServiceIdentity = async ({
     // a best effort: if HA does not list them, the old ones stay valid until they expire.
     const issued = await adapter.withWs(serviceSession.accessToken, async (api) => {
       const before = await api.longLivedTokenIds().catch(() => null);
+      // HA requires a unique client name; keep the old token until the replacement is saved.
       const newToken = await api.longLivedToken(
-        DEVICE_SERVICE_TOKEN_NAME,
+        `${DEVICE_SERVICE_TOKEN_NAME} ${randomBytes(12).toString('hex')}`,
         DEVICE_SERVICE_TOKEN_LIFESPAN_DAYS
       );
       const after = await api.longLivedTokenIds().catch(() => null);

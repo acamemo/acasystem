@@ -1,0 +1,26 @@
+/* Layout e accessibilità delle primitive, disponibili anche senza Tailwind. */
+@layer components {
+  .aca-grid {
+    display: grid;
+  }
+
+  .aca-flex {
+    display: flex;
+  }
+
+  :is(.aca-grid, .aca-flex)[hidden]:not([hidden='until-found']) {
+    display: none !important;
+  }
+
+  .aca-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}

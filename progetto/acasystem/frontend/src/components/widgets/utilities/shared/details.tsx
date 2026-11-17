@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button, Caption, Heading, Numeric, Popover, SelectTrigger } from '@/components/primitives';
 import { UtilityIcon, type UtilityIconName } from './UtilityIcon';
 import '../utilities.css';
@@ -88,6 +88,9 @@ export function OptionPicker({
   disabled = false,
   pending = false,
   placeholder = 'Non impostato',
+  showLabel = true,
+  contentClassName,
+  isolateEscape = false,
 }: {
   label: string;
   value: string | null;
@@ -96,30 +99,84 @@ export function OptionPicker({
   disabled?: boolean;
   pending?: boolean;
   placeholder?: string;
+  /** The caller can print the label above the trigger; its accessible name stays complete. */
+  showLabel?: boolean;
+  /** Optional feature class on the portaled menu; the shared menu contract is retained. */
+  contentClassName?: string;
+  /** A nested picker can consume Escape without closing the Console that hosts it. */
+  isolateEscape?: boolean;
 }) {
   const current = options.find((option) => option.value === value);
+  const choice = current?.label ?? value ?? placeholder;
+  const [open, setOpen] = useState(false);
+  const closeRef = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    if (!isolateEscape || !open) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault(); event.stopPropagation(); closeRef.current();
+    };
+    document.addEventListener('keydown', escape, true);
+    return () => document.removeEventListener('keydown', escape, true);
+  }, [isolateEscape, open]);
   return (
     <Popover
       label={label}
-      contentClassName="utility-menu"
+      contentClassName={['utility-menu', contentClassName].filter(Boolean).join(' ')}
+      onOpenChange={setOpen}
       trigger={(props) => (
         <SelectTrigger
-          label={`${label}: ${current?.label ?? value ?? placeholder}`}
+          label={showLabel ? `${label}: ${choice}` : choice}
+          aria-label={`${label}: ${choice}`}
           aria-haspopup="dialog"
           disabled={disabled || options.length === 0}
           loading={pending}
           {...props}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault();
+              if (!open) event.currentTarget.click();
+              else document.getElementById(props['aria-controls'])
+                ?.querySelector<HTMLButtonElement>('[data-autofocus]')?.focus();
+              return;
+            }
+            if (!isolateEscape || event.key !== 'Escape') return;
+            const panel = document.getElementById(props['aria-controls']);
+            let nativeOpen = false;
+            try { nativeOpen = panel?.matches(':popover-open') ?? false; } catch { /* Fallback engine. */ }
+            // beforetoggle already exposes the menu, while onOpenChange/toggle can still be queued.
+            if (!open && event.currentTarget.getAttribute('aria-expanded') !== 'true' && !nativeOpen) return;
+            event.preventDefault(); event.stopPropagation(); closeRef.current();
+            if (nativeOpen && panel && 'hidePopover' in panel) {
+              try { panel.hidePopover(); } catch { /* close() may already have hidden it. */ }
+            }
+            event.currentTarget.focus();
+          }}
         />
       )}
     >
-      {(close) =>
-        options.map((option) => (
+      {(close) => {
+        closeRef.current = close;
+        return options.map((option, index) => (
           <Button
             key={option.value}
             variant="control"
             size="sm"
             className="utility-menu__item"
             aria-pressed={option.value === value}
+            data-autofocus={option === current || (!current && index === 0) ? '' : undefined}
+            onKeyDown={(event) => {
+              if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+                event.preventDefault();
+                const items = Array.from(event.currentTarget.closest('.utility-menu')
+                  ?.querySelectorAll<HTMLButtonElement>('.utility-menu__item:not(:disabled)') ?? []);
+                const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+                  : items.indexOf(event.currentTarget) + (event.key === 'ArrowDown' ? 1 : -1);
+                items[Math.max(0, Math.min(items.length - 1, next))]?.focus();
+              }
+              if (!isolateEscape) return;
+              if (event.key === 'Escape') { event.stopPropagation(); close(); }
+            }}
             onClick={() => {
               onSelect(option.value);
               close();
@@ -127,8 +184,8 @@ export function OptionPicker({
           >
             {option.label}
           </Button>
-        ))
-      }
+        ));
+      }}
     </Popover>
   );
 }

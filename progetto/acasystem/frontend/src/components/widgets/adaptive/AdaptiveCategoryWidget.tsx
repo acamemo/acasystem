@@ -1,5 +1,44 @@
+import { TodoWidget } from '../home/todo/TodoWidget';
+import { TodoDetails } from '../home/todo/TodoDetails';
+import { RoomWidget } from '../utilities/room/RoomWidget';
+import { RoomDetails } from '../utilities/room/RoomDetails';
+import { CarWidget } from '../utilities/car/CarWidget';
+import { CarDetails } from '../utilities/car/CarDetails';
+import { CostWidget } from '../utilities/energy/CostWidget';
+import { CostDetails } from '../utilities/energy/CostDetails';
+import { NordpoolWidget } from '../utilities/energy/NordpoolWidget';
+import { NordpoolDetails } from '../utilities/energy/NordpoolDetails';
+import { ProductSensorWidget } from '../home/sensor/ProductSensorWidget';
+import { ProductSensorDetails } from '../home/sensor/ProductSensorDetails';
+import { ProductTvWidget } from '../home/tv/ProductTvWidget';
+import { ProductTvDetails } from '../home/tv/ProductTvDetails';
+import { ProductMediaWidget } from '../home/media/ProductMediaWidget';
+import { ProductMediaDetails } from '../home/media/ProductMediaDetails';
+import { sensorProductBinding, multimediaProductBinding } from '@/utils/devices/productBinding';
+import { ProductMowerWidget } from '../home/mower/ProductMowerWidget';
+import { ProductMowerDetails } from '../home/mower/ProductMowerDetails';
+import { mowerProductBinding } from '../home/mower/productMowerModel';
+import { ProductVacuumWidget } from '../home/vacuum/ProductVacuumWidget';
+import { ProductVacuumDetails } from '../home/vacuum/ProductVacuumDetails';
+import { vacuumProductBinding } from '../home/vacuum/productVacuumModel';
+import { ProductCameraWidget } from '../home/camera/ProductCameraWidget';
+import { ProductCameraDetails } from '../home/camera/ProductCameraDetails';
+import { cameraProductBinding } from '../home/camera/productCameraModel';
+import { ProductAlarmWidget } from '../home/alarm/ProductAlarmWidget';
+import { ProductAlarmDetails } from '../home/alarm/ProductAlarmDetails';
+import { alarmProductBinding } from '../home/alarm/productAlarmModel';
+import { ProductLockWidget } from '../home/lock/ProductLockWidget';
+import { ProductLockDetails } from '../home/lock/ProductLockDetails';
+import { lockProductBinding } from '../home/lock/productLockModel';
+import { ProductFanWidget } from '../home/fan/ProductFanWidget';
+import { ProductFanDetails } from '../home/fan/ProductFanDetails';
+import { fanProductBinding } from '../home/fan/productFanModel';
+import { ProductCoverWidget } from '../home/cover/ProductCoverWidget';
+import { ProductCoverDetails } from '../home/cover/ProductCoverDetails';
+import { coverProductBinding } from '../home/cover/productCoverModel';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CardSettings } from '@/@types/dashboard';
+import { isProductDeviceBinding } from '../../../../../contracts/productDevice';
 import {
   Body,
   Button,
@@ -9,6 +48,7 @@ import {
   Heading,
   Icon,
   Numeric,
+  Skeleton,
 } from '@/components/primitives';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
@@ -20,6 +60,10 @@ import { callSafely } from '../controls/shared/service';
 import { useLockControl } from '../controls/lock/useLockControl';
 import { CONFIRM_HINT } from '../controls/lock/LockWidget';
 import { GestureControl } from './GestureControl';
+import { ProductClimateWidget } from '../home/climate/ProductClimateWidget';
+import { ProductClimateDetails } from '../home/climate/ProductClimateDetails';
+import { climateProductBinding } from '../home/climate/productClimateModel';
+import { PlugWidget } from '../controls/plug/PlugWidget';
 import { wantsTrendChart } from './chartPolicy';
 import { WidgetDesignChart } from './WidgetDesignChart';
 import {
@@ -28,12 +72,16 @@ import {
   resolveOperationalEntityId,
   type OperationalProfile,
 } from './operationalProfile';
+import { useHomeMeasurementKey } from '@/hooks/startup/HomeStartupContext';
 import { useServiceCatalog } from './useServiceCatalog';
+import { useTvWake } from '../media/hooks/useTvWake';
+import { tvMaybeAsleep, tvStateWord } from '../media/model/tv';
 import { AdaptiveNameContext, adaptiveStateWord, useControlLabel } from './adaptiveState';
 import { AlarmControl, AlarmControlGroup } from './AlarmControl';
 import { CameraPreview } from './CameraPreview';
 import { SpacerWidget } from '../utilities/spacer/SpacerWidget';
 import { roomName } from '../utilities/room/RoomWidget';
+import { OptionPicker } from '../utilities/shared/details';
 import { TodoContent } from './TodoContent';
 import { useMediaResources } from './useMediaResources';
 import type { Capability, SampleValue, SampleValues } from './widgetDesignModel';
@@ -51,6 +99,8 @@ export function calculateWidgetTier(w: number, h: number): WidgetTier {
 const HEADER_HEIGHT = 44;
 /** Height of the trend chart slot and the gap that goes with it, in px (adaptiveWidget.css). */
 const CHART_SLOT_HEIGHT = 96;
+/** Below this measured side the name and a labelled command cannot share a standard card. */
+const COMPACT_PIXEL_SIDE = 112;
 const sameValue = (a: SampleValue, b: SampleValue) =>
   typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 0.01 : Object.is(a, b);
 
@@ -246,20 +296,19 @@ function RequestedControl({
     control = (
       <div className="uikwa-choice">
         <Caption>{cap.label}</Caption>
-        <select
-          className="aca-adaptive-widget__select"
-          aria-label={cap.label}
+        <OptionPicker
+          label={cap.label}
+          showLabel={false}
           disabled={disabled}
-          value={String(value)}
-          onChange={(event) => commit(event.target.value)}
-        >
-          {!cap.options.includes(String(value)) && <option value="">Scegli…</option>}
-          {cap.options.map((option) => (
-            <option key={option} value={option}>
-              {cap.labels?.[option] ?? option}
-            </option>
-          ))}
-        </select>
+          value={cap.options.includes(String(value)) ? String(value) : null}
+          placeholder="Scegli…"
+          options={cap.options.map((option) => ({
+            value: option,
+            label: cap.labels?.[option] ?? option,
+          }))}
+          onSelect={commit}
+          isolateEscape
+        />
       </div>
     );
   } else {
@@ -286,13 +335,21 @@ function RequestedControl({
     );
   }
   return (
-    <div data-control-id={cap.id} aria-busy={request.pending || undefined}>
+    <div className="aca-adaptive-widget__command" data-control-id={cap.id} aria-busy={request.pending || undefined}>
       {control}
       {(request.pending || request.message || sent) && (
-        <Caption tone={request.failed ? 'danger' : 'muted'} role="status">
-          {request.message ||
-            (request.pending ? 'Sto inviando il comando…' : 'Comando inviato')}
-        </Caption>
+        <>
+          <Caption className="aca-adaptive-widget__feedback" tone={request.failed ? 'danger' : 'muted'} role="status">
+            {request.message ||
+              (request.pending ? 'Sto inviando il comando…' : 'Comando inviato')}
+          </Caption>
+          <Icon
+            name={request.pending ? 'refresh' : request.failed ? 'warning' : 'done'}
+            size="sm"
+            className="aca-adaptive-widget__feedback-marker"
+            color={request.failed ? 'var(--aca-danger-ink)' : 'var(--aca-ink)'}
+          />
+        </>
       )}
     </div>
   );
@@ -307,6 +364,8 @@ function widgetName(
   entityId: string
 ): string {
   if (type === 'room') return roomName(id, settings ?? EMPTY_SETTINGS, runtime.customNames);
+  if (isProductDeviceBinding(settings?.productDevice) && settings.productDevice.primaryEntityId === entityId
+    && typeof settings.name === 'string' && settings.name.trim()) return runtime.customNames[id] || settings.name.trim();
   return entityName(runtime, id, runtime.entities[entityId], entityId);
 }
 
@@ -331,20 +390,98 @@ export function AdaptiveCategoryWidget(props: AdaptiveCategoryWidgetProps) {
     props.settings ?? EMPTY_SETTINGS,
     runtime.entities
   );
-  // The smallest card prints no name: its controls carry it in their accessible name.
-  const smallest =
-    !props.detailsMode && calculateWidgetTier(props.size.w, props.size.h) === 'compact';
-  return (
-    <AdaptiveNameContext
-      value={
-        smallest
-          ? widgetName(runtime, props.type, props.id ?? resolved, props.settings, resolved)
-          : null
-      }
-    >
-      <AdaptiveBody key={props.type + '|' + resolved} {...props} entityId={resolved} />
-    </AdaptiveNameContext>
-  );
+  if (props.type === 'todo' || props.type === 'room') {
+    const utilityProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    if (props.type === 'todo') return props.detailsMode
+      ? <TodoDetails {...utilityProps} onClose={() => undefined} />
+      : <TodoWidget {...utilityProps} openDetails={props.openDetails} />;
+    return props.detailsMode ? <RoomDetails {...utilityProps} onClose={() => undefined} />
+      : <RoomWidget {...utilityProps} />;
+  }
+  if (props.type === 'car') {
+    const carProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <CarDetails {...carProps} onClose={() => undefined} />
+      : <CarWidget {...carProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'cost' || props.type === 'nordpool') {
+    const energyProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    if (props.type === 'cost') return props.detailsMode ? <CostDetails {...energyProps} onClose={() => undefined} />
+      : <CostWidget {...energyProps} openDetails={props.openDetails} />;
+    return props.detailsMode ? <NordpoolDetails {...energyProps} onClose={() => undefined} />
+      : <NordpoolWidget {...energyProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'sensor' && sensorProductBinding(props.settings ?? EMPTY_SETTINGS)) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductSensorDetails {...productProps} onClose={() => undefined} />
+      : <ProductSensorWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  const multimedia = multimediaProductBinding(props.settings ?? EMPTY_SETTINGS);
+  if (multimedia && (multimedia.family === 'tv'
+    ? props.type === 'androidtv' || props.type === 'appletv' : props.type === multimedia.family)) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    if (multimedia.family === 'tv') return props.detailsMode
+      ? <ProductTvDetails {...productProps} onClose={() => undefined} />
+      : <ProductTvWidget {...productProps} openDetails={props.openDetails} />;
+    return props.detailsMode ? <ProductMediaDetails {...productProps} onClose={() => undefined} />
+      : <ProductMediaWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'mower' && mowerProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductMowerDetails {...productProps} onClose={() => undefined} />
+      : <ProductMowerWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'vacuum' && vacuumProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductVacuumDetails {...productProps} onClose={() => undefined} />
+      : <ProductVacuumWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'camera' && cameraProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductCameraDetails {...productProps} onClose={() => undefined} />
+      : <ProductCameraWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'alarm' && alarmProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductAlarmDetails {...productProps} onClose={() => undefined} />
+      : <ProductAlarmWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'lock' && lockProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductLockDetails {...productProps} onClose={() => undefined} />
+      : <ProductLockWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'fan' && fanProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductFanDetails {...productProps} onClose={() => undefined} />
+      : <ProductFanWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'cover' && coverProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductCoverDetails {...productProps} onClose={() => undefined} />
+      : <ProductCoverWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'climate' && climateProductBinding(props.settings ?? EMPTY_SETTINGS)?.primaryEntityId === resolved) {
+    const productProps = { id: props.id ?? resolved, settingsKey: props.settingsKey ?? props.id ?? resolved,
+      settings: props.settings ?? EMPTY_SETTINGS, size: props.size, editMode: props.editMode };
+    return props.detailsMode ? <ProductClimateDetails {...productProps} onClose={() => undefined} />
+      : <ProductClimateWidget {...productProps} openDetails={props.openDetails} />;
+  }
+  if (props.type === 'plug' && !props.detailsMode) return <PlugWidget id={props.id ?? resolved}
+    settingsKey={props.settingsKey ?? props.id ?? resolved} settings={props.settings ?? EMPTY_SETTINGS}
+    entityId={resolved} size={props.size} editMode={props.editMode} openDetails={props.openDetails} />;
+  return <AdaptiveBody key={props.type + '|' + resolved} {...props} entityId={resolved} />;
 }
 function AdaptiveBody({
   type,
@@ -360,6 +497,7 @@ function AdaptiveBody({
 }: AdaptiveCategoryWidgetProps) {
   const runtime = useWidgetRuntime();
   const services = useServiceCatalog();
+  const preparationKey = useHomeMeasurementKey();
   const visible = usePageVisible();
   const entity = runtime.entities[entityId];
   const resources = useMediaResources(type, entityId, services, settings.adaptiveMediaBrowse);
@@ -387,7 +525,19 @@ function AdaptiveBody({
     ]
   );
   const preference = readControlPreference(settings, profile.capabilities);
-  const tier = calculateWidgetTier(size.w, size.h);
+  const nominalTier = calculateWidgetTier(size.w, size.h);
+  const [measuredBox, setMeasuredBox] = useState<{ width: number; height: number } | null>(null);
+  const pixelCompact = !detailsMode && Boolean(measuredBox &&
+    (measuredBox.width < COMPACT_PIXEL_SIDE || measuredBox.height < COMPACT_PIXEL_SIDE));
+  const compactNotice = pixelCompact && Boolean(measuredBox &&
+    (measuredBox.width < 80 || measuredBox.height < 80));
+  const tier = detailsMode || !measuredBox || nominalTier === 'compact'
+    ? nominalTier
+    : pixelCompact
+      ? 'compact'
+      : measuredBox.height < 240 && (nominalTier === 'large' || nominalTier === 'page')
+        ? 'standard'
+        : nominalTier;
   const host = useRef<HTMLElement>(null);
   const [capacity, setCapacity] = useState<number | null>(null);
   const [showChart, setShowChart] = useState(true);
@@ -399,35 +549,38 @@ function AdaptiveBody({
   const [todoRows, setTodoRows] = useState(3);
   const [fitCheck, setFitCheck] = useState(0);
   const recheck = useCallback(() => setFitCheck((count) => count + 1), []);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = host.current;
-    if (
-      !element ||
-      typeof ResizeObserver === 'undefined' ||
-      tier === 'compact' ||
-      tier === 'page' ||
-      detailsMode
-    )
-      return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry) return;
-      const { width, height } = entry.contentRect;
-      if (width > 0 && height > 0) {
-        setTodoRows(3);
-        setShowChart(height >= 240);
-        const chartRoom = trendChart && height >= 240 ? CHART_SLOT_HEIGHT : 0;
-        setCapacity(
-          Math.max(
-            1,
-            Math.floor(width / 116) *
-              Math.max(1, Math.floor((height - HEADER_HEIGHT - chartRoom) / 130))
-          )
-        );
-      }
-    });
-    observer.observe(element);
+    if (!element || detailsMode) return;
+    const measure = (entry?: ResizeObserverEntry) => {
+      const border = entry?.borderBoxSize?.[0];
+      const width = border?.inlineSize || element.offsetWidth || entry?.contentRect.width || 0;
+      const height = border?.blockSize || element.offsetHeight || entry?.contentRect.height || 0;
+      if (width <= 0 || height <= 0) return;
+      const style = entry ? null : getComputedStyle(element);
+      const inset = (a: string | undefined, b: string | undefined) =>
+        (parseFloat(a || '0') || 0) + (parseFloat(b || '0') || 0);
+      const contentWidth = entry?.contentRect.width ?? Math.max(0, width -
+        inset(style?.paddingLeft, style?.paddingRight) - inset(style?.borderLeftWidth, style?.borderRightWidth));
+      const contentHeight = entry?.contentRect.height ?? Math.max(0, height -
+        inset(style?.paddingTop, style?.paddingBottom) - inset(style?.borderTopWidth, style?.borderBottomWidth));
+      if (contentWidth <= 0 || contentHeight <= 0) return;
+      // Read layout dimensions before the first paint, not transformed entrance bounds. The
+      // observer then keeps the same border/content-box contract for genuine later resizes.
+      const box = { width, height };
+      setMeasuredBox((previous) => previous?.width === width && previous.height === height ? previous : box);
+      setTodoRows(3);
+      setShowChart(contentHeight >= 240);
+      const chartRoom = trendChart && contentHeight >= 240 ? CHART_SLOT_HEIGHT : 0;
+      setCapacity(Math.max(1, Math.floor(contentWidth / 116) *
+        Math.max(1, Math.floor((contentHeight - HEADER_HEIGHT - chartRoom) / 130))));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => { if (entry) measure(entry); });
+    observer.observe(element, { box: 'border-box' });
     return () => observer.disconnect();
-  }, [tier, detailsMode, trendChart]);
+  }, [detailsMode, trendChart, preparationKey]);
   const max = detailsMode
     ? Infinity
     : tier === 'compact'
@@ -458,6 +611,9 @@ function AdaptiveBody({
       ) ?? displayCaps[0];
     if (priority) displayCaps.splice(0, displayCaps.length, priority);
   }
+  // An LG webOS TV that is off reports `unavailable`: «Spento» when it can be woken.
+  const wake = useTvWake(type === 'androidtv' ? entity : undefined);
+  const tvAsleep = type === 'androidtv' && tvMaybeAsleep(entity) && wake !== false;
   const available =
     type === 'spacer' || type === 'room'
       ? profile.capabilities.length > 0
@@ -481,13 +637,13 @@ function AdaptiveBody({
   // hang out of the card.
   useLayoutEffect(() => {
     const element = host.current;
-    if (!element || detailsMode || tier === 'compact' || tier === 'page') return;
+    if (!element || !measuredBox || detailsMode || tier === 'compact' || tier === 'page') return;
     if (element.scrollHeight <= element.clientHeight + 1) return;
     // The chart goes first: the name and the commands matter more than a trend.
     if (trendChart && showChart) setShowChart(false);
     else if (type === 'todo' && todoRows > 0) setTodoRows(todoRows - 1);
     else if (displayCaps.length > 1) setCapacity(displayCaps.length - 1);
-  }, [detailsMode, tier, type, todoRows, displayCaps.length, fitCheck, name, trendChart, showChart]);
+  }, [detailsMode, tier, type, todoRows, displayCaps.length, fitCheck, name, trendChart, showChart, measuredBox, preparationKey]);
   if (type === 'spacer' && !detailsMode)
     return (
       <div
@@ -515,11 +671,13 @@ function AdaptiveBody({
       </div>
     );
   return (
+    <AdaptiveNameContext value={tier === 'compact' && !detailsMode ? name : null}>
     <article
       ref={host}
       className="aca-adaptive-widget"
       data-details={detailsMode || undefined}
       data-tier={tier}
+      data-pixel-compact={pixelCompact || undefined}
       data-widget-type={type}
       data-entity-id={entityId}
       aria-label={name}
@@ -537,14 +695,29 @@ function AdaptiveBody({
         />
       )}
       {!runtime.entitiesLoaded ? (
-        <Body role="status">Caricamento del dispositivo…</Body>
+        <Skeleton variant="compact" rows={1} label="Caricamento del dispositivo…" />
       ) : !available ? (
-        <div className="aca-adaptive-widget__notice">
+        <div className="aca-adaptive-widget__notice" data-compact={compactNotice || undefined}>
           {showName && entity && <WidgetName name={name} word={null} />}
-          <Body role="status">{entity ? 'Non raggiungibile' : 'Dispositivo non disponibile'}</Body>
-          {configure && (
-            <Button variant="control" onClick={configure}>
-              Configura dispositivo
+          <Body role="status" className={compactNotice ? 'sr-only' : undefined}>
+            {tvAsleep
+              ? tvStateWord('off')
+              : entity
+                ? 'Non raggiungibile'
+                : 'Dispositivo non disponibile'}
+          </Body>
+          {compactNotice && (!configure || tvAsleep) && (
+            <Icon name={tvAsleep ? 'power' : 'warning'} size="lg" />
+          )}
+          {configure && !tvAsleep && (
+            <Button
+              variant="control"
+              shape={compactNotice ? 'circle' : undefined}
+              size={compactNotice ? 'sm' : undefined}
+              aria-label="Configura dispositivo"
+              onClick={configure}
+            >
+              {compactNotice ? <Icon name="warning" /> : 'Configura dispositivo'}
             </Button>
           )}
         </div>
@@ -654,5 +827,6 @@ function AdaptiveBody({
         </>
       )}
     </article>
+    </AdaptiveNameContext>
   );
 }

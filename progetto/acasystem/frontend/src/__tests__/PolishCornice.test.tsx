@@ -22,11 +22,11 @@ beforeAll(async () => {
     readFileSync: (path: string, encoding: 'utf8') => string;
   };
   for (const [key, path] of Object.entries({
-    shell: 'src/templates/app-shell/appShell.css',
+    shell: '../design/layout/appShell.css',
     status: 'src/components/system/status-bar/statusBar.css',
     edit: 'src/components/system/edit/edit.css',
-    indicator: 'src/components/system/page-indicator/pageIndicator.css',
-    kit: 'src/themes/acasystem/components.css',
+    indicator: '../design/layout/pageIndicator.css',
+    kit: '../design/themes/acasystem/components.css',
   })) {
     css[key] = fs.readFileSync(path, 'utf8');
   }

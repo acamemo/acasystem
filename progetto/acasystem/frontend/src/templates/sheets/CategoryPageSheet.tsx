@@ -1,5 +1,5 @@
 import { Body, Button, Caption, Sheet } from '@/components/primitives';
-import { CATEGORY_PAGES, categoryPageSeeds } from './categoryPages';
+import { CATEGORY_PAGES, categoryPageSeeds } from '@/utils/launcher/categoryModels';
 
 export function CategoryPageSheet({
   open,

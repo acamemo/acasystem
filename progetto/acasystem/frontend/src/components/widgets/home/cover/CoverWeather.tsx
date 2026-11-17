@@ -40,7 +40,7 @@ export function CoverWeather() {
         <div
           className="aca-cover-weather aca-cover-weather--offline"
           role="group"
-          aria-label="Meteo non raggiungibile: nuovo tentativo a breve"
+          aria-label="Meteo non raggiungibile"
         >
           <span className="aca-cover-weather__icon">
             <HomeIcon name="cloud" size="lg" />
@@ -49,7 +49,7 @@ export function CoverWeather() {
             Meteo non raggiungibile
           </span>
           <span className="aca-cover-weather__place" aria-hidden="true">
-            Nuovo tentativo a breve
+            Fonte non disponibile
           </span>
         </div>
       </Surface>

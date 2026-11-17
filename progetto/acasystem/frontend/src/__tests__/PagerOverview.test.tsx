@@ -12,6 +12,8 @@ import {
   NARROW_AFTER_LANDING_MS,
   OVERVIEW_MS,
   Pager,
+  CARD_EMPHASIS_VAR,
+  overviewCardEmphasis,
   overviewPitchOf,
   type PagerPage,
   type PagerProps,
@@ -84,6 +86,24 @@ describe('the pager in the page overview', () => {
     expect(pager().style.getPropertyValue('--aca-overview-k')).toBe('0.7200');
     expect(pager().style.getPropertyValue('--aca-overview-pitch')).toBe('744.00px');
     expect(overviewPitchOf(pager())).toBe(744);
+  });
+
+  it('keeps the central picture unchanged while the side pictures and their hit targets recede', () => {
+    lendLayout();
+    const view = renderPager({ overview: true });
+    const emphasis = (selector: string) =>
+      [...pager().querySelectorAll<HTMLElement>(selector)].map((node) =>
+        Number(node.style.getPropertyValue(CARD_EMPHASIS_VAR))
+      );
+    expect(emphasis('.aca-pager__body')).toEqual([0.9, 1, 0.9]);
+    expect(emphasis('.aca-pager__open')).toEqual([0.9, 1, 0.9]);
+    view.update({ index: 2 });
+    expect(emphasis('.aca-pager__body')).toEqual([0.9, 0.9, 1]);
+    expect(emphasis('.aca-pager__open')).toEqual([0.9, 0.9, 1]);
+    expect(pager().style.getPropertyValue('--aca-overview-k')).toBe('0.7200');
+    expect(overviewCardEmphasis(0.5)).toBeCloseTo(0.95);
+    expect(overviewCardEmphasis(-0.5)).toBeCloseTo(0.95);
+    expect(overviewCardEmphasis(3)).toBe(0.9);
   });
 
   it('a low area keeps the room under the card: the card shrinks', () => {
@@ -423,6 +443,26 @@ describe('the pager in the page overview', () => {
       renderPager({ index: 1, overview: true });
       swipe();
       expect(pager()).toHaveAttribute('data-panning');
+    });
+
+    it('transfers emphasis continuously with the pointer and restores it on cancellation', () => {
+      vi.stubGlobal('PointerEvent', Pointer);
+      lendLayout();
+      renderPager({ index: 1, overview: true });
+      fireEvent.pointerDown(pager(), { pointerId: 1, clientX: 500, clientY: 200 });
+      act(() => {
+        window.dispatchEvent(new Pointer('pointermove', { pointerId: 1, clientX: 480, clientY: 200 }));
+        window.dispatchEvent(new Pointer('pointermove', { pointerId: 1, clientX: 108, clientY: 200 }));
+        vi.advanceTimersByTime(20);
+      });
+      const values = (selector: string) =>
+        [...pager().querySelectorAll<HTMLElement>(selector)].map((node) =>
+          Number(node.style.getPropertyValue(CARD_EMPHASIS_VAR))
+        );
+      expect(values('.aca-pager__body')).toEqual([0.9, 0.95, 0.95]);
+      expect(values('.aca-pager__open')).toEqual([0.9, 0.95, 0.95]);
+      act(() => { window.dispatchEvent(new Pointer('pointercancel', { pointerId: 1 })); });
+      expect(values('.aca-pager__body')).toEqual([0.9, 1, 0.9]);
     });
 
     it('a name being edited (the pager is locked) holds them still', () => {

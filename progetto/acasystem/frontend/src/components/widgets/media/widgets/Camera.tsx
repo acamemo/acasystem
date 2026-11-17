@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { ProductCameraWidget } from '../../home/camera/ProductCameraWidget';
+import { ProductCameraDetails } from '../../home/camera/ProductCameraDetails';
+import { cameraProductBinding } from '../../home/camera/productCameraModel';
 import { Caption, Text } from '@/components/primitives';
 import type { WidgetDetailsProps, WidgetProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
@@ -63,7 +66,10 @@ function useSnapshotRefresh(
 }
 
 /** `camera_card_*` widget: periodic snapshot preview; the live stream is in the details. */
-export function CameraWidget({ id, settings, size, editMode }: WidgetProps) {
+export function CameraWidget(props: WidgetProps) {
+  return cameraProductBinding(props.settings) ? <ProductCameraWidget {...props} /> : <LegacyCameraWidget {...props} />;
+}
+function LegacyCameraWidget({ id, settings, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
   const visible = usePageVisible();
   const camera = readCameraSettings(settings);
@@ -138,6 +144,9 @@ export function CameraWidget({ id, settings, size, editMode }: WidgetProps) {
  * view and refresh. The console (CameraConsole) puts the video in its own column.
  */
 export function CameraDetails(props: WidgetDetailsProps) {
+  return cameraProductBinding(props.settings) ? <ProductCameraDetails {...props} /> : <LegacyCameraDetails {...props} />;
+}
+function LegacyCameraDetails(props: WidgetDetailsProps) {
   const cam = useCameraDetailsState(props);
   if (!cam.camera.cameraId || !cam.entity) return <CameraMissing cam={cam} />;
   return (

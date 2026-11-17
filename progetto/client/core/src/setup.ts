@@ -231,6 +231,8 @@ export interface SetupDeps {
   /** Mostra i dati rilevati e restituisce quelli confermati dal sistemista. */
   confirmHome: (home: HomeConfig) => Promise<HomeConfig>;
   repository?: string;
+  /** App inclusa nel motore locale e predisposta dal coordinatore, senza repository remoto. */
+  localAppSlug?: string;
   waitTimeoutMs?: number;
   pollMs?: number;
 }
@@ -297,12 +299,19 @@ export const completeSetup = async (deps: SetupDeps, session: HaSession): Promis
     deps.onProgress('onboarding', 'done');
 
     // Repository e app nel Supervisor.
-    const slug = await acasystemAppSlug(repository);
+    const slug = deps.localAppSlug ?? await acasystemAppSlug(repository);
+    if (deps.localAppSlug && !/^local_[a-z0-9_]+$/.test(deps.localAppSlug)) {
+      throw new SetupError('unexpected', 'Identità dell’app locale non valida');
+    }
     deps.onProgress('repository', 'running');
-    const listed = await supervisor<unknown>(socket, '/store/repositories', 'get');
-    const repositories = Array.isArray(listed) ? listed : (field(listed, 'repositories') as unknown[] | undefined) ?? [];
-    if (!repositories.some((item) => sameRepository(field(item, 'source'), repository))) {
-      await supervisor(socket, '/store/repositories', 'post', { repository }, 300);
+    if (deps.localAppSlug) {
+      await supervisor(socket, '/store/reload', 'post', undefined, 300);
+    } else {
+      const listed = await supervisor<unknown>(socket, '/store/repositories', 'get');
+      const repositories = Array.isArray(listed) ? listed : (field(listed, 'repositories') as unknown[] | undefined) ?? [];
+      if (!repositories.some((item) => sameRepository(field(item, 'source'), repository))) {
+        await supervisor(socket, '/store/repositories', 'post', { repository }, 300);
+      }
     }
     deps.onProgress('repository', 'done');
 

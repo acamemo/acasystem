@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="violet">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Scan QR Code · ACA</title>
+    <link rel="stylesheet" href="./design-aca/index.css">
+    <link rel="stylesheet" href="./screen.css">
+  </head>
+  <body>
+    <main class="connection-screen">
+      <section class="connection-card aca-m aca-raised aca-card aca-md aca-m--static aca-m--card aca-m--md" aria-labelledby="connection-title">
+        <div class="aca-m__outer">
+          <div class="aca-m__face">
+            <div class="aca-m__content connection-content">
+              <header class="connection-heading">
+                <h1 id="connection-title" class="aca-type aca-type--title">Scan QR Code</h1>
+                <p class="connection-subtitle aca-type aca-type--body-sm">Scan this QR Code in-app to verify device.</p>
+              </header>
+              <img class="connection-qr" src="./connection-qr.svg" width="296" height="296" alt="QR code to open ACA on the home hub">
+              <div class="connection-manual">
+                <p class="connection-label aca-type aca-type--body-sm"><span>Or enter the code manually</span></p>
+                <p class="connection-address aca-type">{{CENTRAL_URL}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

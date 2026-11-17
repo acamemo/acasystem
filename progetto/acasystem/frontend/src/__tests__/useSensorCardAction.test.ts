@@ -1,6 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useSensorCardAction } from '../hooks/useSensorCardAction';
+const commands = vi.hoisted(() => ({ send: vi.fn(async () => ({})) }));
+vi.mock('@/api/commandApi', async (importOriginal) => ({ ...await importOriginal<typeof import('@/api/commandApi')>(), sendUserCommand: commands.send }));
 
 const switchEntity = (state: string) => ({ entity_id: 'switch.socket', state, attributes: {} });
 const action = { type: 'toggle', entityId: 'switch.socket', targetEntity: switchEntity('off') };
@@ -222,17 +224,19 @@ describe('useSensorCardAction', () => {
     expect(result.current.pending).toBe(true);
   });
 
-  it('uses the connection helper when no injected service caller is provided', async () => {
+  it('uses the ACA gateway when no injected service caller is provided', async () => {
+    commands.send.mockClear();
     const sendMessagePromise = vi.fn().mockResolvedValue({});
     const { result } = renderHook(() =>
       useSensorCardAction({ ...props, conn: { sendMessagePromise } })
     );
     await act(async () => result.current.execute());
-    expect(sendMessagePromise).toHaveBeenCalledWith({
-      type: 'call_service',
+    expect(commands.send).toHaveBeenCalledWith({
+      kind: 'service',
       domain: 'switch',
       service: 'turn_on',
-      service_data: { entity_id: 'switch.socket' },
+      data: { entity_id: 'switch.socket' },
     });
+    expect(sendMessagePromise).not.toHaveBeenCalled();
   });
 });

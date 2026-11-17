@@ -1,0 +1,579 @@
+{
+  "schema": "aca-documentary-build-materials-v1",
+  "date": "2026-10-29",
+  "status": "Defined from source and metadata; not installed, built or byte-reproducibility verified",
+  "scope": {
+    "core": "2026.10.4",
+    "orjson": "3.11.9",
+    "cryptography": "50.0.1",
+    "target": "aarch64-linux-android",
+    "android_api": 24,
+    "python_target": "3.14.10 GIL"
+  },
+  "host": {
+    "image": "docker.io/library/debian@sha256:1e1a22175fbf1b32157ddaf0219e1db4e5401fab2b94ed285add64d18587cd2d",
+    "platform": "linux/amd64",
+    "informational_tag": "trixie-20261027-slim / 13.7-slim",
+    "source_commit": "69faaf492e77aff83e4c7fc401017c9d25ecde24",
+    "oci_source": "https://github.com/debuerreotype/docker-debian-artifacts/blob/69faaf492e77aff83e4c7fc401017c9d25ecde24/trixie/slim/oci/index.json",
+    "rootfs_manifest": "https://github.com/debuerreotype/docker-debian-artifacts/blob/69faaf492e77aff83e4c7fc401017c9d25ecde24/trixie/slim/rootfs.manifest",
+    "snapshot_cutoff": "20261027T000000Z",
+    "apt_suites": [
+      "trixie/main",
+      "trixie-updates/main",
+      "trixie-security/main"
+    ],
+    "apt_version": "3.0.3",
+    "apt_install_recommends": false,
+    "apt_indices": [
+      {
+        "name": "main",
+        "archive": "debian",
+        "timestamp": "20261026T202550Z",
+        "suite": "trixie",
+        "release_sha256": "ed56aac47e7911e65ee63aae8d67e29f20e023f840e49f8ed037043a33de138a",
+        "index_sha256": "7778d3e3f303b7ddb8ce0fe7c8d57473a076c6bf2e8f241f75421d2396352498",
+        "release_url": "https://snapshot.debian.org/archive/debian/20261026T202550Z/dists/trixie/Release",
+        "index_url": "https://snapshot.debian.org/archive/debian/20261026T202550Z/dists/trixie/main/binary-amd64/Packages.xz",
+        "index_checksum_provenance": "Published in Release and checked in memory during parallel research",
+        "signatures_verified_locally": false
+      },
+      {
+        "name": "security",
+        "archive": "debian-security",
+        "timestamp": "20261026T184327Z",
+        "suite": "trixie-security",
+        "release_sha256": "490604286b2f06a919b16f5371ffbc4ff83ff924d93d54833a02480a6f7b09e6",
+        "index_sha256": "3c09b1355ba46a6cf6bc11d2d72b92f08a0bde1fa52dd82654af475c11bb6ca6",
+        "release_url": "https://snapshot.debian.org/archive/debian-security/20261026T184327Z/dists/trixie-security/Release",
+        "index_url": "https://snapshot.debian.org/archive/debian-security/20261026T184327Z/dists/trixie-security/main/binary-amd64/Packages.xz",
+        "index_checksum_provenance": "Published in Release and checked in memory during parallel research",
+        "signatures_verified_locally": false
+      }
+    ],
+    "apt_direct_packages": [
+      {
+        "name": "make",
+        "version": "4.4.1-2",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/m/make-dfsg/make_4.4.1-2_amd64.deb",
+        "sha256": "70a9709e665383b06068ccd423d62ea191b65355f318a25565dbf324b254cec6",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "perl",
+        "version": "5.40.1-6+deb13u1",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/p/perl/perl_5.40.1-6+deb13u1_amd64.deb",
+        "sha256": "ef145c247787d6f40dcdefd5b417502484827cde0d555998c17fd5b27ec1e1dd",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "gcc",
+        "version": "4:14.2.0-1",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/g/gcc-defaults/gcc_14.2.0-1_amd64.deb",
+        "sha256": "eee65c41a441c57c05f754ced1b9d093956966a1c7da9938c3ec00d3dc2f905d",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "g++",
+        "version": "4:14.2.0-1",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/g/gcc-defaults/g++_14.2.0-1_amd64.deb",
+        "sha256": "f86661c021ab2acb39ceb87315e7c2d4d420fdadc19945d5d589f3953410445c",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "libc6-dev",
+        "version": "2.41-12+deb13u4",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/g/glibc/libc6-dev_2.41-12+deb13u4_amd64.deb",
+        "sha256": "1fda734dabcd80b77266a09ab62b0f1e3e16d8091db62899890b2200745632a2",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "binutils",
+        "version": "2.44-3",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/b/binutils/binutils_2.44-3_amd64.deb",
+        "sha256": "6bc08c02539ba53b5e748142397144c499f9b20b5fa9bb56431545db124addeb",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "xz-utils",
+        "version": "5.8.1-1+deb13u2",
+        "architecture": "amd64",
+        "index": "security",
+        "filename": "pool/updates/main/x/xz-utils/xz-utils_5.8.1-1+deb13u2_amd64.deb",
+        "sha256": "66b060ef2f09722c947ba019da5e9a63f6bac9d7bf90b32339a72c0390acc53f",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "unzip",
+        "version": "6.0-29+deb13u1",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/u/unzip/unzip_6.0-29+deb13u1_amd64.deb",
+        "sha256": "fc11f8736bdec6fc46a6864f75bce0c8206a790df37dbcab5ddb25b1bf0f58f0",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "gnu-which",
+        "version": "2.21+dfsg-5",
+        "architecture": "amd64",
+        "index": "main",
+        "filename": "pool/main/g/gnu-which/gnu-which_2.21+dfsg-5_amd64.deb",
+        "sha256": "9b74eb1eb656eaca5b3c8fe64ea92cd64da7b66930e7161267cba16ae7ca29f2",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      },
+      {
+        "name": "ca-certificates",
+        "version": "20250419+deb13u1",
+        "architecture": "all",
+        "index": "security",
+        "filename": "pool/updates/main/c/ca-certificates/ca-certificates_20250419+deb13u1_all.deb",
+        "sha256": "c10585ac22c7f617a73d394eea29ba71d0356f350ae973b19043d1b017f80f54",
+        "checksum_provenance": "Packages index, deb not downloaded"
+      }
+    ],
+    "apt_install_simulated": false,
+    "apt_final_installed_inventory_available": false,
+    "updates_index": {
+      "url": "https://snapshot.debian.org/archive/debian/20261027T000000Z/dists/trixie-updates/main/binary-amd64/Packages.xz",
+      "sha256": "235fb859490d45c1490bc69836bd2607c9a8557b629ebc33bab1008edb6e9e6d",
+      "compressed_bytes": 720,
+      "uncompressed_bytes": 1406,
+      "affects_selected_direct_packages": false
+    }
+  },
+  "python_host": {
+    "name": "cpython-3.14.10+20261026-x86_64-unknown-linux-gnu-install_only.tar.gz",
+    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10%2B20261026-x86_64-unknown-linux-gnu-install_only.tar.gz",
+    "sha256": "1b38024924eb7f4cf0cab45d7b871d1f1991354190fccd2625ac7529a43786e2",
+    "source_manifest": "https://github.com/pypa/cibuildwheel/blob/v4.3.5/cibuildwheel/resources/python-build-standalone-releases.json",
+    "checksum_provenance": "Published upstream manifest, archive not downloaded"
+  },
+  "python_target": {
+    "name": "python-3.14.10-aarch64-linux-android.tar.gz",
+    "url": "https://www.python.org/ftp/python/3.14.10/python-3.14.10-aarch64-linux-android.tar.gz",
+    "sha256": "423c80b957330cf0ebb92b9b20f2294c292144a441bdb0ceb8c69d14928e569b",
+    "checksum_provenance": "Published cibuildwheel 4.3.5 build-platforms manifest, archive not downloaded"
+  },
+  "python_wheels": [
+    {
+      "name": "pip",
+      "version": "26.2.2",
+      "requires_python": ">=3.10",
+      "filename": "pip-26.2.2-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl",
+      "sha256": "fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70",
+      "metadata_url": "https://pypi.org/pypi/pip/26.2.2/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "setuptools",
+      "version": "84.0.0",
+      "requires_python": ">=3.10",
+      "filename": "setuptools-84.0.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/95/9c/c510029fc6ef33a6275cd2c5d3cecd6613dfd6aa401d57c54f1c18852ccf/setuptools-84.0.0-py3-none-any.whl",
+      "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670",
+      "metadata_url": "https://pypi.org/pypi/setuptools/84.0.0/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "maturin",
+      "version": "1.16.0",
+      "requires_python": ">=3.7",
+      "filename": "maturin-1.16.0-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.musllinux_1_1_x86_64.whl",
+      "url": "https://files.pythonhosted.org/packages/0a/dc/e77f490557cb5e045a75c3d18a7965425ac576235c970dfff4d903eb2c74/maturin-1.16.0-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.musllinux_1_1_x86_64.whl",
+      "sha256": "837db2f4d93d4899c3ac393fb3cc9eebf35b6002336e5d574f4a4fb6c49fe283",
+      "metadata_url": "https://pypi.org/pypi/maturin/1.16.0/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "cibuildwheel",
+      "version": "4.3.5",
+      "requires_python": ">=3.11",
+      "filename": "cibuildwheel-4.3.5-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/c9/ad/ebdaf81b0f29b86906a6c4ad0253796204853111fdd3a1d041d7b1bf92d0/cibuildwheel-4.3.5-py3-none-any.whl",
+      "sha256": "2297362cb7a0a12cd681788197811e1f3d700bd31f6decaab051837c90d4e3ba",
+      "metadata_url": "https://pypi.org/pypi/cibuildwheel/4.3.5/json",
+      "active_dependencies": [
+        "bashlex!=0.13",
+        "bracex",
+        "build>=1.0.0",
+        "certifi>=2026.10.19",
+        "dependency-groups>=1.2",
+        "filelock",
+        "humanize",
+        "packaging>=20.9",
+        "platformdirs"
+      ],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "cffi",
+      "version": "2.0.0",
+      "requires_python": ">=3.9",
+      "filename": "cffi-2.0.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "url": "https://files.pythonhosted.org/packages/47/d9/d83e293854571c877a92da46fdec39158f8d7e68da75bf73581225d28e90/cffi-2.0.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "sha256": "afb8db5439b81cf9c9d0c80404b60c3cc9c3add93e114dcae767f1477cb53775",
+      "metadata_url": "https://pypi.org/pypi/cffi/2.0.0/json",
+      "active_dependencies": [
+        "pycparser"
+      ],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "pycparser",
+      "version": "2.23",
+      "requires_python": ">=3.8",
+      "filename": "pycparser-2.23-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/a0/e3/59cd50310fc9b59512193629e1984c1f95e5c8ae6e5d8c69532ccc65a7fe/pycparser-2.23-py3-none-any.whl",
+      "sha256": "e5c6e8d3fbad53479cab09ac03729e0a9faf2bee3db8208a550daf5af81a5934",
+      "metadata_url": "https://pypi.org/pypi/pycparser/2.23/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "bashlex",
+      "version": "0.18",
+      "requires_python": ">=2.7, !=3.0, !=3.1, !=3.2, !=3.3, !=3.4",
+      "filename": "bashlex-0.18-py2.py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/f4/be/6985abb1011fda8a523cfe21ed9629e397d6e06fb5bae99750402b25c95b/bashlex-0.18-py2.py3-none-any.whl",
+      "sha256": "91d73a23a3e51711919c1c899083890cdecffc91d8c088942725ac13e9dcfffa",
+      "metadata_url": "https://pypi.org/pypi/bashlex/0.18/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "bracex",
+      "version": "3.2",
+      "requires_python": ">=3.11",
+      "filename": "bracex-3.2-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/42/65/8030b03de8137d1aab7dd6ecfecdba2fc22fc849fa35959b024f62293a99/bracex-3.2-py3-none-any.whl",
+      "sha256": "8f3e908a452f66707e1d6d91b3d7d7d4c649d248df18537c0dc710aeb9c30d87",
+      "metadata_url": "https://pypi.org/pypi/bracex/3.2/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "build",
+      "version": "1.6.1",
+      "requires_python": ">=3.10",
+      "filename": "build-1.6.1-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/ad/9b/9fb3585dabcd73a1b2a6267f63f62649347c9e6d072c9fde365b105abb2c/build-1.6.1-py3-none-any.whl",
+      "sha256": "ecd351a4be9d35a9eaaba244a7687143c9c7d4aea6ac964e7e7ddab20cbcf4e7",
+      "metadata_url": "https://pypi.org/pypi/build/1.6.1/json",
+      "active_dependencies": [
+        "packaging>=24.0",
+        "pyproject-hooks"
+      ],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "certifi",
+      "version": "2026.10.23",
+      "requires_python": ">=3.7",
+      "filename": "certifi-2026.10.23-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl",
+      "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+      "metadata_url": "https://pypi.org/pypi/certifi/2026.10.23/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "dependency-groups",
+      "version": "1.3.2",
+      "requires_python": ">=3.9",
+      "filename": "dependency_groups-1.3.2-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/a1/e4/da5f2f176050efcfb9222a76a3e81c41f69f775be8e563b76ca4292a134f/dependency_groups-1.3.2-py3-none-any.whl",
+      "sha256": "8c337f7b92445823b0d0ea507f611390c58dcd2112be00aebcd738a2ca7a1c64",
+      "metadata_url": "https://pypi.org/pypi/dependency-groups/1.3.2/json",
+      "active_dependencies": [
+        "packaging"
+      ],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "filelock",
+      "version": "4.2.4",
+      "requires_python": ">=3.11",
+      "filename": "filelock-4.2.4-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/e0/1b/5e74289a1878e666bb4b65fe5805a04cafcac2aa5f519ef1ead67ef91c56/filelock-4.2.4-py3-none-any.whl",
+      "sha256": "301241438c57936ef93f4243a94f2559022268bfcf9b375a9a72eb0f8db8358e",
+      "metadata_url": "https://pypi.org/pypi/filelock/4.2.4/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "humanize",
+      "version": "4.16.0",
+      "requires_python": ">=3.10",
+      "filename": "humanize-4.16.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/b0/aa/0b7365d30fed43e7a3449aba1fe20a0a7174d9cf13e282af4e69ac825441/humanize-4.16.0-py3-none-any.whl",
+      "sha256": "353eb2f34c09d098b2880eee8bef21832eae6d174f48c5762fff7e5fcb74d01d",
+      "metadata_url": "https://pypi.org/pypi/humanize/4.16.0/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "requires_python": ">=3.9",
+      "filename": "packaging-26.3-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl",
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+      "metadata_url": "https://pypi.org/pypi/packaging/26.3/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "platformdirs",
+      "version": "4.13.6",
+      "requires_python": ">=3.11",
+      "filename": "platformdirs-4.13.6-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/a8/24/b312a9466839b1f708eed42790b47e927dc7f774a528bb49b1cdf8b734b9/platformdirs-4.13.6-py3-none-any.whl",
+      "sha256": "21fc198fb09f3e78cadcdfd8a6ae4fd65cadc64a3cba78b694321c2996114a3e",
+      "metadata_url": "https://pypi.org/pypi/platformdirs/4.13.6/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "pyproject-hooks",
+      "version": "1.3.3",
+      "requires_python": ">=3.8",
+      "filename": "pyproject_hooks-1.3.3-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/85/11/044d1ae1b4ec0d7af88ee5bc91e081be1022533032b906a7bdabdbb60977/pyproject_hooks-1.3.3-py3-none-any.whl",
+      "sha256": "5fc53fdac9f7bd63fbcdc868fb5f90b4784d78a53a3d3388cd738b807441a20b",
+      "metadata_url": "https://pypi.org/pypi/pyproject-hooks/1.3.3/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "auditwheel",
+      "version": "6.8.2",
+      "requires_python": ">=3.10",
+      "filename": "auditwheel-6.8.2-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/78/33/475398f5eb069aa20910ec8486bdc62a87deadd8229494cbc80a1ddbf740/auditwheel-6.8.2-py3-none-any.whl",
+      "sha256": "05fd2dd4b743217cd5f66066adc95b03a079424b1f0a878ad1e40fe2cdea4704",
+      "metadata_url": "https://pypi.org/pypi/auditwheel/6.8.2/json",
+      "active_dependencies": [
+        "packaging>=20.9",
+        "pyelftools>=0.24"
+      ],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "pyelftools",
+      "version": "0.33",
+      "requires_python": ">=3.10",
+      "filename": "pyelftools-0.33-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/46/2a/f9697576603dae937727827505a6126a066affb227034e77e6f9068910da/pyelftools-0.33-py3-none-any.whl",
+      "sha256": "f215ad5f47d3f1373a21496a6c9e0707c622840d0622f23ff7ce08678b020036",
+      "metadata_url": "https://pypi.org/pypi/pyelftools/0.33/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "patchelf",
+      "version": "0.19.1.0",
+      "requires_python": ">=3.7",
+      "filename": "patchelf-0.19.1.0-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.musllinux_1_1_x86_64.whl",
+      "url": "https://files.pythonhosted.org/packages/e7/03/afd9bdd2ba5f96997196109f25dadbe5141bc6e70dffd85f3f84cc85d69c/patchelf-0.19.1.0-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.musllinux_1_1_x86_64.whl",
+      "sha256": "a8f6331ccf40c345507279f755f4a38c2cb00b9efda746fd43c17713cce0aba4",
+      "metadata_url": "https://pypi.org/pypi/patchelf/0.19.1.0/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    },
+    {
+      "name": "pkgconf",
+      "version": "3.0.7.post0",
+      "requires_python": ">=3.10",
+      "filename": "pkgconf-3.0.7.post0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "url": "https://files.pythonhosted.org/packages/6c/eb/4a4fe6c178d4447f3a3189b5fb740a76dc7ef8846a57886270315f22f7ee/pkgconf-3.0.7.post0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "sha256": "bd3ee4b5294a888d58462324cb83b7c0bc7150cc15b64b36aaf983e4b0ab90d5",
+      "metadata_url": "https://pypi.org/pypi/pkgconf/3.0.7.post0/json",
+      "active_dependencies": [],
+      "checksum_provenance": "PyPI metadata, wheel not downloaded",
+      "yanked": false
+    }
+  ],
+  "virtualenv_bootstrap": {
+    "version": "21.14.13",
+    "url": "https://github.com/pypa/get-virtualenv/releases/download/21.14.13/virtualenv.pyz",
+    "sha256": "215e29d6c8e2a4bf5f509828368629bbe7eddb847dcfee862db0f84e6df40047",
+    "source": "https://github.com/pypa/cibuildwheel/blob/v4.3.5/cibuildwheel/resources/virtualenv.toml",
+    "checksum_provenance": "Published cibuildwheel manifest, PYZ not downloaded"
+  },
+  "rust": {
+    "manifest_url": "https://static.rust-lang.org/dist/channel-rust-1.95.0.toml",
+    "manifest_sha256": "821ff14e4c4a1cbe1e8915f35aff0a3fbbdf8d293ad48ab8f31e3b0440c581f9",
+    "components": [
+      {
+        "section": "pkg.rustc.target.x86_64-unknown-linux-gnu",
+        "url": "https://static.rust-lang.org/dist/2026-04-16/rustc-1.95.0-x86_64-unknown-linux-gnu.tar.xz",
+        "sha256": "8426a3d170a5879f5682f5fbdd024a1779b3951e7baba685af2d6dc32a6dfc15"
+      },
+      {
+        "section": "pkg.cargo.target.x86_64-unknown-linux-gnu",
+        "url": "https://static.rust-lang.org/dist/2026-04-16/cargo-1.95.0-x86_64-unknown-linux-gnu.tar.xz",
+        "sha256": "e74edd2cf7d0f1f1383b4f00eb90c843750bc489e2ccf7214e6476678a907425"
+      },
+      {
+        "section": "pkg.rust-std.target.x86_64-unknown-linux-gnu",
+        "url": "https://static.rust-lang.org/dist/2026-04-16/rust-std-1.95.0-x86_64-unknown-linux-gnu.tar.xz",
+        "sha256": "047ea7098803d3500fa1072e9cee5392697e21525559e4458128a2bf874aa382"
+      },
+      {
+        "section": "pkg.rust-std.target.aarch64-linux-android",
+        "url": "https://static.rust-lang.org/dist/2026-04-16/rust-std-1.95.0-aarch64-linux-android.tar.xz",
+        "sha256": "de5e8fa5d955809891eea77682811fc90be705f78883bd94071e98f5a738d05b"
+      }
+    ],
+    "version": "1.95.0",
+    "install_via_rustup": false,
+    "archive_downloaded": false
+  },
+  "ndk": {
+    "version": "27.3.13750724",
+    "release": "r27d",
+    "filename": "android-ndk-r27d-linux.zip",
+    "url": "https://dl.google.com/android/repository/android-ndk-r27d-linux.zip",
+    "size": 663956036,
+    "sha1": "22105e410cf29afcf163760cc95522b9fb981121",
+    "sha256": null,
+    "checksum_provenance": "SHA1 published by Google/Android, zip not downloaded",
+    "local_metadata": {
+      "purpose": "External metadata proposed for future NDK preparation after source.properties validation; not asserted to be included in the upstream zip",
+      "encoding": "UTF-8 without BOM or final newline",
+      "xml": "<repository xmlns=\"http://schemas.android.com/repository/android/common/02\" xmlns:generic=\"http://schemas.android.com/repository/android/generic/02\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><localPackage path=\"ndk;27.3.13750724\"><type-details xsi:type=\"generic:genericDetailsType\"/><revision><major>27</major><minor>3</minor><micro>13750724</micro></revision><display-name>NDK (Side by side) 27.3.13750724</display-name></localPackage></repository>",
+      "sha256": "9fa6080917a7fce7f3dceb887c9f37cf6e5208a7e70442fcf470689706e56166",
+      "xsd_validated": false,
+      "installed": false
+    }
+  },
+  "source_archives": [
+    {
+      "name": "orjson",
+      "version": "3.11.9",
+      "filename": "orjson-3.11.9.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/7e/0c/964746fcafbd16f8ff53219ad9f6b412b34f345c75f384ad434ceaadb538/orjson-3.11.9.tar.gz",
+      "sha256": "4fef17e1f8722c11587a6ef18e35902450221da0028e65dbaaa543619e68e48f",
+      "metadata_url": "https://pypi.org/pypi/orjson/3.11.9/json",
+      "checksum_provenance": "PyPI metadata, artifact not downloaded"
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.1",
+      "filename": "cryptography-50.0.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/bb/ad/5d6702db60b1e40b41ef513b6967ff5848f307d50f8449baf1634f5908f1/cryptography-50.0.1.tar.gz",
+      "sha256": "5dd9bda1c12b4162f6ff568eeb5e0ff956c28d14406e875cfe8a63a2d414ff20",
+      "metadata_url": "https://pypi.org/pypi/cryptography/50.0.1/json",
+      "checksum_provenance": "PyPI metadata, artifact not downloaded"
+    },
+    {
+      "name": "cffi",
+      "version": "2.0.0",
+      "filename": "cffi-2.0.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/eb/56/b1ba7935a17738ae8453301356628e8147c79dbb825bcbc73dc7401f9846/cffi-2.0.0.tar.gz",
+      "sha256": "44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529",
+      "metadata_url": "https://pypi.org/pypi/cffi/2.0.0/json",
+      "checksum_provenance": "PyPI metadata, artifact not downloaded"
+    },
+    {
+      "name": "libffi",
+      "version": "3.8.0",
+      "filename": "libffi-3.8.0.tar.gz",
+      "url": "https://github.com/libffi/libffi/releases/download/v3.8.0/libffi-3.8.0.tar.gz",
+      "sha256": "7da3e2d9a171eb0a038f592ecad3ff2bb2550f3496d87b3b29ad0cf4430c0db4",
+      "checksum_provenance": "GitHub release asset digest, archive not downloaded"
+    },
+    {
+      "name": "OpenSSL",
+      "version": "3.5.9",
+      "filename": "openssl-3.5.9.tar.gz",
+      "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+      "sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+      "checksum_provenance": "GitHub release asset digest, archive not downloaded"
+    }
+  ],
+  "cargo_locks": [
+    {
+      "file": "u11-orjson-3.11.9.Cargo.lock.txt",
+      "sha256": "3693436e08985c8576336a4d9e9b934face9cf56134b9346f71049a239e9f5d9",
+      "git_blob": "b4f1137aae38a2f88feb2b20cd9ff99f523daa21",
+      "checksum_provenance": "Computed from copied UTF-8 source text; git hash-object matched GitHub blob",
+      "source": "https://github.com/ijl/orjson/blob/3.11.9/Cargo.lock",
+      "package_entries": 35,
+      "vendor_acquired": false
+    },
+    {
+      "file": "u11-cryptography-50.0.1.Cargo.lock.txt",
+      "sha256": "081ae57e95dabac9f47e2f070d2a3f0e8638ce9a560101b7d459b67cf4481fec",
+      "git_blob": "1ed4e16ff15f7e635a5d75754fc470faeb70a532",
+      "checksum_provenance": "Computed from copied UTF-8 source text; git hash-object matched GitHub blob",
+      "source": "https://github.com/pyca/cryptography/blob/50.0.1/Cargo.lock",
+      "package_entries": 40,
+      "vendor_acquired": false
+    }
+  ],
+  "build_policy": {
+    "network_during_build": false,
+    "PIP_NO_INDEX": "1",
+    "PIP_FIND_LINKS": "/opt/aca/wheelhouse",
+    "PIP_CONSTRAINT": "/opt/aca/constraints-host.txt",
+    "VIRTUALENV_EXTRA_SEARCH_DIR": "/opt/aca/wheelhouse",
+    "VIRTUALENV_NO_DOWNLOAD": "1",
+    "VIRTUALENV_APP_DATA": "/opt/aca/virtualenv-app-data",
+    "extra_python_groups": [],
+    "cibw_platform": "android",
+    "cibw_build": "cp314-android_arm64_v8a",
+    "cibw_archs_android": "arm64_v8a",
+    "cibw_build_frontend": "build",
+    "cibw_test_skip": "*",
+    "cibw_test_command": "",
+    "source_date_epoch": 1793232000,
+    "TZ": "UTC",
+    "LC_ALL": "C.UTF-8",
+    "PYTHONHASHSEED": "0",
+    "umask": "022",
+    "build_root": "/opt/aca/build",
+    "TMPDIR": "/opt/aca/tmp",
+    "maturin_pep517_args": "--frozen",
+    "maturin_no_install_rust": "1",
+    "cargo_net_offline": true,
+    "header_configuration": "See U10; explicit target CFLAGS include, preserving all target flags",
+    "native_target_libraries": "libffi 3.8.0 static PIC; OpenSSL 3.5.9 static PIC no-shared no-module",
+    "two_clean_builds_compared": false
+  }
+}

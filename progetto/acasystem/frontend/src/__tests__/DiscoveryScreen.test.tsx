@@ -31,10 +31,8 @@ import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { DiscoveredAddFlow } from '@/templates/devices/DiscoveredAddFlow';
 import {
   DiscoveryScreen,
-  SEARCH_POLL_MS,
-  SEARCH_WINDOW_MS,
+  type DiscoveryScreenProps,
   UNDO_MS,
-  resetShownTiles,
 } from '@/templates/discovery/DiscoveryScreen';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { LAUNCHER_LAYOUT_STORAGE_KEY } from '@/utils/launcher/storage';
@@ -99,7 +97,7 @@ const seed = () => {
   );
 };
 
-const screenOf = (searchWindow = false) =>
+const screenOf = (searchWindow = false, props: Partial<DiscoveryScreenProps> = {}) =>
   render(
     <PageProvider>
       <WidgetRuntimeProvider
@@ -108,7 +106,7 @@ const screenOf = (searchWindow = false) =>
         <AddWidgetRequestProvider value={requestAdd}>
           <AddSheetRequestProvider value={requestSheet}>
             <DiscoveredFlowProvider value={DiscoveredAddFlow}>
-              <DiscoveryScreen open onClose={onClose} pageId="home" searchWindow={searchWindow} />
+              <DiscoveryScreen open onClose={onClose} pageId="home" searchWindow={searchWindow} {...props} />
             </DiscoveredFlowProvider>
           </AddSheetRequestProvider>
         </AddWidgetRequestProvider>
@@ -131,20 +129,16 @@ const nestFound = () =>
   });
 
 const header = (name: string | RegExp) => screen.getByRole('button', { name });
-const summary = () => screen.getByRole('dialog').getAttribute('aria-describedby');
-const summaryText = () => document.getElementById(summary() ?? '')?.textContent;
 /** The first tile comes after a short reveal (600 ms): room for a loaded machine. */
 const REVEAL_WAIT = { timeout: 3000 };
 /** The same, for a test that waits on several reveals one after the other. */
 const SLOW_WAIT = { timeout: 10_000 };
 const skeletons = () => document.querySelectorAll('.discovery-skeleton');
 /** Reads of the list of devices found (not the ignored ones, whose path starts the same). */
-const reads = () => fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti');
 
 beforeEach(() => {
   seed();
   resetBrandLogos();
-  resetShownTiles();
   requestAdd.mockClear();
   requestSheet.mockClear();
   onClose.mockClear();
@@ -158,206 +152,75 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('«Dispositivi trovati»: la finestra', () => {
-  it('ha il titolo, il riepilogo «T trovati · C collegati» e «Salta»', async () => {
-    withFound(discoveredDto(), nestFound());
-    screenOf();
-
-    expect(await screen.findByRole('dialog', { name: 'Dispositivi trovati' })).toBeInTheDocument();
-    // 1 to connect, 1 not now (Nest), 2 linked (the lamp and the kitchen light): 4 found.
-    await waitFor(() => expect(summaryText()).toBe('4 trovati · 2 collegati'));
-    expect(header('Da collegare (1)')).toHaveAttribute('aria-expanded', 'true');
-    expect(header('Collegati (2)')).toHaveAttribute('aria-expanded', 'false');
-    expect(header('Non trovi il tuo dispositivo?')).toHaveAttribute('aria-expanded', 'false');
-    // Nothing ignored: that section is not there.
-    expect(screen.queryByRole('button', { name: /^Nascosti/ })).toBeNull();
-
-    // A real button, reachable with the keyboard.
-    const skip = screen.getByRole('button', { name: 'Salta' });
-    expect(skip.tagName).toBe('BUTTON');
-    expect(skip).not.toHaveAttribute('tabindex', '-1');
-    expect(skip).not.toBeDisabled();
-    skip.focus();
-    expect(skip).toHaveFocus();
-    fireEvent.click(skip);
-    expect(onClose).toHaveBeenCalledTimes(1);
+describe('letture e presenza reale di Trova', () => {
+  it('conserva i risultati dopo un errore di refresh, senza vuoto o falsa fine ricerca', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    withFound(discoveredDto()); screenOf();
+    expect(await screen.findByRole('button', { name: 'Collega Samsung 7 Series (49)' })).toBeEnabled();
+    fake.on('GET /scoperti', () => errorReply(503, 'HA_UNREACHABLE', 'Home Assistant non risponde.'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+    expect(screen.getByRole('button', { name: 'Collega Samsung 7 Series (49)' })).toBeInTheDocument();
+    expect(screen.getByText(/Aggiornamento non riuscito/)).toBeInTheDocument();
+    expect(screen.queryByText('Nessun dispositivo da collegare.')).toBeNull();
+    expect(screen.queryByText(/Ricerca terminata/)).toBeNull();
   });
 
-  it('apre una sezione alla volta: «Collegati» chiude «Da collegare»', async () => {
-    withFound(discoveredDto());
-    screenOf();
-    await screen.findByRole('button', { name: /^Collega Samsung 7 Series \(49\)/ }, REVEAL_WAIT);
-
-    fireEvent.click(header('Collegati (2)'));
-    expect(header('Collegati (2)')).toHaveAttribute('aria-expanded', 'true');
-    expect(header('Da collegare (1)')).toHaveAttribute('aria-expanded', 'false');
-    // Tapping the open header closes it: none open.
-    fireEvent.click(header('Collegati (2)'));
-    expect(header('Collegati (2)')).toHaveAttribute('aria-expanded', 'false');
-    expect(header('Da collegare (1)')).toHaveAttribute('aria-expanded', 'false');
+  it('onExited segue la rimozione della Console e non la richiesta di chiusura', async () => {
+    const exited = vi.fn();
+    const frame = (open: boolean) => <PageProvider><WidgetRuntimeProvider value={createFixtureRuntime({ entities: entities(), conn: connection().conn })}>
+      <DiscoveryScreen open={open} onClose={onClose} onExited={exited} pageId="home" />
+    </WidgetRuntimeProvider></PageProvider>;
+    const view = render(frame(true));
+    await screen.findByRole('dialog', { name: 'Trova dispositivi' });
+    view.rerender(frame(false));
+    expect(exited).not.toHaveBeenCalled();
+    await waitFor(() => expect(exited).toHaveBeenCalledOnce());
+    expect(screen.queryByRole('dialog', { name: 'Trova dispositivi' })).toBeNull();
   });
 });
 
-describe('Da collegare: la ricerca con lo scheletro', () => {
-  it('alla prima apertura mostra lo scheletro, poi i dispositivi al posto delle tessere', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    // Nothing for the first 5 s, then a device: the grid gets it on the next read.
-    let count = 0;
-    fake.on('GET /scoperti', () => {
-      count += 1;
-      return { body: { devices: count < 2 ? [] : [discoveredDto()] } };
-    });
-    screenOf(true);
-
-    await waitFor(() => expect(reads()).toHaveLength(1));
-    expect(skeletons()).toHaveLength(4);
-    expect(screen.getByRole('status')).toHaveTextContent('Cerco i dispositivi…');
-    expect(screen.queryByText(/Nessun nuovo dispositivo individuato/)).toBeNull();
-    // «Salta», not «Fatto»: the search is on.
-    expect(screen.getByRole('button', { name: 'Salta' })).toBeInTheDocument();
-
-    // The window reads every 5 s, not every 15 s.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5_000);
-    });
-    const tile = await screen.findByRole(
-      'button',
-      { name: /^Collega Samsung 7 Series \(49\)/ },
-      REVEAL_WAIT
-    );
-    expect(within(tile).getByText('UE49NU7100')).toBeInTheDocument();
-    // Two skeleton tiles stay after the found ones, with their words.
-    expect(skeletons()).toHaveLength(2);
-    expect(screen.getByText('Sto cercando altri dispositivi…')).toBeInTheDocument();
-
-    // At the end of the window the skeleton goes and the screen can say «Fatto» when empty.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(SEARCH_WINDOW_MS);
-    });
-    expect(skeletons()).toHaveLength(0);
-    expect(screen.queryByText('Sto cercando altri dispositivi…')).toBeNull();
-    expect(
-      screen.getByRole('button', { name: /^Collega Samsung 7 Series \(49\)/ })
-    ).toBeInTheDocument();
-  });
-
-  it('i numeri seguono le tessere, e alla riapertura quelle già viste compaiono subito', async () => {
-    withFound(discoveredDto());
-    screenOf(false);
-    await waitFor(() => expect(reads().length).toBeGreaterThan(0));
-    // The device is known, but its tile is not on screen yet: the counts wait for it.
-    expect(header('Da collegare (0)')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', { name: /^Collega Samsung 7 Series \(49\)/ }, REVEAL_WAIT)
-    ).toBeInTheDocument();
-    expect(header('Da collegare (1)')).toBeInTheDocument();
-
-    cleanup();
-    screenOf(false);
-    // Already shown on this tablet: no wait of the first reveal (600 ms) this time.
-    await waitFor(
-      () =>
-        expect(
-          screen.getByRole('button', { name: /^Collega Samsung 7 Series \(49\)/ })
-        ).toBeInTheDocument(),
-      { timeout: 400 }
-    );
-  });
-
-  it('smette di cercare appena una lettura non porta niente di nuovo', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    withFound(discoveredDto());
-    screenOf(false);
-    expect(
-      await screen.findByRole('button', { name: /^Collega Samsung 7 Series \(49\)/ }, REVEAL_WAIT)
-    ).toBeInTheDocument();
-    expect(skeletons().length).toBeGreaterThan(0);
-
-    // The next read brings the same device: no skeleton is left to suggest more.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(SEARCH_POLL_MS);
-    });
-    await waitFor(() => expect(skeletons()).toHaveLength(0));
-    expect(screen.queryByText('Sto cercando altri dispositivi…')).toBeNull();
-    // The end is said in words, not only by «Fatto».
-    expect(screen.getByText('Ricerca terminata: 1 dispositivo da collegare.')).toBeInTheDocument();
-  });
-
-  it('anche alla riapertura cerca con lo scheletro, e le tessere entrano una alla volta', async () => {
-    let answer: (() => void) | null = null;
-    fake.on(
-      'GET /scoperti',
-      () =>
-        new Promise((resolve) => {
-          answer = () => resolve({ body: { devices: [discoveredDto()] } });
-        })
-    );
-    screenOf(false);
-    await waitFor(() => expect(skeletons().length).toBeGreaterThan(0));
-
-    await act(async () => {
-      answer?.();
-    });
-    // Not at once: the first tile takes the place of a skeleton after a short while.
-    expect(screen.queryByRole('button', { name: /^Collega Samsung 7 Series \(49\)/ })).toBeNull();
-    expect(
-      await screen.findByRole('button', { name: /^Collega Samsung 7 Series \(49\)/ }, REVEAL_WAIT)
-    ).toBeInTheDocument();
-    expect(skeletons().length).toBeGreaterThan(0);
-  });
-
-  it('senza dispositivi dice che non ne ha trovati, con «Scegli la marca» e «Fatto»', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    screenOf(false);
-    await waitFor(() => expect(reads().length).toBeGreaterThan(0));
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(SEARCH_WINDOW_MS);
-    });
-
-    expect(
-      await screen.findByText(
-        'Nessun nuovo dispositivo individuato. Se il tuo non compare, scegli la marca.'
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Fatto' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Salta' })).toBeNull();
-    const panel = document.getElementById(
-      header('Da collegare (0)').getAttribute('aria-controls') ?? ''
-    );
-    // «Scegli la marca» opens «Non trovi il tuo dispositivo?», where «Altra marca» is the catalogue.
-    fireEvent.click(within(panel as HTMLElement).getByRole('button', { name: 'Scegli la marca' }));
-    await waitFor(() =>
-      expect(header('Non trovi il tuo dispositivo?')).toHaveAttribute('aria-expanded', 'true')
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Altra marca' }));
-    await waitFor(() => expect(fake.callsTo('GET /catalogo').length).toBeGreaterThan(0));
-  });
-
-  it('con il servizio spento offre «Ripara il servizio», e «Collegati» funziona lo stesso', async () => {
-    fake.on('GET /scoperti', () => errorReply(503, 'SERVICE_NOT_ACTIVE', 'Servizio non attivo.'));
-    screenOf();
-
-    expect(
-      await screen.findByText('Il servizio dei dispositivi non è attivo.')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ripara il servizio' })).toBeEnabled();
-    expect(screen.queryByText(/Nessun nuovo dispositivo individuato/)).toBeNull();
-    await waitFor(() => expect(header('Collegati (2)')).toBeInTheDocument());
-    fireEvent.click(header('Collegati (2)'));
-    expect(screen.getByRole('list', { name: 'Dispositivi collegati' })).toHaveTextContent(
-      'Lampada studio'
-    );
-  });
-
-  it('un dispositivo che ora non si può collegare non è una tessera: sta sotto, con il motivo', async () => {
+describe('Trova dispositivi: una lista operativa', () => {
+  it('mostra titolo, ricerca e filtri senza attendere una ricerca temporizzata', async () => {
     withFound(discoveredDto(), nestFound());
     screenOf();
-    const later = await screen.findByRole('list', { name: 'Dispositivi da collegare più tardi' });
-    expect(later).toHaveTextContent('Nest Thermostat');
-    expect(later).toHaveTextContent('Aggiunta già in corso da un altro utente.');
-    expect(within(later).getByRole('button', { name: 'Nascondi Nest Thermostat' })).toBeEnabled();
-    const grid = screen.getByRole('list', { name: 'Dispositivi da collegare' });
-    expect(within(grid).queryByText('Nest Thermostat')).toBeNull();
+    expect(await screen.findByRole('dialog', { name: 'Trova dispositivi' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Da collegare (2)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('button', { name: 'Pronti (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Già aggiunti (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Cerca dispositivi per nome' })).toBeInTheDocument();
+    expect(screen.queryByText(/Ricerca terminata|Sto cercando altri/)).toBeNull();
+  });
+  it('filtra per nome e separa pronti e già aggiunti', async () => {
+    withFound(discoveredDto()); screenOf();
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
+    expect(screen.getByRole('button', { name: 'Crea il widget: Lampada studio' })).toBeInTheDocument();
+    expect(screen.queryByText('Luce cucina')).toBeNull();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'nessuno' } });
+    expect(screen.getByText('Nessun dispositivo con questo nome.')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'CUCINA' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Già aggiunti (1)' }));
+    expect(screen.getByRole('button', { name: 'Apri il widget: Luce cucina' })).toBeDisabled();
+  });
+  it('senza risultati mostra un solo stato vuoto, senza dichiarare terminata la scoperta HA', async () => {
+    withFound(); screenOf();
+    expect(await screen.findByText('Nessun dispositivo da collegare.')).toBeInTheDocument();
+    expect(screen.queryByText(/Ricerca terminata/)).toBeNull();
+    expect(skeletons()).toHaveLength(0);
+  });
+  it('il servizio spento offre ripristino senza impedire i dispositivi già in HA', async () => {
+    fake.on('GET /scoperti', () => errorReply(503, 'SERVICE_NOT_ACTIVE', 'Il servizio non è attivo.'));
+    screenOf();
+    expect(await screen.findByRole('button', { name: 'Ripara il servizio' })).toBeInTheDocument();
+    expect(screen.queryByText('Nessun dispositivo da collegare.')).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
+    expect(screen.getByRole('button', { name: 'Crea il widget: Lampada studio' })).toBeEnabled();
+  });
+  it('un dispositivo non collegabile conserva il motivo e non avvia il flow', async () => {
+    withFound(nestFound()); screenOf();
+    const row = await screen.findByRole('button', { name: 'Collega Nest Thermostat' });
+    expect(row).toBeDisabled();
+    expect(row).toHaveTextContent('Aggiunta già in corso da un altro utente.');
+    expect(screen.getByRole('button', { name: 'Nascondi Nest Thermostat' })).toBeEnabled();
   });
 });
 
@@ -387,7 +250,7 @@ describe('Da collegare: la tessera', () => {
     expect(screen.queryByRole('button', { name: /^Collega Samsung 7 Series/ })).toBeNull();
     expect(
       screen.getByText(
-        '«Samsung 7 Series (49)» nascosto: non verrà più proposto. Lo ritrovi in «Nascosti».'
+        '«Samsung 7 Series (49)» nascosto.'
       )
     ).toBeInTheDocument();
     const undo = screen.getByRole('button', { name: 'Annulla' });
@@ -453,7 +316,7 @@ describe('Da collegare: la tessera', () => {
       expect(screen.queryByRole('button', { name: /Samsung 7 Series/ })).toBeNull()
     );
     // The search of this opening goes on, with its skeleton.
-    expect(skeletons().length).toBeGreaterThan(0);
+    expect(skeletons()).toHaveLength(0);
   });
 
   it('se nessun widget gli si adatta, nessun widget: «Scegli il widget» in «Collegati»', async () => {
@@ -496,7 +359,7 @@ describe('Da collegare: la tessera', () => {
     fake.on('GET /scoperti', () => ({ body: { devices: [] } }));
     fireEvent.click(done);
 
-    fireEvent.click(await screen.findByRole('button', { name: /^Collegati/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Pronti/ }));
     const choose = await screen.findByRole('button', { name: 'Scegli il widget: Acme Box' });
     expect(requestAdd).not.toHaveBeenCalled();
     fireEvent.click(choose);
@@ -506,23 +369,44 @@ describe('Da collegare: la tessera', () => {
   });
 });
 
-describe('Collegati', () => {
-  it('dice «Nel widget» per chi ha un widget e offre «Crea il widget» agli altri', async () => {
+describe('Pronti e già aggiunti', () => {
+  it('separa chi ha già un widget e conserva l’aggiunta legacy senza callback Luci', async () => {
     screenOf();
-    fireEvent.click(await screen.findByRole('button', { name: 'Collegati (2)' }));
-
-    const list = screen.getByRole('list', { name: 'Dispositivi collegati' });
-    const kitchen = within(list).getByText('Luce cucina').closest('li') as HTMLElement;
-    expect(within(kitchen).getByText('Nel widget')).toBeInTheDocument();
-    expect(within(kitchen).queryByRole('button')).toBeNull();
-
-    const lamp = within(list).getByText('Lampada studio').closest('li') as HTMLElement;
-    fireEvent.click(within(lamp).getByRole('button', { name: 'Crea il widget: Lampada studio' }));
-    expect(requestAdd).toHaveBeenCalledWith(
-      'home',
-      { type: 'light', entityIds: ['light.studio'] },
-      { auto: true }
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Già aggiunti (1)' }));
+    expect(screen.getByRole('button', { name: 'Apri il widget: Luce cucina' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Pronti (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crea il widget: Lampada studio' }));
+    expect(requestAdd).toHaveBeenCalledWith('home', { type: 'light', entityIds: ['light.studio'] }, { auto: true });
+  });
+  it('passa l’identità HA alla bozza Luci, senza eseguire un’aggiunta legacy', async () => {
+    const place = vi.fn(); screenOf(false, { onPlaceDevice: place });
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crea il widget: Lampada studio' }));
+    expect(place).toHaveBeenCalledWith('lampada');
+    expect(requestAdd).not.toHaveBeenCalled();
+    expect(fake.calls.filter((call) => call.method === 'POST')).toHaveLength(0);
+  });
+  it('apre il dispositivo già aggiunto e non ne crea una copia', async () => {
+    const open = vi.fn(); screenOf(false, { onOpenDevice: open });
+    fireEvent.click(await screen.findByRole('button', { name: 'Già aggiunti (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apri il widget: Luce cucina' }));
+    expect(open).toHaveBeenCalledWith('cucina'); expect(requestAdd).not.toHaveBeenCalled();
+  });
+  it('protegge il doppio tap e conserva l’errore di risoluzione nella lista', async () => {
+    let fail!: (error: Error) => void;
+    const place = vi.fn(() => new Promise<void>((_, reject) => { fail = reject; }));
+    screenOf(false, { onPlaceDevice: place });
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
+    const row = screen.getByRole('button', { name: 'Crea il widget: Lampada studio' });
+    fireEvent.click(row); fireEvent.click(row); expect(place).toHaveBeenCalledTimes(1); expect(row).toBeDisabled();
+    await act(async () => fail(new Error('La luce non è più disponibile.')));
+    expect(await screen.findByText('La luce non è più disponibile.')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled(); expect(row).toBeEnabled();
+  });
+  it('offre il pin della sola utilità senza richiedere dispositivi o comandi', async () => {
+    const pin = vi.fn(); screenOf(false, { onPinUtility: pin });
+    fireEvent.click(screen.getByRole('button', { name: 'Aggiungi alla Home' }));
+    expect(pin).toHaveBeenCalledOnce(); expect(requestAdd).not.toHaveBeenCalled();
   });
 });
 
@@ -537,9 +421,6 @@ describe('Nascosti', () => {
     screenOf();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nascosti (1)' }));
-    expect(
-      screen.getByText('Torna in «Da collegare» appena si fa rivedere in rete.')
-    ).toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Dispositivi nascosti' })).toHaveTextContent(
       'TV camera'
     );
@@ -574,10 +455,9 @@ describe('Da collegare: i televisori in rete', () => {
       REVEAL_WAIT
     );
     // The name already says «Samsung»: the caption keeps only the model.
-    expect(within(tile).getByText('QE55')).toBeInTheDocument();
+    expect(tile).toHaveTextContent('Televisori');
     expect(within(grid).queryByText('TV spenta')).toBeNull();
     await waitFor(() => expect(header('Da collegare (2)')).toBeInTheDocument());
-    await waitFor(() => expect(summaryText()).toBe('4 trovati · 2 collegati'));
   });
 
   it('la tessera del televisore apre il flusso, e non c’è «Nascondi»', async () => {
@@ -610,7 +490,6 @@ describe('Non trovi il tuo dispositivo?: prima il tipo, poi la marca', () => {
     screenOf();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Non trovi il tuo dispositivo?' }));
-    expect(screen.getByText('Che cos’è? Scegli il tipo, poi la marca.')).toBeInTheDocument();
     const types = screen.getByRole('list', { name: 'Tipi di dispositivo' });
     fireEvent.click(within(types).getByRole('button', { name: 'Luci' }));
     const lights = screen.getByRole('list', { name: 'Marche consigliate' });
@@ -634,9 +513,6 @@ describe('Non trovi il tuo dispositivo?: prima il tipo, poi la marca', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Non trovi il tuo dispositivo?' }));
     fireEvent.click(screen.getByRole('button', { name: 'Televisori' }));
-    expect(
-      screen.getByText('Televisori: scegli la marca, Acasystem ti guida passo passo.')
-    ).toBeInTheDocument();
     const list = screen.getByRole('list', { name: 'Marche consigliate' });
     expect(within(list).getAllByRole('button')).toHaveLength(8);
     fireEvent.click(within(list).getByRole('button', { name: 'LG' }));
@@ -724,10 +600,12 @@ describe('Televisori LG: Cast da solo e più televisori della stessa marca', () 
     fake.on('POST /tv-in-rete/:id/collega', () => ({ status: 201, body: samsungPinForm() }));
     screenWithCastLg();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Collegati (1)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
     expect(screen.queryByRole('button', { name: /^Crea il widget/ })).toBeNull();
     // The tiles tell the two LG apart by model, though the model is in the name.
+    fireEvent.click(screen.getByRole('button', { name: /^Da collegare/ }));
     await screen.findByRole('button', { name: /^Collega \[LG\] webOS TV NANO81T6A/ }, REVEAL_WAIT);
+    fireEvent.click(screen.getByRole('button', { name: 'Pronti (1)' }));
     const connect = screen.getByRole('button', {
       name: 'Collega come TV LG: [LG] webOS TV UA751C0LA',
     });
@@ -787,8 +665,8 @@ describe('Televisori LG: Cast da solo e più televisori della stessa marca', () 
     const grid = await screen.findByRole('list', { name: 'Dispositivi da collegare' });
     await within(grid).findByRole('button', { name: /UA751C0LA/ }, REVEAL_WAIT);
     await within(grid).findByRole('button', { name: /NANO81T6A/ }, REVEAL_WAIT);
-    expect(within(grid).getByText('UA751C0LA')).toBeInTheDocument();
-    expect(within(grid).getByText('NANO81T6A')).toBeInTheDocument();
+    expect(within(grid).getByRole('button', { name: /UA751C0LA/ })).toBeInTheDocument();
+    expect(within(grid).getByRole('button', { name: /NANO81T6A/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Non trovi il tuo dispositivo?' }));
     fireEvent.click(screen.getByRole('button', { name: 'Televisori' }));
@@ -801,7 +679,7 @@ describe('Televisori LG: Cast da solo e più televisori della stessa marca', () 
     expect(
       await screen.findByText('Ci sono 2 TV LG in rete: tocca quella da collegare.')
     ).toBeInTheDocument();
-    expect(header(/^Da collegare/)).toHaveAttribute('aria-expanded', 'true');
+    expect(header(/^Da collegare/)).toHaveAttribute('aria-pressed', 'true');
     expect(fake.callsTo('POST /tv-in-rete/lg-ua/collega')).toHaveLength(0);
     expect(fake.callsTo('POST /tv-in-rete/lg-nano/collega')).toHaveLength(0);
     expect(fake.callsTo('POST /flussi')).toHaveLength(0);

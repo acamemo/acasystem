@@ -1,6 +1,8 @@
 import { Heading } from '@/components/primitives';
+import { useTvBrandLogo } from '../../hooks/useTvBrandLogo';
 import { attrNumber, effectivePosition, resolveImage } from '../../model/entity';
 import { MEDIA_FEATURE, declares } from '../../model/features';
+import { tvCover } from '../../model/tv';
 import { testi } from '../../testi';
 import type { TransportProps } from '../Controls';
 import { NowPlaying } from '../NowPlaying';
@@ -15,12 +17,16 @@ export function TvPlayer({ tv }: { tv: TvDetailsState }) {
   const { id, kind, view, media, playing, actions, has, runtime } = tv;
   const picture = resolveImage(view.picture, runtime.getEntityImageUrl);
   const logo = resolveImage(view.logo, runtime.getEntityImageUrl);
+  const brandLogo = useTvBrandLogo(view);
+  const cover = tvCover(picture, logo, brandLogo);
 
   // Playback: the bits are those of the shown player. Stop, seek, shuffle and repeat must be
   // declared; previous, next and play follow the legacy rule (no bits at all: available).
   const caps = media.caps;
-  const showPrevious = kind === 'apple' || caps.previous;
-  const showNext = kind === 'apple' || caps.next;
+  // Where previous/next change channel, «Canale − / +» of the steps already does it: not twice.
+  const channelKeysElsewhere = view.channelSkip && tv.channel.available;
+  const showPrevious = !channelKeysElsewhere && (kind === 'apple' || caps.previous);
+  const showNext = !channelKeysElsewhere && (kind === 'apple' || caps.next);
   const showPlay = kind === 'apple' || caps.playPause;
   const showStop = declares(view.display, MEDIA_FEATURE.STOP);
   const showShuffle = declares(view.display, MEDIA_FEATURE.SHUFFLE_SET);
@@ -60,6 +66,8 @@ export function TvPlayer({ tv }: { tv: TvDetailsState }) {
     },
     variant: 'full',
     playLabel: kind === 'apple' ? testi.playPausa : undefined,
+    previousLabel: view.channelSkip ? testi.canalePrecedente : undefined,
+    nextLabel: view.channelSkip ? testi.canaleSuccessivo : undefined,
     onStop: showStop ? () => tv.run('stop', 'media_stop') : undefined,
     beforePlay: showSkip && (
       <RoundKey tv={tv} keyName="rewind" label={testi.indietroVeloce} icon="rewind" size="md" />
@@ -82,13 +90,14 @@ export function TvPlayer({ tv }: { tv: TvDetailsState }) {
       </Heading>
       <NowPlaying
         cover={{
-          src: picture ?? logo,
+          src: cover.src,
           alt: view.title,
           icon: 'tv',
-          fit: picture ? 'cover' : 'contain',
+          fit: cover.fit,
         }}
         title={view.title || testi.nienteInRiproduzione}
-        subtitle={view.appName || testi.schermataHome}
+        // A TV that is off is on no app and no channel.
+        subtitle={view.isOn ? view.place : ''}
         seek={
           showSeek
             ? {

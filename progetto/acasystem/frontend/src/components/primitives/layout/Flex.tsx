@@ -1,5 +1,2 @@
-import { Container, type ContainerProps } from '../components/Container';
-
-export function Flex({ className = '', ...props }: ContainerProps) {
-  return <Container className={`flex ${className}`} {...props} />;
-}
+// Compatibilità: la stessa implementazione UI condivisa, senza duplicare stato o contesti.
+export * from '../../../../../ui/primitives/layout/Flex';

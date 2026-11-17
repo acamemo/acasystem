@@ -32,6 +32,7 @@ export interface FakeUser {
 interface TokenInfo {
   userId: string;
   kind: 'access' | 'refresh' | 'llat';
+  clientName?: string;
   parent?: string;
   /** Id of a refresh or long-lived token (what `auth/refresh_tokens` lists). */
   id?: string;
@@ -141,7 +142,11 @@ interface FakeFlow {
 
 export interface FakeKnobs {
   version: string;
+  /** Core 2026.11.1: changing another user's password requires the owner. */
+  ownerOnlyPasswordReset?: boolean;
   onboarded: boolean;
+  /** Banco browser v2: letture di base e sottoscrizione entità vuota, senza impianto reale. */
+  frontend?: boolean;
   /** Milliseconds the `pairing` step keeps the call open. */
   pairingDelayMs: number;
   pairingOutcome: 'accept' | 'not_pressed' | 'cannot_connect';
@@ -1273,6 +1278,12 @@ export class FakeHomeAssistant {
 
       const id = message.id;
       const type = String(message.type);
+      if (this.knobs.frontend && type === 'ping') { socket.send(JSON.stringify({ id, type: 'pong' })); return; }
+      if (this.knobs.frontend && type === 'subscribe_entities') {
+        socket.send(JSON.stringify({ id, type: 'result', success: true, result: null }));
+        socket.send(JSON.stringify({ id, type: 'event', event: { a: {} } }));
+        return;
+      }
       this.calls.push({
         via: 'ws',
         route: type,
@@ -1341,6 +1352,22 @@ export class FakeHomeAssistant {
     };
 
     switch (type) {
+      case 'supported_features':
+      case 'subscribe_events':
+        if (this.knobs.frontend) return null;
+        throw new Error('unknown_command');
+      case 'get_states':
+        if (this.knobs.frontend) return [];
+        throw new Error('unknown_command');
+      case 'get_services':
+        if (this.knobs.frontend) return { light: { turn_on: { name: 'Accendi', fields: {} }, turn_off: { name: 'Spegni', fields: {} } } };
+        throw new Error('unknown_command');
+      case 'get_config':
+        if (this.knobs.frontend) return { version: this.knobs.version, location_name: 'Casa di collaudo ACA', time_zone: 'Europe/Rome', unit_system: { temperature: '°C', length: 'km', mass: 'kg', volume: 'L', pressure: 'Pa' }, components: [], state: 'RUNNING', currency: 'EUR' };
+        throw new Error('unknown_command');
+      case 'call_service':
+        if (this.knobs.frontend) return { context: { id: randomUUID(), parent_id: null, user_id: user.id } };
+        throw new Error('unknown_command');
       case 'auth/current_user':
         return {
           id: user.id,
@@ -1352,8 +1379,12 @@ export class FakeHomeAssistant {
         };
 
       case 'auth/long_lived_access_token': {
-        text('client_name');
-        return this.tokenFor(user.id, 'llat');
+        const clientName = text('client_name');
+        if ([...this.tokens.values()].some(info => info.userId === user.id && info.kind === 'llat' &&
+          (info.clientName ?? 'Acasystem (servizio)') === clientName)) throw new Error('unknown_error');
+        const token = this.tokenFor(user.id, 'llat');
+        this.tokens.get(token)!.clientName = clientName;
+        return token;
       }
 
       case 'auth/refresh_tokens': {
@@ -1363,8 +1394,8 @@ export class FakeHomeAssistant {
           .map((info) => ({
             id: info.id,
             type: info.kind === 'llat' ? 'long_lived_access_token' : 'normal',
-            client_name: info.kind === 'llat' ? 'Acasystem (servizio)' : null,
-            is_current: false,
+            client_name: info.kind === 'llat' ? info.clientName ?? 'Acasystem (servizio)' : null,
+            is_current: info.id !== undefined && info.id === (session.info.parent ? this.tokens.get(session.info.parent)?.id : session.info.id),
           }));
       }
 
@@ -1406,11 +1437,23 @@ export class FakeHomeAssistant {
         admin();
         const target = this.users.get(text('user_id'));
         if (!target) throw new Error('not_found');
+        if (typeof message.name === 'string') target.name = message.name;
         if (typeof message.is_active === 'boolean') target.active = message.is_active;
         if (Array.isArray(message.group_ids))
           target.isAdmin = message.group_ids.includes('system-admin');
         if (typeof message.local_only === 'boolean') target.localOnly = message.local_only;
         return { user: this.userJson(target) };
+      }
+
+      case 'config/auth/delete': {
+        admin();
+        const id = text('user_id');
+        const target = this.users.get(id);
+        if (!target) throw new Error('not_found');
+        if (target.isOwner || id === user.id) throw new Error('unauthorized');
+        this.users.delete(id);
+        for (const [token, info] of this.tokens) if (info.userId === id) this.tokens.delete(token);
+        return null;
       }
 
       case 'config/auth_provider/homeassistant/create': {
@@ -1425,6 +1468,7 @@ export class FakeHomeAssistant {
 
       case 'config/auth_provider/homeassistant/admin_change_password': {
         admin();
+        if (this.knobs.ownerOnlyPasswordReset && !user.isOwner) throw new Error('unauthorized');
         const target = this.users.get(text('user_id'));
         if (!target || !target.username) throw new Error('not_found');
         target.password = text('password');

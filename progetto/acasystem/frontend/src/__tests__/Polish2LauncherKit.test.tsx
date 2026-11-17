@@ -17,9 +17,9 @@ beforeAll(async () => {
     readFileSync: (path: string, encoding: 'utf8') => string;
   };
   const read = (file: string) => fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  tokens = read('src/themes/acasystem/tokens.css');
-  material = read('src/themes/acasystem/material.css');
-  launcher = read('src/templates/launcher/launcher.css');
+  tokens = read('../design/themes/acasystem/tokens.css');
+  material = read('../design/themes/acasystem/material.css');
+  launcher = read('../design/layout/launcher.css');
 });
 
 afterEach(cleanup);

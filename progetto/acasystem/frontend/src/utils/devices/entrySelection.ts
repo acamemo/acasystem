@@ -64,5 +64,5 @@ export function selectionForNewEntry(
         ? [entry.mediaPlayerEntityId]
         : []
       : [...entry.entityIds];
-  return { type: FAMILY_WIDGET_TYPE[family], entityIds };
+  return { type: family === 'tv' && entry.domain === 'apple_tv' ? 'appletv' : FAMILY_WIDGET_TYPE[family], entityIds };
 }

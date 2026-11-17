@@ -9,12 +9,12 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { OVERVIEW_EASE, OVERVIEW_MS } from '@/templates/launcher/Pager';
 
 const FILES = {
-  launcher: 'src/templates/launcher/launcher.css',
+  launcher: '../design/layout/launcher.css',
   statusBar: 'src/components/system/status-bar/statusBar.css',
-  indicator: 'src/components/system/page-indicator/pageIndicator.css',
+  indicator: '../design/layout/pageIndicator.css',
   edit: 'src/components/system/edit/edit.css',
-  skin: 'src/themes/kit2/skin.css',
-  material: 'src/themes/acasystem/material.css',
+  skin: '../design/themes/kit2/skin.css',
+  material: '../design/themes/acasystem/material.css',
 } as const;
 
 type Sheet = keyof typeof FILES;

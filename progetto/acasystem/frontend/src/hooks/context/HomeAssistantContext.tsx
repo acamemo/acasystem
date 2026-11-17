@@ -105,19 +105,28 @@ export const useHomeAssistant = (): HomeAssistantContextValue => {
  * React render per animation frame, preventing full-tree re-renders on
  * every WebSocket message.
  */
-function useThrottledEntities(): [EntityMap, (updatedEntities: EntityMap) => void] {
+function useThrottledEntities(): [
+  EntityMap,
+  (updatedEntities: EntityMap, onCommit?: () => void) => void,
+] {
   const [entities, setEntities] = useState<EntityMap>(loadCachedEntities);
   const pendingRef = useRef<EntityMap | null>(null);
+  const pendingCommitRef = useRef<(() => void) | null>(null);
   const rafRef = useRef<number | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const setEntitiesThrottled = useCallback((updatedEntities: EntityMap) => {
+  const setEntitiesThrottled = useCallback((updatedEntities: EntityMap, onCommit?: () => void) => {
     pendingRef.current = updatedEntities;
+    // Registry enrichment may replace the map before the frame, without erasing snapshot readiness.
+    if (onCommit) pendingCommitRef.current = onCommit;
     if (rafRef.current == null) {
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
+        const onCommit = pendingCommitRef.current;
+        pendingCommitRef.current = null;
         if (pendingRef.current) {
           setEntities(pendingRef.current);
+          onCommit?.();
           // Debounce sessionStorage writes to once per 10 s
           if (saveTimerRef.current == null) {
             saveTimerRef.current = setTimeout(() => {
@@ -135,6 +144,7 @@ function useThrottledEntities(): [EntityMap, (updatedEntities: EntityMap) => voi
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
+      pendingCommitRef.current = null;
     };
   }, []);
 
@@ -153,6 +163,8 @@ const readCommandError = (err: unknown) => {
 export const HomeAssistantProvider = ({ children, config }: HomeAssistantProviderProps) => {
   const [entities, setEntities] = useThrottledEntities();
   const [entitiesLoaded, setEntitiesLoaded] = useState(false);
+  const [connectionRetry, setConnectionRetry] = useState(0);
+  const retryInitialSnapshot = useCallback(() => setConnectionRetry((value) => value + 1), []);
   const [connected, setConnected] = useState(false);
   const [haUnavailable, setHaUnavailable] = useState(false);
   const [haUnavailableVisible, setHaUnavailableVisible] = useState(false);
@@ -203,9 +215,9 @@ export const HomeAssistantProvider = ({ children, config }: HomeAssistantProvide
   );
 
   const pushEntitySnapshot = useCallback(
-    (nextEntities: EntityMap) => {
+    (nextEntities: EntityMap, onCommit?: () => void) => {
       rawEntitiesRef.current = nextEntities;
-      setEntities(applyRegistryMetadata(nextEntities));
+      setEntities(applyRegistryMetadata(nextEntities), onCommit);
     },
     [applyRegistryMetadata, setEntities]
   );
@@ -386,8 +398,10 @@ export const HomeAssistantProvider = ({ children, config }: HomeAssistantProvide
         fetchRegistryMetadata(connInstance);
         const unsub = subscribeEntities(connInstance, (updatedEntities: HassEntities) => {
           if (isCurrentAttempt()) {
-            pushEntitySnapshot(updatedEntities);
-            setEntitiesLoaded(true);
+            pushEntitySnapshot(updatedEntities, () => {
+              // The first complete snapshot and its readiness become visible in the same commit.
+              if (isCurrentAttempt()) setEntitiesLoaded(true);
+            });
             setLastEntityUpdateAt(Date.now());
             setEntityDataStale(false);
           }
@@ -423,6 +437,7 @@ export const HomeAssistantProvider = ({ children, config }: HomeAssistantProvide
     };
   }, [
     activeUrl,
+    connectionRetry,
     config.token,
     config.authMethod,
     cleanupConnection,
@@ -534,6 +549,7 @@ export const HomeAssistantProvider = ({ children, config }: HomeAssistantProvide
   const metaValue = useMemo<HomeAssistantMetaValue>(
     () => ({
       entitiesLoaded,
+      retryInitialSnapshot,
       connected,
       haUnavailable,
       haUnavailableVisible,
@@ -549,6 +565,7 @@ export const HomeAssistantProvider = ({ children, config }: HomeAssistantProvide
     }),
     [
       entitiesLoaded,
+      retryInitialSnapshot,
       connected,
       haUnavailable,
       haUnavailableVisible,

@@ -1,6 +1,7 @@
-import { memo } from 'react';
+import { memo, useLayoutEffect, useRef } from 'react';
 import { surfaceOf, type PageDescriptor } from '@/utils/launcher/pageDescriptor';
 import { PageKindHost } from './PageKindHost';
+import { useHomeMeasurement } from '@/hooks/startup/HomeStartupContext';
 import { WidgetGrid } from './WidgetGrid';
 
 /**
@@ -21,8 +22,22 @@ export const PageShell = memo(function PageShell({
   editMode: boolean;
 }) {
   const { page } = descriptor;
+  const homeMeasurement = useHomeMeasurement();
+  const host = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!homeMeasurement || !page || homeMeasurement.pageId !== page.id || surfaceOf(descriptor.kind) === 'grid') return;
+    const content = host.current?.firstElementChild;
+    const measure = () => {
+      const box = content?.getBoundingClientRect();
+      homeMeasurement.report(homeMeasurement.key, Boolean(box && box.width > 0 && box.height > 0));
+    };
+    measure();
+    if (typeof ResizeObserver !== 'function' || !content) return;
+    const observer = new ResizeObserver(measure); observer.observe(content);
+    return () => observer.disconnect();
+  }, [homeMeasurement, page, descriptor.kind]);
   return (
-    <div
+    <div ref={host}
       className="aca-page-shell"
       data-page-kind={descriptor.kind}
       data-top-bar={descriptor.topBar}

@@ -97,7 +97,9 @@ function respond(store: MockHaStore, message: Message, now: () => number): Promi
     case 'todo/item/list':
       return Promise.resolve({ items: store.todoItems(String(message.entity_id ?? '')) });
     case 'media_player/browse_media':
-      return Promise.resolve(browseMedia());
+      return Promise.resolve(
+        browseMedia(String(message.entity_id ?? ''), String(message.media_content_id ?? ''))
+      );
     case 'recorder/statistics_during_period':
       return Promise.resolve({});
     case 'history/history_during_period': {
@@ -115,6 +117,25 @@ function respond(store: MockHaStore, message: Message, now: () => number): Promi
     }
     case 'config/core/update':
       return Promise.resolve(null);
+    // The ZHA config entry is loaded when the house has a Zigbee coordinator.
+    case 'config_entries/get': {
+      const domain = message.domain === undefined ? null : String(message.domain);
+      const zha = store
+        .registries()
+        .devices.some((device) =>
+          (device.identifiers as unknown[][]).some((pair) => pair[0] === 'zha')
+        );
+      return Promise.resolve(
+        zha && (domain === null || domain === 'zha')
+          ? [{ entry_id: 'entry_zha', domain: 'zha', title: 'Zigbee', state: 'loaded' }]
+          : []
+      );
+    }
+    case 'zha/network/backups/create':
+      return Promise.resolve({
+        backup: { backup_time: new Date(now()).toISOString() },
+        is_complete: true,
+      });
     case 'call_service':
       return callServiceMessage(store, message, now);
     default:

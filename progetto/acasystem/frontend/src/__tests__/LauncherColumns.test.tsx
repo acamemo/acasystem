@@ -750,7 +750,7 @@ describe('griglia nel CSS (C.1)', () => {
       readFileSync: (path: string, encoding: 'utf8') => string;
     };
     css = fs
-      .readFileSync('src/templates/launcher/launcher.css', 'utf8')
+      .readFileSync('../design/layout/launcher.css', 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '');
   });
   const rule = (selector: string) =>
@@ -1218,6 +1218,13 @@ describe('schermo con la chiave della pagina (LauncherScreen)', () => {
   }
 
   beforeEach(() => {
+    // This group exercises the measured 8×2 grid; jsdom has no physical layout of its own.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const area = this.classList.contains('aca-launcher-page');
+      return { x: 0, y: 0, left: 0, top: 0, width: area ? 973 : 0,
+        height: area ? 230 : 0, right: area ? 973 : 0, bottom: area ? 230 : 0,
+        toJSON: () => ({}) } as DOMRect;
+    });
     localStorage.clear();
     latest = null;
     localStorage.setItem(
@@ -1227,6 +1234,8 @@ describe('schermo con la chiave della pagina (LauncherScreen)', () => {
       )
     );
   });
+
+  afterEach(() => vi.restoreAllMocks());
 
   it('moves with the arrows on the 8 × 2 shown, and «Annulla» puts it back', async () => {
     await openHome();

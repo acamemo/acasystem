@@ -1,5 +1,6 @@
 export * from './browserReset.ts';
 export * from './config.ts';
+export * from './connectionCode.ts';
 export * from './defaults.ts';
 export * from './haSocket.ts';
 export * from './health.ts';

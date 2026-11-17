@@ -2,6 +2,8 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { Body, Button, Caption, Field, IconText, Skeleton } from '@/components/primitives';
 import type { ProfileRecord } from '@/@types/api';
 import { FormRow, InlineConfirm, Notice } from '@/templates/sheets/parts/Form';
+import { useOptionalLiveProfiles } from '@/hooks/liveProfiles/LiveProfilesContext';
+import { LiveProfilesPanel } from './LiveProfilesPanel';
 
 export interface ProfilesSectionProps {
   /** A Home Assistant user is known: profiles live on the server under that user. */
@@ -66,6 +68,7 @@ export function ProfilesSection({
   onExport,
   onImport,
 }: ProfilesSectionProps) {
+  const live = useOptionalLiveProfiles();
   const [name, setName] = useState('');
   const [device, setDevice] = useState('');
   const [nameError, setNameError] = useState<string | undefined>(undefined);
@@ -126,6 +129,8 @@ export function ProfilesSection({
   };
 
   const serverReady = hasUser && backendAvailable;
+
+  if (live) return <LiveProfilesPanel />;
 
   return (
     <div className="aca-system__stack">

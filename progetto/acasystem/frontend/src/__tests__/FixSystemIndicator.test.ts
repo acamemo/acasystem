@@ -9,7 +9,7 @@ beforeAll(async () => {
   const fs = (await import(/* @vite-ignore */ specifier)) as {
     readFileSync: (path: string, encoding: 'utf8') => string;
   };
-  css = fs.readFileSync('src/components/system/page-indicator/pageIndicator.css', 'utf8');
+  css = fs.readFileSync('../design/layout/pageIndicator.css', 'utf8');
 });
 
 /**

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -10,7 +11,12 @@ import {
   type ReactNode,
 } from 'react';
 import { flushSync } from 'react-dom';
-import { Icon, type ConsoleOrigin } from '@/components/primitives';
+import { Body, Button, Console, Icon, type BottomDrawerInteraction } from '@/components/primitives';
+import { getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
+import type { HaEntityRegistryEntry } from '@/@types/ha';
+import { resolveSensorDeviceBinding, resolveLightDeviceBinding, resolvePlugDeviceBinding, resolveClimateDeviceBinding, resolveCoverDeviceBinding, resolveFanDeviceBinding, resolveLockDeviceBinding, resolveAlarmDeviceBinding, resolveCameraDeviceBinding, resolveVacuumDeviceBinding, resolveMowerDeviceBinding, resolveTvDeviceBinding, resolveSonosDeviceBinding, resolveMediaDeviceBinding, isProductDeviceBinding } from '@/utils/devices/productBinding';
+import { classifyDevices } from '@/utils/devices/classify';
+import { deviceWidgetDestinations, type DeviceWidgetDestination } from '@/utils/devices/widgetDestinations';
 import { EditHint } from '@/components/system/edit/EditHint';
 import { PageCardControls, type CardColumns } from '@/components/system/edit/PageCardControls';
 import { PageOverviewBar } from '@/components/system/edit/PageOverviewBar';
@@ -21,7 +27,8 @@ import { pageValueText } from '@/components/system/page-indicator/PageIndicator'
 import { SystemGear } from '@/components/system/status-bar/SystemGear';
 import type { ConnectionState } from '@/components/system/status-bar/ConnectionStatus';
 import { findWidgetDefinition } from '@/components/widgets/registry';
-import type { AddWidgetSelection, CellRect, LauncherLayout, WidgetRuntime } from '@/@types/launcher';
+import { useRuntimeServiceCatalogState } from '@/components/widgets/adaptive/useServiceCatalog';
+import type { AddWidgetSelection, CellRect, LauncherLayout, LauncherPage, WidgetRuntime } from '@/@types/launcher';
 import { usePages } from '@/hooks/context';
 import { LauncherProvider } from '@/hooks/launcher/LauncherContext';
 import {
@@ -30,9 +37,11 @@ import {
   type AddWidgetRequestOptions,
 } from '@/hooks/launcher/AddWidgetRequestContext';
 import { DiscoveredFlowProvider } from '@/hooks/launcher/DiscoveredFlowContext';
+import { PowerSetupProvider } from '@/hooks/launcher/PowerSetupContext';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import type { LauncherController } from '@/hooks/launcher/useLauncherController';
 import { useWidgetController } from '@/hooks/launcher/useWidgetController';
+import { useLauncherRemoval } from '@/hooks/launcher/useLauncherRemoval';
 import { useEditHint } from '@/hooks/launcher/useEditHint';
 import { DiscoveryScreenProvider } from '@/hooks/launcher/DiscoveryScreenContext';
 import { useDiscoveryScreen } from '@/hooks/launcher/useDiscoveryScreen';
@@ -42,9 +51,16 @@ import { createLauncherSelection, type WidgetRef } from '@/hooks/launcher/useLau
 import { useLongPress, type LongPressInfo } from '@/hooks/launcher/useLongPress';
 import { usePageDrag } from '@/hooks/launcher/usePageDrag';
 import { PageLockContext } from '@/hooks/launcher/PageLockContext';
-import { usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
+import { PageVisibilityContext, usePageVisible } from '@/hooks/launcher/PageVisibilityContext';
 import { isStaged, useStagedScene } from '@/hooks/launcher/useStagedScene';
-import { useReducedMotion } from '@/hooks/launcher/useViewport';
+import { useReducedMotion, useViewportSize } from '@/hooks/launcher/useViewport';
+import { useClientSession } from '@/hooks/client/ClientAccessGate';
+import { useOptionalLiveProfiles } from '@/hooks/liveProfiles/LiveProfilesContext';
+import {
+  HomeMeasurementContext, HomeStartupView, useHomeStartupReady,
+  useHomeStartupSignal, useOptionalHomeStartup,
+} from '@/hooks/startup/HomeStartupContext';
+import { useHomeStartupAssets } from '@/hooks/startup/useHomeStartupAssets';
 import { useWidgetDrag, type DragSession, type GridGeometry } from '@/hooks/launcher/useWidgetDrag';
 import {
   COLUMNS_RANGE,
@@ -53,7 +69,8 @@ import {
   columnsToStore,
 } from '@/utils/launcher/deviceClass';
 import { afterNextFrame } from '@/utils/launcher/afterFrame';
-import { TWO_FRAMES_MS, canAnimate } from '@/utils/launcher/motion';
+import { useWidgetScene } from '@/hooks/launcher/useWidgetScene';
+import { useHomeCatalogScroll } from '@/hooks/launcher/useHomeCatalogScroll';
 import { movePageOrder, pagePlacements } from '@/utils/launcher/layout';
 import { basePageId, type PagerEntry } from '@/utils/launcher/pager';
 import { describePages, type PageDescriptor } from '@/utils/launcher/pageDescriptor';
@@ -69,18 +86,24 @@ import { describeRect, widgetDisplayName } from '@/utils/launcher/names';
 import { PAGE_KIND_LABEL, displayLabel } from '@/utils/launcher/pageIdentity';
 import type { StatusChip } from '@/utils/launcher/statusChips';
 import { AppShell } from '../app-shell/AppShell';
-import { isCategoryWidgetUnbound } from '../sheets/categoryPages';
-import { WIDGET_CATEGORIES } from '../sheets/catalog';
+import { isCategoryWidgetUnbound } from '@/domain/launcher/categoryPages';
+import { WIDGET_CATEGORIES, ADD_WIDGET_TYPES } from '@/domain/launcher/catalog';
+import { multimediaAssociationPatch } from '@/utils/devices/multimediaSettings';
+import { createCategoryWidgetSeed } from '@/utils/launcher/categoryModels';
+import type { PageSeed } from '@/domain/launcher/categoryPages';
+import { PendingWidgetPlacement } from './PendingWidgetPlacement';
+import { ProductDevicePreview } from './ProductDevicePreview';
 import type { DefinitionResolver, DetailsTarget } from './DetailsSheet';
 import {
   DiscoveredAddFlowLazy,
+  PowerSetupLazy,
   LazyAddWidgetSheet,
   LazyCategoryPageSheet,
-  LazyDetailsSheet,
   LazyDiscoveryScreen,
   LazyPanel,
   LazyStackSheet,
   LazyWidgetConsole,
+  LazyUtilityToolScreen,
   LazyWidgetSettingsSheet,
   usePanelsReady,
 } from './lazyPanels';
@@ -123,7 +146,10 @@ export interface LauncherScreenProps {
    * (REP-20261028-003). The app turns it on; previews and tests leave it off.
    */
   discoveryOnFirstOpen?: boolean;
+  onRetryInitialSnapshot?: () => void;
 }
+
+interface PendingAdd { seed: PageSeed; type: string; originKey: string; scope: string; stage: 'closing' | 'placing' | 'ready'; closingSource?: 'catalog' | 'utility'; label?: string; busy: boolean; error: string }
 
 type SheetState =
   /**
@@ -164,19 +190,8 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const REJECT_FLASH_MS = 900;
 const LAND_MS = 260;
-/** The widget removed from its bar shrinks and fades first (--aca-dur-exit-sm, tokens.css). */
-const WIDGET_EXIT_MS = 160;
-/** A widget comes in (--aca-dur-enter-sm); put back, it waits 60 ms for the cells to give way. */
-const WIDGET_ENTER_MS = 240;
-const WIDGET_RESTORE_DELAY_MS = 60;
 /** The sheet that added a widget goes in 200 ms: the widget comes in 40 ms before it is gone. */
 const ADDED_AFTER_SHEET_MS = 160;
-/** The pager glides to the page with room; the widget does not wait longer than this for it. */
-const PAGER_GLIDE_CAP_MS = 700;
-/** A widget set to come in that nothing releases is shown anyway after this long. */
-const ENTERING_CAP_MS = 10000;
-/** How long «Annulla» stays after a removal (Launcher3 uses a short snackbar). */
-const UNDO_MS = 5000;
 
 /**
  * Widgets that need their settings right after being added (the to-do list and the car have no
@@ -197,18 +212,6 @@ function handleOf(pageId: string, widgetId: string) {
   return widget?.querySelector<HTMLElement>(':scope > .aca-launcher-widget__handle') ?? null;
 }
 
-/** The rectangle of a widget on a page: where a console grows out of and shrinks back into. */
-function rectOf(pageId: string, widgetId: string): ConsoleOrigin | undefined {
-  const page = Array.from(document.querySelectorAll<HTMLElement>('[data-launcher-page]')).find(
-    (element) => element.dataset.launcherPage === pageId
-  );
-  const widget = Array.from(page?.querySelectorAll<HTMLElement>('[data-widget-id]') ?? []).find(
-    (element) => element.dataset.widgetId === widgetId
-  );
-  const { top, left, width, height } = widget?.getBoundingClientRect() ?? {};
-  return width && height ? { top: top ?? 0, left: left ?? 0, width, height } : undefined;
-}
-
 /** Focuses an element; true when it took the focus (a page out of view is inert). */
 function takesFocus(element: HTMLElement | null | undefined) {
   element?.focus();
@@ -217,7 +220,7 @@ function takesFocus(element: HTMLElement | null | undefined) {
 
 function isOverlayOpen() {
   if (typeof document === 'undefined') return false;
-  if (document.querySelector('dialog[open], [data-aca-console]')) return true;
+  if (document.querySelector('dialog[open], [data-aca-console], .aca-bottom-drawer-overlay:not(.aca-bottom-drawer-overlay--preview)')) return true;
   try {
     return Boolean(document.querySelector(':popover-open'));
   } catch {
@@ -263,13 +266,46 @@ export function LauncherScreen({
   isWidgetHidden,
   findDefinition = findWidgetDefinition,
   discoveryOnFirstOpen = false,
+  onRetryInitialSnapshot,
 }: LauncherScreenProps) {
   const reducedMotion = useReducedMotion();
   // The page in the centre and the overview are read from `live`; everything else, and the
   // context of the grids and the widgets, from `controller`, which a swipe or the overview
   // leaves as it was (REP-20261012-003).
   const controller = useWidgetController(live);
+  const startup = useOptionalHomeStartup();
+  const startupReady = useHomeStartupReady();
+  const liveProfiles = useOptionalLiveProfiles();
+  const clientSession = useClientSession();
+  const viewport = useViewportSize();
+  const catalog = useRuntimeServiceCatalogState(runtime);
+  const serviceCatalogReady = catalog.status === 'ready' || !startup && (catalog.status === 'idle' || catalog.status === 'error');
+  const preparedRuntime = useMemo(() => {
+    const services = catalog.services ?? (!startup && catalog.status === 'error' ? {} : null);
+    return services === null ? runtime : { ...runtime, services };
+  }, [runtime, catalog.services, catalog.status, startup]);
+  const [homeElement, setHomeElement] = useState<HTMLElement | null>(null);
+  const [layoutRetry, setLayoutRetry] = useState(0);
+  const retryLayout = useCallback(() => setLayoutRetry((value) => value + 1), []);
+  const [firstCompositionMeasured, setFirstCompositionMeasured] = useState(false);
+  const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
+  const pendingAddRef = useRef(pendingAdd); pendingAddRef.current = pendingAdd;
+  const [tavanoOpen, setTavanoOpen] = useState(false);
+  const [linkedDetails, setLinkedDetails] = useState<DetailsTarget | null>(null);
+  const [destinationChoices, setDestinationChoices] = useState<DeviceWidgetDestination[] | null>(null);
+  const afterCatalog = useRef<{ type: 'rileva' | 'tavano'; scope: string } | null>(null);
+  const afterUtility = useRef<{ scope: string; destinations: DeviceWidgetDestination[] } | null>(null);
+  const deviceRequest = useRef<symbol | null>(null);
+  const discoveryVisible = useRef(false);
+  const lastDeviceRegistry = useRef<HaEntityRegistryEntry[]>([]);
+  const profileScope = liveProfiles?.state.profile && clientSession
+    ? `${clientSession.houseId}:${clientSession.user.id}:${clientSession.client.id}:${liveProfiles.state.profile.id}` : 'home';
+  const assets = useHomeStartupAssets(startup && firstCompositionMeasured ? homeElement : null, profileScope, Boolean(startup?.canPresent()));
+  const [initialContentReady, setInitialContentReady] = useState(controller.ready && runtime.entitiesLoaded && serviceCatalogReady);
+  if (!initialContentReady && controller.ready && runtime.entitiesLoaded && serviceCatalogReady) setInitialContentReady(true);
   const screenVisible = usePageVisible();
+  const deviceContext = useRef({ controller, runtime, profileScope, canUse: screenVisible && (!liveProfiles || liveProfiles.state.usageStatus === 'active') });
+  deviceContext.current = { controller, runtime, profileScope, canUse: screenVisible && (!liveProfiles || liveProfiles.state.usageStatus === 'active') };
   const { rememberRemovedWidget, rememberRemovedPage, widgetMemoryNotice } = usePages();
   const {
     editMode,
@@ -304,6 +340,46 @@ export function LauncherScreen({
     return shownDescriptors.current;
   }, [entries, mainPageId]);
   const currentDescriptor: PageDescriptor | undefined = descriptors[currentPage];
+  const configurationGeneration = useRef({ layout: controller.layout, cards: runtime.cardSettings, value: 0 });
+  if (configurationGeneration.current.layout !== controller.layout || configurationGeneration.current.cards !== runtime.cardSettings) {
+    configurationGeneration.current = { layout: controller.layout, cards: runtime.cardSettings, value: configurationGeneration.current.value + 1 };
+  }
+  const initialDataStamp = useRef('pending');
+  if (!startupReady) initialDataStamp.current = `${runtime.entitiesLoaded}:${catalog.status}`;
+  const measurementKey = `${configurationGeneration.current.value}:${viewport.width}x${viewport.height}:${layoutRetry}:${assets.ready}:${assets.fontFallback}:${assets.photoFallback}:${initialDataStamp.current}`;
+  const [measured, setMeasured] = useState({ key: '', ready: false });
+  const reportMeasurement = useCallback((key: string, ready: boolean) => {
+    setMeasured((previous) => previous.key === key && previous.ready === ready ? previous : { key, ready });
+  }, []);
+  const currentMeasurementKey = useRef(measurementKey); currentMeasurementKey.current = measurementKey;
+  const criticalReady = useRef(false); criticalReady.current = controller.ready && runtime.entitiesLoaded && serviceCatalogReady;
+  const acceptMeasurement = useCallback((key: string, ready: boolean) => {
+    if (key === currentMeasurementKey.current) {
+      reportMeasurement(key, ready);
+      if (ready && criticalReady.current) setFirstCompositionMeasured(true);
+    }
+  }, [reportMeasurement]);
+  const measurement = useMemo(() => startup ? { key: measurementKey,
+    pageId: currentDescriptor?.page?.id ?? null, report: acceptMeasurement } : null,
+    [startup, measurementKey, currentDescriptor?.page?.id, acceptMeasurement]);
+  const viewMeasured = measured.key === measurementKey && measured.ready;
+  useLayoutEffect(() => {
+    if (controller.ready && runtime.entitiesLoaded && serviceCatalogReady && viewMeasured) setFirstCompositionMeasured(true);
+  }, [controller.ready, runtime.entitiesLoaded, serviceCatalogReady, viewMeasured]);
+  const homePrepared = controller.ready && runtime.entitiesLoaded && serviceCatalogReady && assets.ready && viewMeasured;
+  useHomeStartupSignal('home', startup ? {
+    status: catalog.status === 'error' ? 'recovery' : homePrepared ? 'ready' : 'pending',
+    scope: profileScope, generation: measurementKey,
+    message: catalog.status === 'error' ? catalog.error : undefined,
+    retry: catalog.status === 'error' || catalog.status === 'loading' ? catalog.retry
+      : !runtime.entitiesLoaded || catalog.status === 'idle' ? onRetryInitialSnapshot : retryLayout,
+  } : null);
+  useLayoutEffect(() => {
+    if (!startup || currentDescriptor?.page || !homeElement) return;
+    const box = homeElement.getBoundingClientRect();
+    acceptMeasurement(measurementKey, box.width > 0 && box.height > 0);
+  }, [startup, currentDescriptor?.page, homeElement, measurementKey, acceptMeasurement]);
+
 
   // ── Announcements (aria-live) ──
   const [announcement, setAnnouncement] = useState('');
@@ -763,181 +839,34 @@ export function LauncherScreen({
     [controller, moveToAdjacentPage, announce, reject]
   );
 
-  const removeWidget = useCallback(
-    (pageId: string, widgetId: string) => {
-      // The configuration stays in memory for the widget's device (ADR-0019); «Annulla» is
-      // unaffected: the settings are not touched by the removal.
-      rememberRemovedWidget(pageId, widgetId, widgetName(pageId, widgetId));
-      controller.removeWidget(pageId, widgetId);
-      selection.setSelected((current) => (current?.widgetId === widgetId ? null : current));
-      // The widget leaves with its selection and edit mode ends: a focus lost with it goes to
-      // «Modifica la disposizione», the command with no face that comes back. The frame after
-      // the next one (ISSUE-109, R7), as after «Fine».
-      afterNextFrame(() => {
-        const active = document.activeElement;
-        if (active && active !== document.body) return;
-        document.querySelector<HTMLElement>('[data-launcher-edit]')?.focus();
-      });
-    },
-    [controller, selection, rememberRemovedWidget, widgetName]
-  );
-
-  // ── Removal as on Android: at once, then «Annulla» for a few seconds (REP-20261007-031) ──
-  /**
-   * A change to undo (`layout` set; `undone` read aloud once undone, a removal by default), or a
-   * notice that only informs (the lock, why an action cannot be taken).
-   */
-  const [undo, setUndo] = useState<{
-    message: string;
-    layout?: LauncherLayout;
-    undone?: string;
-    /** The widget the removal took away: «Annulla» brings it back in (D-M10). */
-    restored?: WidgetRef;
-    /** The page a widget went to when the one asked for was full: «Vai lì» opens it. */
-    goTo?: string;
-  } | null>(null);
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (undoTimer.current) clearTimeout(undoTimer.current);
-    },
-    []
-  );
-  const removeWithUndo = useCallback(
-    (pageId: string, widgetId: string) => {
-      const before = controller.layout;
-      const name = widgetName(pageId, widgetId);
-      removeWidget(pageId, widgetId);
-      setUndo({ message: `${name} rimosso`, layout: before, restored: { pageId, widgetId } });
-      announce(`${name} rimosso dalla pagina. Annulla per rimetterlo.`);
-      if (undoTimer.current) clearTimeout(undoTimer.current);
-      undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
-    },
-    [controller.layout, widgetName, removeWidget, announce]
-  );
-  removeWithUndoRef.current = removeWithUndo;
-
-  // ── Widgets that leave and come in (REP-20261023-006, D-M10, D-M11, D-M22) ──
-  /** Timers of the scenes below, cleared with the screen. */
-  const sceneTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
-  useEffect(() => {
-    const timers = sceneTimers.current;
-    return () => {
-      for (const timer of timers) clearTimeout(timer);
-      timers.clear();
-    };
-  }, []);
-  const later = useCallback((callback: () => void, ms: number) => {
-    const timers = sceneTimers.current;
-    const timer = setTimeout(() => {
-      timers.delete(timer);
-      callback();
-    }, ms);
-    timers.add(timer);
-  }, []);
-  /** Where the browser animates and the person did not ask for less motion. */
-  const moves = !reducedMotion && canAnimate();
-  /**
-   * Removal from the bar or the keyboard: the widget shrinks to 0.92 and fades out in 160 ms
-   * (its ring and dots with it), and only then is the removal committed, so the pill and the free
-   * cells follow an exit that has been seen. Without animation it goes at once, as before.
-   */
-  const leaving = useRef(false);
-  const removeLeaving = useCallback(
-    (pageId: string, widgetId: string) => {
-      if (!moves) {
-        removeWithUndoRef.current(pageId, widgetId);
-        return;
-      }
-      if (leaving.current) return;
-      leaving.current = true;
-      selection.setExiting({ pageId, widgetId });
-      later(() => {
-        leaving.current = false;
-        selection.setExiting(null);
-        removeWithUndoRef.current(pageId, widgetId);
-      }, WIDGET_EXIT_MS + TWO_FRAMES_MS);
-    },
-    [moves, selection, later]
-  );
-  /**
-   * A widget that is mounted at the look it comes from (see-through, a little smaller) and takes
-   * its own when `goEntering` runs: put back by «Annulla» or just added from the add sheet.
-   */
-  const beginEntering = useCallback(
-    (ref: WidgetRef, mode: 'added' | 'restored') => {
-      if (!moves) return false;
-      const marker = { ...ref, mode, go: false };
-      selection.setEntering(marker);
-      // Nothing may keep a widget invisible for ever: shown anyway if it was never released.
-      later(() => {
-        if (selection.entering() === marker) selection.setEntering(null);
-      }, ENTERING_CAP_MS);
-      return true;
-    },
-    [moves, selection, later]
-  );
-  /** Runs `done` when the pager has stopped gliding (`scrollend`), or after a cap if it never says. */
-  const afterGlide = useCallback(
-    (done: () => void) => {
-      const pager = pagerRef.current;
-      let finished = false;
-      const finish = () => {
-        if (finished) return;
-        finished = true;
-        pager?.removeEventListener('scrollend', finish);
-        done();
-      };
-      pager?.addEventListener('scrollend', finish, { once: true });
-      later(finish, PAGER_GLIDE_CAP_MS);
-    },
-    [later]
-  );
-  const goEntering = useCallback(() => {
-    const now = selection.entering();
-    if (!now || now.go) return;
-    const going = { ...now, go: true };
-    selection.setEntering(going);
-    later(
-      () => {
-        if (selection.entering() === going) selection.setEntering(null);
-      },
-      WIDGET_ENTER_MS + (now.mode === 'restored' ? WIDGET_RESTORE_DELAY_MS : 0) + TWO_FRAMES_MS
-    );
-  }, [selection, later]);
-  lockedNotice.current = () => {
-    notify('Disposizione bloccata: sbloccala in Sistema → Schermata Home.');
-    announce('Disposizione bloccata. Si sblocca in Sistema, Schermata Home.');
-  };
-  // Locked from Sistema while editing: edit mode ends.
-  useEffect(() => {
-    if (controller.layout.locked && editMode) setEditMode(false);
-  }, [controller.layout.locked, editMode, setEditMode]);
-  /** A short notice in the same pill, without «Annulla». */
-  const notify = useCallback((message: string, goTo?: string) => {
-    setUndo(goTo ? { message, goTo } : { message });
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
-  }, []);
-  const undoRemoval = useCallback(() => {
-    if (!undo?.layout) return;
-    // Put back, the widget comes in from the look it left with (D-M10), two frames after the commit.
-    if (undo.restored && beginEntering(undo.restored, 'restored')) afterNextFrame(goEntering);
-    controller.restoreLayout(undo.layout);
-    setUndo(null);
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    announce(undo.undone ?? 'Widget rimesso al suo posto.');
-  }, [undo, controller, announce, beginEntering, goEntering]);
-
-  /** «Vai lì» only while the view is not already on the page the widget went to. */
-  const offerGo = Boolean(undo?.goTo) && undo?.goTo !== currentPageId;
-  /** «Vai lì» of the notice that says where a widget went: opens that page. */
-  const goToNoticePage = useCallback(() => {
-    const page = undo?.goTo;
-    setUndo(null);
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    if (page) controller.goToPageId(page);
-  }, [undo, controller]);
+  const {
+    removeWidget,
+    undo,
+    removeLeaving,
+    moves,
+    beginEntering,
+    afterGlide,
+    goEntering,
+    later,
+    notify,
+    undoRemoval,
+    offerGo,
+    goToNoticePage,
+    offerLayoutUndo,
+  } = useLauncherRemoval({
+    controller,
+    selection,
+    widgetName,
+    rememberRemovedWidget,
+    announce,
+    reducedMotion,
+    pagerRef,
+    removeWithUndoRef,
+    lockedNotice,
+    editMode,
+    setEditMode,
+    currentPageId,
+  });
 
   // ── Sheets ──
   const addDestination = useRef<string | null>(null);
@@ -1066,6 +995,7 @@ export function LauncherScreen({
   }, [focusAdded]);
   const openAddWidget = useCallback(
     (pageId: string, at?: Pick<CellRect, 'x' | 'y'>, selection?: AddWidgetSelection) => {
+      if (pendingAddRef.current) return;
       addDestination.current = pageId;
       lastAdded.current = null;
       setSheet({
@@ -1084,6 +1014,7 @@ export function LauncherScreen({
    */
   const requestAddWidget = useCallback(
     (pageId: string, selection: AddWidgetSelection, options?: AddWidgetRequestOptions) => {
+      if (pendingAddRef.current) return;
       if (options?.auto) {
         addDestination.current = pageId;
         lastAdded.current = null;
@@ -1427,7 +1358,12 @@ export function LauncherScreen({
 
   // ── Details ──
   const detailsTarget = useMemo<DetailsTarget | null>(() => {
-    if (!detailsWidgetId) return null;
+    if (!pendingAdd && linkedDetails && (!detailsWidgetId || detailsWidgetId === linkedDetails.widgetId)) return {
+      ...linkedDetails, settingsKey: controller.settingsKeyFor(linkedDetails.pageId, linkedDetails.widgetId),
+      settings: controller.settingsFor(linkedDetails.pageId, linkedDetails.widgetId),
+      title: widgetName(linkedDetails.pageId, linkedDetails.widgetId),
+    };
+    if (!detailsWidgetId || pendingAdd) return null;
     const shown = currentPageId ? controller.findPage(currentPageId) : undefined;
     const onCurrent = shown
       ? Boolean(pagePlacements(shown, controller.classFor(shown.id))[detailsWidgetId])
@@ -1447,20 +1383,21 @@ export function LauncherScreen({
       settings: controller.settingsFor(pageId, detailsWidgetId),
       title: widgetName(pageId, detailsWidgetId),
     };
-  }, [detailsWidgetId, currentPageId, controller, firstWidgetPageId, widgetName]);
+  }, [detailsWidgetId, currentPageId, controller, firstWidgetPageId, widgetName, pendingAdd, linkedDetails]);
 
-  // A definition with a console opens it in place of the sheet, from the rectangle of its widget.
-  // Both stay mounted (with a null target when not theirs) so the one that closes can leave.
-  const opensConsole = Boolean(
-    detailsTarget && findDefinition(detailsTarget.widgetId, detailsTarget.settings)?.Console
-  );
-  const consolePageId = opensConsole ? detailsTarget?.pageId : undefined;
-  const consoleWidgetId = opensConsole ? detailsTarget?.widgetId : undefined;
-  const consoleOrigin = useMemo(
-    () => (consolePageId && consoleWidgetId ? rectOf(consolePageId, consoleWidgetId) : undefined),
-    [consolePageId, consoleWidgetId]
-  );
-
+  // Every existing detail screen shares the centered window. A dedicated console keeps
+  // its composition; older Details content keeps its device header in a scrolling column.
+  const detailsDefinition = detailsTarget
+    ? findDefinition(detailsTarget.widgetId, detailsTarget.settings)
+    : undefined;
+  const opensConsole = Boolean(detailsDefinition?.Console || detailsDefinition?.Details);
+  const { phase: consolePhase, sceneRef: consoleSceneRef, onWidgetOpenChange: onConsoleOpenChange,
+    onCatalogOpenChange, onDiscoveryOpenChange, onTavanoOpenChange, onDestinationOpenChange } = useWidgetScene(reducedMotion);
+  useLayoutEffect(() => {
+    onDestinationOpenChange(Boolean(destinationChoices));
+    return () => onDestinationOpenChange(false);
+  }, [destinationChoices, onDestinationOpenChange]);
+  const catalogInteraction = useRef<BottomDrawerInteraction | null>(null);
   // ── Page overview: order, delete, add (REP-20261007-028) ──
   const coverFirst = entries[0]?.type === 'cover';
   const pageIds = entries.flatMap((entry) => (entry.type === 'page' ? [entry.key] : []));
@@ -1735,9 +1672,11 @@ export function LauncherScreen({
   const addWidgetToCurrentPage = () => {
     if (addWidgetBlocked) {
       tellBlocked(addWidgetBlocked);
-      return;
+      return false;
     }
-    if (currentDescriptor?.acceptsWidgets) openAddWidgetAhead(currentDescriptor.page.id);
+    if (!currentDescriptor?.acceptsWidgets) return false;
+    openAddWidgetAhead(currentDescriptor.page.id);
+    return true;
   };
   const toggleCurrentHidden = () => {
     const name = currentEntry?.label ?? '';
@@ -1882,13 +1821,11 @@ export function LauncherScreen({
           widgets: familyWidgets(rootId),
         };
         controller.updatePage(pageId, { columns: columnsToStore(base, grid.w + direction) });
-        setUndo({
+        offerLayoutUndo({
           message: `${rootName}: ${grid.w + direction} colonne`,
           layout: before,
           undone: `Colonne di ${rootName} come prima.`,
         });
-        if (undoTimer.current) clearTimeout(undoTimer.current);
-        undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
       },
     };
   };
@@ -1997,8 +1934,15 @@ export function LauncherScreen({
   const panelsReady = usePanelsReady();
   // «Dispositivi trovati»: by itself once, when the launcher is ready; then from the widget types.
   const discovery = useDiscoveryScreen(
-    discoveryOnFirstOpen && screenVisible && runtime.entitiesLoaded
+    discoveryOnFirstOpen && screenVisible && runtime.entitiesLoaded && startupReady && (!startup || viewMeasured)
   );
+  const { show: showDiscovery, close: closeDiscoveryState } = discovery;
+  discoveryVisible.current = discovery.open;
+  const closeDiscovery = useCallback(() => {
+    discoveryVisible.current = false; deviceRequest.current = null;
+    closeDiscoveryState();
+  }, [closeDiscoveryState]);
+  const profileUsageActive = !liveProfiles || liveProfiles.state.usageStatus === 'active';
   const stepPage = useCallback(
     (direction: -1 | 1) => {
       const next = currentPage + direction;
@@ -2095,20 +2039,194 @@ export function LauncherScreen({
     content: <PageShell descriptor={descriptor} editMode={editMode} />,
   }));
 
+  const catalogAvailable = !pendingAdd && !tavanoOpen && !destinationChoices && screenVisible && consolePhase === 'closed' && !overview && !editMode
+    && !sessionHeld && !sheet && !categoryPageOpen && !discovery.open && !pagerBusy.current;
+  const catalogCanOpen = catalogAvailable && startupReady && (!startup || viewMeasured)
+    && (!liveProfiles || liveProfiles.state.usageStatus === 'active');
+  const requestCatalog = () => {
+    if (!catalogCanOpen || pagerBusy.current || isStaged(stage) || isOverlayOpen()) return false;
+    if (controller.layout.locked || currentDescriptor?.acceptsWidgets) return addWidgetToCurrentPage();
+    // Browsing the catalog does not leave a special page. Only an actual addition uses this
+    // existing grid destination; a special page id must never reach the widget writer.
+    const acceptsWidget = (page: LauncherPage) => !page.hidden && (page.kind === 'widgets' || page.kind === 'cover' && controller.layout.cover.enabled);
+    const destination = controller.layout.pages.find((page) => page.id === mainPageId && acceptsWidget(page))
+      ?? controller.layout.pages.find(acceptsWidget);
+    if (!destination) return false;
+    openAddWidgetAhead(destination.id);
+    return true;
+  };
+  useHomeCatalogScroll(consoleSceneRef, { active: catalogCanOpen, onOpen: requestCatalog, commandSelector: WIDGET_COMMAND,
+    interaction: catalogInteraction, onIntent: longPress.onPointerCancel });
+  useEffect(() => {
+    if ((!screenVisible || liveProfiles && liveProfiles.state.usageStatus !== 'active') && sheet?.type === 'add') closeAddSheet();
+  }, [screenVisible, liveProfiles?.state.usageStatus, sheet?.type, closeAddSheet]);
+
+  const pendingPlan = useMemo(() => pendingAdd ? controller.planWidgetAddition?.(pendingAdd.seed, pendingAdd.originKey) ?? null : null,
+    [pendingAdd?.seed, pendingAdd?.originKey, controller.layout, controller.planWidgetAddition]);
+  const startPlacement = (type: string, closingSource: 'catalog' | 'utility', seed?: PageSeed, label?: string) => {
+    if (pendingAddRef.current || controller.layout.locked || !screenVisible || liveProfiles && liveProfiles.state.usageStatus !== 'active') return;
+    const chosen = seed ?? createCategoryWidgetSeed(type, globalThis.crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(36).slice(2)}`);
+    if (!chosen) return;
+    const next: PendingAdd = { seed: chosen, type, closingSource, label, originKey: current?.key ?? currentDescriptor?.key ?? 'home', scope: profileScope, stage: 'closing', busy: false, error: '' };
+    pendingAddRef.current = next; setPendingAdd(next); closeAddSheet(); onCloseDetails(); setLinkedDetails(null);
+    if (closingSource === 'utility') { closeDiscovery(); setTavanoOpen(false); }
+  };
+  const placeCatalogType = (type: string) => {
+    const item = ADD_WIDGET_TYPES.find(item => item.type === type);
+    if (item?.activation === 'open-tool') {
+      if (pendingAddRef.current || afterCatalog.current || !deviceContext.current.canUse) return;
+      afterCatalog.current = { type: type as 'rileva' | 'tavano', scope: profileScope };
+      closeAddSheet(); onCloseDetails(); setLinkedDetails(null);
+      return;
+    }
+    startPlacement(type, 'catalog');
+  };
+  const catalogProgress = useCallback((progress: number | null) => {
+    if (progress !== null) return;
+    const tool = afterCatalog.current; afterCatalog.current = null;
+    if (tool && tool.scope === deviceContext.current.profileScope && deviceContext.current.canUse) {
+      if (tool.type === 'rileva') showDiscovery(); else setTavanoOpen(true);
+    }
+    setPendingAdd(previous => previous?.stage === 'closing' && previous.closingSource !== 'utility' ? { ...previous, stage: 'placing' } : previous);
+  }, [showDiscovery]);
+  const showDestination = (destination: DeviceWidgetDestination) => {
+    const currentController = deviceContext.current.controller;
+    const page = entries.find(entry => entry.page?.id === destination.pageId && !entry.page.hidden);
+    if (page) live.goToPageId(page.key);
+    setLinkedDetails({ widgetId: destination.widgetId, pageId: destination.pageId,
+      settingsKey: currentController.settingsKeyFor(destination.pageId, destination.widgetId),
+      settings: currentController.settingsFor(destination.pageId, destination.widgetId),
+      title: widgetName(destination.pageId, destination.widgetId) });
+  };
+  const utilityExited = () => {
+    setPendingAdd(previous => previous?.stage === 'closing' && previous.closingSource === 'utility' ? { ...previous, stage: 'placing' } : previous);
+    const next = afterUtility.current; afterUtility.current = null;
+    if (!next || next.scope !== deviceContext.current.profileScope || !deviceContext.current.canUse) return;
+    if (next.destinations.length === 1) showDestination(next.destinations[0]);
+    else setDestinationChoices(next.destinations);
+  };
+  const handleDevice = async (deviceId: string, place: boolean) => {
+    if (deviceRequest.current) return;
+    const request = Symbol(); deviceRequest.current = request;
+    const scope = profileScope;
+    try {
+      const [devices, registry] = await Promise.all([getDeviceRegistry(runtime.conn), getEntityRegistry(runtime.conn)]);
+      const context = deviceContext.current;
+      if (deviceRequest.current !== request || !discoveryVisible.current || context.profileScope !== scope || !context.canUse) return;
+      lastDeviceRegistry.current = registry;
+      const destinations = deviceWidgetDestinations(deviceId, context.controller.layout, registry, context.controller.settingsFor, context.controller.settingsKeyFor);
+      if (destinations.length) {
+        afterUtility.current = { scope, destinations }; closeDiscovery(); setTavanoOpen(false); onCloseDetails(); setLinkedDetails(null);
+        return;
+      }
+      if (!place) throw new Error('Il widget non è più disponibile. Aggiorna l’elenco.');
+      if (context.controller.layout.locked) throw new Error('La disposizione è bloccata. Sbloccala per aggiungere un widget.');
+      const classified = classifyDevices({ devices, entityRegistry: registry, entities: context.runtime.entities })
+        .find(item => item.deviceId === deviceId);
+      const family = classified?.family;
+      const binding = family === 'light' ? resolveLightDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'plug' ? resolvePlugDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'climate' ? resolveClimateDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'cover' ? resolveCoverDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'fan' ? resolveFanDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'lock' ? resolveLockDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'alarm' ? resolveAlarmDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'camera' ? resolveCameraDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'vacuum' ? resolveVacuumDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'mower' ? resolveMowerDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'tv' ? resolveTvDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'sonos' ? resolveSonosDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'media' ? resolveMediaDeviceBinding(deviceId, devices, registry, context.runtime.entities)
+        : family === 'sensor' ? resolveSensorDeviceBinding(deviceId, devices, registry, context.runtime.entities) : null;
+      if (!binding) throw new Error('Le funzioni del dispositivo non sono ancora disponibili. Aggiorna l’elenco.');
+      const widgetType = binding.family === 'tv' ? classified?.widgetType ?? 'androidtv' : binding.family;
+      const seed = createCategoryWidgetSeed(widgetType, globalThis.crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(36).slice(2)}`);
+      if (!seed) throw new Error('Widget non disponibile.');
+      const device = devices.find(item => item.id === deviceId);
+      const label = device?.name_by_user || device?.name || context.runtime.entities[binding.primaryEntityId]?.attributes.friendly_name || 'Dispositivo';
+      seed.settings = { ...seed.settings, [binding.family === 'sensor' ? 'entityId' : binding.family === 'camera' ? 'cameraId' : binding.family === 'alarm' ? 'alarmId' : binding.family === 'lock' ? 'lockId' : binding.family === 'cover' ? 'coverId' : binding.family === 'climate' ? 'climateId' : 'bindingEntityId']: binding.primaryEntityId, ...multimediaAssociationPatch(binding), ...(binding.family === 'sensor' ? { bindingEntityId: null, sensorBindingMode: 'device' } : {}), productDevice: binding, name: String(label) };
+      startPlacement(widgetType, 'utility', seed, String(label));
+    } finally { if (deviceRequest.current === request) deviceRequest.current = null; }
+  };
+  useEffect(() => {
+    afterCatalog.current = null; afterUtility.current = null; deviceRequest.current = null;
+    setTavanoOpen(false); setLinkedDetails(null); setDestinationChoices(null);
+  }, [profileScope]);
+  useEffect(() => {
+    if (screenVisible && profileUsageActive) return;
+    afterCatalog.current = null; afterUtility.current = null; deviceRequest.current = null;
+    closeDiscovery(); setTavanoOpen(false); setLinkedDetails(null); setDestinationChoices(null);
+  }, [screenVisible, profileUsageActive, closeDiscovery]);
+  useEffect(() => {
+    const draft = pendingAddRef.current;
+    if (!draft || draft.stage !== 'placing') return;
+    let cancelled = false;
+    const ready = () => { if (!cancelled) setPendingAdd(previous => previous?.seed.id === draft.seed.id ? { ...previous, stage: 'ready' } : previous); };
+    if (pendingPlan && current?.key !== pendingPlan.viewPageId) {
+      live.goToPageId(pendingPlan.viewPageId); afterGlide(ready);
+    } else if (pagerBusy.current) afterGlide(ready);
+    else ready();
+    return () => { cancelled = true; };
+  }, [pendingAdd?.stage, pendingPlan, current?.key, live.goToPageId, afterGlide]);
+  useEffect(() => {
+    const draft = pendingAddRef.current;
+    if (!draft) return;
+    if (!screenVisible || draft.scope !== profileScope || controller.layout.locked || liveProfiles && liveProfiles.state.usageStatus !== 'active') {
+      if (!draft.busy) void controller.cancelWidgetAddition?.(draft.seed.id).catch(() => undefined);
+      pendingAddRef.current = null; setPendingAdd(null);
+    }
+    if (detailsWidgetId) onCloseDetails();
+  }, [screenVisible, profileScope, controller.layout.locked, liveProfiles?.state.usageStatus, detailsWidgetId, onCloseDetails, controller.cancelWidgetAddition]);
+  const cancelPending = async () => {
+    const draft = pendingAddRef.current;
+    if (!draft || draft.busy) return;
+    pendingAddRef.current = { ...draft, busy: true }; setPendingAdd(pendingAddRef.current);
+    try {
+      const result = await controller.cancelWidgetAddition?.(draft.seed.id);
+      if (pendingAddRef.current?.seed.id === draft.seed.id) { pendingAddRef.current = null; setPendingAdd(null); if (result === 'saved') announce('Widget aggiunto.'); }
+    } catch (error) {
+      setPendingAdd(previous => previous?.seed.id === draft.seed.id ? { ...previous, busy: false, error: error instanceof Error ? error.message : 'Operazione non riuscita.' } : previous);
+    }
+  };
+  const confirmPending = async () => {
+    const draft = pendingAddRef.current;
+    if (!draft || draft.busy || !pendingPlan || draft.scope !== profileScope || !screenVisible || controller.layout.locked) return;
+    pendingAddRef.current = { ...draft, busy: true }; setPendingAdd(pendingAddRef.current);
+    try {
+      if (isProductDeviceBinding(draft.seed.settings.productDevice)) {
+        const targets = deviceWidgetDestinations(draft.seed.settings.productDevice.deviceId, controller.layout,
+          lastDeviceRegistry.current, controller.settingsFor, controller.settingsKeyFor);
+        if (targets.some(target => target.widgetId !== draft.seed.id)) throw new Error('Questo dispositivo ha già un widget. Annulla e aprilo da Trova dispositivi.');
+      }
+      if (!controller.confirmWidgetAddition) throw new Error('Salvataggio non disponibile.');
+      const accepted = await controller.confirmWidgetAddition(draft.seed, draft.originKey, pendingPlan);
+      if (pendingAddRef.current?.seed.id === draft.seed.id && pendingAddRef.current.scope === profileScope) {
+        pendingAddRef.current = null; setPendingAdd(null); announce('Widget aggiunto.'); requestFocus(accepted.viewPageId, draft.seed.id);
+      }
+    } catch (error) {
+      setPendingAdd(previous => previous?.seed.id === draft.seed.id ? { ...previous, busy: false, error: error instanceof Error ? error.message : 'Salvataggio non riuscito.' } : previous);
+    }
+  };
+
   const sheetPageId = sheet ? sheet.pageId : '';
   const sheetWidgetId = sheet?.type === 'widget' ? sheet.widgetId : '';
 
   return (
     <LauncherProvider value={live}>
-      <WidgetRuntimeProvider value={runtime}>
+      <WidgetRuntimeProvider value={preparedRuntime}>
         <AddWidgetRequestProvider value={requestAddWidget}>
         <AddSheetRequestProvider value={requestAddSheet}>
         <DiscoveredFlowProvider value={DiscoveredAddFlowLazy}>
+        <PowerSetupProvider value={PowerSetupLazy}>
         <DiscoveryScreenProvider value={discovery.show}>
         <LauncherUiContext.Provider value={ui}>
           <LauncherDragContext.Provider value={drag.session}>
             <LauncherEdgePageContext.Provider value={edgePageId}>
             <LauncherPressContext.Provider value={drag.pressing}>
+              <HomeMeasurementContext.Provider value={measurement}>
+              <HomeStartupView measured={viewMeasured} onElement={setHomeElement}>
+              <div ref={consoleSceneRef} className="aca-widget-scene" data-widget-screen={consolePhase} inert={consolePhase !== 'closed' || Boolean(pendingAdd)}>
+              <PageVisibilityContext.Provider value={screenVisible && consolePhase === 'closed'}>
               <AppShell
                 editMode={editMode}
                 notice={notice}
@@ -2246,39 +2364,41 @@ export function LauncherScreen({
                   </>
                 }
               >
-                <PageLockContext.Provider value={holdPager}>
-                  <Pager
-                    pages={pages}
-                    index={currentPage}
-                    onIndexChange={goToPage}
-                    locked={sessionHeld || Boolean(pageDrag.state) || renaming || pageLocks > 0}
-                    // A resize never turns a page (useWidgetDrag): only a move or an add does.
-                    dragging={drag.session != null && drag.session.mode !== 'resize'}
-                    dotJump={dotJump}
-                    overview={overview}
-                    stage={stage}
-                    onReadyChange={setPagerReady}
-                    busyRef={pagerBusy}
-                    leavingKey={leavingPage}
-                    onOpen={openFromOverview}
-                    onCardPointerDown={(index, event) =>
-                      pageDrag.begin(index, event.pointerId, event.clientX, event.clientY)
-                    }
-                    pressingCard={pageDrag.pressing}
-                    onMoveCard={moveCard}
-                    cardFooter={cardFooter}
-                    cardDrag={pageDrag.state}
-                    reducedMotion={reducedMotion}
-                    containerRef={(node) => {
-                      pagerRef.current = node;
-                    }}
-                    onPointerDown={onPagerPointerDown}
-                    onPointerMove={longPress.onPointerMove}
-                    onPointerUp={longPress.onPointerUp}
-                    onPointerCancel={longPress.onPointerCancel}
-                    onContextMenu={onPagerContextMenu}
-                  />
-                </PageLockContext.Provider>
+                {(startup || initialContentReady) && (
+                  <PageLockContext.Provider value={holdPager}>
+                    <Pager
+                      pages={pages}
+                      index={currentPage}
+                      onIndexChange={goToPage}
+                      locked={sessionHeld || Boolean(pageDrag.state) || renaming || pageLocks > 0}
+                      // A resize never turns a page (useWidgetDrag): only a move or an add does.
+                      dragging={drag.session != null && drag.session.mode !== 'resize'}
+                      dotJump={dotJump}
+                      overview={overview}
+                      stage={stage}
+                      onReadyChange={setPagerReady}
+                      busyRef={pagerBusy}
+                      leavingKey={leavingPage}
+                      onOpen={openFromOverview}
+                      onCardPointerDown={(index, event) =>
+                        pageDrag.begin(index, event.pointerId, event.clientX, event.clientY)
+                      }
+                      pressingCard={pageDrag.pressing}
+                      onMoveCard={moveCard}
+                      cardFooter={cardFooter}
+                      cardDrag={pageDrag.state}
+                      reducedMotion={reducedMotion}
+                      containerRef={(node) => {
+                        pagerRef.current = node;
+                      }}
+                      onPointerDown={onPagerPointerDown}
+                      onPointerMove={longPress.onPointerMove}
+                      onPointerUp={longPress.onPointerUp}
+                      onPointerCancel={longPress.onPointerCancel}
+                      onContextMenu={onPagerContextMenu}
+                    />
+                  </PageLockContext.Provider>
+                )}
                 {/*
                   In the area of the pages, under the safe area and a connection notice, where the
                   pager keeps the room of the pill (REP-20261013-002, ADR-0013): after the pager
@@ -2296,6 +2416,10 @@ export function LauncherScreen({
                   onDismiss={editHint.dismiss}
                 />
               </AppShell>
+              </PageVisibilityContext.Provider>
+              </div>
+              </HomeStartupView>
+              </HomeMeasurementContext.Provider>
             </LauncherPressContext.Provider>
             </LauncherEdgePageContext.Provider>
 
@@ -2322,26 +2446,31 @@ export function LauncherScreen({
               {announcement}
             </div>
 
-            <LazyPanel when={detailsTarget !== null && !opensConsole} ready={panelsReady}>
-              <LazyDetailsSheet
-                target={opensConsole ? null : detailsTarget}
-                onClose={onCloseDetails}
-                resolve={findDefinition}
-              />
-            </LazyPanel>
             <LazyPanel when={detailsTarget !== null && opensConsole} ready={panelsReady}>
               <LazyWidgetConsole
                 target={opensConsole ? detailsTarget : null}
-                origin={consoleOrigin}
-                onClose={onCloseDetails}
+                onClose={() => { setLinkedDetails(null); onCloseDetails(); }}
+                onOpenChange={onConsoleOpenChange}
                 resolve={findDefinition}
               />
             </LazyPanel>
 
-            <LazyPanel when={sheet?.type === 'add'} ready={panelsReady}>
+            {pendingAdd?.stage === 'ready' && <PendingWidgetPlacement item={ADD_WIDGET_TYPES.find(item => item.type === pendingAdd.type)!}
+              label={pendingAdd.label}
+              preview={isProductDeviceBinding(pendingAdd.seed.settings.productDevice)
+                ? <ProductDevicePreview binding={pendingAdd.seed.settings.productDevice} entities={runtime.entities} label={pendingAdd.label ?? 'Dispositivo'} /> : undefined}
+              plan={pendingPlan} busy={pendingAdd.busy} error={pendingAdd.error} onConfirm={() => { void confirmPending(); }}
+              onCancel={() => { void cancelPending(); }} onRetry={() => setPendingAdd(previous => previous ? { ...previous, error: '', stage: 'placing' } : previous)} />}
+
+            <LazyPanel when={catalogAvailable || sheet?.type === 'add'} ready={panelsReady}>
             <LazyAddWidgetSheet
               open={sheet?.type === 'add'}
               onClose={closeAddSheet}
+              onOpenChange={onCatalogOpenChange}
+              onProgress={catalogProgress}
+              onPlaceType={placeCatalogType}
+              interactionRef={catalogInteraction}
+              onRequestOpen={requestCatalog}
               pageId={sheetPageId || addTargetPageId || firstWidgetPageId || 'home'}
               initialType={sheet?.type === 'add' ? sheet.initialType : undefined}
               initialSelection={sheet?.type === 'add' ? sheet.initialSelection : undefined}
@@ -2424,11 +2553,27 @@ export function LauncherScreen({
           <LazyPanel when={discovery.open} ready={panelsReady}>
             <LazyDiscoveryScreen
               open={discovery.open}
-              onClose={discovery.close}
+              onClose={closeDiscovery}
               pageId={addTargetPageId || firstWidgetPageId || 'home'}
               searchWindow={discovery.first}
+              onPlaceDevice={deviceId => handleDevice(deviceId, true)}
+              onOpenDevice={deviceId => handleDevice(deviceId, false)}
+              onPinUtility={() => startPlacement('rileva', 'utility')}
+              onExited={utilityExited}
+              onOpenChange={onDiscoveryOpenChange}
             />
           </LazyPanel>
+          <LazyPanel when={tavanoOpen} ready={panelsReady}>
+            <LazyUtilityToolScreen open={tavanoOpen} onClose={() => setTavanoOpen(false)}
+              onPinUtility={() => startPlacement('tavano', 'utility')} onOpenChange={onTavanoOpenChange} onExited={utilityExited} />
+          </LazyPanel>
+          <Console open={Boolean(destinationChoices)} title="Scegli il widget" onClose={() => setDestinationChoices(null)} onExited={utilityExited}>
+            <div className="aca-device-destinations">
+              {destinationChoices?.map(destination => <Button key={`${destination.logicalPageId}:${destination.widgetId}`} onClick={() => {
+                afterUtility.current = { scope: profileScope, destinations: [destination] }; setDestinationChoices(null);
+              }}><Body as="span">{widgetName(destination.pageId, destination.widgetId)}</Body><Body as="span" size="sm">{controller.findPage(destination.pageId)?.label ?? 'Pagina'}{destination.stackId ? ' · Nella pila' : ''}</Body></Button>)}
+            </div>
+          </Console>
           <LazyPanel when={categoryPageOpen} ready={panelsReady}>
             <LazyCategoryPageSheet
               open={categoryPageOpen}
@@ -2460,6 +2605,7 @@ export function LauncherScreen({
           </LazyPanel>
         </LauncherUiContext.Provider>
         </DiscoveryScreenProvider>
+        </PowerSetupProvider>
         </DiscoveredFlowProvider>
         </AddSheetRequestProvider>
         </AddWidgetRequestProvider>

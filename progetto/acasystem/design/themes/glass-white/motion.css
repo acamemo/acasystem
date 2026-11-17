@@ -1,0 +1,92 @@
+/* Prova Glass White: un ingresso per l'app, popup interruptibili; nessun moto dei widget. */
+@layer components {
+  @keyframes aca-white-app-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  :root .aca-app-root {
+    animation: aca-white-app-in var(--aca-dur-sheet-in, 280ms) var(--aca-motion-ease-out) backwards;
+  }
+  /* Sticky for this route host: returning from Sistema must not replay the legacy intro. */
+  :root .aca-app-root[data-home-managed] {
+    animation: none;
+  }
+
+  /* La Sheet conserva focus, presenza e arrivo del contenuto del componente condiviso. */
+  :root .aca-sheet {
+    opacity: 1;
+    transform: none;
+    transform-origin: center bottom;
+    transition-property: opacity, transform, display, overlay;
+    transition-duration: var(--aca-dur-sheet-in, 280ms);
+    transition-timing-function: var(--aca-motion-ease-out);
+  }
+  :root .aca-sheet:not([open]) {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+    transition-duration: var(--aca-dur-sheet-out, 200ms);
+    transition-timing-function: var(--aca-motion-ease-out);
+  }
+  @starting-style {
+    :root .aca-sheet[open] {
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+    }
+  }
+
+  /* Il browser mantiene il popover nella top layer anche durante l'uscita. */
+  :root .aca-popover {
+    transform-origin: var(--aca-popover-origin, top left);
+    transition-duration: 200ms;
+    transition-timing-function: var(--aca-motion-ease-out);
+  }
+  :root .aca-popover:not(:popover-open) {
+    transform: translateY(8px) scale(0.98);
+    transition-duration: var(--aca-dur-exit-sm, 160ms);
+  }
+  @starting-style {
+    :root .aca-popover:popover-open {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+
+  /* Il velo mantiene la tinta esistente, senza animazioni di colore/filtro per frame. */
+  :root .aca-sheet::backdrop,
+  :root .aca-sheet:not([open])::backdrop {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes aca-white-app-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    :root .aca-app-root {
+      animation: aca-white-app-fade var(--aca-dur-reduced, 120ms) linear backwards;
+    }
+    :root .aca-app-root[data-home-managed] {
+      animation: none;
+    }
+    :root .aca-sheet,
+    :root .aca-sheet:not([open]),
+    :root .aca-popover,
+    :root .aca-popover:not(:popover-open) {
+      transform: none;
+      transition-duration: var(--aca-dur-reduced, 120ms);
+      transition-timing-function: linear;
+    }
+    @starting-style {
+      :root .aca-sheet[open],
+      :root .aca-popover:popover-open {
+        transform: none;
+      }
+    }
+  }
+}

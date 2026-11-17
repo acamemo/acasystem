@@ -1,3 +1,5 @@
+import { ProductSensorWidget } from '../../home/sensor/ProductSensorWidget';
+import { sensorProductBinding } from '@/utils/devices/productBinding';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button, Caption, MaterialLayers, Text, materialClass } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
@@ -147,7 +149,7 @@ function controlFor(
 }
 
 /** Sensor / entity widget (legacy SensorCard): value, state, controls and trend by size. */
-export function SensorWidget({ id, settings, size, editMode }: WidgetProps) {
+function LegacySensorWidget({ id, settings, size, editMode }: WidgetProps) {
   const runtime = useWidgetRuntime();
   const controls = useSensorControls(id, settings, editMode);
   const { model, entity } = controls;
@@ -336,4 +338,9 @@ export function SensorWidget({ id, settings, size, editMode }: WidgetProps) {
       {body}
     </WidgetContent>
   );
+}
+
+export function SensorWidget(props: WidgetProps) {
+  if (sensorProductBinding(props.settings)) return <ProductSensorWidget {...props} />;
+  return <LegacySensorWidget {...props} />;
 }

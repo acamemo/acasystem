@@ -3,8 +3,12 @@
  * app, local state in the preview). It migrates the legacy layout once, packs the current
  * device class, keeps `pagesConfig`/`pageSettings` in step and owns edit mode and the pager.
  */
-import { CATEGORY_PAGES, categoryPageSeeds } from '@/templates/sheets/categoryPages';
-import { categoryPageGeometry, upgradeCategoryGrids } from '@/templates/sheets/categoryPageGrid';
+import {
+  CATEGORY_PAGES,
+  categoryPageSeeds,
+  categoryPageGeometry,
+  upgradeCategoryGrids,
+} from '@/utils/launcher/categoryModels';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type {
   CardSettings,
@@ -70,6 +74,12 @@ import { layoutToPageSettings, layoutToPagesConfig } from '@/utils/launcher/lega
 import { legacySettingsKey, migrateLegacyLayout } from '@/utils/launcher/migration';
 import { entryIndex, homeEntryIndex, pagerEntries, type PagerEntry } from '@/utils/launcher/pager';
 import { EDIT_DONE_EVENT } from '@/utils/launcher/storage';
+import { canonicalFromProjection, logicalPage, moveInCommonOrder, projectCommonOrder } from '@/domain/launcher/commonOrder';
+import { sizeAcrossKeys } from '@/utils/launcher/layout';
+import type { PageSeed } from '@/domain/launcher/categoryPages';
+import { planWidgetAddition as planAddition, applyWidgetAddition, type PendingPlacement } from '@/domain/launcher/pendingPlacement';
+import type { WidgetState } from '@/utils/launcher/deviceMemory';
+import { useOptionalLiveProfiles } from '@/hooks/liveProfiles/LiveProfilesContext';
 
 /** Where the launcher keeps its layout and the legacy configuration it mirrors. */
 export interface LauncherStore {
@@ -83,6 +93,8 @@ export interface LauncherStore {
   persistPagesConfig?: (config: PagesConfig) => void;
   persistPageSettings?: (settings: PageSettingsMap) => void;
   persistCardSettings?: (settings: CardSettingsMap) => void;
+  commitWidgetAddition?: (apply: (current: WidgetState) => WidgetState, widgetId: string) => Promise<void>;
+  cancelWidgetAddition?: (widgetId: string) => Promise<'cancelled' | 'saved'>;
 }
 
 export interface LauncherControllerOptions {
@@ -102,6 +114,9 @@ export interface LauncherControllerOptions {
 /** LauncherApi plus what the launcher's own components need. */
 export interface LauncherController extends LauncherApi {
   ready: boolean;
+  planWidgetAddition?: (seed: PageSeed, originKey: string) => PendingPlacement | null;
+  confirmWidgetAddition?: (seed: PageSeed, originKey: string, expected: PendingPlacement) => Promise<PendingPlacement>;
+  cancelWidgetAddition?: (widgetId: string) => Promise<'cancelled' | 'saved'>;
   entries: PagerEntry[];
   /** Page shown now; null on the cover. */
   currentPageId: string | null;
@@ -190,6 +205,10 @@ export function useLauncherController({
   resolveSizes,
   onEditDone,
 }: LauncherControllerOptions): LauncherController {
+  const additionStore = useRef(store); additionStore.current = store;
+  const adding = useRef<{ id: string; promise: Promise<PendingPlacement> } | null>(null);
+  const live = useOptionalLiveProfiles();
+  const liveRef = useRef(live); liveRef.current = live;
   const {
     ready,
     layout: storedLayout,
@@ -204,15 +223,18 @@ export function useLauncherController({
   // The class of placements: the screen class at the grid density of the layout
   // (REP-20261007-034); every density keeps its own arrangement.
   const deviceClass = classWithDensity(baseClassOf(screenClass), storedLayout?.density);
+  const shownPagesRef = useRef<LauncherLayout | null>(null);
+  const settingsPage = useCallback((pageId: string) => shownPagesRef.current?.commonOrderVersion === 1
+    ? logicalPage(shownPagesRef.current, pageId) : pageId, []);
 
   const settingsKeyFor = useCallback(
-    (pageId: string, widgetId: string) => legacySettingsKey(pageId, widgetId),
-    []
+    (pageId: string, widgetId: string) => legacySettingsKey(settingsPage(pageId), widgetId),
+    [settingsPage]
   );
   const settingsFor = useCallback(
     (pageId: string, widgetId: string): CardSettings =>
-      cardSettings[legacySettingsKey(pageId, widgetId)] ?? cardSettings[widgetId] ?? {},
-    [cardSettings]
+      cardSettings[legacySettingsKey(settingsPage(pageId), widgetId)] ?? cardSettings[widgetId] ?? {},
+    [cardSettings, settingsPage]
   );
   const stacks = storedLayout?.stacks;
   const sizesFor = useCallback(
@@ -274,21 +296,25 @@ export function useLauncherController({
   );
   const baseLayout = storedLayout ?? migrated ?? EMPTY_LAYOUT;
 
-  const layout = useMemo(() => ensureDeviceClass(baseLayout, ctx), [baseLayout, ctx]);
+  const layout = useMemo(() => baseLayout.commonOrderVersion === 1
+    ? projectCommonOrder(baseLayout, ctx) : ensureDeviceClass(baseLayout, ctx), [baseLayout, ctx]);
+  shownPagesRef.current = layout;
+  const canonicalRef = useRef(baseLayout);
+  useLayoutEffect(() => { canonicalRef.current = baseLayout; });
 
   // Latest layout, also between two commits of the same tick (e.g. several widgets added).
   const latestRef = useRef(layout);
   useLayoutEffect(() => {
     latestRef.current = layout;
-  }, [layout]);
+  });
 
   useEffect(() => {
-    if (ready && layout !== storedLayout) persistLayout(layout);
+    if (ready && layout.commonOrderVersion !== 1 && layout !== storedLayout) persistLayout(layout);
   }, [ready, layout, storedLayout, persistLayout]);
 
   // The legacy configuration follows the layout (pages, cards, labels, kinds).
   useEffect(() => {
-    if (!ready || !storedLayout) return;
+    if (!ready || !storedLayout || storedLayout.commonOrderVersion === 1) return;
     const nextConfig = layoutToPagesConfig(
       storedLayout,
       pagesConfig,
@@ -317,10 +343,16 @@ export function useLauncherController({
       // Whatever the change, a stack left without widgets does not keep its cells.
       const clean = withoutEmptyStacks(next);
       if (clean === latestRef.current) return;
-      latestRef.current = clean;
-      persistLayout(clean);
+      if (canonicalRef.current.commonOrderVersion === 1) {
+        const canonical = clean.pages.every(page => Object.keys(page.placements).length === 0)
+          ? clean : canonicalFromProjection(canonicalRef.current, clean, ctx);
+        canonicalRef.current = canonical;
+        latestRef.current = projectCommonOrder(canonical, ctx);
+        shownPagesRef.current = latestRef.current;
+        persistLayout(canonical);
+      } else { latestRef.current = clean; persistLayout(clean); }
     },
-    [persistLayout]
+    [persistLayout, ctx]
   );
 
   // ── Edit mode and page overview ──
@@ -332,6 +364,26 @@ export function useLauncherController({
     onEditDoneRef.current = onEditDone;
   }, [onEditDone]);
   const setEditMode = useCallback((value: boolean) => {
+    if (!value && liveRef.current?.state.editor) {
+      void liveRef.current.coordinator.finish().then((finished) => {
+        if (!finished) return;
+        const wasEditing = editModeRef.current;
+        editModeRef.current = false;
+        setEditModeState(false);
+        setOverview(false);
+        if (wasEditing) {
+          globalThis.window?.dispatchEvent(new CustomEvent(EDIT_DONE_EVENT));
+          onEditDoneRef.current?.();
+        }
+      }).catch(() => undefined);
+      return;
+    }
+    if (value && liveRef.current && !liveRef.current.state.editor) {
+      void liveRef.current.coordinator.begin({ kind: 'structure' }, 'Disposizione del profilo').then(() => {
+        editModeRef.current = true; setEditModeState(true);
+      }).catch(() => undefined);
+      return;
+    }
     const wasEditing = editModeRef.current;
     editModeRef.current = value;
     setEditModeState(value);
@@ -465,33 +517,74 @@ export function useLauncherController({
       size?: CellSize,
       at?: Pick<CellRect, 'x' | 'y'>,
       settingsPageId = pageId
-    ) =>
-      commitPlacement(
+    ) => {
+      if (canonicalRef.current.commonOrderVersion === 1 && pageId !== COVER_PAGE_ID) {
+        const destination = settingsPage(pageId);
+        if (settingsPage(settingsPageId) !== destination) carrySettings(legacySettingsKey(settingsPage(settingsPageId), widgetId), legacySettingsKey(destination, widgetId));
+        commit(moveInCommonOrder(canonicalRef.current, latestRef.current, ctx, pageId, widgetId, at, size));
+        return destination;
+      }
+      return commitPlacement(
         asidePlace(withCover(pageId), (bare) =>
           placeWidgetInLayout(bare, ctx, pageId, widgetId, size, at)
         ),
         pageId,
         widgetId,
         settingsPageId
-      ),
-    [ctx, commitPlacement, withCover, asidePlace]
+      );
+    },
+    [ctx, commitPlacement, withCover, asidePlace, commit, carrySettings, settingsPage]
   );
   const placeWidgetAhead = useCallback(
-    (pageId: string, widgetId: string, size?: CellSize, settingsPageId = pageId) =>
-      commitPlacement(
+    (pageId: string, widgetId: string, size?: CellSize, settingsPageId = pageId) => {
+      if (canonicalRef.current.commonOrderVersion === 1) return placeWidget(pageId, widgetId, size, undefined, settingsPageId);
+      return commitPlacement(
         asidePlace(withCover(pageId), (bare) =>
           placeWidgetAheadInLayout(bare, ctx, pageId, widgetId, size)
         ),
         pageId,
         widgetId,
         settingsPageId
-      ),
-    [ctx, commitPlacement, withCover, asidePlace]
+      );
+    },
+    [ctx, commitPlacement, withCover, asidePlace, placeWidget]
   );
+
+  const additionContext = useCallback((seed: PageSeed, current?: WidgetState): LayoutContext => ({
+    ...ctx,
+    sizesOf: (id, pageId) => resolveSizes?.(id, id === seed.id ? seed.settings
+      : current?.cardSettings[legacySettingsKey(current.layout?.commonOrderVersion === 1 ? logicalPage(projectCommonOrder(current.layout, ctx), pageId) : pageId, id)]
+        ?? current?.cardSettings[id] ?? settingsFor(pageId, id)),
+  }), [ctx, resolveSizes, settingsFor]);
+  const planWidgetAddition = useCallback((seed: PageSeed, originKey: string) =>
+    planAddition(canonicalRef.current, additionContext(seed), seed, originKey), [additionContext]);
+  const confirmWidgetAddition = useCallback((seed: PageSeed, originKey: string, expected: PendingPlacement): Promise<PendingPlacement> => {
+    if (adding.current) return adding.current.id === seed.id ? adding.current.promise : Promise.reject(new Error('Salvataggio in corso.'));
+    const write = additionStore.current.commitWidgetAddition;
+    if (!write) return Promise.reject(new Error('Salvataggio non disponibile.'));
+    const promise = (async () => {
+      if (liveRef.current && liveRef.current.state.usageStatus !== 'active') throw new Error('Collegamento al profilo non disponibile.');
+      let accepted: PendingPlacement | null = null;
+      await write(current => {
+        if (!current.layout) throw new Error('Profilo non disponibile.');
+        const context = additionContext(seed, current);
+        accepted = planAddition(current.layout, context, seed, originKey);
+        return applyWidgetAddition(current, context, seed, originKey, expected);
+      }, seed.id);
+      if (!accepted) throw new Error('Posizione non disponibile.');
+      return accepted;
+    })();
+    adding.current = { id: seed.id, promise };
+    void promise.finally(() => { if (adding.current?.promise === promise) adding.current = null; }).catch(() => undefined);
+    return promise;
+  }, [additionContext]);
+
+  const cancelWidgetAddition = useCallback((id: string) => additionStore.current.cancelWidgetAddition?.(id) ?? Promise.resolve('cancelled' as const), []);
 
   // Overflow produced while rotating/importing is not an explicit placeWidget call.
   // Carry its settings too, without overwriting a continuation's own saved choices.
   useEffect(() => {
+    if (layout.commonOrderVersion === 1) return;
     for (const page of layout.pages) {
       if (!page.continuationOf) continue;
       const ids = new Set(
@@ -513,6 +606,10 @@ export function useLauncherController({
 
   const moveWidget = useCallback(
     (pageId: string, widgetId: string, to: CellRect) => {
+      if (canonicalRef.current.commonOrderVersion === 1) {
+        commit(moveInCommonOrder(canonicalRef.current, latestRef.current, ctx, pageId, widgetId, to));
+        return true;
+      }
       const next = asideLayout(withCover(pageId), (bare) =>
         moveWidgetInLayout(bare, ctx, pageId, widgetId, to)
       );
@@ -525,6 +622,15 @@ export function useLauncherController({
 
   const resizeWidget = useCallback(
     (pageId: string, widgetId: string, size: CellSize) => {
+      if (canonicalRef.current.commonOrderVersion === 1) {
+        const id = settingsPage(pageId);
+        const shown = latestRef.current.pages.find(page => page.id === pageId);
+        if (!shown) return false;
+        const hint = sizeAcrossKeys(size, grids, pageClass(latestRef.current, shown, ctx), 'tablet');
+        commit({ ...canonicalRef.current, pages: canonicalRef.current.pages.map(page => page.id === id
+          ? { ...page, sizeHints: { ...page.sizeHints, [widgetId]: hint } } : page) });
+        return true;
+      }
       const next = asideLayout(withCover(pageId), (bare) =>
         resizeWidgetInLayout(bare, ctx, pageId, widgetId, size)
       );
@@ -532,11 +638,16 @@ export function useLauncherController({
       commit(next);
       return true;
     },
-    [ctx, commit, withCover, asideLayout]
+    [ctx, commit, withCover, asideLayout, grids, settingsPage]
   );
 
   const moveWidgetToPage = useCallback(
     (fromPageId: string, toPageId: string, widgetId: string, to?: CellRect, size?: CellSize) => {
+      if (canonicalRef.current.commonOrderVersion === 1) {
+        carrySettings(legacySettingsKey(settingsPage(fromPageId), widgetId), legacySettingsKey(settingsPage(toPageId), widgetId), true);
+        commit(moveInCommonOrder(canonicalRef.current, latestRef.current, ctx, toPageId, widgetId, to, size ?? to, fromPageId));
+        return true;
+      }
       const next = asideLayout(withCover(fromPageId, toPageId), (bare) =>
         moveWidgetToPageInLayout(bare, ctx, fromPageId, toPageId, widgetId, to, size)
       );
@@ -549,7 +660,7 @@ export function useLauncherController({
       commit(next);
       return true;
     },
-    [ctx, commit, carrySettings, withCover, asideLayout]
+    [ctx, commit, carrySettings, withCover, asideLayout, settingsPage]
   );
 
   const removeWidget = useCallback(
@@ -565,7 +676,7 @@ export function useLauncherController({
       page: { label: string; icon?: string; kind?: PageKind; category?: string },
       afterPageId?: string
     ) => {
-      const result = addPageToLayout(latestRef.current, page, afterPageId);
+      const result = addPageToLayout(canonicalRef.current.commonOrderVersion === 1 ? canonicalRef.current : latestRef.current, page, afterPageId ? settingsPage(afterPageId) : undefined);
       let next = result.layout;
       const seeds = page.category ? categoryPageSeeds(page.category, result.pageId) : [];
       const nextSettings = { ...cardSettingsRef.current };
@@ -587,11 +698,11 @@ export function useLauncherController({
       setCurrentKey(result.pageId);
       return result.pageId;
     },
-    [commit, grids, persistCardSettings]
+    [commit, grids, persistCardSettings, settingsPage]
   );
 
   useEffect(() => {
-    if (!initializeCategoryPages || !ready || latestRef.current.categoryDefaultsVersion === 1)
+    if (!initializeCategoryPages || !ready || latestRef.current.commonOrderVersion === 1 || latestRef.current.categoryDefaultsVersion === 1)
       return;
     const existingTypes = new Set<unknown>();
     for (const page of latestRef.current.pages) {
@@ -616,14 +727,14 @@ export function useLauncherController({
 
   // The 3D house page goes last, once, after the category pages of a new profile (ADR-0014, D12).
   useEffect(() => {
-    if (!initializeCategoryPages || !ready) return;
+    if (!initializeCategoryPages || !ready || latestRef.current.commonOrderVersion === 1) return;
     const current = latestRef.current;
     if (current.casa3dVersion === 1 || current.categoryDefaultsVersion !== 1) return;
     commit(installCasa3dPage(current));
   }, [initializeCategoryPages, ready, layout, commit]);
 
   useEffect(() => {
-    if (!initializeCategoryPages || !ready) return;
+    if (!initializeCategoryPages || !ready || latestRef.current.commonOrderVersion === 1) return;
     const upgraded = upgradeCategoryGrids(latestRef.current, cardSettingsRef.current, ctx);
     if (upgraded.layout === latestRef.current) return;
     cardSettingsRef.current = upgraded.settings;
@@ -633,6 +744,10 @@ export function useLauncherController({
 
   const updatePage = useCallback(
     (pageId: string, patch: PagePatch) => {
+      if (canonicalRef.current.commonOrderVersion === 1) {
+        commit(updatePageInLayout(canonicalRef.current, settingsPage(pageId), patch));
+        return;
+      }
       if (patch.columns === undefined) {
         commit(updatePageInLayout(latestRef.current, pageId, patch));
         return;
@@ -651,21 +766,21 @@ export function useLauncherController({
       // The continuations an earlier choice made and no screen fills any more go away.
       commit(dropEmptyContinuations(ensured, ctx, familyId));
     },
-    [commit, withCover, ctx]
+    [commit, withCover, ctx, settingsPage]
   );
 
   const removePage = useCallback(
     (pageId: string) => {
-      commit(removePageFromLayout(latestRef.current, pageId));
+      commit(removePageFromLayout(canonicalRef.current.commonOrderVersion === 1 ? canonicalRef.current : latestRef.current, settingsPage(pageId)));
     },
-    [commit]
+    [commit, settingsPage]
   );
 
   const reorderPages = useCallback(
     (pageIds: string[]) => {
-      commit(reorderPagesInLayout(latestRef.current, pageIds));
+      commit(reorderPagesInLayout(canonicalRef.current.commonOrderVersion === 1 ? canonicalRef.current : latestRef.current, [...new Set(pageIds.map(settingsPage))]));
     },
-    [commit]
+    [commit, settingsPage]
   );
 
   /**
@@ -674,6 +789,10 @@ export function useLauncherController({
    */
   const restoreLayout = useCallback(
     (previous: LauncherLayout) => {
+      if (liveRef.current && !liveRef.current.state.editor) {
+        void liveRef.current.coordinator.undoLast().catch(() => undefined);
+        return;
+      }
       commit(previous);
     },
     [commit]
@@ -683,18 +802,54 @@ export function useLauncherController({
   const stackWidgets = useCallback(
     (pageId: string, draggedId: string, ontoId: string) => {
       const stackId = `stack_${Date.now().toString(36)}`;
+      if (canonicalRef.current.commonOrderVersion === 1 && pageId !== COVER_PAGE_ID) {
+        if (draggedId === ontoId || isStackId(draggedId)) return null;
+        const current = canonicalRef.current;
+        const page = current.pages.find(item => item.id === settingsPage(pageId));
+        if (!page?.order?.includes(draggedId) || !page.order.includes(ontoId)) return null;
+        const into = current.stacks?.[ontoId];
+        const id = into ? ontoId : stackId;
+        commit({ ...current, stacks: { ...current.stacks, [id]: into
+          ? { ...into, ids: [...into.ids.filter(item => item !== draggedId), draggedId] } : { ids: [ontoId, draggedId] } },
+          pages: current.pages.map(item => item.id === page.id ? { ...item,
+            order: item.order!.filter(widget => widget !== draggedId).map(widget => widget === ontoId ? id : widget),
+            sizeHints: { ...item.sizeHints, ...(item.sizeHints?.[ontoId] ? { [id]: item.sizeHints[ontoId] } : {}) },
+            positionHints: { ...item.positionHints, ...(item.positionHints?.[ontoId] ? { [id]: item.positionHints[ontoId] } : {}) } } : item) });
+        return id;
+      }
       const next = stackWidgetsInLayout(withCover(pageId), pageId, draggedId, ontoId, stackId);
       if (!next) return null;
       commit(next);
       return ontoId.startsWith('stack_') ? ontoId : stackId;
     },
-    [commit, withCover]
+    [commit, withCover, settingsPage]
   );
   const unstackWidget = useCallback(
     (pageId: string, stackId: string, memberId: string) => {
+      if (canonicalRef.current.commonOrderVersion === 1 && pageId !== COVER_PAGE_ID) {
+        const current = canonicalRef.current, stack = current.stacks?.[stackId];
+        if (!stack?.ids.includes(memberId)) return;
+        const rest = stack.ids.filter(id => id !== memberId), stacks = { ...current.stacks };
+        if (rest.length <= 1) delete stacks[stackId]; else stacks[stackId] = { ...stack, ids: rest };
+        const selectedPage = settingsPage(pageId);
+        commit({ ...current, stacks, pages: current.pages.map(page => {
+          const order = page.order ?? [], index = order.indexOf(stackId);
+          if (index < 0) return page;
+          const replacement = rest.length <= 1 ? rest : [stackId];
+          const next = order.flatMap(id => id === stackId ? replacement : [id]);
+          if (page.id === selectedPage) next.splice(index + replacement.length, 0, memberId);
+          const hints = { ...page.sizeHints };
+          if (rest.length === 1 && hints[stackId]) hints[rest[0]!] = hints[stackId];
+          const positions = { ...page.positionHints };
+          if (rest.length === 1 && positions[stackId]) positions[rest[0]!] = positions[stackId];
+          if (page.id === selectedPage) delete positions[memberId];
+          return { ...page, order: [...new Set(next)], sizeHints: hints, positionHints: positions };
+        }) });
+        return;
+      }
       commit(unstackWidgetInLayout(withCover(pageId), ctx, pageId, stackId, memberId));
     },
-    [commit, withCover, ctx]
+    [commit, withCover, ctx, settingsPage]
   );
   const setStackRotate = useCallback(
     (stackId: string, rotate: boolean) => {
@@ -786,6 +941,9 @@ export function useLauncherController({
       setOverview,
       placeWidget,
       placeWidgetAhead,
+      planWidgetAddition,
+      confirmWidgetAddition,
+      cancelWidgetAddition,
       moveWidget,
       resizeWidget,
       removeWidget,
@@ -829,6 +987,9 @@ export function useLauncherController({
       overview,
       placeWidget,
       placeWidgetAhead,
+      planWidgetAddition,
+      confirmWidgetAddition,
+      cancelWidgetAddition,
       moveWidget,
       resizeWidget,
       removeWidget,

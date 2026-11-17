@@ -54,11 +54,13 @@ export function SensorSection({
   settings,
   entities,
   save,
+  showEntityPicker = true,
 }: {
   widgetId: string;
   settings: CardSettings;
   entities: EntityMap;
   save: (key: string, value: unknown) => void;
+  showEntityPicker?: boolean;
 }) {
   const primaryId =
     typeof settings.entityId === 'string' && settings.entityId ? settings.entityId : widgetId;
@@ -127,7 +129,7 @@ export function SensorSection({
   return (
     <>
       <SheetSection title="Contenuto">
-        <EntitySelect
+        {showEntityPicker && <EntitySelect
           label="Entità"
           value={primaryId}
           entities={entities}
@@ -136,7 +138,7 @@ export function SensorSection({
           onChange={(id) => {
             if (id) save('entityId', id);
           }}
-        />
+        />}
         <ToggleRow
           label="Mostra il nome"
           checked={settings.showName !== false}

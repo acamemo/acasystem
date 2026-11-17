@@ -1,3 +1,5 @@
+export type { IdentityState } from '../../../../contracts/devices.ts';
+import type { IdentityState } from '../../../../contracts/devices.ts';
 import { createHash } from 'node:crypto';
 import { isRecord } from '../../helpers/objects.ts';
 import { readSecretFile, removeSecretFile, writeSecretFile } from '../../helpers/secretFile.ts';
@@ -83,16 +85,6 @@ export const createServiceIdentityStore = (getPath: () => string): ServiceIdenti
     removeSecretFile(getPath());
   },
 });
-
-export type IdentityState =
-  | 'active'
-  | 'missing'
-  | 'unreadable'
-  | 'expired'
-  | 'rejected'
-  | 'not_admin'
-  | 'mismatch'
-  | 'unreachable';
 
 export interface IdentityStatus {
   state: IdentityState;

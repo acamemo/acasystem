@@ -47,6 +47,7 @@ describe('selectors that restyle the shell', () => {
       }
     };
     walk(ROOT);
+    walk('../design');
   });
 
   const selectorsOf = (sheet: string) =>
@@ -105,7 +106,7 @@ describe('selectors that restyle the shell', () => {
   });
 
   it('the controls disabled in the edit mode still change at once', () => {
-    const launcher = sheets[`${ROOT}/templates/launcher/launcher.css`];
+    const launcher = sheets['../design/layout/launcher.css'];
     expect(launcher).toMatch(
       /\.aca-launcher-widget\.aca-launcher-widget \.aca-m:is\(\[disabled\], \[aria-disabled='true'\]\),[\s\S]*?\{\s*transition: none;/
     );
@@ -120,7 +121,7 @@ describe('selectors that restyle the shell', () => {
       .flatMap(selectorsOf)
       .filter((selector) => selector.includes('.aca-launcher-grid.is-dragging'));
     expect(rules.sort()).toEqual(['.aca-launcher-grid.is-dragging .aca-launcher-cell__content']);
-    const launcher = sheets[`${ROOT}/templates/launcher/launcher.css`];
+    const launcher = sheets['../design/layout/launcher.css'];
     expect(launcher).not.toMatch(
       /\.aca-launcher-grid\.is-dragging \.aca-launcher-cell\s*\{[^}]*pointer-events/
     );
@@ -131,7 +132,7 @@ describe('selectors that restyle the shell', () => {
   });
 
   it('the indicator waits for the cards by its own class, in the normal and in the reduced group', () => {
-    const indicator = sheets[`${ROOT}/components/system/page-indicator/pageIndicator.css`];
+    const indicator = sheets['../design/layout/pageIndicator.css'];
     const delay =
       /\.aca-indicator\.aca-indicator--overview:not\(\.aca-indicator--hidden\) \{\s*transition-delay: calc\(var\(--aca-stagger, 40ms\) \* 3\);/;
     expect(indicator).toMatch(delay);

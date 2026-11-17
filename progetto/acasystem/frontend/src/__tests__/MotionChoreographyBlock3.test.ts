@@ -13,8 +13,8 @@ import { SHAPE_CLEAR_MS, SHAPE_SETTLE_MS } from '@/hooks/launcher/useResizeShape
 import { CELL_EXIT_MS } from '@/hooks/launcher/useLeaving';
 
 const FILES = {
-  tokens: 'src/themes/acasystem/tokens.css',
-  launcher: 'src/templates/launcher/launcher.css',
+  tokens: '../design/themes/acasystem/tokens.css',
+  launcher: '../design/layout/launcher.css',
   edit: 'src/components/system/edit/edit.css',
 } as const;
 type Sheet = keyof typeof FILES;

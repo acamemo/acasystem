@@ -1,0 +1,177 @@
+@import './design-aca/index.css';
+
+/* Solo composizione delle schermate locali; font, scale e colori sono quelli dell'app. */
+:root {
+  color-scheme: var(--aca-color-scheme, light);
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--aca-space-4);
+}
+
+.card {
+  width: min(26.25rem, 100%);
+}
+
+.shell-content {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  text-align: center;
+}
+
+.logo {
+  align-self: center;
+  border-radius: var(--k2-radius);
+}
+
+h1 {
+  margin: var(--aca-space-3) 0 calc(var(--aca-space-4) + var(--aca-space-1));
+}
+
+.view {
+  display: none;
+}
+
+body[data-view='loading'] .view-loading,
+body[data-view='scan'] .view-scan,
+body[data-view='pairing-choice'] .view-pairing-choice,
+body[data-view='wizard'] .view-wizard,
+body[data-view='error'] .view-error,
+body[data-view='fatal'] .view-fatal,
+body[data-view='setup-owner'] .view-setup-owner,
+body[data-view='setup-admin'] .view-setup-admin,
+body[data-view='setup-home'] .view-setup-home,
+body[data-view='setup-progress'] .view-setup-progress {
+  display: block;
+}
+
+body[data-view='fatal'] .actions {
+  display: none;
+}
+
+.lead {
+  margin: 0 0 calc(var(--aca-space-4) + var(--aca-space-1));
+  color: var(--k2-ink-muted);
+  line-height: 1.45;
+}
+
+form {
+  text-align: left;
+}
+
+.shell-label {
+  display: block;
+  margin: 0 0 var(--aca-space-2);
+}
+
+.shell-field {
+  width: 100%;
+  margin: 0 0 var(--aca-space-4);
+}
+
+details {
+  margin: 0 0 var(--aca-space-2);
+  color: var(--k2-ink-muted);
+}
+
+summary {
+  margin: 0 0 var(--aca-space-3);
+  cursor: pointer;
+  font-size: var(--aca-step--1);
+}
+
+.message {
+  min-height: 1.4em;
+  margin: var(--aca-space-1) 0 var(--aca-space-4);
+  color: var(--aca-danger-ink);
+  line-height: 1.45;
+  text-align: left;
+}
+
+.view-error .message {
+  text-align: center;
+}
+
+button {
+  width: 100%;
+}
+
+.view-wizard > button {
+  margin-top: var(--aca-space-4);
+}
+
+.actions {
+  display: grid;
+  gap: var(--aca-space-3);
+}
+
+.spinner {
+  width: calc(var(--aca-space-6) + var(--aca-space-1));
+  height: calc(var(--aca-space-6) + var(--aca-space-1));
+  margin: var(--aca-space-2) auto var(--aca-space-3);
+  border: 3px solid color-mix(in oklch, var(--k2-ink) 14%, transparent);
+  border-top-color: var(--k2-accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.version {
+  margin: calc(var(--aca-space-4) + var(--aca-space-1)) 0 0;
+  font-size: var(--aca-step--1);
+  color: var(--k2-ink-muted);
+}
+
+/* Avanzamento della configurazione del mini PC. */
+.steps {
+  margin: 0 0 var(--aca-space-3);
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.steps li {
+  display: flex;
+  gap: var(--aca-space-3);
+  align-items: baseline;
+  padding: var(--aca-space-2) 0;
+  color: var(--k2-ink-muted);
+}
+
+.steps li[data-status='running'] {
+  color: var(--k2-ink);
+  font-weight: var(--aca-weight-medium);
+}
+
+.steps li[data-status='done'] {
+  color: var(--k2-ink);
+}
+
+.steps .mark {
+  width: 1.2em;
+  text-align: center;
+}
+
+.steps li[data-status='done'] .mark {
+  color: var(--k2-accent);
+}
+
+body:not([data-failed='true']) .failed-only {
+  display: none;
+}

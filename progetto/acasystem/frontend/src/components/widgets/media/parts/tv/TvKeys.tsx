@@ -1,4 +1,5 @@
 import { Button } from '@/components/primitives';
+import { useHoldRepeat } from '../../hooks/useHoldRepeat';
 import { MediaIcon, type MediaIconName } from '../../icons';
 import type { TvKey } from '../../model/tvRemote';
 import type { TvDetailsState } from './useTvDetailsState';
@@ -9,7 +10,10 @@ export interface LabelledKey {
   icon?: MediaIconName;
 }
 
-/** A round remote key (D-pad, rewind, fast forward): the icon, or the label when it has none. */
+/**
+ * A round remote key (D-pad, rewind, fast forward): the icon, or the label when it has none.
+ * With `repeat` (the arrows) holding it repeats the key, and it shows no busy pulse.
+ */
 export function RoundKey({
   tv,
   keyName,
@@ -17,6 +21,7 @@ export function RoundKey({
   icon,
   className,
   size = 'lg',
+  repeat = false,
 }: {
   tv: TvDetailsState;
   keyName: TvKey;
@@ -24,7 +29,9 @@ export function RoundKey({
   icon?: MediaIconName;
   className?: string;
   size?: 'md' | 'lg';
+  repeat?: boolean;
 }) {
+  const hold = useHoldRepeat(() => tv.sendKey(keyName), { disabled: !repeat });
   return (
     <Button
       variant="control"
@@ -32,8 +39,8 @@ export function RoundKey({
       size={size}
       className={className}
       aria-label={label}
-      loading={tv.actions.busy === `key:${keyName}`}
-      onClick={() => tv.sendKey(keyName)}
+      loading={repeat ? undefined : tv.actions.busy === `key:${keyName}`}
+      {...(repeat ? hold : { onClick: () => tv.sendKey(keyName) })}
     >
       {icon ? <MediaIcon name={icon} size="md" /> : label}
     </Button>

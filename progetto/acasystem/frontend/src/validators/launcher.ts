@@ -60,6 +60,22 @@ export function sanitizeLauncherPage(value: unknown): LauncherPage | null {
   if (typeof label !== 'string') return null;
   if (!isPageKind(kind)) return null;
   const page: LauncherPage = { id, label, kind, placements: {} };
+  if (Array.isArray(value.order)) page.order = value.order.filter(
+    (item, index, list): item is string => typeof item === 'string' && Boolean(item) && list.indexOf(item) === index
+  );
+  if (isObject(value.sizeHints)) {
+    page.sizeHints = {};
+    for (const [widgetId, size] of Object.entries(value.sizeHints)) {
+      if (isObject(size) && isCell(size.w, 1) && isCell(size.h, 1)) page.sizeHints[widgetId] = { w: size.w, h: size.h };
+    }
+  }
+  if (isObject(value.positionHints)) {
+    page.positionHints = Object.fromEntries(Object.entries(value.positionHints).flatMap(([id, point]) =>
+      id && isObject(point) && typeof point.x === 'number' && Number.isFinite(point.x) && point.x >= 0 && point.x <= 1
+        && typeof point.y === 'number' && Number.isFinite(point.y) && point.y >= 0 && point.y <= 1
+        ? [[id, { x: point.x, y: point.y }]] : []
+    ));
+  }
   if (typeof icon === 'string' && icon) page.icon = icon;
   if (hidden === true) page.hidden = true;
   if (kind === 'widgets' && isObject(value.categoryGrids)) {
@@ -116,6 +132,7 @@ export function sanitizeLauncherLayout(value: unknown): LauncherLayout | null {
   if (pages.length === 0) return null;
   const cover = isObject(value.cover) && value.cover.enabled === false ? false : true;
   const layout: LauncherLayout = { version: 1, cover: { enabled: cover }, pages };
+  if (value.commonOrderVersion === 1) layout.commonOrderVersion = 1;
   if (value.categoryDefaultsVersion === 1) layout.categoryDefaultsVersion = 1;
   if (value.casa3dVersion === 1) layout.casa3dVersion = 1;
   if (value.locked === true) layout.locked = true;

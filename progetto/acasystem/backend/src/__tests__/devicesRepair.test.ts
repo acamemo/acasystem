@@ -189,6 +189,52 @@ describe('HA OS: the Supervisor activates the service by itself (T1)', () => {
 });
 
 describe('self-repair (T2)', () => {
+  it('recreates only the recognized service identity when its secret was lost and Core requires the owner', async () => {
+    const { harness, fake, supervisor } = await onHaOs();
+    fake.knobs.version = '2026.11.1';
+    fake.knobs.ownerOnlyPasswordReset = true;
+    const otherUsers = [...fake.users.keys()].filter(id => id !== harness.serviceUserId);
+    await harness.module.start();
+    expect(await isActive(harness)).toBe(true);
+    const loaded = harness.module.identity.store.load();
+    if (!loaded.ok) throw new Error('missing repaired identity');
+    expect(loaded.secret.userId).not.toBe(harness.serviceUserId);
+    expect(fake.users.has(harness.serviceUserId)).toBe(false);
+    expect(fake.userByName(SERVICE_NAME)?.id).toBe(loaded.secret.userId);
+    expect(fake.callsFor('config/auth/delete').map(call => call.userId)).toEqual([supervisor.user.id]);
+    expect(new Set(fake.users.keys())).toEqual(new Set([...otherUsers,loaded.secret.userId]));
+    expect((await harness.request('/stanze')).status).toBe(200);
+    expect(everythingVisible(harness)).not.toContain(savedToken(harness));
+    expect(everythingVisible(harness)).not.toContain(supervisor.token);
+  });
+
+  it.each(['foreign-name', 'ambiguous', 'unreadable-secret'] as const)('does not delete an identity for %s', async mode => {
+    const { harness, fake } = await onHaOs();
+    fake.knobs.ownerOnlyPasswordReset = true;
+    const original = fake.users.get(harness.serviceUserId);
+    if (!original) throw new Error('missing original identity');
+    if (mode === 'foreign-name') original.name = 'Utente creato a mano';
+    if (mode === 'ambiguous') fake.addUser({ name:SERVICE_NAME, username:'altro_utente', isAdmin:true });
+    if (mode === 'unreadable-secret') vi.spyOn(harness.module.identity.store,'load').mockReturnValue({ok:false,reason:'unreadable'});
+    await harness.module.start();
+    expect(await isActive(harness)).toBe(false);
+    expect(fake.callsFor('config/auth/delete')).toHaveLength(0);
+    expect(fake.users.get(harness.serviceUserId)).toBe(original);
+  });
+
+  it('does not remove a stored working identity when its renewal needs the owner', async () => {
+    const { harness, fake } = await onHaOs({activeService:true});
+    fake.knobs.ownerOnlyPasswordReset = true;
+    const loaded = harness.module.identity.store.load();
+    if (!loaded.ok) throw new Error('missing test identity');
+    harness.module.identity.store.save({...loaded.secret,expiresAt:new Date(Date.now()+10*86_400_000).toISOString()});
+    await harness.module.start();
+    expect(await isActive(harness)).toBe(true);
+    expect(savedToken(harness)).toBe(loaded.secret.token);
+    expect(fake.callsFor('config/auth/delete')).toHaveLength(0);
+    expect(fake.users.has(harness.serviceUserId)).toBe(true);
+  });
+
   const activeOnHaOs = async (options: HarnessOptions = {}) => {
     const context = await onHaOs({ activeService: true, ...options });
     return context;
@@ -310,6 +356,60 @@ describe('elsewhere: the token of an administrator who uses the app activates th
 });
 
 describe('POST /servizio/ripara (T3)', () => {
+  it('recovers an excluded secret after restore with the owner, without reusing the Supervisor session', async () => {
+    const { harness, fake, supervisor } = await onHaOs();
+    fake.knobs.version = '2026.11.1';
+    fake.knobs.ownerOnlyPasswordReset = true;
+    supervisor.user.isAdmin = false;
+    await harness.module.start();
+    expect(await isActive(harness)).toBe(false);
+    expect(harness.module.identity.store.load().ok).toBe(false);
+
+    const customer = await harness.request('/servizio/ripara', { method: 'POST', user: 'customer' });
+    expect(customer.body).toEqual({ active: false, message: "Apri Acasystem con l'account che hai creato per primo in Home Assistant e tocca di nuovo «Ripara il servizio»." });
+    const adminOnly = await harness.request('/servizio/ripara', { method: 'POST', user: 'installer' });
+    expect(adminOnly.body.active).toBe(false);
+    const ownerToken = harness.accessTokenOf('installer');
+    const owner = fake.users.get(fake.tokens.get(ownerToken)?.userId ?? '');
+    if (!owner) throw new Error('missing test owner');
+    owner.isOwner = true;
+    fake.resetCalls();
+
+    const repaired = await harness.request('/servizio/ripara', { method: 'POST', user: 'installer' });
+    expect(repaired.body).toEqual({ active: true, message: 'Servizio attivo.' });
+    expect(await isActive(harness)).toBe(true);
+    expect(fake.callsFor('config/auth_provider/homeassistant/admin_change_password').map(call => call.userId)).toEqual([owner.id]);
+    expect(fake.tokens.get(savedToken(harness))?.userId).toBe(harness.serviceUserId);
+    expect((await harness.request('/stanze')).status).toBe(200);
+    expect(everythingVisible(harness)).not.toContain(ownerToken);
+    expect(everythingVisible(harness)).not.toContain(supervisor.token);
+    expect(readFileSync(harness.secretPath, 'utf8')).not.toContain(ownerToken);
+    fake.resetCalls();
+    expect((await harness.request('/servizio/ripara', { method: 'POST', user: 'installer' })).body.active).toBe(true);
+    expect(fake.callsFor('config/auth_provider/homeassistant/admin_change_password')).toHaveLength(0);
+  });
+
+  it('waits for an in-flight Supervisor refusal before retrying with the owner', async () => {
+    const { harness, fake, supervisor } = await onHaOs();
+    fake.knobs.ownerOnlyPasswordReset = true;
+    supervisor.user.isAdmin = false;
+    const ownerToken = harness.accessTokenOf('installer');
+    const owner = fake.users.get(fake.tokens.get(ownerToken)?.userId ?? '');
+    if (!owner) throw new Error('missing test owner');
+    owner.isOwner = true;
+    let release!: (version: string) => void;
+    const pendingVersion = new Promise<string>(resolve => { release = resolve; });
+    const version = vi.spyOn(harness.module.context.adapter, 'readVersion').mockImplementationOnce(() => pendingVersion);
+    const startup = harness.module.keeper.start();
+    await until(() => version.mock.calls.length > 0);
+    const repair = harness.module.keeper.repair({ id: owner.id, name: owner.name, isAdmin: true }, ownerToken);
+    release('2026.11.1');
+    await startup;
+    expect(await repair).toEqual({ active: true, message: 'Servizio attivo.' });
+    expect(await isActive(harness)).toBe(true);
+    expect(fake.callsFor('config/auth_provider/homeassistant/admin_change_password')).toHaveLength(1);
+  });
+
   it('repairs now for a user who is not an administrator, on HA OS', async () => {
     const { harness } = await onHaOs();
     const answer = await harness.request('/servizio/ripara', { method: 'POST', user: 'customer' });

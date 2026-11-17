@@ -1,0 +1,134 @@
+@layer components {
+  .product-climate {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .product-climate .ctl-widget__body {
+    gap: var(--aca-space-2);
+  }
+  .product-climate__identity,
+  .product-climate__commands,
+  .product-climate__state,
+  .product-climate-channel__head,
+  .product-climate-target__line {
+    display: flex;
+    align-items: center;
+    gap: var(--aca-space-2);
+    min-width: 0;
+  }
+  .product-climate__identity .ctl-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-climate__readings {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--aca-space-2);
+  }
+  .product-climate__readings > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-climate__state {
+    overflow-wrap: anywhere;
+    justify-content: space-between;
+  }
+  .product-climate__state > .aca-type--caption {
+    min-width: 0;
+    flex: 1;
+  }
+  .product-climate__state > .product-climate-power {
+    flex: none;
+  }
+  .product-climate__commands {
+    justify-content: space-between;
+  }
+  .product-climate-channel__head {
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .product-climate-channel,
+  .product-climate-targets,
+  .product-climate-choices {
+    display: grid;
+    gap: var(--aca-space-3);
+    min-width: 0;
+  }
+  .product-climate-target {
+    display: grid;
+    gap: var(--aca-space-2);
+    min-width: 0;
+  }
+  .product-climate-target__line {
+    justify-content: space-between;
+  }
+  .product-climate-target__line > .aca-type--caption {
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .product-climate-targets[data-compact] {
+    flex: 1;
+    gap: 0;
+  }
+  .product-climate-targets[data-compact] .product-climate-target__line {
+    gap: var(--aca-space-1);
+  }
+  .product-climate-power:has(.ctl-feedback:empty) .ctl-feedback,
+  .product-climate-targets:has(.ctl-feedback:empty) > .ctl-feedback {
+    display: none;
+  }
+  .product-climate-choices {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  }
+  .product-climate-choice {
+    min-width: 0;
+  }
+  .product-climate-details {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-climate-details .utility-inline,
+  .product-climate-details .utility-value {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .product-climate-details .utility-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  /* A narrow or short Home keeps observations; the existing Console owns the full controls. */
+  @container ctl-widget (max-width: 12rem) or (max-height: 14rem) {
+    .product-climate .ctl-widget__body {
+      gap: var(--aca-space-1);
+    }
+    .product-climate__readings {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--aca-space-1);
+    }
+    .product-climate__readings > div {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0 var(--aca-space-1);
+    }
+    .product-climate__state {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--aca-space-1);
+    }
+    .product-climate__activity,
+    .product-climate-power > .aca-toggle,
+    .product-climate-targets > .product-climate-target,
+    .product-climate-power:has(> .ctl-feedback:empty),
+    .product-climate__commands:not(:has(.ctl-feedback:not(:empty))) {
+      display: none;
+    }
+    /* Existing in-flight/error regions remain mounted and visible after a resize. */
+    .product-climate:has(.ctl-feedback:not(:empty)) .product-climate__readings,
+    .product-climate:has(.ctl-feedback:not(:empty)) .product-climate__state > .aca-type--caption {
+      display: none;
+    }
+  }
+}

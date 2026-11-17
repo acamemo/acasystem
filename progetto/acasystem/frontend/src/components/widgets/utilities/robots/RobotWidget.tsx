@@ -1,4 +1,8 @@
+import { mowerProductBinding } from '../../home/mower/productMowerModel';
+import { ProductMowerWidget } from '../../home/mower/ProductMowerWidget';
 import { useServiceCatalog } from '../../adaptive/useServiceCatalog';
+import { ProductVacuumWidget } from '../../home/vacuum/ProductVacuumWidget';
+import { vacuumProductBinding } from '../../home/vacuum/productVacuumModel';
 import { useId, type ReactNode } from 'react';
 import { Body, Button, Caption } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
@@ -169,10 +173,10 @@ function RobotWidget({ spec, id, size, editMode }: WidgetProps & { spec: RobotSp
 
 /** Robot vacuum (`vacuum.*`). */
 export function VacuumWidget(props: WidgetProps) {
-  return <RobotWidget {...props} spec={vacuumSpec} />;
+  return vacuumProductBinding(props.settings) ? <ProductVacuumWidget {...props} /> : <RobotWidget {...props} spec={vacuumSpec} />;
 }
 
 /** Lawn mower (`lawn_mower.*`). */
 export function MowerWidget(props: WidgetProps) {
-  return <RobotWidget {...props} spec={mowerSpec} />;
+  return mowerProductBinding(props.settings) ? <ProductMowerWidget {...props} /> : <RobotWidget {...props} spec={mowerSpec} />;
 }

@@ -1,0 +1,67 @@
+@layer components {
+  .product-fan {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .product-fan .ctl-widget__body {
+    gap: var(--aca-space-2);
+  }
+  .product-fan__identity,
+  .product-fan-power__actions,
+  .product-fan-control__line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: var(--aca-space-2);
+  }
+  .product-fan__identity {
+    flex-wrap: nowrap;
+  }
+  .product-fan__identity .ctl-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-fan__observation {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--aca-space-1);
+  }
+  .product-fan__summary,
+  .product-fan-controls,
+  .product-fan-channel,
+  .product-fan-control {
+    display: grid;
+    gap: var(--aca-space-3);
+    min-width: 0;
+  }
+  .product-fan-controls[data-compact] {
+    gap: var(--aca-space-1);
+  }
+  .product-fan-control__line {
+    justify-content: space-between;
+  }
+  .product-fan-control__line > .aca-type--caption {
+    flex: 1;
+    min-width: 0;
+  }
+  .product-fan-power:has(> .ctl-feedback:empty) > .ctl-feedback {
+    display: none;
+  }
+  .product-fan-details {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-fan-details .utility-inline,
+  .product-fan-details .utility-value {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .product-fan-details .utility-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

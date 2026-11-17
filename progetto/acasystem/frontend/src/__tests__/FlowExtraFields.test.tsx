@@ -47,6 +47,35 @@ beforeEach(() => {
   upload.send.mockReset();
 });
 
+describe('a password', () => {
+  it('starts masked, toggles visibility and sends the exact value including surrounding spaces', () => {
+    draw([
+      { name: 'username', kind: 'text', required: true, label: 'Nome utente' },
+      { name: 'password', kind: 'password', required: false, label: 'Password' },
+      {
+        name: 'country_code', kind: 'select', required: false, label: 'Codice paese',
+        options: [{ value: '+39', label: 'Italy | +39' }],
+      },
+    ]);
+    const password = screen.getByLabelText('Password');
+    expect(password).toHaveAttribute('type', 'password');
+    fireEvent.change(screen.getByLabelText('Nome utente'), {
+      target: { value: 'example@example.test' },
+    });
+    fireEvent.change(password, { target: { value: '  fake password  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mostra il testo' }));
+    expect(password).toHaveAttribute('type', 'text');
+    expect(password).toHaveValue('  fake password  ');
+    fireEvent.click(screen.getByRole('button', { name: 'Nascondi il testo' }));
+    expect(password).toHaveAttribute('type', 'password');
+    fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
+    expect(onSubmit).toHaveBeenCalledWith({
+      username: 'example@example.test', password: '  fake password  ',
+    });
+    expect(upload.send).not.toHaveBeenCalled();
+  });
+});
+
 describe('a serial port', () => {
   const port: FlowFieldDto = {
     name: 'device',

@@ -1,0 +1,42 @@
+@layer components {
+  .aca-account { box-sizing: border-box; width: min(100%, 52rem); min-width: 0; margin-inline: auto; padding: 1.25rem; display: grid; gap: 1rem; }
+  .aca-account__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+  .aca-account .aca-account-card > .aca-m__outer > .aca-m__face > .aca-account-card__content { padding: 0 0 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; overflow: hidden; }
+  .aca-account > .aca-m > .aca-m__outer > .aca-m__face > .aca-system__stack { display: grid; gap: 1rem; }
+  .aca-account-card__cover { align-self: stretch; aspect-ratio: 2; background: var(--k2-bg); overflow: hidden; }
+  .aca-account-card__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .aca-account-card__avatar-button { margin-top: -3rem; z-index: 1; border-radius: 50%; padding: 0; }
+  .aca-account-card__avatar-button .aca-account-avatar { width: 6rem; height: 6rem; border: 0.25rem solid var(--k2-bg); }
+  .aca-account-card__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; padding-inline: 1rem; }
+  .aca-account-avatar { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; overflow: hidden; border-radius: 50%; background: var(--k2-bg); color: var(--aca-ink-solid); font-weight: 500; }
+  .aca-account-avatar--sm { width: 2rem; height: 2rem; }
+  .aca-account-avatar--md { width: 3rem; height: 3rem; }
+  .aca-account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .aca-account-crop { display: grid; gap: 1.25rem; width: min(100%, 40rem); margin-inline: auto; }
+  .aca-account-crop__preview { display: block; width: 100%; height: auto; touch-action: none; cursor: grab; background: var(--k2-bg); }
+  .aca-account-crop__preview:active { cursor: grabbing; }
+  .aca-account-crop__preview--avatar { width: min(100%, 22rem); border-radius: 50%; justify-self: center; }
+  .aca-appearance { display: grid; gap: 1rem; min-width: 0; }
+  .aca-account > .aca-m > .aca-m__outer > .aca-m__face > .aca-appearance-host { display: grid; gap: 1rem; min-width: 0; }
+  .aca-appearance-host .aca-type--title { max-width: 100%; min-width: 0; overflow-wrap: anywhere; margin: 0; }
+  .aca-appearance__cover { aspect-ratio: 2; overflow: hidden; background: var(--k2-bg); border-radius: var(--aca-radius-rounded); }
+  .aca-appearance__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .aca-appearance__identity, .aca-appearance__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; min-width: 0; }
+  .aca-appearance__identity > .aca-connect__color-picker { flex: 1 1 12rem; min-width: 0; }
+  .aca-appearance__avatar { padding: 0; border-radius: 50%; min-width: 44px; min-height: 44px; }
+  .aca-appearance__avatar .aca-account-avatar { width: 3rem; height: 3rem; }
+  .aca-appearance__actions > .aca-type { flex: 1 1 100%; }
+  .aca-account-crop__control { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.25rem 1rem; }
+  .aca-account-crop__control .aca-slider { grid-column: 1 / -1; min-height: 44px; }
+  /* Shared identity pill: retained class names keep existing hosts compatible. */
+  .aca-connect__color-picker { --aca-pad: var(--aca-space-2) var(--aca-space-4) var(--aca-space-2) var(--aca-space-2); align-self: flex-start; max-width: 100%; }
+  .aca-connect__color-content, .aca-connect__color-action { display: flex; align-items: center; gap: var(--aca-space-3); }
+  .aca-connect__color-action { gap: var(--aca-space-2); white-space: nowrap; }
+  .aca-appearance .aca-connect__color-content { position: static; min-height: 44px; }
+  .aca-connect__color-preview { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; border-radius: 50%; font-weight: var(--aca-weight-medium); }
+  .aca-connect__color-divider { flex: none; width: 1px; height: 1.5rem; background: color-mix(in oklch, var(--aca-ink-solid) 20%, transparent); }
+  .aca-appearance .aca-connect__color-input { position: absolute; z-index: 5; inset: 0; width: 100%; height: 100%; min-height: 44px; opacity: 0; cursor: pointer; }
+  .aca-connect__color-picker:has(input:focus-visible) { outline: 2px solid var(--aca-focus); outline-offset: 4px; }
+  .aca-connect__color-picker[aria-disabled='true'] { opacity: 0.6; }
+  .aca-connect__color-input:disabled { cursor: default; }
+}

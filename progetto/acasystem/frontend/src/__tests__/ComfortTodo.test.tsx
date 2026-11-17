@@ -11,6 +11,8 @@ import {
 } from '@/components/widgets/home/todo/todoModel';
 import { fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { fakeConnection, renderDetails, renderWidget, serviceMock } from './ComfortHarness';
+const commands = vi.hoisted(() => ({ send: vi.fn(async () => ({})) }));
+vi.mock('@/api/commandApi', async (importOriginal) => ({ ...await importOriginal<typeof import('@/api/commandApi')>(), sendUserCommand: commands.send }));
 
 afterEach(() => {
   cleanup();
@@ -19,7 +21,7 @@ afterEach(() => {
 
 const ID = 'todo_card_1';
 const settings = { todoEntityId: 'todo.spesa' };
-const entities = fixtureEntities([fixtureEntity('todo.spesa', '2', { friendly_name: 'Spesa' })]);
+const entities = fixtureEntities([fixtureEntity('todo.spesa', '2', { friendly_name: 'Spesa', supported_features: 7 })]);
 
 /** A to-do list served through `todo/item/list`, mutable to simulate HA confirmations. */
 function todoConnection(initial: HaTodoItem[]) {
@@ -38,7 +40,8 @@ const baseItems: HaTodoItem[] = [
 ];
 
 describe('Parità dei messaggi con il legacy', () => {
-  it('add_item, update_item e remove_item passano dal callService con lo stesso messaggio WebSocket', async () => {
+  it('helper e controlli inviano gli stessi comandi Todo al gateway, senza bypass WebSocket', async () => {
+    commands.send.mockClear();
     const legacy = fakeConnection(() => null);
     const current = fakeConnection(() => null);
     await addTodoItem(legacy.conn, 'todo.spesa', 'Latte');
@@ -50,14 +53,12 @@ describe('Parità dei messaggi con il legacy', () => {
     await removeTodoItem(legacy.conn, 'todo.spesa', 'u1');
     const remove = removeItemCall('todo.spesa', 'u1');
     await haCallService(current.conn, remove.domain, remove.service, remove.data);
-    expect(current.sendMessagePromise.mock.calls).toEqual(legacy.sendMessagePromise.mock.calls);
-    expect(current.sendMessagePromise.mock.calls[0][0]).toEqual({
-      type: 'call_service',
-      domain: 'todo',
-      service: 'add_item',
-      target: { entity_id: 'todo.spesa' },
-      service_data: { item: 'Latte' },
-    });
+    const calls = commands.send.mock.calls as unknown as [unknown][];
+    expect(calls).toHaveLength(6);
+    expect(calls[0]).toEqual(calls[1]); expect(calls[2]).toEqual(calls[3]); expect(calls[4]).toEqual(calls[5]);
+    expect(calls[0]![0]).toEqual({ kind: 'service', domain: 'todo', service: 'add_item', data: { target: { entity_id: 'todo.spesa' }, item: 'Latte' } });
+    expect(current.sendMessagePromise).not.toHaveBeenCalled();
+    expect(legacy.sendMessagePromise).not.toHaveBeenCalled();
   });
 });
 
@@ -107,11 +108,11 @@ describe('Widget attività', () => {
     const latte = await screen.findByRole('checkbox', { name: 'Latte' });
     setItems([{ ...baseItems[0], status: 'completed' }, baseItems[1], baseItems[2]]);
     fireEvent.click(latte);
-    expect(callService).toHaveBeenCalledWith('todo', 'update_item', {
+    await waitFor(() => expect(callService).toHaveBeenCalledWith('todo', 'update_item', {
       target: { entity_id: 'todo.spesa' },
       item: 'u1',
       status: 'completed',
-    });
+    }));
     expect(screen.getByRole('checkbox', { name: 'Latte' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('checkbox', { name: 'Latte' })).toHaveAttribute('aria-busy', 'true');
     await waitFor(() =>
@@ -174,7 +175,7 @@ describe('Widget attività', () => {
       runtime: { conn, entities, callService },
     });
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Latte' }));
-    expect(await screen.findByText('«Latte» non aggiornata. Riprova.')).toBeInTheDocument();
+    expect(await screen.findByText('Attività non aggiornata. Riprova.')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Latte' })).toHaveAttribute(
       'aria-checked',
       'false'
@@ -204,10 +205,13 @@ describe('Widget attività', () => {
     expect(
       screen.getByText('Scegli una lista di attività nelle impostazioni del widget.')
     ).toBeInTheDocument();
-    update({ id: ID, settings, runtime: { conn: null } });
+    update({ id: ID, settings, runtime: { conn: null, entities, entitiesLoaded: false } });
     expect(screen.getByRole('status')).toHaveTextContent('Caricamento delle attività…');
+    update({ id: ID, settings, runtime: { conn: null, entities } });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByText('Non riesco a leggere la lista. Apri i dettagli per riprovare.')).toBeInTheDocument();
     cleanup();
-    renderWidget(todoWidget, { id: ID, settings, runtime: { conn: todoConnection([]).conn } });
+    renderWidget(todoWidget, { id: ID, settings, runtime: { conn: todoConnection([]).conn, entities } });
     expect(await screen.findByText('Lista vuota: aggiungi la prima attività.')).toBeInTheDocument();
   });
 });
@@ -215,18 +219,20 @@ describe('Widget attività', () => {
 describe('Dettagli attività', () => {
   it('elenco completo con eliminazione (remove_item) e completate richiudibili', async () => {
     const callService = serviceMock();
-    const { conn } = todoConnection(baseItems);
+    const { conn, setItems } = todoConnection(baseItems);
     renderDetails(todoWidget, { id: ID, settings, runtime: { conn, entities, callService } });
     const pending = await screen.findByRole('list', { name: 'Da fare' });
     expect(within(pending).getAllByRole('checkbox')).toHaveLength(2);
     expect(screen.getByText(/1 di 3/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Elimina «Pane»' }));
-    expect(callService).toHaveBeenCalledWith('todo', 'remove_item', {
+    expect(screen.getByRole('checkbox', { name: 'Pane' })).toBeDisabled();
+    await waitFor(() => expect(callService).toHaveBeenCalledWith('todo', 'remove_item', {
       target: { entity_id: 'todo.spesa' },
       item: 'u2',
-    });
-    expect(screen.queryByRole('checkbox', { name: 'Pane' })).not.toBeInTheDocument();
+    }));
+    setItems(baseItems.filter((item) => item.uid !== 'u2'));
+    await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Pane' })).not.toBeInTheDocument());
 
     fireEvent.click(screen.getByRole('button', { name: 'Nascondi' }));
     expect(screen.queryByRole('list', { name: 'Completate' })).not.toBeInTheDocument();
@@ -237,6 +243,7 @@ describe('Dettagli attività', () => {
     const { conn } = todoConnection(baseItems);
     renderDetails(todoWidget, { id: ID, settings, runtime: { conn, entities, callService } });
     const field = await screen.findByRole('textbox', { name: 'Nuova attività' });
+    await waitFor(() => expect(field).toBeEnabled());
     fireEvent.change(field, { target: { value: 'Mele' } });
     fireEvent.submit(field.closest('form') as HTMLFormElement);
     await waitFor(() =>

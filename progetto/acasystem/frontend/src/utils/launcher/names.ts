@@ -16,6 +16,8 @@ export function widgetDisplayName(
 ): string {
   const custom = text(customNames[widgetId]) || text(settings.name) || text(settings.heading);
   if (custom) return custom;
+  if (settings.categoryWidgetType === 'car' || widgetId === 'car' || widgetId.startsWith('car_card_'))
+    return typeLabel || 'Auto';
   const entityId =
     [
       'bindingEntityId',

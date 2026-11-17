@@ -424,17 +424,38 @@
   .utility-list__wide {
     flex: 1 1 100%;
   }
-  .utility-menu {
+  .aca-popover:not([popover]):not([hidden]):has(.utility-menu) {
+    opacity: 1;
+    transform: none;
+  }
+  .aca-popover__panel > .aca-m__outer > .aca-m__face > .aca-m__content.utility-menu {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
     gap: 0.35rem;
     max-height: min(60dvh, 22rem);
+    max-width: min(24rem, calc(100vw - 3rem));
     overflow-y: auto;
   }
-  .utility-menu__item {
+  .utility-menu > .utility-menu__item {
     display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .utility-menu__item > .aca-m__outer > .aca-m__face {
+    display: grid;
+    min-height: 44px;
   }
   .utility-menu__item > .aca-m__outer > .aca-m__face > .aca-m__content {
     justify-content: flex-start;
+    white-space: normal;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  .utility-menu .aca-m__label {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .utility-collapse {
     display: flex;
@@ -531,11 +552,16 @@
     outline-offset: -2px;
   }
   .utility-divider {
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     width: 100%;
+    min-width: 0;
     padding-inline: 0.5rem;
+  }
+  .utility-divider > .utility-truncate {
+    min-width: 0;
   }
   .utility-divider__line {
     flex: 1 1 auto;
@@ -616,11 +642,19 @@
     display: none;
   }
   @container (max-width: 12.5rem) {
+    .discover-widget .utility-head > .utility-well {
+      display: none;
+    }
     .utility-hide-narrow {
       display: none !important;
     }
     .utility-show-narrow {
       display: inline-flex;
+    }
+  }
+  @container (max-height: 9.5rem) {
+    .discover-widget .utility-stack > li:nth-child(n + 3) {
+      display: none;
     }
   }
   @container (max-height: 6.25rem) {
@@ -634,6 +668,18 @@
       overflow-wrap: normal;
       -webkit-line-clamp: none;
       line-clamp: none;
+    }
+  }
+  @container (max-height: 4rem) {
+    .utility-empty > .aca-icon {
+      display: none;
+    }
+    .utility-empty > .aca-type--body-sm {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

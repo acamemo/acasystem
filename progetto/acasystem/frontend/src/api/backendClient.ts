@@ -2,7 +2,7 @@
  * Frontend API client for the Acasystem backend (ex Tunet).
  * All calls go to /api/* which Vite proxies to the backend in dev mode,
  * and Express serves directly in production.
- * Only the bearer token is sent: the backend validates it against the Home Assistant configured
+ * The bearer token and ephemeral profile-usage proof are sent: the backend validates the token against the Home Assistant configured
  * on the server (SEC-1), so no Home Assistant address (`x-ha-url`) leaves the browser (ADR-0009).
  */
 
@@ -14,6 +14,7 @@ import {
   type HomeAssistantRequestHeaders,
 } from '@/api/apiAuth';
 import { isObject, type UnknownRecord } from '@/validators/guards';
+import { notifyProfileUsageFailure, profileUsageHeaders } from './usageProof';
 
 const API_BASE = './api';
 
@@ -23,6 +24,8 @@ export type BackendRequestInit = Omit<RequestInit, 'headers'> & {
 
 interface RequestControl {
   retryOnOAuthUnauthorized?: boolean;
+  /** Captured/transient credentials must not revoke an unrelated currently active access. */
+  notifyOnUnauthorized?: boolean;
   authHeadersOverride?: HomeAssistantRequestHeaders | null;
 }
 
@@ -60,7 +63,7 @@ const createApiError = (message: string, status: number, body: UnknownRecord): A
 export async function backendRequest(
   path: string,
   options: BackendRequestInit = {},
-  { retryOnOAuthUnauthorized = true, authHeadersOverride = null }: RequestControl = {}
+  { retryOnOAuthUnauthorized = true, notifyOnUnauthorized = true, authHeadersOverride = null }: RequestControl = {}
 ): Promise<unknown> {
   if (backendOverride) {
     const answer = await backendOverride({
@@ -70,12 +73,17 @@ export async function backendRequest(
     });
     if (answer.status >= 200 && answer.status < 300) return answer.body;
     const failure: UnknownRecord = isObject(answer.body) ? answer.body : {};
-    throw createApiError(String(failure.error || `API error ${answer.status}`), answer.status, failure);
+    throw createApiError(
+      String(failure.error || `API error ${answer.status}`),
+      answer.status,
+      failure
+    );
   }
   const authHeaders = authHeadersOverride ?? (await getValidatedHomeAssistantRequestHeadersAsync());
-  const mergedHeaders = {
+  const mergedHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     ...authHeaders,
+    ...profileUsageHeaders(),
     ...options.headers,
   };
 
@@ -85,7 +93,16 @@ export async function backendRequest(
   });
 
   if (!res.ok) {
-    if (res.status === 401 && retryOnOAuthUnauthorized && getStoredAuthMethod() === 'oauth') {
+    const parsedBody: unknown = await res.json().catch(() => ({}));
+    const body: UnknownRecord = isObject(parsedBody) ? parsedBody : {};
+    notifyProfileUsageFailure(body, mergedHeaders['x-aca-usage-lease']);
+    if (
+      res.status === 401 &&
+      body.code !== 'CLIENT_REVOKED' &&
+      retryOnOAuthUnauthorized &&
+      notifyOnUnauthorized &&
+      getStoredAuthMethod() === 'oauth'
+    ) {
       const retryHeaders = await getValidatedHomeAssistantRequestHeadersAsync({
         forceRefreshOAuth: true,
       });
@@ -96,14 +113,13 @@ export async function backendRequest(
         },
         {
           retryOnOAuthUnauthorized: false,
+          notifyOnUnauthorized,
           authHeadersOverride: retryHeaders,
         }
       );
     }
 
-    const parsedBody: unknown = await res.json().catch(() => ({}));
-    const body: UnknownRecord = isObject(parsedBody) ? parsedBody : {};
-    if (res.status === 401) {
+    if (res.status === 401 && notifyOnUnauthorized) {
       throw notifyHomeAssistantApiUnauthorized(
         String(body.error || 'Home Assistant authentication failed')
       );

@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { CardSettingsMap, PagesConfig } from '@/@types/dashboard';
 import type { WidgetRuntime } from '@/@types/launcher';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
@@ -16,6 +16,8 @@ import {
   pickerIcons,
   shownIcon,
 } from '@/templates/sheets/parts/iconChoices';
+import { emptyWidgetMemory, WIDGET_MEMORY_STORAGE_KEY, type WidgetState } from '@/utils/launcher/deviceMemory';
+import { fakeConnection } from './ComfortHarness';
 
 const state = vi.hoisted(() => ({
   pages: {} as Record<string, unknown>,
@@ -98,6 +100,15 @@ function withRuntime(node: ReactNode, overrides: Partial<WidgetRuntime> = {}) {
 }
 
 beforeEach(() => {
+  const rect = HTMLElement.prototype.getBoundingClientRect;
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    if (this.classList.contains('aca-widget-catalog__pages')) return { x: 0, y: 0, top: 0, left: 0, right: 1100, bottom: 600, width: 1100, height: 600, toJSON: () => ({}) };
+    if (this.classList.contains('aca-catalog-type__caption') || this.classList.contains('aca-widget-catalog__heading')) {
+      const height = this.classList.contains('aca-catalog-type__caption') ? 72 : 28;
+      return { x: 0, y: 0, top: 0, left: 0, right: 220, bottom: height, width: 220, height, toJSON: () => ({}) };
+    }
+    return rect.call(this);
+  });
   state.pages = makePages();
 });
 
@@ -107,50 +118,86 @@ afterEach(() => {
   document.documentElement.style.overflow = '';
 });
 
+/** Follow the public horizontal catalog navigation before interacting with a type. */
+function catalogButton(name: string) {
+  const tile = [...document.querySelectorAll<HTMLButtonElement>('[data-widget-type]')].find((node) =>
+    document.getElementById(node.getAttribute('aria-labelledby') ?? '')?.textContent === name);
+  if (!tile) throw new Error(`Tipo non trovato: ${name}`);
+  const page = Number(tile.closest<HTMLElement>('[data-catalog-page]')?.dataset.catalogPage);
+  let current = Number(document.querySelector<HTMLElement>('[data-catalog-page]:not([inert])')?.dataset.catalogPage);
+  while (current !== page) {
+    fireEvent.keyDown(screen.getByLabelText('Pagine del catalogo'), { key: current < page ? 'ArrowRight' : 'ArrowLeft' });
+    current = Number(document.querySelector<HTMLElement>('[data-catalog-page]:not([inert])')?.dataset.catalogPage);
+  }
+  return screen.getByRole('button', { name });
+}
+
 describe('AddWidgetSheet', () => {
   function renderAdd(onAdded = vi.fn(), onClose = vi.fn()) {
     render(withRuntime(<AddWidgetSheet open onClose={onClose} pageId="home" onAdded={onAdded} />));
     return { onAdded, onClose };
   }
 
-  it('è un dialog con titolo, chiusura e la griglia dei tipi', () => {
+  it('è un dialog con titolo, chiusura e la griglia dei tipi', async () => {
     const { onClose } = renderAdd();
     const dialog = screen.getByRole('dialog', { name: 'Aggiungi un widget' });
-    expect(dialog.tagName).toBe('DIALOG');
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByRole('group', { name: 'Tipi di widget' })).toBeInTheDocument();
-    for (const label of ['Luci', 'Clima', 'Stanze', 'Separatore', 'Sensori e comandi']) {
-      expect(within(dialog).getByRole('button', { name: label })).toBeInTheDocument();
+    for (const label of ['Luci', 'Clima', 'Stanze', 'Separatore', 'Sensori']) {
+      expect(catalogButton(label)).toBeInTheDocument();
     }
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Chiudi' }));
-    expect(onClose).toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
-  it('raggruppa i tipi sotto Dispositivi, Informazioni e Layout, con Trova dispositivi sopra', () => {
+  it('raggruppa i tipi sotto Dispositivi, Informazioni e Layout, con Trova dispositivi come prima tessera', () => {
     renderAdd();
     const grid = screen.getByRole('group', { name: 'Tipi di widget' });
-    const headings = within(grid)
-      .getAllByRole('heading', { level: 3 })
-      .map((heading) => heading.textContent);
-    expect(headings).toEqual(['Dispositivi', 'Informazioni', 'Layout']);
+    const groups = [...new Set(within(grid).getAllByRole('region', { hidden: true }).map((group) => group.getAttribute('aria-label')))];
+    expect(groups).toEqual(['Dispositivi', 'Informazioni', 'Layout']);
     const find = within(grid).getByRole('button', { name: 'Trova dispositivi' });
-    const firstHeading = within(grid).getByRole('heading', { name: 'Dispositivi' });
-    expect(
-      find.compareDocumentPosition(firstHeading) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
+    const devices = within(grid).getByRole('region', { name: 'Dispositivi' });
+    expect(within(devices).getAllByRole('button')[0]).toBe(find);
+    catalogButton('Meteo di casa');
     const info = within(grid).getByRole('region', { name: 'Informazioni' });
     expect(within(info).getByRole('button', { name: 'Meteo di casa' })).toHaveTextContent(
-      'Della posizione di casa'
+      'Fonte della casa'
     );
-    expect(within(info).getByRole('button', { name: 'Meteo' })).toHaveTextContent(
+    expect(catalogButton('Meteo')).toHaveTextContent(
       'Da una fonte scelta'
     );
+    catalogButton('Separatore');
     const layout = within(grid).getByRole('region', { name: 'Layout' });
     expect(within(layout).getByRole('button', { name: 'Separatore' })).toBeInTheDocument();
   });
 
+  it('consegna tutti i tipi al posizionamento senza aprire associazioni o creare widget', () => {
+    const onPlaceType = vi.fn();
+    const onAdded = vi.fn();
+    const onClose = vi.fn();
+    const callService = vi.fn();
+    render(withRuntime(<AddWidgetSheet open onClose={onClose} pageId="home" onAdded={onAdded} onPlaceType={onPlaceType} />, { callService }));
+    const visuals = typeVisuals();
+    for (const item of ADD_WIDGET_TYPES) {
+      fireEvent.click(catalogButton(visuals.get(item.type)?.label ?? item.label));
+      expect(onPlaceType).toHaveBeenLastCalledWith(item.type);
+      expect(screen.getByRole('group', { name: 'Tipi di widget' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Aggiungi.*widget/ })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Cerca')).not.toBeInTheDocument();
+    }
+    expect(onPlaceType.mock.calls).toEqual(ADD_WIDGET_TYPES.map((item) => [item.type]));
+    expect(onAdded).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(callService).not.toHaveBeenCalled();
+    const pages = state.pages as ReturnType<typeof makePages>;
+    for (const writer of [pages.persistConfig, pages.persistCardSettings, pages.saveCardSetting, pages.requestWidgetAdoption]) {
+      expect(writer).not.toHaveBeenCalled();
+    }
+  });
+
   it('crea un widget clima come il legacy e lo passa al launcher alla misura predefinita', () => {
     const { onAdded, onClose } = renderAdd();
-    fireEvent.click(screen.getByRole('button', { name: 'Clima' }));
+    fireEvent.click(catalogButton('Clima'));
     expect(screen.getByRole('heading', { name: 'Clima' })).toHaveFocus();
     const add = screen.getByRole('button', { name: 'Aggiungi il widget' });
     expect(add).toBeDisabled();
@@ -180,7 +227,7 @@ describe('AddWidgetSheet', () => {
       pagesConfig: { pages: ['home'], header: [], home: [] },
     });
     const { onAdded } = renderAdd();
-    fireEvent.click(screen.getByRole('button', { name: 'Luci' }));
+    fireEvent.click(catalogButton('Luci'));
     fireEvent.click(screen.getByRole('button', { name: /Luce cucina/ }));
     fireEvent.click(screen.getByRole('button', { name: /Luce sala/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Aggiungi 2 widget' }));
@@ -194,13 +241,14 @@ describe('AddWidgetSheet', () => {
 
   it('nasconde le luci già nella pagina e filtra con la ricerca', () => {
     renderAdd();
-    fireEvent.click(screen.getByRole('button', { name: 'Luci' }));
+    fireEvent.click(catalogButton('Luci'));
     expect(screen.queryByRole('button', { name: /Luce cucina/ })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Cerca'), { target: { value: 'nessuna' } });
     expect(screen.getByText('Nessun risultato per «nessuna».')).toBeInTheDocument();
   });
 
-  it('dal vassoio apre direttamente i dettagli del tipo trascinato', () => {
+  it('dal vassoio apre direttamente i dettagli del tipo trascinato anche col callback catalogo', () => {
+    const onPlaceType = vi.fn();
     render(
       withRuntime(
         <AddWidgetSheet
@@ -209,12 +257,14 @@ describe('AddWidgetSheet', () => {
           pageId="home"
           onAdded={vi.fn()}
           initialType="climate"
+          onPlaceType={onPlaceType}
           autoAdd
         />
       )
     );
     expect(screen.getByRole('heading', { name: 'Clima' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Tipi di widget' })).not.toBeInTheDocument();
+    expect(onPlaceType).not.toHaveBeenCalled();
   });
 
   it('dal vassoio aggiunge subito un tipo senza scelte, senza mostrare il pannello', async () => {
@@ -237,7 +287,7 @@ describe('AddWidgetSheet', () => {
 
   it('crea un separatore con le impostazioni iniziali del legacy', () => {
     const { onAdded } = renderAdd();
-    fireEvent.click(screen.getByRole('button', { name: 'Separatore' }));
+    fireEvent.click(catalogButton('Separatore'));
     fireEvent.click(screen.getByRole('button', { name: 'Spazio' }));
     fireEvent.click(screen.getByRole('button', { name: 'Aggiungi il widget' }));
 
@@ -256,7 +306,7 @@ describe('AddWidgetSheet', () => {
 
   it('torna ai tipi con Indietro', () => {
     renderAdd();
-    fireEvent.click(screen.getByRole('button', { name: 'Meteo' }));
+    fireEvent.click(catalogButton('Meteo'));
     fireEvent.click(screen.getByRole('button', { name: 'Indietro' }));
     expect(screen.getByRole('group', { name: 'Tipi di widget' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Meteo' })).toHaveFocus();
@@ -264,6 +314,65 @@ describe('AddWidgetSheet', () => {
 });
 
 describe('WidgetSettingsSheet', () => {
+  /** A noLive utility binding commits the whole state, including the existing memory effects. */
+  function renderUtilitySettings(widgetId: string, cards: CardSettingsMap, route: 'commit' | 'fallback' = 'commit') {
+    const key = `home::${widgetId}`;
+    const initial: WidgetState = {
+      layout: { version: 1, cover: { enabled: false }, pages: [{
+        id: 'home', label: 'Principale', kind: 'widgets', order: [widgetId],
+        placements: { tablet: { [widgetId]: { x: 0, y: 0, w: 2, h: 2 } } },
+      }] },
+      pagesConfig: { pages: ['home'], header: [], home: [widgetId] },
+      cardSettings: cards, customNames: {}, customIcons: {}, memory: emptyWidgetMemory(),
+    };
+    const previousMemory = localStorage.getItem(WIDGET_MEMORY_STORAGE_KEY);
+    localStorage.setItem(WIDGET_MEMORY_STORAGE_KEY, JSON.stringify(initial.memory));
+    let current = initial;
+    let update = (_change: (previous: WidgetState) => WidgetState) => {};
+    const legacySave = vi.fn();
+    const commit = vi.fn(async (apply: (previous: WidgetState) => WidgetState, _id: string) => {
+      await Promise.resolve(); update(apply);
+    });
+    const setCards = vi.fn((change: CardSettingsMap | ((previous: CardSettingsMap) => CardSettingsMap)) => {
+      update((previous) => ({ ...previous, cardSettings: typeof change === 'function' ? change(previous.cardSettings) : change }));
+    });
+    const { conn } = fakeConnection((message) => {
+      if (message.type === 'config/area_registry/list') return [{ area_id: 'ufficio', name: 'Ufficio', icon: 'mdi:desk' }];
+      if (message.type === 'config/entity_registry/list') return [
+        { entity_id: 'light.cucina', device_id: 'device-ufficio' },
+        { entity_id: 'sensor.temperatura', area_id: 'ufficio' },
+      ];
+      if (message.type === 'config/device_registry/list') return [{ id: 'device-ufficio', area_id: 'ufficio' }];
+      return [];
+    });
+    function UtilityFixture() {
+      const [store, setStore] = useState(initial);
+      current = store;
+      update = (change) => setStore((previous) => {
+        const next = change(previous);
+        localStorage.setItem(WIDGET_MEMORY_STORAGE_KEY, JSON.stringify(next.memory));
+        return next;
+      });
+      useEffect(() => () => {
+        if (previousMemory === null) localStorage.removeItem(WIDGET_MEMORY_STORAGE_KEY);
+        else localStorage.setItem(WIDGET_MEMORY_STORAGE_KEY, previousMemory);
+      }, []);
+      state.pages = makePages({
+        launcherLayout: store.layout, pagesConfig: store.pagesConfig, cardSettings: store.cardSettings,
+        customNames: store.customNames, customIcons: store.customIcons,
+        commitWidgetAddition: route === 'commit' ? commit : undefined,
+        setCardSettings: setCards,
+        persistCustomNames: (names: Record<string, string>) => update((previous) => ({ ...previous, customNames: names })),
+        persistCustomIcons: (icons: Record<string, string>) => update((previous) => ({ ...previous, customIcons: icons })),
+        persistWidgetMemory: (memory: WidgetState['memory']) => update((previous) => ({ ...previous, memory })),
+      });
+      return withRuntime(<WidgetSettingsSheet open onClose={vi.fn()} widgetId={widgetId} settingsKey={key} pageId="home" />,
+        { conn, cardSettings: store.cardSettings, customNames: store.customNames, customIcons: store.customIcons, saveCardSetting: legacySave });
+    }
+    render(<UtilityFixture />);
+    return { commit, setCards, legacySave, snapshot: () => current };
+  }
+
   function renderSettings(
     widgetId: string,
     cardSettings: CardSettingsMap,
@@ -343,7 +452,9 @@ describe('WidgetSettingsSheet', () => {
     'the settings of the device say they hold for all its widgets (%s, ADR-0019)',
     (widgetId, settings, scoped) => {
       renderSettings(widgetId, { [`home::${widgetId}`]: settings });
-      const note = screen.queryAllByText('Vale per tutti i widget di questo dispositivo.');
+      const note = screen.queryAllByText(widgetId === 'car_card_1'
+        ? 'Alcuni collegamenti si applicano anche agli altri widget di questa auto.'
+        : 'Vale per tutti i widget di questo dispositivo.');
       expect(note.length > 0).toBe(scoped);
     }
   );
@@ -406,26 +517,49 @@ describe('WidgetSettingsSheet', () => {
     expect(save).toHaveBeenCalledWith('home::climate_card_1', 'climateFavoriteModes', ['off']);
   });
 
-  it('Attività: permette di scegliere e rimuovere la lista con la chiave consumata dal widget', () => {
-    const save = renderSettings('todo_card_1', {});
+  it('Attività: permette di scegliere e rimuovere la lista con la chiave consumata dal widget', async () => {
+    const fixture = renderUtilitySettings('todo_card_1', {}, 'fallback');
     expect(screen.queryByText(/non sono ancora modificabili/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Nessuna' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Non collegata' }));
     fireEvent.click(screen.getByRole('button', { name: /Attività ufficio/ }));
-    expect(save).toHaveBeenCalledWith('home::todo_card_1', 'todoEntityId', 'todo.ufficio');
-    fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Nessuna' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Nessuna' }));
-    expect(save).toHaveBeenLastCalledWith('home::todo_card_1', 'todoEntityId', null);
+    await waitFor(() => expect(fixture.snapshot().cardSettings['home::todo_card_1']?.todoEntityId).toBe('todo.ufficio'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Lista di attività: Attività ufficio' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Attività ufficio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Non collegata' }));
+    await waitFor(() => expect(fixture.snapshot().cardSettings['home::todo_card_1']?.todoEntityId).toBeNull());
+    expect(fixture.setCards).toHaveBeenCalledTimes(2);
+    expect(fixture.commit).not.toHaveBeenCalled();
+    expect(fixture.legacySave).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem(WIDGET_MEMORY_STORAGE_KEY) ?? 'null')).toEqual(fixture.snapshot().memory);
   });
 
-  it('Calendario: modifica la selezione senza perdere i calendari salvati temporaneamente mancanti', () => {
-    const save = renderSettings('calendar_card_1', {
+  it('Calendario: modifica la selezione senza perdere i calendari salvati temporaneamente mancanti', async () => {
+    const fixture = renderUtilitySettings('calendar_card_1', {
       'home::calendar_card_1': { calendars: ['calendar.assente'] },
     });
     fireEvent.click(screen.getByRole('button', { name: /Calendario ufficio/ }));
-    expect(save).toHaveBeenCalledWith('home::calendar_card_1', 'calendars', [
-      'calendar.assente',
-      'calendar.ufficio',
-    ]);
+    expect(fixture.commit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Applica i calendari' }));
+    await waitFor(() => expect(fixture.snapshot().cardSettings['home::calendar_card_1']?.calendars)
+      .toEqual(['calendar.assente', 'calendar.ufficio']));
+    expect(fixture.commit).toHaveBeenCalledTimes(1);
+    expect(fixture.commit.mock.calls[0]?.[1]).toBe('calendar_card_1');
+    expect(fixture.legacySave).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem(WIDGET_MEMORY_STORAGE_KEY) ?? 'null')).toEqual(fixture.snapshot().memory);
+  });
+
+  it('Stanza: conferma insieme area, appartenenza e memoria mediante il raccordo comune', async () => {
+    const fixture = renderUtilitySettings('room_card_1', { 'home::room_card_1': { entityIds: [] } });
+    fireEvent.click(await screen.findByRole('button', { name: /^Ufficio/ }));
+    expect(fixture.commit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Collega la stanza' }));
+    await waitFor(() => expect(fixture.snapshot().cardSettings['home::room_card_1']).toMatchObject({
+      areaId: 'ufficio', areaName: 'Ufficio', areaIcon: 'mdi:desk',
+      roomMembershipSource: 'area', entityIds: ['light.cucina', 'sensor.temperatura'],
+    }));
+    expect(fixture.commit).toHaveBeenCalledTimes(1);
+    expect(fixture.legacySave).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem(WIDGET_MEMORY_STORAGE_KEY) ?? 'null')).toEqual(fixture.snapshot().memory);
   });
 
   it.each([
@@ -444,7 +578,6 @@ describe('WidgetSettingsSheet', () => {
   );
 
   it.each([
-    ['nordpool_card_1', 'Barre', 'graphStyle', 'bar'],
     ['camera_card_1', 'Su movimento', 'cameraRefreshMode', 'motion'],
     ['spacer_card_1', 'Destra', 'headingAlign', 'right'],
   ])(
@@ -455,6 +588,16 @@ describe('WidgetSettingsSheet', () => {
       expect(save).toHaveBeenCalledWith(`home::${id}`, setting, expected);
     }
   );
+
+  it('Prezzi: conserva le preferenze storiche senza editor grafico o sostegno inerti', () => {
+    const settings = { nordpoolId: 'sensor.nordpool', graphStyle: 'bar', showWithSupport: true };
+    const save = renderSettings('nordpool_card_1', { 'home::nordpool_card_1': settings });
+    expect(screen.getByRole('spinbutton', { name: 'Decimali' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Barre' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: /sostegno/i })).toBeNull();
+    expect(save).not.toHaveBeenCalled();
+    expect(settings).toEqual({ nordpoolId: 'sensor.nordpool', graphStyle: 'bar', showWithSupport: true });
+  });
 
   it('Android TV: seleziona lettori collegati usando linkedMediaPlayers', () => {
     const save = renderSettings('androidtv_card_1', {});

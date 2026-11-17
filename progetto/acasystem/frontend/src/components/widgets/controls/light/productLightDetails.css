@@ -1,0 +1,7 @@
+/* Each device channel keeps the kit controls, with a readable grid inside its section. */
+.product-light-channel .aca-adaptive-widget[data-details] .uikwa-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  align-items: start;
+  justify-items: center;
+}

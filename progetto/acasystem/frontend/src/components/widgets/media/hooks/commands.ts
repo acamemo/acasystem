@@ -12,6 +12,8 @@ export function sendSafely(send: () => unknown, onError: () => void) {
 export interface ConfirmedCommand<T> {
   /** The requested value while waiting for Home Assistant, the confirmed one otherwise. */
   value: T;
+  /** What Home Assistant reports, whatever was requested: the state to show as the real one. */
+  confirmed: T;
   pending: boolean;
   /** The last request failed (rejected service call). */
   error: boolean;
@@ -19,12 +21,22 @@ export interface ConfirmedCommand<T> {
   request: (target: T, send?: () => unknown) => void;
   /** Attaches a (throttled) call to the current request: a failure marks the error. */
   track: (send: () => unknown) => void;
+  /** `timeoutMessage` once the last request got no confirmation in time; null otherwise. */
+  timedOut: string | null;
+  /** Sends the last request again (after a timeout). */
+  retry: () => void;
 }
 
 interface ConfirmedOptions<T> {
   equals?: (confirmed: T, requested: T) => boolean;
   /** Without a confirmation the request is dropped after this delay (no error: HA accepted it). */
   timeoutMs?: number;
+  /**
+   * When given, a request that times out is not dropped silently: `timedOut` carries this
+   * message until the next request or the next change reported by Home Assistant, and `retry`
+   * sends the request again.
+   */
+  timeoutMessage?: string;
   /** Ignore new requests while one is pending (power buttons, as usePowerToggle). */
   ignoreWhilePending?: boolean;
 }
@@ -35,10 +47,17 @@ interface ConfirmedOptions<T> {
  */
 export function useConfirmedCommand<T>(
   confirmed: T,
-  { equals = Object.is, timeoutMs = 10000, ignoreWhilePending = false }: ConfirmedOptions<T> = {}
+  {
+    equals = Object.is,
+    timeoutMs = 10000,
+    ignoreWhilePending = false,
+    timeoutMessage,
+  }: ConfirmedOptions<T> = {}
 ): ConfirmedCommand<T> {
   const [requested, setRequested] = useState<{ target: T; id: number } | null>(null);
   const [error, setError] = useState(false);
+  const [timedOut, setTimedOut] = useState<string | null>(null);
+  const last = useRef<{ target: T; send?: () => unknown } | null>(null);
   const counter = useRef(0);
   const current = useRef<number | null>(null);
 
@@ -56,13 +75,15 @@ export function useConfirmedCommand<T>(
       if (current.current !== requested.id) return;
       current.current = null;
       setRequested(null);
+      if (timeoutMessage) setTimedOut(timeoutMessage);
     }, timeoutMs);
     return () => clearTimeout(timer);
-  }, [requested, timeoutMs]);
+  }, [requested, timeoutMs, timeoutMessage]);
 
   // A later change reported by Home Assistant makes an old failure irrelevant.
   useEffect(() => {
     setError(false);
+    setTimedOut(null);
   }, [confirmed]);
 
   const failFor = useCallback((id: number) => {
@@ -86,15 +107,31 @@ export function useConfirmedCommand<T>(
       counter.current += 1;
       const id = counter.current;
       current.current = id;
+      last.current = send ? { target, send } : { target };
       setError(false);
+      setTimedOut(null);
       setRequested({ target, id });
       if (send) sendSafely(send, () => failFor(id));
     },
     [failFor, ignoreWhilePending]
   );
 
+  const retry = useCallback(() => {
+    const again = last.current;
+    if (again) request(again.target, again.send);
+  }, [request]);
+
   const pending = requested !== null && !matched;
-  return { value: pending ? requested.target : confirmed, pending, error, request, track };
+  return {
+    value: pending ? requested.target : confirmed,
+    confirmed,
+    pending,
+    error,
+    request,
+    track,
+    timedOut,
+    retry,
+  };
 }
 
 export interface ServiceActions {

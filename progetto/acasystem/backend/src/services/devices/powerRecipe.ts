@@ -1,3 +1,5 @@
+export type { PowerOptions, PowerStatusDto } from '../../../../contracts/devices.ts';
+import type { PowerOptions, PowerStatusDto } from '../../../../contracts/devices.ts';
 import { POWER_AUTOMATION_ID_PREFIX } from '../../config/devices.ts';
 import { powerTriggerFormsFor } from '../../config/homeAssistantApiCatalog.ts';
 import type { PowerTriggerForm } from '../../config/homeAssistantApiCatalog.ts';
@@ -29,23 +31,6 @@ import type { HaDevice, HaWsApi } from './haAdapter.ts';
  * DHCP list, when it is the only one); it is passed to HA and forgotten: it is not stored, logged
  * or returned.
  */
-
-export interface PowerOptions {
-  /** Sent by the person when HA and the network do not give it. */
-  mac?: string | undefined;
-  broadcastAddress?: string | undefined;
-  broadcastPort?: number | undefined;
-}
-
-export interface PowerStatusDto {
-  entryId: string;
-  configured: boolean;
-  /** True when the TV shows the turn-on feature; null when it could not be checked. */
-  active: boolean | null;
-  message: string | null;
-  /** Where the MAC came from for this call; the value is never returned. */
-  macSource?: 'home_assistant' | 'network' | 'user';
-}
 
 export interface PowerRecipe {
   status(user: DeviceUser, webostvEntryId: string): Promise<PowerStatusDto>;

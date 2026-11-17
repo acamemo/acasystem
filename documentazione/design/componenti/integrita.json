@@ -108,6 +108,46 @@
       "sha256": "FE07E8840037F5CA6719B720941C35889F2F33DA3DEE0B94C8D6F05E71B7A91B",
       "source": "messaggio inline dell'utente del 2026-10-27, trascritto senza adattamenti",
       "note": "Trascrizione del markup HTML/Tailwind incollato in chat insieme a una schermata della consolle TV con il riproduttore cerchiato: identità byte per byte con un file sorgente non dimostrabile."
+    },
+    {
+      "id": "UI-012",
+      "file": "originali/UI-012-account-cover-avatar.jsx.txt",
+      "bytes": 11389,
+      "sha256": "FA31C7F1BAC88387EF0BB8F38290F339641FAD446BFDF7F365DA276715CA80EB",
+      "source": "file allegato utente2026-11-02,U54:Testo incollato.txt",
+      "note": "Copia byte per byte del file allegato; layout cover/avatar/account come ispirazione. Dipendenze React/styled-components del campione non adottate."
+    },
+    {
+      "id": "UI-013",
+      "file": "originali/UI-013-sign-in-sign-up.jsx.txt",
+      "bytes": 2260,
+      "sha256": "CE0E06BFBA30B5C3A4A02D0C95F5D52D0EAD8DC002773E4E5AF1184C8EEE3B69",
+      "source": "messaggio inline utente del 2026-11-02 durante REP016, trascritto senza adattamenti",
+      "note": "Trascrizione del codice incollato in chat; identità byte per byte con un file esterno non dimostrabile. Gerarchia sign-in/sign-up usata come ispirazione nel design ACA, senza styled-components o autenticazione email."
+    },
+    {
+      "id": "UI-014",
+      "file": "originali/UI-014-haos-collegamento-qr.png",
+      "bytes": 371451,
+      "sha256": "F53D394F9C1C86A6A2CDD757F7F60B0F471E14384F649208654DEEA5A537D20E",
+      "source": "immagine allegata dall’utente il2026-11-04: codex-clipboard-4ea1a3c1-cfeb-4e91-8846-3aed9e82d98d.png",
+      "note": "Copia byte per byte; autore e licenza non noti. Ispirazione della card centrata QR/indirizzo, adattata al design ACA senza pulsanti e senza adottare sfondo, UI browser o altri elementi della reference."
+    },
+    {
+      "id": "UI-014b",
+      "file": "originali/UI-014b-haos-collegamento-testi.png",
+      "bytes": 122823,
+      "sha256": "14C8FDEDDB8C4A282B4F441843DC2798928C15ADB94850E8E9E17C78901D5E4B",
+      "source": "dettaglio immagine fornito dall’utente il2026-11-04 nella revisione dei testi della preview",
+      "note": "Copia byte per byte, distinta da UI-014. L’utente richiede titolo, sottotitolo inglesi e separatore manuale come reference; materiale ACA, indirizzo testuale e assenza di pulsanti conservati."
+    },
+    {
+      "id": "UI-015",
+      "file": "originali/UI-015-liquid-glass.png",
+      "bytes": 165551,
+      "sha256": "CCBB00F6182D1EF7F9F7670BC71C693903368B9EDA496378FB80C21E43E7A019",
+      "source": "immagine allegata dall’utente il2026-11-04: codex-clipboard-19330089-4f13-434e-bb7d-382c67242503.png",
+      "note": "Copia byte per byte, senza ritagli o ricodifiche; autore, URL e licenza non noti. Reference visiva del tema ACA Liquid Glass richiesto in REP-20261104-008, non un asset importato dall’app o una nuova autorizzazione funzionale."
     }
   ]
 }

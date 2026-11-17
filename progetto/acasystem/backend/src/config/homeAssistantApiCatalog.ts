@@ -170,6 +170,9 @@ export const HA_CALLS = {
     permission: 'admin',
     checks: ['CT-14'],
   }),
+  usersDelete: ws('config.auth.delete', 'config/auth/delete', {
+    haClass: 'INT', permission: 'admin', checks: ['CT-14'],
+  }),
   usersUpdate: ws('config.auth.update', 'config/auth/update', {
     haClass: 'INT',
     permission: 'admin',

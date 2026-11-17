@@ -1,5 +1,189 @@
 # ACA SYSTEM — Specifica di design
 
+## Ultime aree widget (2026-11-12)
+
+[Agenda](componenti/agenda.md), [Stanze](componenti/stanze.md), [Gateway Zigbee](componenti/gateway-zigbee.md), [REP002](../reports/REP-20261112-002-widget-rimanenti.md): stesso ACA Vetro Bianco, Home sintetica e dettagli operativi, associazioni comuni con ACK, tecnica/manutenzione separate. Densità misurata sulla tessera reale, nessun nuovo blur/zoom o transizione globale. Calendario distingue giorni interi e fusi; Attività espone solo funzioni supportate; Stanze conserva gli snapshot storici; Zigbee distingue richiesta accettata e stato osservato. Build locale .70 e QA nel report, hardware e banco separati.
+
+## Meteo e Meteo di casa (2026-11-12)
+
+[Brief](componenti/meteo.md), [REP001](../reports/REP-20261112-001-area-meteo.md): tessere e dettagli condivisi in ACA Vetro Bianco, fonti esplicite o automatica domestica conservata, temperatura locale e previsioni con unità native. Una sola associazione con memoria e riscontro della centrale; probabilità distinta dalle precipitazioni e storico reale distinto dalla previsione. Primitive, paesaggio e transizioni comuni, nessun nuovo blur/zoom. Build locale .69 verificata con 126 test dedicati e QA finale 6 flussi/6 cold/5 viste simulate, comprese tessere fisiche 122×122 e 48×48. Copertura oraria/giornaliera soltanto; banco, account/profili, provider reali, hardware e pubblicazione esclusi.
+
+## Energia e consumi (2026-11-11)
+
+[Brief](componenti/energia-consumi.md), [REP005](../reports/REP-20261111-005-energia-consumi.md): due composizioni readonly su ACA Vetro Bianco, fonti energetiche esplicite e prezzi unitari separati. Stessi componenti in Home/dettagli e associazione unica con ACK; cronologia veritiera, fasce con orari effettivi, nessun blur/zoom aggiunto. Build locale .67 verificata a320/390/1916 con dati sintetici; banco e hardware distinti.
+
+## Area Sensori (2026-11-11)
+
+[Brief](componenti/sensori.md), [REP004](../reports/REP-20261111-004-area-sensori.md): ACA Vetro Bianco, tessera di sola lettura e dettagli condivisi con canali, cronologia e tecnica separati. Associazione Dispositivo / Helper e comandi mediante primitive comuni; nessun blur, zoom o animazione per lettura aggiunto. Build locale .66 verificata a 320/390/1916 con dati sintetici; hardware e banco distinti.
+
+## Area Multimedia (2026-11-11)
+
+[Brief](componenti/multimedia.md), [REP003](../reports/REP-20261111-003-area-multimedia.md): TV Android/Apple, poi Sonos e lettori sul design Vetro Bianco. Tessera sintetica, dettagli centrati e controlli multimediali condivisi, canali riconoscibili e tecnica separata. Gruppi espliciti e preferenze preservati. Stesse transizioni, nessun blur o zoom aggiunto; attuazione locale .65 verificata e limiti hardware nel report.
+
+## Area Robot (2026-11-11)
+
+[Brief](componenti/robot.md), [REP002](../reports/REP-20261111-002-area-robot-aspirapolvere-tagliaerba.md): Aspirapolvere poi Tagliaerba sul modello ACA Vetro Bianco. Home sintetica, canali e comandi effettivi nei dettagli, stanze/mappe solo se realmente esposte, manutenzione separata. Stesse primitive e transizioni, nessun nuovo blur/zoom o tema; attuazione locale .64 verificata.
+
+## Serrature, Allarme e Videocamere per dispositivo (2026-11-11)
+
+[REP001](../reports/REP-20261111-001-serrature-allarme-videocamere.md), [Serrature](componenti/serrature.md), [Allarme](componenti/allarme.md) e [Videocamere](componenti/videocamere.md): prosecuzione autorizzata sullo stesso ACA Vetro Bianco. Home sintetica, dettagli per canale, conferme/codici transitori e tecnica separata. Nessun nuovo materiale, blur, sfondo o transizione globale; tre famiglie attuate localmente, stato e verifiche nel report.
+
+## Ventilatori per dispositivo (2026-11-10)
+
+[Brief](componenti/ventilatori.md), [REP004](../reports/REP-20261110-004-ventilatori-per-dispositivo.md): quinta famiglia su ACA Vetro Bianco. Home sintetica con velocità osservata e azioni disponibili; multicanale senza comando collettivo. Console centrata con canali indipendenti, uso e tecnica separati; capacità e passi HA effettivi. Stessi materiali, selettori e transizioni, nessun blur o zoom aggiunto; testi a capo e controlli contenuti sui telefoni.
+
+## Tapparelle e tende per dispositivo (2026-11-10)
+
+[Brief](componenti/tapparelle-tende.md), [REP003](../reports/REP-20261110-003-tapparelle-tende-per-dispositivo.md): quarta famiglia su ACA Vetro Bianco. Home essenziale con stato/posizione osservati e comandi disponibili; dettagli con canali, target richiesto distinto e tecnica separata. Stop accessibile durante il comando pendente, stessa Console centrata, transizioni e controlli comuni. Nessun nuovo blur o zoom; valori testuali a capo e controlli contenuti anche sui telefoni.
+
+## Clima per dispositivo (2026-11-10)
+
+[Brief](componenti/clima-prodotto.md), [REP002](../reports/REP-20261110-002-clima-per-dispositivo.md): terza famiglia su ACA Vetro Bianco. Home sintetica, dettagli per canale con temperature e opzioni supportate, misure d'uso e tecnica separate. Stessi contenitori, controlli e transizioni comuni; nessun nuovo blur, zoom o materiale annidato. Il percorso storico resta compatibile.
+
+## Prese e interruttori (2026-11-10)
+
+[Brief](componenti/prese-interruttori.md), [REP001](../reports/REP-20261110-001-prese-interruttori-per-dispositivo.md): seconda famiglia sullo stesso ACA Vetro Bianco. Home multicanale sintetica senza comandi collettivi; dettagli con Uscite, Consumi e misure, Tecnica e manutenzione. Un solo materiale del contenitore, stessi controlli e transizioni, nessun nuovo blur o zoom. Stato di implementazione e verifiche nel report.
+
+## Utilità dirette e prima famiglia di prodotto (2026-11-09)
+
+[REP013](../reports/REP-20261109-013-utilita-e-luci-per-dispositivo.md), [ADR-0049](../decisions/ADR-0049-widget-prodotti-per-dispositivo.md), [brief](componenti/trova-dispositivi-e-luci.md): Trova dispositivi/Tavano aprono lo strumento direttamente dal catalogo, nello stesso contenitore dei dettagli. Unica UI condivisa con i widget Home; pin come azione secondaria. Trova privilegia nome/funzione/stato, ricerca e tre filtri, Tavano l'azione prima dei metadati e dettagli inline. Luci raccoglie i canali dello stesso dispositivo, con controlli supportati e una sezione tecnica separata; nessun'altra famiglia cambia presentazione in questo lotto. Si conserva ACA Vetro Bianco, Inter locale, mx-icons e movimento dal basso/fade già confermato. Nessun nuovo blur/zoom o caricamento scaglionato delle righe. Le indicazioni REP012 successive sono la fase precedente per gli ingressi delle sole due utilità.
+
+## Catalogo: anteprima locale e conferma (2026-11-09)
+
+[REP012](../reports/REP-20261109-012-widget-da-catalogo-a-posizionamento.md), [brief](componenti/catalogo-widget.md): il tap chiude la tendina e raggiunge la pagina idonea più vicina. Il fantasma isolato occupa la geometria proposta; «Conferma» e «Annulla» restano accessibili, e il gruppo azioni passa al bordo opposto se coprirebbe l’anteprima. Nessuna nuova modalità drag o modifica: confermare inserisce, annullare scarta la bozza. Posizione e capacità sono rilette prima del commit, il successo attende il riscontro autorevole; errori ed esiti incerti conservano la scelta con recupero esplicito. Pagine nascoste e speciali non idonee escluse, Copertina abilitata ammessa e materializzata soltanto alla conferma; segmenti visuali ricondotti alla pagina logica, nessuna pagina creata per supplire alla mancanza di spazio. Tutte28 le tipologie sono comprese, senza form di associazione anticipato. Materiali, foto, Y/X e loro durate restano quelli confermati; il nuovo ingresso non autorizza nuovi comportamenti domotici.
+
+
+**Robustezza catalogo2026-11-09:** [REP008](../reports/REP-20261109-008-cicli-ripetuti-catalogo.md), banco .53: recupero di un candidato mouse rimasto pendente, senza modificare materiali, durate o gesti attivi.
+
+
+## Messaggi sullo sfondo senza sovrapposizioni (2026-11-09)
+
+[REP003](../reports/REP-20261109-003-stati-vuoti-senza-sovrapposizioni.md): estendere lo stile essenziale dell'attesa ai recuperi di accesso, personalizzazione e profilo. Solo messaggio e azioni esistenti, centrati X/Y, senza card esterna; la primitiva condivisa `StatusMessage` mantiene16px di separazione e margine mobile. Un errore o un profilo occupato escludono immediatamente loader e timeout Home. Riprova avvia una nuova attesa, senza riproporre indicatori del ciclo precedente. Moduli, dati, permessi e uso esclusivo restano quelli confermati. Implementazione e QA locale concluse; installazione sul banco registrata nel report.
+
+## Avviso di preparazione prolungata (2026-11-09)
+
+[REP002](../reports/REP-20261109-002-preparazione-lenta-messaggio-centrato.md) e [brief](componenti/caricamento-home.md): testo semplice «La preparazione sta richiedendo più tempo del dovuto», senza contenitore grafico; pulsante ACA Riprova subito sotto, gruppo centrato X/Y. Il solo ramo lento cambia presentazione; errori, tempi e retry conservati. Verificato su PC/telefono emulato e installato nel banco .48 con account/profili preservati.
+
+## Catalogo widget tramite scroll della Home (2026-11-06)
+
+**Interazione verticale corrente, 2026-11-09 — [REP011](../reports/REP-20261109-011-fluidita-catalogo.md):** il gesto è un richiamo, seguito dalla salita autonoma del catalogo e dalla dissolvenza Home. Il richiamo inverso avvia l’uscita; la posizione non segue più ogni delta Y e non viene completata con uno scatto al rilascio o dopo idle. L’intento viene riconosciuto su superfici passive con il catalogo già preparato; la long press Home viene annullata prima di poter aprire l’editor. Un candidato breve/annullato non apre, mentre una transizione confermata continua anche con dito fermo. Trackpad, dito, mouse e tastiera conservano i percorsi protetti; nessuna attesa di 240 ms per iniziare il movimento.
+
+Materiali ACA, foto su piano viewport fisso, assi e controlli restano conservati. Lo sfoglio X non cambia: rimangono stage fermo, card intere e dissolvenza già confermata. Il costo e la fluidità sono verificati nei campioni descritti in REP011; non sono dichiarazioni di FPS o prestazioni sulla GPU/driver dell’utente. La descrizione REP010 seguente è storica e la sua manipolazione verticale è sostituita dal richiamo autonomo.
+
+**Interazione precedente, 2026-11-09 — [REP010](../reports/REP-20261109-010-trascinamento-verticale-catalogo.md):** comportamento diretto ispirato al Centro di Controllo, con materiali ACA e salita dal basso. Dito e mouse mantengono il pannello solidale allo spostamento, anche se si fermano a metà; il trackpad aggiorna la stessa posizione con i suoi delta. Home e catalogo condividono il progresso della dissolvenza. Al rilascio si completa o annulla il movimento usando le transizioni esistenti; il riaggancio riparte dalla posizione realmente dipinta. WheelEvent non comunica il rilascio fisico: il termine del gesto viene dedotto dalla pausa di 240 ms, senza anticiparlo al superamento di una soglia. La preview preparata resta non modale; focus e navigazione si attivano solo alla conferma, mentre l’uscita confermata conserva la protezione fino alla fine.
+
+La fotografia usa un piano fisso delle dimensioni del viewport, separato dalle schede: non viene ridimensionata sul box della pagina o traslata col pannello. Il pseudo-piano delle pagine conserva il vetro durante X; durante Y resta visibile soltanto la scena fissa esterna e il fade X termina. Nessuna animazione di blur o scala del paesaggio. Grafica, movimento ridotto, moduli e sfoglio X di REP009 conservati; risultati, consegna e limiti nel report. Le descrizioni seguenti conservano le fasi precedenti.
+
+Precisazione2026-11-09, [REP005](../reports/REP-20261109-005-gesti-catalogo-tutte-pagine.md): dito verso l'alto da tutte le pagine Home, incluse celle libere e speciali; dito verso il basso nel catalogo per tornare alla stessa pagina. Navigazione orizzontale conservata, nessun nuovo pulsante né modifica dei materiali. Implementazione locale verificata in REP005 e installata nel banco .51 in REP006; [REP007](../reports/REP-20261109-007-ritorno-catalogo-trackpad.md) aggiunge il ritorno da trackpad nel banco .52 usando la stessa animazione, senza cambiare materiali o durate.
+
+[ADR-0048](../decisions/ADR-0048-catalogo-widget-tendina.md), [brief](componenti/catalogo-widget.md) e [REP006](../reports/REP-20261106-006-catalogo-widget-tendina.md): l'ultima indicazione umana richiede scroll verso il basso sulla Home, senza pulsante/maniglia di apertura. Il catalogo sale automaticamente da fuori schermo, mentre la griglia principale sfuma; la fotografia e il vetro conservano continuità. Anteprime dimostrative sfogliabili destra/sinistra per pagine, intere nello spazio disponibile; solo i moduli successivi scorrono verticalmente dove necessario. Le due interpretazioni precedenti rimangono nel report come prove parziali superate. Implementazione e verifiche locali concluse, banco e hardware separati.
+
+Evoluzione successiva [REP007](../reports/REP-20261106-007-catalogo-widget-solo-gesti.md), attuata e verificata localmente: nessuna freccia precedente/successiva né X; swipe con il dito destra/sinistra e verso il basso sulle schede per chiudere. Contatore e grip sono passivi, titolo focalizzabile senza riquadro nativo, azioni dei moduli e alternative da tastiera conservate. Niente click residui dopo trascinamento o diagonale.
+
+**Precisazione di presentazione, 2026-11-09 — [REP009](../reports/REP-20261109-009-catalogo-piu-spazio.md):** la scelta dei tipi mostra anteprime e didascalie senza header, grip, titoli di gruppo o contatore visibili. Il titolo resta non visivo e focalizzabile; le pagine mantengono nomi accessibili e il contatore resta un annuncio per i lettori di schermo. Nessuna banda è riservata agli elementi rimossi: griglia e miniature usano l’altezza disponibile, rispettando la safe area. I moduli di associazione mantengono il proprio header.
+
+Le pagine visuali restano intere e ferme anche durante lo sfoglio X; solo l’opacità cambia per 180 ms, oppure istantaneamente con movimento ridotto. L’input e lo snap restano nativi, senza un nuovo riconoscitore. Foto e velo fissi nelle pagine conservano il vetro durante la dissolvenza; durante il movimento Y della tendina, inclusi trascinamento e uscita, la dissolvenza X termina subito e le pagine lasciano vedere la scena esterna fissa. Fallback opachi e contrasto conservati, senza animare il blur.
+
+Nella Home la pill «Sincronizzato» del solo editor sano non appare e il chrome vuoto non riserva altezza. Gli stati di attesa operativa, offline, bozza modificata, errore, conflitto e quota conservano messaggi e azioni. Verifiche, limiti e distribuzione rimandano a REP009.
+
+## Attesa e ingresso unitari della Home (2026-11-06)
+
+Il [piano richiesto e poi assegnato dall'utente](../riprogettazione/caricamento-home-piano.md) introduce loader circolare discreto, prima vista misurata e ingresso dal basso senza scala, avviato dalla disponibilità reale. [ADR-0047](../decisions/ADR-0047-caricamento-home-unitario.md), [attuazione REP004](../reports/REP-20261106-004-caricamento-home-unitario.md) e [brief](componenti/caricamento-home.md) ne distinguono implementazione e collaudi locali. Loader dopo150ms senza durata minima, uscita96ms concorrente, Home24px/280ms e ridotto120ms; niente skeleton dettagliati nel primo lotto. Nel solo percorso Home gestito viene soppressa la vecchia intro16px/scala.97; login, Sistema e popup conservano i movimenti precedenti.
+
+## Vetro continuo durante il ritorno dai dettagli (2026-11-06)
+
+[REP-20261106-001](../reports/REP-20261106-001-continuita-blur-ritorno-home.md): il materiale normale e il blur16px restano quelli confermati. Il filtro deve vedere la stessa foto mentre la Home sfuma e quando torna ferma; durante open/returning la shell riproduce quindi il medesimo paesaggio con ancoraggio al viewport. A closed nessun fondo aggiunto, avvio e trascinamento invariati; fallback opachi/contrasto conservati. È una correzione di composizione del vetro, senza nuova animazione o nuova estetica.
+
+## Sistema e dettagli: entrata dal basso (2026-11-05)
+
+[ADR-0046](../decisions/ADR-0046-apertura-widget-come-finestra.md), [REP006](../reports/REP-20261105-006-apertura-widget-finestra-apple.md) e [brief](componenti/widget-schermata.md): la precisazione umana sostituisce l'ingrandimento dalla tessera con salita di 24 px e fade dell'intera schermata, mentre la Home sfuma. Nessuna scala o attesa separata per titolo, comandi e body; ritorno inverso e sola opacità con movimento ridotto. Il paesaggio resta fisso e il dettaglio non ha più un velo di vetro globale: il materiale rimane sulle singole superfici e sui controlli. Fallback opachi e interazione protetta conservati.
+
+Sistema deve essere effettivamente montato prima dell'entrata. Al primo avvio della Home, dati iniziali e misure positive precedono le schede visibili, evitando bolle provvisorie e messaggi di indisponibilità prematuri. Nessuna attesa artificiale per lo storico remoto. Le sezioni precedenti sotto conservano lo storico delle decisioni, con il movimento REP001/REP005 ora sostituito da ADR-0046. Anteprima locale distinta dal banco.
+
+## Continuità dell'espansione e del ritorno (2026-11-05)
+
+[REP005](../reports/REP-20261105-005-transizioni-widget-fotogrammi.md), [brief aggiornato](componenti/widget-schermata.md): il paesaggio resta nello sfondo fisso. Si espande un piano di vetro con film/rim/radius esistenti, senza duplicare la fotografia o animare blur e raggio. Home e dettagli si incrociano negli ultimi 160 ms dell'ingresso da 280 ms; ritorno Home e guscio coordinati su 200 ms, ridotto su 120 ms. I controlli restano protetti durante il passaggio.
+
+La destinazione del ritorno segue il box reale dopo resize/orientamento/reflow, mantenendo l'origine immediata del primo frame e cancellando le osservazioni alla chiusura. Verificato con immagini intermedie, trace e regressioni: nessun nuovo tema, comando o percorso di dati; prove e banco separati nel report.
+
+## Scorrimento senza binari e selettori dei widget (2026-11-05)
+
+[REP004](../reports/REP-20261105-004-scroll-e-menu-widget-aca.md): su richiesta dell'utente, le barre native orizzontali/verticali non sono disegnate; restano gli scorrimenti con rotella, touch, tastiera e focus. In contrasto elevato restano gli indicatori del sistema. Nessun overflow disabilitato o nuovo sistema di gesture.
+
+Il ramo comune delle opzioni adattive usa il picker ACA: etichetta sopra, valore e freccia nella pill, lista verticale nel materiale condiviso, selezione visibile e target almeno 44 px. Focus sulla scelta corrente all'apertura, frecce/Home/End e Escape prima sul menu; corretta l'apertura nativa prima non focalizzabile. Verifica locale desktop/mobile conclusa; banco .46 e prove hardware separati.
+
+## Centratura della sfera nell'indicatore (2026-11-05)
+
+[REP003](../reports/REP-20261105-003-allineamento-pallino-pagine.md): il layout del contenuto dell'indicatore possiede gap0 e flex-start anche in presenza delle primitive Material. Tacche, sfera e range condividono così lo stesso passo; nessun offset correttivo o modifica del movimento. Misure0px su quattro larghezze nell'anteprima. La densità di molte pagine nel telefono è un problema distinto (ISSUE-146), non una nuova soluzione grafica introdotta qui.
+
+## Vetro leggero del widget in spostamento (2026-11-05)
+
+[Brief](componenti/trascinamento-widget.md), [REP002](../reports/REP-20261105-002-vetro-trascinamento-widget.md): proposta approvata dall'utente dopo le immagini del drag. Copia singola con un piano2px/film5%, testi nitidi, bordo/ombra leggeri; contorni di origine e destinazione, celle libere senza velo soltanto durante move. Materiale normale16px ripristinato al termine; fallback opaco e gesti/dati conservati. Corretta la perdita del marker della copia al rerender, che lasciava visibile anche il fallback. Build e QA locali concluse; anteprima4185 aggiornata, banco .46 distinto.
+
+## Passaggio condiviso dal widget alla schermata (2026-11-05)
+
+[Brief](componenti/widget-schermata.md), [REP001](../reports/REP-20261105-001-transizione-generica-widget.md): perfezionamento richiesto dall'utente sull'apertura di Tavano, esteso ai 25 widget con dettagli già presenti. La Home sfuma mentre la shell si espande dalla tessera; titolo, azioni e body entrano nella seconda parte del movimento. Ritorno inverso, con Back disponibile e controlli invisibili non interattivi. Paesaggio stabile, materiali e comandi conservati, nessun blur animato o animazione delle singole righe. Movimento ridotto senza espansione. Implementazione e prova locale distinte dal banco .46; risultati e limiti nel report.
+
+## Sistema e personalizzazione comune (2026-11-05)
+
+[Brief della superficie](componenti/sistema.md), [REP017](../reports/REP-20261104-017-sistema-e-personalizzazione-account-unica.md): applicati sul banco 0.9.46. Sistema mostra una sola delle 11 sezioni, con indice verticale limitato sul desktop e orizzontale sul telefono. Cambiando sezione si ritorna alla sua testata; aprire e chiudere l'account conserva scheda, stato e focus. Intestazione essenziale, testi aggiornati al comportamento corrente e materiale ACA Vetro Bianco invariato.
+
+Editor unico compatto nella registrazione e completo nella vista account: pill con iniziale/foto, separatore e Personalizza, colore libero, foto e sfondo con lo stesso ritaglio. Contrasto dell'iniziale condiviso, etichette e valori visibili negli slider, input colore e controlli raggiungibili. Il crop è reso nel body per conservare il blur del materiale senza aggiungere filtri annidati. Provati 320/390px, desktop e viewport corti, preferenze ridotte e fallback; non equivale a un collaudo Safari/M11 o a una certificazione universale di contrasto. Stato e limiti delle bozze temporanee espliciti nell'interfaccia.
+
+## Tavano: lista e filtri per giorni (2026-11-04)
+
+[Brief della superficie](componenti/tavano.md), [REP016](../reports/REP-20261104-016-tavano-lista-giorni-paginazione.md): richiesta umana di migliorare la UI del registro mantenendo il materiale ACA. Modalità Operate, lista dominante, titolo non duplicato, azione della riga in evidenza con peso medio 500, metadati storici subordinati e dettagli sotto la voce. Icona `BugLinear` effettivamente fornita dal subpath pubblico `mx-icons/components/bug` della versione già presente; non una mosca/zanzara disegnata ad hoc e nessuna nuova dipendenza.
+
+Giorni e Categoria principali, altri filtri sotto Filtri, nessun datetime. Menu verticali con target almeno 44px, contenuto scrollabile nei viewport bassi; fallback visibile anche senza API Popover. Escape chiude la sola tendina e restituisce focus senza lasciare Tavano, anche premuto subito dopo l'apertura. Etichette omonime distinte con breve ID soltanto nei filtri; autore dell'evento intatto. Pagine da 30 con Precedente/Pagina N/Successiva, nessun totale inventato; copia della pagina distinta da export di tutti i filtri. Colori e movimento del tema esistente, senza nuova animazione decorativa.
+
+## Avvisi e gerarchia delle pagine (2026-11-04)
+
+Richieste umane: eliminare le sovrapposizioni di sincronizzazione/indicatore e ridurre le pagine precedente/successiva lasciando la corrente della dimensione attuale. [ADR-0044](../decisions/ADR-0044-avvisi-e-anteprime-pagine.md), [REP015](../reports/REP-20261104-015-sovrapposizioni-sync-e-anteprime-pagine.md), banco locale 0.9.44/r99.
+
+Gli avvisi del profilo hanno una fascia nel flusso sopra l'app, limitata al 20dvh con scorrimento interno se necessario. Indicatore e avviso connessione sono coordinati; la fascia vuota sparisce e restituisce lo spazio. I widget possono usare la presentazione compatta esistente quando le dimensioni fisiche lo richiedono, recuperando quella precedente quando torna spazio. Nomi accessibili e didascalie restano disponibili; nessuna modifica a dimensioni logiche, ordine o preferenze persistenti.
+
+Nella panoramica la centrale conserva la scala base del pager, le laterali applicano un fattore 0,90. Scala e traslazione seguono lo stesso gesto e assestamento, senza un secondo ritardo; movimento ridotto immediato. Il target di apertura segue la geometria visiva. L'area disponibile può adattarsi agli avvisi, senza riscrivere il profilo. Casa3D/ingranaggio non ricevono nuovi filtri. Testo e azioni di bozza sono conservati; la modifica non riguarda coordinamento o riconciliazione.
+
+QA su Chromium desktop/telefono simulato, non misura GPU o prova fisica M11/Safari. Il binario dell'indicatore con molte pagine su telefono ha un rilievo preesistente separato in ISSUE-146; non dichiarare risolti tutti i suoi discendenti.
+
+## Vetro Bianco nella build corrente del banco (2026-11-04)
+
+Successivamente alla prova completa e alle correzioni degli allineamenti l'utente richiede di mettere la versione sul banco per vederla nell'app reale. [ADR-0043](../decisions/ADR-0043-vetro-bianco-banco.md), [REP014](../reports/REP-20261104-014-banco-vetro-bianco.md): `design/index.css` adotta Vetro Bianco; installata la build locale0.9.43/r99 con backup e dati conservati. Materiale, accento, composizione interna e ingressi sono quelli rifiniti; nessun nuovo selettore o wallpaper personalizzato. Liquid Glass e Classico conservano i rispettivi ingressi. UI anonima reale e conservazione verificati, prova autenticata/hardware distinta; nessuna pubblicazione. Le sezioni seguenti conservano la successione delle prove e delle autorizzazioni precedenti.
+
+## Rifinitura del vetro bianco: allineamenti e accento (2026-11-04)
+
+L'utente apprezza il materiale ma segnala layout disallineati e viola troppo scuro su alcuni controlli. [REP013](../reports/REP-20261104-013-allineamenti-accento-vetro-bianco.md): nella sola variante di prova header in alto, comandi con righe coerenti e grafico del sensore grande nello spazio disponibile; griglia e dimensioni personali conservate. Nel kit pannelli affiancati di pari altezza e azioni48px. Nei telefoni stretti le etichette usano tutta la larghezza, senza nascondere il nome di un'azione per risolvere l'overflow. Riposo bianco, attivo/focus lavanda chiaro `#e0d5ff`; toggle lavanda con pomello scuro `#28213d`, fallback opaco con accento scuro su bianco. Identità personali e colori semantici restano distinti. Controlli della preview del kit nel flusso della testata, senza overlay davanti ai pulsanti. Risultati e limiti nel report; nessuna promozione al banco.
+
+## Interfaccia completa e ingresso del vetro bianco (2026-11-04)
+
+L'utente conserva la direzione della prova precedente e chiede di vedere l'intera ACA con il materiale applicato, aggiungendo durante il lavoro una breve animazione di caricamento simile al proprio `start-fade`, anche per popup/tendine. [REP012](../reports/REP-20261104-012-interfaccia-completa-vetro-bianco.md): Home e categorie/widget reali, Sistema, account, Tavano e finestre su dati di sola dimostrazione; menu della preview collassato fuori dall'intestazione. Stesso paesaggio anche dietro le viste a schermo intero, con esclusioni Casa3D/gear e fallback mantenuti. Primo ingresso280ms con salita16px/scala.97; Sheet280ms, tendine200ms con origine del trigger effettivo e transizioni native. Solo trasformazione/opacità, niente blur animato o ingresso di ogni widget durante il paging; movimento ridotto con breve dissolvenza. La prova rimane separata dal tema installato sul banco e dai suoi account/profili; non è una pubblicazione né una risoluzione dell'audit funzionale.
+
+## Prova grafica: vetro bianco su paesaggio (2026-11-04)
+
+La successiva richiesta umana assegna una **prova** con un unico pigmento bianco, superfici trasparenti, blur radiale/backdrop-filter e luce interna sui bordi, anche per primitive e pulsanti, sopra un paesaggio naturale. [REP011](../reports/REP-20261104-011-prova-vetro-bianco-paesaggio.md), [fonte Glass White](../../progetto/acasystem/design/themes/glass-white/README.md): variante opt-in reale, fotografia generata locale, testo bianco e colori riservati a stati/interazioni/identità personali. Il contrasto dipende anche da un velo neutro sulla foto; fallback opaco bianco con testo scuro e preferenze conservate. Nessun filtro sul QR o blur nei controlli annidati/Casa3D/gear. Prova locale verificata nei campioni desktop/mobile; **non sostituisce ancora il default né il banco .42**. Attendere riscontro grafico, senza dedurre approvazioni o risoluzioni dei difetti funzionali dell’audit010.
+
+## Direzione corrente: ACA Liquid Glass (2026-11-04)
+
+L’utente richiede di realizzare e applicare il nuovo UI kit dalla [reference UI-015](componenti/originali/UI-015-liquid-glass.png). [ADR-0042](../decisions/ADR-0042-tema-liquid-glass.md) e [REP008](../reports/REP-20261104-008-tema-liquid-glass.md) definiscono l’incarico: vetro satinato sulle superfici, riflessi/lente ottica CSS su navigazione e controlli, fondo statico, viola ACA e Inter locale conservati. ACA Liquid Glass diventa il default condiviso; ACA Classico resta recuperabile dal suo ingresso esplicito. Non aggiungere un selettore o nuove preferenze globali.
+
+**Esito locale:** tema applicato e build web/Windows/Android verificate; [catalogo interattivo e contratti](../../progetto/acasystem/design/themes/liquid-glass/README.md). Popup e navigazione usano uno strato più coprente per mantenere il contrasto sopra immagini, senza animare blur/ombre. Kit, accesso, Home, Sistema e QR provati in Chromium con fallback/preferenze e dati lunghi; limiti e debito preesistente nel report. Successivo aggiornamento autorizzato: [REP009](../reports/REP-20261104-009-banco-liquid-glass.md), banco0.9.42 con account/profili conservati e UI reale verificata. M11/Safari/Android fisici da collaudare, release pubblica invariata.
+
+Il blur è limitato ai pannelli principali, circa10–12px, senza filtri annidati nei figli o rifrazione SVG. Gradienti, bordo luminoso e riflessi rendono i controlli coerenti senza cambiare azioni, stati, layout logico o gesti. Conservare colori di allarme/errore/stato, focus leggibile, occhiolini password e personalizzazioni personali di foto, colore e copertina. Moduli QR neri su bianco, senza filtro sul codice o sul testo.
+
+Fallback opaco senza supporto al filtro e per trasparenza ridotta/contrasto aumentato/forced-colors; rispettare movimento ridotto, senza animare filtri o ombre. Restano i vincoli di [ADR-0014](../decisions/ADR-0014-casa-3d.md) e [ADR-0016](../decisions/ADR-0016-schermo-intero-interazioni.md): Casa3D senza blur, overlay Light/Medium piatti, intera cornice e ingranaggio senza blur; nessun nuovo will-change sull’ingranaggio. La distribuzione delle fonti comuni riguarda webapp, risorse client e anteprima QR, senza realizzare l’avvio grafico HAOS.
+
+**Stato:** implementazione e QA locali concluse; prestazioni hardware non verificate. Il report conserva risultati e limiti. La richiesta del tema non modifica accessi, permessi, configurazioni o dati personali e non dispone pubblicazione o aggiornamento del banco.
+
+## Annotazioni precedenti del design condiviso
+
+**U52–U54, profili live, Tavano e account, 2026-11-02:** [ADR-0035](../decisions/ADR-0035-profili-live-client-e-tavano.md), [report012](../reports/REP-20261102-012-profili-client-editing-tavano.md). Presentazione implementata localmente con primitive e materiale ACA; ordine condiviso, bozze e riscontri di editing seguono i nuovi contratti. La vista account adatta la composizione di UI-012 conservandone l'originale. Le prove software/browser del lotto non costituiscono collaudo su HA o dispositivi fisici.
+
+**U44, UI comune oltre al CSS, 2026-11-02:** [ADR-0033](../decisions/ADR-0033-ui-movimento-layout-condivisi.md), [REP-20261102-006](../reports/REP-20261102-006-ui-movimento-layout-condivisi.md). Fonte [ui/](../../progetto/acasystem/ui/README.md) per primitive, popup/focus/scroll, animazioni/presenza, toast, AppShell, Pager e PageIndicator; relativi CSS in design/. Vecchi percorsi compatibili, provider/context unici. Grid/Flex funzionano senza Tailwind. Composizioni e controller legati alla casa restano nel frontend. Nessun cambio di palette o interazione; banco autonomo, confronto visivo e build verificati. Le note U42 seguenti descrivono il precedente perimetro CSS.
+
+**U42, fonte comune per tutti i workspace, 2026-11-02:** [ADR-0032](../decisions/ADR-0032-design-condiviso-workspaces.md), [REP-20261102-005](../reports/REP-20261102-005-design-aca-condiviso-workspaces.md). Il tema attuale è estratto in [progetto/acasystem/design](../../progetto/acasystem/design/README.md): font/licenza, token, reset, materiali ACA, tipografia, componenti e skin neumorfica Kit2. I percorsi frontend precedenti sono shim. Webapp e launcher usano la stessa fonte; le shell Windows/Android generano asset locali e usano MaterialLayers reali. Casa 3D eredita token/font nello Shadow DOM tramite override, preservando scena e controlli piatti del canvas. CSS di layout/widget resta locale; nessuna nuova palette o riscrittura delle primitive React. La console HAOS non diventa grafica tramite questa estrazione. Build e risultati effettivi nel report; nessuna pubblicazione automatica.
+
+**Aggiornamento di riprogettazione 2026-10-30:** [U26](../riprogettazione/diario/2026-10-30.md#u26-secondo-lavoro-design-condiviso) richiede fonte comune per CSS/base/primitive anche nei launcher delle distribuzioni, in continuità con ADR-0004. La realizzazione assegnata in U27 è registrata in [ADR-0029](../decisions/ADR-0029-desktop-centrale-qr-design-condiviso.md) e [report009](../reports/REP-20261030-009-windows-vm-automatica-design-condiviso.md). Sorgenti comuni in progetto/acasystem/frontend/src/design, token visivi esistenti preservati e asset locali distribuiti nelle shell. Nessuna nuova palette o riscrittura delle primitive React; componenti e CSS delle singole schermate restano specifici. Build e prove host concluse: fonte comune usata da frontend e shell Windows/Android; dettagli e limiti nella [scheda design e Android](../riprogettazione/blocchi/02-design-e-qr-client-implementazione.md). Android fisico e collaudo generale restano da eseguire.
+
 Aggiornato: 2026-10-14 (barra unica in basso, ADR-0013; in precedenza 2026-10-12, grandezza visiva tra pagine, nome della copertina con le lineette, animazioni su livelli e versione in Sistema; in precedenza 2026-10-10, PageShell, pressione che rimpicciolisce, vista delle pagine a trasformazioni e nuvoletta UI-010; 2026-10-08, modifica semplificata e griglia per pagina, e 2026-10-06, sezione «Sistema Metallo»). Questo documento è la fonte delle scelte visive e delle proposte UI/UX. Requisiti, ruoli e comportamento dell'app sono nel [modulo funzionalità](../funzionalita/README.md); stato effettivo e incarichi in [project-status.md](../project-status.md). HOME, controlli condivisi e finestre di gestione schede/pagine hanno il primo materiale Neumorphism, verificato sul banco locale. Pulsanti, emblema di benvenuto e card di stato (SensorCard) usano il materiale a pressione adattato da UI-003 ([REP-20261005-011](../reports/REP-20261005-011-materiale-pressione.md)); le altre card dispositivo, il dimmer con riscontro HA e le altre schermate restano da convertire.
 
 ## Scopo e responsabilità
@@ -8,7 +192,53 @@ Descrivere come presentare le funzionalità autorizzate: stile, colori, gerarchi
 
 La fase 1 minima è Home Assistant personalizzato graficamente, con Tunet come punto di partenza React e pilota in ufficio. Il suo perimetro è in [pilot-scope.md](../funzionalita/pilot-scope.md). L'analisi tecnica di Tunet deve precedere la scelta di componenti e librerie da integrare.
 
-## Direzione corrente: Kit 2 (dal 2026-10-07)
+## Tema precedente conservato: ACA Classico, palette fissa (2026-11-04)
+
+Le annotazioni seguenti conservano il contesto e gli esiti precedenti. ADR-0042 sostituisce il default grafico; i flussi di account e i comportamenti già approvati non sono ritirati dal cambio di materiale.
+
+**Primo account con la registrazione comune, 2026-11-04:** [REP006](../reports/REP-20261104-006-primo-account-interfaccia-comune.md). L’utente considera superflua la schermata distinta «Configura la tua casa / Crea proprietario». Presentare anche la prima creazione con titolo/pulsante «Crea account», stessa card e stessi campi/pill della normale iscrizione. La distinzione tecnica del primo proprietario rimane interna e non cambia i permessi degli account successivi. Colore riferito all’identità autenticata corretta; nessun nuovo protocollo di auto-login o modifica implicita del nome casa autorizzati da questa sola critica.
+
+**Ingresso semplificato approvato, 2026-11-04:** [ADR-0040](../decisions/ADR-0040-nome-unico-accesso-personale.md), [REP004](../reports/REP-20261104-004-ingresso-semplificato-banco.md). Registrazione e primo proprietario presentano soltanto «Nome utente», password e conferma. Nessun campo nome personale separato; il nuovo nome iniziale corrisponde al login normalizzato. La pill colore di REP003 rimane nella registrazione. L’ingresso offre «Accedi» e «Crea account», senza menu «Altre opzioni» o token manuale. Login/MFA e occhiolini conservati; i vecchi nomi e i tentativi pendenti non vengono convertiti retroattivamente. Stato di realizzazione e distribuzione nel report.
+
+**Registrazione, richiesta del 2026-11-04:** [REP-20261104-003](../reports/REP-20261104-003-registrazione-colore-e-accesso.md). Il colore personale si sceglie in una pill sempre visibile: cerchio con iniziale, separatore e pennino con «Personalizza», sulla stessa riga. Selettore colore libero nativo al posto di menu dettagli e tavolozza predefinita; anteprima aggiornata e iniziale leggibile anche sui colori estremi. La scelta riguarda l’identità personale e non modifica la palette globale ACA Classico. Le domande su nome unico e ritiro dei token manuali restano proposte di comportamento, registrate separatamente nel report.
+
+[ADR-0039](../decisions/ADR-0039-palette-fissa-tema-classico.md), [REP002](../reports/REP-20261104-002-palette-fissa-tema-classico.md): il look attuale Kit2 è conservato come ACA Classico, con ingresso comune e palette effettiva chiara/viola/senza wallpaper globale. Nessun selettore automatico/scuro/colore/foto globale; metadata storici recuperabili, avatar/cover account e colori funzionali indipendenti. Palette e geometria default conservate; non si tratta di un nuovo look già inventato. Banco0.9.39 e QA verificati. Il nuovo pacchetto base/tema sarà descritto dall’utente dopo questo task. Le regole CSS della gallery rimangono storiche e non sono scelte offerte nell’app.
+
+## Direzione precedente conservata: Kit 2 (dal 2026-10-07)
+
+### Anteprima collegamento centrale in approvazione, 2026-11-04
+
+Richiesta: card centrata su entrambi gli assi, QR e indirizzo/codice manuale testuale, senza pulsanti; Androidscanner/IP e desktopIP. La reference[UI-014](componenti/originali/UI-014-haos-collegamento-qr.png) ispira la composizione, adattata ai materiali/font/coloriACA canonici. Iterazione2 su richiesta esplicita: titolo «Scan QR Code», sottotitolo «Scan this QR Code in-app to verify device.», divisore con linee «Or enter the code manually», QR nero su bianco e URL selezionabile; nessuna riproduzione dei pulsanti o dello sfondo multicolore della reference. [REP-20261104-001](../reports/REP-20261104-001-anteprima-collegamento-haos.md) e [fonti](../../progetto/ha-app/connection-screen/README.md). Anteprima verificata in3formati, grafica non ancora approvata; non realizza l’avvio graficoHAOS o modifica le dist.
+
+### Posizione e uso esclusivo (2026-11-03)
+
+**Integrazione di comportamento [ADR-0038](../decisions/ADR-0038-cambio-dispositivo-collegamento.md):** il passaggio dopo chiusura del collegamento del titolare usa la grazia3s, anche senza messaggio pagehide. Nessuna nuova schermata o controllo: stesso riscontro di attesa/Riprova e ingresso automatico. Banco0.9.38/r100 e prova reale iPhone→Edge confermati nel [report004](../reports/REP-20261103-004-cambio-dispositivo-immediato.md); background collegato mantiene l’uso, fallback senza segnale distinto.
+
+[ADR-0037](../decisions/ADR-0037-uso-esclusivo-profilo-e-posizioni.md) precisa il comportamento richiesto dopo la prova di Tavano: mantenere il punto scelto nel trascinamento con una posizione relativa adattiva, senza riscrivere il profilo per rotazione/formato. L'altro dispositivo non entra nel profilo occupato e mostra esattamente «questo profilo è in uso su un altro dispositivo chiudi le altre sessioni per usare questo dispositivo». Superfici e feedback ACA esistenti, un comando Riprova; nessuna revoca o takeover implicito. Il dispositivo aperto in secondo piano mantiene l'uso; chiusura/scheda libera, con scadenza di sicurezza per crash/rete. Implementata e verificata nel software, installata sul banco0.9.38; prova fisica distinta nel [report](../reports/REP-20261103-001-spostamento-widget-live.md); le note precedenti descrivono l'uso simultaneo ora sostituito.
+
+### Accesso personale e editing immediato (REP016, 2026-11-02)
+
+La nuova richiesta umana sostituisce le scelte Salva/Annulla e denominazione obbligatoria del lotto U52: [ADR-0036](../decisions/ADR-0036-account-e-modifiche-immediate.md). Accesso e registrazione seguono la gerarchia di [UI-013](componenti/originali/UI-013-sign-in-sign-up.jsx.txt): titolo, form, azione principale e footer alternato Accedi/Crea account; materiale e primitive ACA, username HA e occhiolino, senza sottotitoli illustrativi. Il client viene riconosciuto e denominato internamente; nessun campo nome dispositivo all'ingresso o nella creazione dei profili.
+
+Modifica entra direttamente nell'editor live, senza un preliminare sblocco. Le modifiche concluse si sincronizzano automaticamente; Fatto/Fine conclude, aspettando gli input ancora in corso. Un riscontro breve distingue sincronizzazione, offline/bozza e conflitto; l'undo rimane mirato. La configurazione selezionata si condivide nell'account, mentre dimensioni e colonne si adattano allo schermo. Le alternative storiche rimangono conservate. Implementazione verificata localmente e installata sul banco0.9.37 nel [report016](../reports/REP-20261102-016-modifica-immediata-e-ingresso-profilo.md); le sezioni successive conservano il risultato storico precedente.
+
+### Prima configurazione essenziale e password visibile (2026-11-02)
+
+Richiesta umana approvata, [report014](../reports/REP-20261102-014-accesso-essenziale-password-visibile.md): nella schermata «Configura la tua casa» bastano titolo, campi e azioni, senza i paragrafi esplicativi statici mostrati nello screenshot. Restano etichette accessibili, errori di validazione e stati necessari per capire attesa, esito o recupero. La richiesta riguarda quella schermata e non autorizza a togliere testi dalle altre interfacce o a cambiare accessi e permessi.
+
+Nei campi password di creazione proprietario, registrazione e accesso, la password parte nascosta. Un comando nello stile ACA con occhio aperto/chiuso permette di mostrarla o nasconderla; il nome accessibile indica l'azione e il controllo funziona anche da tastiera. Password e conferma hanno comandi indipendenti: il toggle non invia il form, non cambia il valore e non conserva la scelta di visibilità fra le aperture.
+
+Implementato e verificato nel software e sul banco locale ACA0.9.35: regressioni dei form e della primitiva condivisa, strict e controlli pertinenti riusciti; QA Chromium desktop e telefono touch emulato conferma forma essenziale, toggle indipendenti, valori conservati e campi nuovamente vuoti/nascosti dopo reload. Focus/tastiera provati su desktop. Dettagli nel report014; nessun account reale creato o collaudo Safari/iPhone fisico. La0.9.35 è una prova locale, non una nuova pubblicazione: la release pubblica resta0.9.34.
+
+### Profili, editing, Tavano e vista account (U52–U54)
+
+Il profilo mantiene lo stesso ordine logico dei widget su PC e telefono; colonne e dimensioni cambiano per lo schermo. I segmenti aggiuntivi sono una proiezione locale, senza nuove pagine condivise causate dalla rotazione. La conferma della migrazione mostra la fonte e l'ordine proposto; contenuti personalizzati e rimozioni non vengono sostituiti dai preset iniziali.
+
+Durante l'editing compare il riscontro centrato «[nome] sta editando…» con il nome del client. Una bozza resta distinta dalla configurazione confermata: Salva/Annulla sono espliciti, offline si usa «Conserva bozza» e un conflitto presenta la scelta fra versione attuale, bozza e copia indipendente. La quota piena mantiene esportazione/scarto visibili; una risposta di salvataggio persa non viene presentata come annullabile semplicemente eliminando la copia locale. Palette e animazioni esistenti restano quelle delle primitive ACA.
+
+**Tavano (U53).** La vista a schermo intero presenta una lista di azioni con avatar, persona, client, azione/esito, ora e dettagli. Senza foto, l'avatar è l'iniziale nel cerchio del colore personale; la foto scelta in U54 sostituisce il cerchio colorato. Testo e dettagli distinguono comando accettato, effetto osservato ed esito non disponibile. «Copia» in alto a destra dichiara quante voci caricate include: produce testo con prompt diagnostico, nomi sostituiti e segreti esclusi. Se il browser non consente la clipboard, mostra il testo selezionabile. Filtri, ulteriori voci caricate e anteprima dell'export JSON non implicano che sia già stata esportata tutta la storia. La condivisione verso altre app resta una scelta dell'utente, senza invio automatico.
+
+**Vista personale (U54).** Il comando account apre «Il mio account»: copertina, avatar sovrapposto, nome e nome del client, nella gerarchia di [UI-012](componenti/originali/UI-012-account-cover-avatar.jsx.txt) riscritta con superfici e controlli ACA. La personalizzazione propone colore oppure foto; con una foto presente il colore non compare e la sua rimozione ripristina il colore. Prima di confermare un'immagine si vedono anteprima, ritaglio, zoom, posizione orizzontale/verticale e rotazione, con trascinamento e cursori come alternative. La copertina compare soltanto qui: non cambia lo sfondo del launcher e non compare nel registro. Salvare avatar, colore o nome del client mantiene aperta la vista e conserva l'eventuale editor dashboard; il ritorno a Sistema è un'azione esplicita. Le immagini elaborate appartengono all'account, separate dai profili dashboard, e sorgenti/payload non vengono inclusi in Tavano o nei suoi export.
 
 ### Proposte di design per tutti i widget (2026-10-14)
 

@@ -146,14 +146,18 @@ export function normalizeChoices(raw: unknown, fallbackType: string): MediaChoic
 export const mergeChoices = (...lists: MediaChoice[][]): MediaChoice[] =>
   normalizeChoices(lists.flat(), 'music');
 
-export function isMusicContent(node: unknown): boolean {
+/** Types of video content that a TV can play: not blocked in the panel of a TV. */
+const VIDEO_MEDIA_TYPES = new Set(['video', 'tvshow', 'movie', 'channel']);
+
+export function isMusicContent(node: unknown, allowVideo = false): boolean {
   if (!isRecord(node)) return false;
   const type = firstText(node, ['media_content_type', 'media_class', 'type']).toLowerCase();
   const id = firstText(node, ['media_content_id', 'id', 'uri']).toLowerCase();
   const title = firstText(node, ['title', 'name']).toLowerCase();
   const browsableContainer =
     node.can_expand === true && ['', 'app', 'directory', 'folder'].includes(type);
-  if (BLOCKED_MEDIA_TYPES.has(type) && !browsableContainer) return false;
+  const allowed = allowVideo && VIDEO_MEDIA_TYPES.has(type);
+  if (BLOCKED_MEDIA_TYPES.has(type) && !browsableContainer && !allowed) return false;
   if (BLOCKED_ID_PATTERNS.some((pattern) => id.includes(pattern))) return false;
   if (BLOCKED_TITLE_WORDS.some((word) => title.includes(word))) return false;
   return true;
@@ -194,6 +198,66 @@ const children = (node: unknown): BrowseNode[] =>
 
 const BUCKET_PRIORITY: Record<ChoiceBucket, number> = { favorites: 0, playlists: 1, library: 2 };
 
+/** One `media_player/browse_media` call: the root of the player, or the given node. */
+async function browseOne(
+  conn: HaMessageConnection,
+  entityId: string,
+  node: BrowseNode | null = null
+): Promise<unknown> {
+  const payload: { type: string; [key: string]: unknown } = {
+    type: 'media_player/browse_media',
+    entity_id: entityId,
+  };
+  const contentType = node ? text(node.media_content_type) : '';
+  const contentId = node ? text(node.media_content_id) : '';
+  if (contentType) payload.media_content_type = contentType;
+  if (contentId) payload.media_content_id = contentId;
+  const response = await conn.sendMessagePromise(payload);
+  if (isRecord(response) && isRecord(response.result)) return response.result;
+  return response ?? null;
+}
+
+const nodeType = (node: BrowseNode): string =>
+  firstText(node, ['media_content_type', 'media_class', 'type']).toLowerCase();
+
+/** The folder of the apps of a player (Apple TV: `media_content_id` «apps»). */
+const isAppsFolder = (node: BrowseNode): boolean =>
+  node.can_expand === true &&
+  (nodeType(node) === 'apps' || text(node.media_content_id).toLowerCase() === 'apps');
+
+/** An app of a player: type `app`, playable. */
+const isAppNode = (node: BrowseNode): boolean =>
+  nodeType(node) === 'app' && node.can_play !== false;
+
+export interface BrowseOptions {
+  /**
+   * Leave the apps of the player out (the folder «apps» and the items of type `app`): a TV shows
+   * them in its own «App» section, so the panel does not list them twice.
+   */
+  skipApps?: boolean;
+  /** Offer the video content too (films, programmes, channels): the panel of a TV. */
+  allowVideo?: boolean;
+}
+
+/**
+ * The apps a player offers when browsed (Android TV remote: the apps configured in Home Assistant;
+ * Apple TV: the folder «apps», opened once). Empty when the player has none. Throws when the root
+ * cannot be read.
+ */
+export async function browseAppChoices(
+  conn: HaMessageConnection,
+  entityId: string
+): Promise<MediaChoice[]> {
+  const root = await browseOne(conn, entityId);
+  if (!isRecord(root)) throw new Error('browse_failed');
+  const found = children(root);
+  const folder = found.find(isAppsFolder);
+  const inside = folder
+    ? children(children(folder).length > 0 ? folder : await browseOne(conn, entityId, folder))
+    : [];
+  return normalizeChoices([...found, ...inside].filter(isAppNode), 'app');
+}
+
 /**
  * Browses the player's media tree (`media_player/browse_media`) and sorts the playable items
  * into favourites, playlists and library. Throws when the root cannot be read.
@@ -201,21 +265,12 @@ const BUCKET_PRIORITY: Record<ChoiceBucket, number> = { favorites: 0, playlists:
 export async function browseMediaChoices(
   conn: HaMessageConnection,
   entityId: string,
-  isCancelled: () => boolean = () => false
+  isCancelled: () => boolean = () => false,
+  { skipApps = false, allowVideo = false }: BrowseOptions = {}
 ): Promise<BrowseChoices> {
-  const browseNode = async (node: BrowseNode | null = null): Promise<unknown> => {
-    const payload: { type: string; [key: string]: unknown } = {
-      type: 'media_player/browse_media',
-      entity_id: entityId,
-    };
-    const contentType = node ? text(node.media_content_type) : '';
-    const contentId = node ? text(node.media_content_id) : '';
-    if (contentType) payload.media_content_type = contentType;
-    if (contentId) payload.media_content_id = contentId;
-    const response = await conn.sendMessagePromise(payload);
-    if (isRecord(response) && isRecord(response.result)) return response.result;
-    return response ?? null;
-  };
+  const browseNode = (node: BrowseNode | null = null) => browseOne(conn, entityId, node);
+  const allowed = (node: BrowseNode) =>
+    isMusicContent(node, allowVideo) && !(skipApps && (isAppsFolder(node) || isAppNode(node)));
 
   const root = await browseNode();
   if (!isRecord(root)) throw new Error('browse_failed');
@@ -237,7 +292,7 @@ export async function browseMediaChoices(
   };
 
   let frontier: FrontierEntry[] = children(root)
-    .filter(isMusicContent)
+    .filter(allowed)
     .map((node) => ({ node, bucket: resolveBucket(node), sourceHint: text(root.title) }));
 
   for (let depth = 0; depth < maxDepth && frontier.length > 0; depth += 1) {
@@ -246,13 +301,13 @@ export async function browseMediaChoices(
     const expandable: FrontierEntry[] = [];
 
     frontier.forEach(({ node, bucket: inherited, sourceHint }) => {
-      if (!isMusicContent(node)) return;
+      if (!allowed(node)) return;
       const bucket = resolveBucket(node, inherited);
       const nextHint = text(node.title) || sourceHint;
       addPlayable(node, bucket, sourceHint);
       const embedded = children(node);
       embedded.forEach((child) => {
-        if (!isMusicContent(child)) return;
+        if (!allowed(child)) return;
         next.push({ node: child, bucket: resolveBucket(child, bucket), sourceHint: nextHint });
       });
       const nodeId = text(node.media_content_id) || text(node.id) || text(node.uri);
@@ -286,7 +341,7 @@ export async function browseMediaChoices(
     details.forEach(({ node, bucket, sourceHint, detail }) => {
       const hint = (isRecord(detail) && text(detail.title)) || text(node.title) || sourceHint;
       children(detail).forEach((child) => {
-        if (!isMusicContent(child)) return;
+        if (!allowed(child)) return;
         next.push({ node: child, bucket: resolveBucket(child, bucket), sourceHint: hint });
       });
     });

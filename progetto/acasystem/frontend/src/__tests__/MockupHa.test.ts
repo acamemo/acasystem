@@ -218,11 +218,17 @@ describe('connection', () => {
         'light.lampada_comodino',
       ])
     );
-    expect(byFamily('plug')).toHaveLength(1);
-    expect(byFamily('sonos')).toHaveLength(1);
+    // Two single outlets and one simulated multichannel power strip.
+    expect(byFamily('plug').map(device => device.deviceId).sort()).toEqual(
+      ['dev_multipresa_studio', 'dev_presa_lampada_lettura', 'dev_presa_lavatrice'].sort()
+    );
+    expect(byFamily('sonos').map(device => device.deviceId).sort()).toEqual(['dev_multimedia_sonos', 'dev_multimedia_sonos_single', 'dev_sonos']);
     const tvs = byFamily('tv');
     expect(tvs.map((device) => device.primaryEntityId).sort()).toEqual([
       'media_player.apple_tv_camera',
+      'media_player.multimedia_apple_single',
+      'media_player.multimedia_tv_a',
+      'media_player.multimedia_tv_single',
       'media_player.tv_cucina',
       'media_player.tv_soggiorno',
     ]);
@@ -231,7 +237,7 @@ describe('connection', () => {
       'remote.tv_cucina'
     );
     expect(tvs.find((device) => device.platform === 'webostv')?.remoteId).toBeUndefined();
-    expect(byFamily('camera')).toHaveLength(1);
+    expect(byFamily('camera')).toHaveLength(3);
   });
 
   it('calls services through call_service and sees the change', async () => {
@@ -606,7 +612,7 @@ describe('the house', () => {
     expect(mockBindingSettings('room')).toMatchObject({ areaId: 'soggiorno' });
   });
 
-  it('leaves two devices without a widget, so «Crea il widget» shows', () => {
+  it('offers unbound products and ordinary physical sensors through «Crea il widget»', () => {
     const house = mockHouse();
     const seed = buildMockupSeed();
     const pagesConfig = JSON.parse(seed.storage.tunet_pages_config!);
@@ -621,7 +627,7 @@ describe('the house', () => {
       boundEntityIds(pagesConfig, cardSettings),
       boundDeviceIds(pagesConfig, cardSettings, entityDevice)
     ).map((device) => device.name);
-    expect(free.sort()).toEqual(['Lampada comodino', 'Presa lavatrice']);
+    expect(free.sort()).toEqual(['Pulsante ingresso', 'Sensore movimento corridoio', 'Sensore ambiente studio', 'Sensore finestra studio', 'TV studio', 'Apple TV studio', 'Lettore studio', 'Sonos studio', 'TV multicanale', 'Lettore multizona', 'Sonos multicanale', 'Aspirapolvere studio', 'Robot pulizia', 'Tagliaerba esterno', 'Robot giardino', 'Videocamera studio', 'Viste esterno', 'Allarme studio', 'Zone di casa', 'Accessi studio', 'Serratura studio', 'Climatizzatore studio', 'Lampada comodino', 'Multipresa studio', 'Presa lampada lettura', 'Tapparella camera', 'Termostato camera', 'Veneziane studio', 'Ventilatore cucina', 'Ventilazione studio'].sort());
     expect(found.length - free.length).toBeGreaterThan(15);
   });
 });
@@ -770,7 +776,11 @@ describe('scenarios', () => {
     expect(entities['light.luce_soggiorno']!.state).toBe('unavailable');
     expect(entities['light.luce_soggiorno']!.attributes.friendly_name).toBe('Luce soggiorno');
     expect(entities['light.luce_soggiorno']!.attributes.brightness).toBeUndefined();
-    expect(entities['lock.porta_ingresso']!.state).not.toBe('unavailable');
+    expect(entities['lock.porta_ingresso']!.state).toBe('unavailable');
+    expect(entities['lock.porta_ingresso']!.attributes.friendly_name).toBe('Porta d’ingresso');
+    expect(entities['lock.serratura_studio']!.state).not.toBe('unavailable');
+    expect(entities['lawn_mower.tagliaerba_giardino']!.state).toBe('unavailable');
+    expect(entities['lawn_mower.tagliaerba_esterno']!.state).not.toBe('unavailable');
     // A device without a widget that does not answer is still offered, last, with its tag.
     expect(entities['light.lampada_comodino']!.state).toBe('unavailable');
   });
@@ -825,5 +835,318 @@ describe('scenarios', () => {
     const extremes = createMockHaStore({ scenario: 'extremes' });
     expect(extremes.getEntities()['sensor.auto_batteria']!.state).toBe('0');
     extremes.dispose();
+  });
+});
+
+describe('TVs of the demo (states of the widget)', () => {
+  const LG = 'media_player.tv_soggiorno';
+  const APPLE = 'media_player.apple_tv_camera';
+  const call = (id: string, service: string) =>
+    store.callService('media_player', service, { entity_id: id });
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const bits = (id: string) => Number(entity(id).attributes.supported_features);
+  const KITCHEN = 'media_player.tv_cucina';
+  const has = (id: string, feature: number) => (bits(id) & feature) === feature;
+
+  it('the LG starts on live TV: the channel is the title, with no programme, app or position', () => {
+    const attributes = entity(LG).attributes;
+    expect(entity(LG).state).toBe('on');
+    expect(attributes.source).toBe('Live TV');
+    expect(attributes.media_title).toBe('Rai 1');
+    expect(attributes.media_content_type).toBe('channel');
+    for (const key of [
+      'app_name',
+      'media_position',
+      'media_duration',
+      'shuffle',
+      'repeat',
+      'media_artist',
+      'media_content_id',
+    ]) {
+      expect(attributes[key]).toBeUndefined();
+    }
+    expect(attributes.source_list).toEqual([
+      'Live TV',
+      'HDMI 1',
+      'HDMI 2',
+      'Netflix',
+      'YouTube',
+      'Prime Video',
+    ]);
+  });
+
+  it('the LG declares what webostv declares and nothing else; no demo TV declares everything', () => {
+    // TURN_OFF, NEXT, PAUSE, PREVIOUS, SELECT_SOURCE, PLAY_MEDIA, PLAY, STOP, mute, step, set,
+    // and TURN_ON because its power-on recipe is set up.
+    expect(bits(LG)).toBe(256 | 32 | 1 | 16 | 2048 | 512 | 16384 | 4096 | 8 | 1024 | 4 | 128);
+    // No SEEK (2), SHUFFLE_SET (32768), REPEAT_SET (262144) or BROWSE_MEDIA (131072).
+    expect(bits(LG) & (2 | 32768 | 262144 | 131072)).toBe(0);
+    expect(bits(KITCHEN)).toBe(32 | 1 | 16384 | 512 | 16 | 2048 | 4096 | 256 | 8 | 4 | 1024);
+    expect(bits(KITCHEN)).not.toBe(1048575);
+  });
+
+  it('channel up and down walk the list, by the media keys and by webostv.button', async () => {
+    await call(LG, 'media_next_track');
+    expect(entity(LG).attributes.media_title).toBe('Rai 2');
+    await store.callService('webostv', 'button', { entity_id: LG, button: 'CHANNELUP' });
+    expect(entity(LG).attributes.media_title).toBe('Rai 3');
+    await store.callService('webostv', 'button', { entity_id: LG, button: 'CHANNELDOWN' });
+    await call(LG, 'media_previous_track');
+    await call(LG, 'media_previous_track');
+    // Before Rai 1 comes La7, the end of the list.
+    expect(entity(LG).attributes.media_title).toBe('La7');
+    expect(entity(LG).state).toBe('on');
+    await call(LG, 'media_next_track');
+    expect(entity(LG).attributes.media_title).toBe('Rai 1');
+  });
+
+  it('play_media of a channel matches the number, then the name, then a part of it', async () => {
+    const play = (media_content_id: string, media_content_type = 'channel') =>
+      store.callService('media_player', 'play_media', {
+        entity_id: LG,
+        media_content_type,
+        media_content_id,
+      });
+    await play('4');
+    expect(entity(LG).attributes.media_title).toBe('Rete 4');
+    await play('la7');
+    expect(entity(LG).attributes.media_title).toBe('La7');
+    await play('canale');
+    expect(entity(LG).attributes.media_title).toBe('Canale 5');
+    // A channel that is not in the list, or another type, changes nothing.
+    await play('Rai 9');
+    await play('Rai 2', 'music');
+    expect(entity(LG).attributes.media_title).toBe('Canale 5');
+  });
+
+  it('an app source clears the channel and keeps the state; Live TV brings the channel back', async () => {
+    await call(LG, 'media_next_track');
+    await store.callService('media_player', 'select_source', { entity_id: LG, source: 'Netflix' });
+    expect(entity(LG).state).toBe('on');
+    expect(entity(LG).attributes.source).toBe('Netflix');
+    expect(entity(LG).attributes.media_title).toBeUndefined();
+    expect(entity(LG).attributes.media_content_type).toBeUndefined();
+    // Previous/next are fast forward and rewind there: no channel moves.
+    await call(LG, 'media_next_track');
+    expect(entity(LG).attributes.media_title).toBeUndefined();
+    await store.callService('media_player', 'select_source', { entity_id: LG, source: 'Live TV' });
+    expect(entity(LG).attributes.media_title).toBe('Rai 2');
+    expect(entity(LG).attributes.media_content_type).toBe('channel');
+  });
+
+  it('the sound output moves the volume features of the LG, lineout drops mute and steps too', async () => {
+    const output = (sound_output: string) =>
+      store.callService('webostv', 'select_sound_output', { entity_id: LG, sound_output });
+    await output('external_speaker');
+    expect(has(LG, 4)).toBe(false);
+    expect(has(LG, 8 | 1024)).toBe(true);
+    await output('lineout');
+    expect(bits(LG) & (4 | 8 | 1024)).toBe(0);
+    expect(has(LG, 128)).toBe(true);
+    await output('tv_speaker');
+    expect(has(LG, 4 | 8 | 1024)).toBe(true);
+  });
+
+  it('with the power-on recipe the LG is off (and declares TURN_ON); it wakes ~3 s after turn_on', async () => {
+    await call(LG, 'turn_off');
+    expect(entity(LG).state).toBe('off');
+    expect(has(LG, 128)).toBe(true);
+    expect(entity(LG).attributes.media_title).toBeUndefined();
+    expect(entity(LG).attributes.friendly_name).toBe('TV soggiorno');
+    // A TV that is off takes nothing.
+    await call(LG, 'volume_up');
+    await call(LG, 'media_next_track');
+    expect(entity(LG).state).toBe('off');
+    await call(LG, 'turn_on');
+    vi.advanceTimersByTime(2900);
+    expect(entity(LG).state).toBe('off');
+    vi.advanceTimersByTime(200);
+    expect(entity(LG).state).toBe('on');
+    expect(entity(LG).attributes.source).toBe('Live TV');
+    expect(entity(LG).attributes.media_title).toBe('Rai 1');
+    expect(entity(LG).attributes.source_list).toBeDefined();
+  });
+
+  it('without the recipe the LG goes unavailable; saving the recipe turns it into off with TURN_ON', async () => {
+    store.setWakeRecipe(LG, false);
+    expect(has(LG, 128)).toBe(false);
+    await call(LG, 'turn_off');
+    expect(entity(LG).state).toBe('unavailable');
+    await call(LG, 'turn_on');
+    vi.advanceTimersByTime(4000);
+    expect(entity(LG).state).toBe('unavailable');
+    store.setWakeRecipe(LG, true);
+    expect(entity(LG).state).toBe('off');
+    expect(has(LG, 128)).toBe(true);
+  });
+
+  it('the Samsung TV: no volume level, mute toggles, channel keys change nothing visible', async () => {
+    const attributes = () => entity(KITCHEN).attributes;
+    expect(entity(KITCHEN).state).toBe('off');
+    expect(attributes().volume_level).toBeUndefined();
+    expect(attributes().source_list).toEqual(['TV', 'HDMI', 'Netflix', 'YouTube']);
+    expect(attributes().media_title).toBeUndefined();
+    // It cannot be woken without a recipe.
+    await call(KITCHEN, 'turn_on');
+    expect(entity(KITCHEN).state).toBe('off');
+    store.setWakeRecipe(KITCHEN, true);
+    expect(has(KITCHEN, 128)).toBe(true);
+    await call(KITCHEN, 'turn_on');
+    expect(entity(KITCHEN).state).toBe('on');
+    expect(attributes().source).toBe('TV');
+    await call(KITCHEN, 'volume_mute');
+    expect(attributes().is_volume_muted).toBe(true);
+    await call(KITCHEN, 'volume_mute');
+    expect(attributes().is_volume_muted).toBe(false);
+    await call(KITCHEN, 'volume_up');
+    await call(KITCHEN, 'media_next_track');
+    expect(attributes().volume_level).toBeUndefined();
+    expect(attributes().media_title).toBeUndefined();
+    expect(attributes().source).toBe('TV');
+    await call(KITCHEN, 'turn_off');
+    expect(entity(KITCHEN).state).toBe('off');
+  });
+
+  it('the LG declares TURN_ON and its power-on recipe reads as configured, the Samsung one not', async () => {
+    expect(has('media_player.tv_cucina', 128)).toBe(false);
+    const facade = createMockBackend(createMockDeviceFacade(store));
+    const power = async (entry: string) =>
+      (await facade.handle({ path: `/dispositivi/accensione/${entry}` })).body as {
+        configured: boolean;
+      };
+    expect((await power('entry_dev_tv_soggiorno')).configured).toBe(true);
+    expect((await power('entry_dev_tv_cucina')).configured).toBe(false);
+    const registry = buildRegistries(store.getEntities()).entities;
+    expect(registry.find((entry) => entry.entity_id === LG)?.config_entry_id).toBe(
+      'entry_dev_tv_soggiorno'
+    );
+  });
+
+  it('setting up the power-on recipe makes the next read say configured (kitchen TV)', async () => {
+    const facade = createMockBackend(createMockDeviceFacade(store));
+    const path = '/dispositivi/accensione/entry_dev_tv_cucina';
+    const read = async (method?: string) =>
+      (await facade.handle({ path, ...(method ? { method } : {}) })).body as {
+        entryId: string;
+        configured: boolean;
+        active: boolean | null;
+        message: string | null;
+      };
+    expect((await read()).configured).toBe(false);
+    expect(Number(entity('media_player.tv_cucina').attributes.supported_features) & 128).toBe(0);
+    expect(await read('POST')).toEqual({
+      entryId: 'entry_dev_tv_cucina',
+      configured: true,
+      active: true,
+      message: null,
+    });
+    expect((await read()).configured).toBe(true);
+    // The TV now declares TURN_ON, as Home Assistant does once a turn-on action exists.
+    expect(Number(entity('media_player.tv_cucina').attributes.supported_features) & 128).toBe(128);
+  });
+
+  it('the Apple TV starts paused, buffers for a second when played, then plays', async () => {
+    expect(entity(APPLE).state).toBe('paused');
+    await call(APPLE, 'media_play_pause');
+    expect(entity(APPLE).state).toBe('buffering');
+    vi.advanceTimersByTime(1100);
+    expect(entity(APPLE).state).toBe('playing');
+    await call(APPLE, 'media_play_pause');
+    expect(entity(APPLE).state).toBe('paused');
+  });
+
+  it('«TV che non risponde»: the LG turn_off is accepted and never takes effect', async () => {
+    const silent = createMockHaStore({ scenario: 'tvSilent' });
+    await silent.callService('media_player', 'turn_off', { entity_id: LG });
+    expect(silent.getEntities()[LG]!.state).toBe('on');
+    // Only that call: the rest of the house answers as usual.
+    await silent.callService('media_player', 'volume_set', { entity_id: LG, volume_level: 0.4 });
+    expect(silent.getEntities()[LG]!.attributes.volume_level).toBe(0.4);
+    // The record the tester reads has the calls, in order.
+    expect(silent.calls().map((entry) => entry.service)).toEqual(['turn_off', 'volume_set']);
+    silent.dispose();
+  });
+});
+
+describe('TVs of the demo (sound output and content)', () => {
+  const LG = 'media_player.tv_soggiorno';
+  const APPLE = 'media_player.apple_tv_camera';
+  const VOLUME_SET = 4;
+  const BROWSE_MEDIA = 131072;
+  const output = (sound_output: string) =>
+    store.callService('webostv', 'select_sound_output', { entity_id: LG, sound_output });
+  const browse = async (entity_id: string, media_content_id?: string) =>
+    (await createMockConnection(store).sendMessagePromise({
+      type: 'media_player/browse_media',
+      entity_id,
+      ...(media_content_id ? { media_content_id } : {}),
+    })) as { children?: { title: string; media_content_id: string; media_content_type: string }[] };
+
+  it('the LG reports tv_speaker, and select_sound_output moves it', async () => {
+    expect(entity(LG).attributes.sound_output).toBe('tv_speaker');
+    await output('external_arc');
+    expect(entity(LG).attributes.sound_output).toBe('external_arc');
+    expect(Number(entity(LG).attributes.supported_features) & VOLUME_SET).toBe(VOLUME_SET);
+    await output('tv_speaker');
+    expect(entity(LG).attributes.sound_output).toBe('tv_speaker');
+  });
+
+  it('an external speaker drops VOLUME_SET and the TV speakers bring it back', async () => {
+    await output('external_speaker');
+    expect(entity(LG).attributes.sound_output).toBe('external_speaker');
+    expect(Number(entity(LG).attributes.supported_features) & VOLUME_SET).toBe(0);
+    await output('tv_speaker');
+    expect(Number(entity(LG).attributes.supported_features) & VOLUME_SET).toBe(VOLUME_SET);
+  });
+
+  it('an output the TV does not have changes nothing', async () => {
+    await output('external_optical');
+    expect(entity(LG).attributes.sound_output).toBe('tv_speaker');
+  });
+
+  it('the Apple TV declares BROWSE_MEDIA; the LG and the Samsung TV do not', () => {
+    const declares = (id: string) =>
+      Number(entity(id).attributes.supported_features) & BROWSE_MEDIA;
+    expect(declares(APPLE)).toBe(BROWSE_MEDIA);
+    expect(declares(LG)).toBe(0);
+    expect(declares('media_player.tv_cucina')).toBe(0);
+  });
+
+  it('browse on the Apple TV lists the apps folder first, then the video', async () => {
+    const root = await browse(APPLE);
+    expect(root.children?.map((child) => child.media_content_id)).toEqual([
+      'apps',
+      'media-source://mockup/video',
+    ]);
+    const apps = await browse(APPLE, 'apps');
+    expect(apps.children?.map((child) => child.title)).toEqual(['Apple TV+', 'Netflix', 'YouTube']);
+    expect(new Set(apps.children?.map((child) => child.media_content_type))).toEqual(
+      new Set(['app'])
+    );
+    // A player that is not a TV keeps the music tree.
+    expect((await browse('media_player.sonos_soggiorno')).children?.[0]?.title).toBe(
+      'Notte a Milano'
+    );
+  });
+
+  it('play_media shows the title of the content as the playing one', async () => {
+    const video = (await browse(APPLE, 'media-source://mockup/video')).children?.[1];
+    expect(video?.title).toBe('Concerto dal vivo');
+    await store.callService('media_player', 'play_media', {
+      entity_id: APPLE,
+      media_content_id: video?.media_content_id,
+      media_content_type: video?.media_content_type,
+    });
+    expect(entity(APPLE).state).toBe('playing');
+    expect(entity(APPLE).attributes.media_title).toBe('Concerto dal vivo');
+    await store.callService('media_player', 'play_media', {
+      entity_id: APPLE,
+      media_content_id: 'mockup:app:Netflix',
+      media_content_type: 'app',
+    });
+    expect(entity(APPLE).attributes.app_name).toBe('Netflix');
   });
 });

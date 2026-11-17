@@ -1,0 +1,124 @@
+/*
+ * ACA typography (ADR-0007): one family (Inter), fixed rem scale with ratio 1.2,
+ * weights 300/400/500 only, sentence case, no added tracking.
+ * The engraved label keeps the kit's -0.05em as a documented exception.
+ */
+
+@layer components {
+  .aca-type {
+    font-family: var(--aca-font);
+  }
+
+  .aca-type--display-sm,
+  .aca-type--display-md,
+  .aca-type--display-lg {
+    font-weight: var(--aca-weight-light);
+    line-height: 1.05;
+  }
+  .aca-type--display-sm {
+    font-size: var(--aca-step-4);
+  }
+  .aca-type--display-md {
+    font-size: var(--aca-step-5);
+  }
+  .aca-type--display-lg {
+    font-size: var(--aca-step-6);
+  }
+
+  .aca-type--title {
+    font-size: var(--aca-step-3);
+    font-weight: var(--aca-weight-regular);
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .aca-type--heading-sm,
+  .aca-type--heading-md,
+  .aca-type--heading-lg {
+    font-weight: var(--aca-weight-medium);
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+  .aca-type--heading-sm {
+    font-size: var(--aca-step-0);
+  }
+  .aca-type--heading-md {
+    font-size: var(--aca-step-1);
+  }
+  .aca-type--heading-lg {
+    font-size: var(--aca-step-2);
+    line-height: 1.25;
+  }
+
+  .aca-type--body-sm,
+  .aca-type--body-md {
+    font-weight: var(--aca-weight-regular);
+    text-wrap: pretty;
+  }
+  .aca-type--body-sm {
+    font-size: var(--aca-step--1);
+    line-height: 1.45;
+  }
+  .aca-type--body-md {
+    font-size: var(--aca-step-0);
+    line-height: 1.5;
+  }
+
+  .aca-type--label-sm {
+    font-size: var(--aca-step--1);
+    line-height: 1.2;
+  }
+  .aca-type--label-md {
+    font-size: var(--aca-step-0);
+    line-height: 1.2;
+  }
+  .aca-type--label-lg {
+    font-size: var(--aca-step-1);
+    line-height: 1.2;
+  }
+
+  .aca-type--caption {
+    font-size: var(--aca-step--1);
+    font-weight: var(--aca-weight-regular);
+    line-height: 1.4;
+  }
+
+  /* Figures: same width per digit and never split from their unit. */
+  .aca-numeric {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .aca-icon-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    min-width: 0;
+    vertical-align: middle;
+  }
+
+  /* Icon sizes in em: they follow the text they sit next to. */
+  .aca-icon--sm {
+    width: 1em;
+    height: 1em;
+  }
+  .aca-icon--md {
+    width: 1.25em;
+    height: 1.25em;
+  }
+  .aca-icon--lg {
+    width: 1.5em;
+    height: 1.5em;
+  }
+
+  /* Accent tones for text: the ≥ 4.5:1 inks (icons get the ≥ 3:1 inks from IconText). */
+  .aca-ink--active {
+    color: var(--aca-orange-ink);
+  }
+  .aca-ink--info {
+    color: var(--aca-blue-ink);
+  }
+  .aca-ink--danger {
+    color: var(--aca-danger-ink);
+  }
+}

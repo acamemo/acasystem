@@ -340,8 +340,18 @@ export const handleAddSelected = (ctx: AddSelectedContext): void => {
     }
 
     // Lists the devices of Home Assistant no widget shows yet: nothing to choose.
+    case 'tavano': {
+      commitSingleCard(`tavano_card_${Date.now()}`, {});
+      return;
+    }
     case 'rileva': {
       commitSingleCard(`rileva_card_${Date.now()}`, {});
+      return;
+    }
+
+    // Finds the Zigbee gateway of Home Assistant by itself (ZHA or Zigbee2MQTT).
+    case 'zigbee': {
+      commitSingleCard(`zigbee_card_${Date.now()}`, {});
       return;
     }
 

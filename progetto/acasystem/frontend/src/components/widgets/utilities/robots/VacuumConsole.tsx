@@ -1,4 +1,6 @@
 import { ConsoleColumns } from '@/components/primitives';
+import { ProductVacuumConsole } from '../../home/vacuum/ProductVacuumDetails';
+import { vacuumProductBinding } from '../../home/vacuum/productVacuumModel';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { VacuumMissing } from './VacuumDetails';
 import { VacuumMapSection } from './parts/VacuumMapSection';
@@ -18,7 +20,10 @@ import { useVacuumDetailsState } from './parts/useVacuumDetailsState';
  * Left, what the robot is doing: status, battery and main actions, the map. Right, what it can be
  * told: cleaning options, rooms, statistics, maintenance, diagnostics and the other sensors.
  */
-export function VacuumConsole({ id, settings }: WidgetDetailsProps) {
+export function VacuumConsole(props: WidgetDetailsProps) {
+  return vacuumProductBinding(props.settings) ? <ProductVacuumConsole {...props} /> : <LegacyVacuumConsole {...props} />;
+}
+function LegacyVacuumConsole({ id, settings }: WidgetDetailsProps) {
   const v = useVacuumDetailsState(id, settings);
   if (!v) return <VacuumMissing id={id} />;
   return (

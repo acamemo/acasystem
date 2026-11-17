@@ -393,9 +393,9 @@ describe('PERF-2: LauncherPage spegne la visibilità mentre Sistema copre il lau
     expect(coverProbe()).toHaveTextContent('false');
   });
 
-  it('mostra tutti i 26 preset senza associazione anche dopo il caricamento delle entità HA', async () => {
+  it('mostra tutti i preset, incluso Tavano, anche dopo il caricamento delle entità HA', async () => {
     renderPage(false);
-    await waitFor(() => expect(document.querySelectorAll('.aca-category-widget')).toHaveLength(26));
+    await waitFor(() => expect(document.querySelectorAll('.aca-category-widget')).toHaveLength(28));
   });
 
   it('il preset collegato usa l’entità reale', async () => {

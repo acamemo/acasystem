@@ -1,14 +1,2 @@
-import { Button, type ButtonProps } from './Button';
-
-export type ChoiceProps = Omit<ButtonProps, 'variant'> & { selected: boolean };
-
-export function Choice({ selected, className = '', ...props }: ChoiceProps) {
-  return (
-    <Button
-      variant="control"
-      aria-pressed={selected}
-      className={`aca-choice ${className}`}
-      {...props}
-    />
-  );
-}
+// Compatibilità: la stessa implementazione UI condivisa, senza duplicare stato o contesti.
+export * from '../../../../../ui/primitives/components/Choice';

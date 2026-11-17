@@ -15,10 +15,10 @@ beforeAll(async () => {
     readFileSync: (path: string, encoding: 'utf8') => string;
   };
   for (const [key, path] of Object.entries({
-    shell: 'src/templates/app-shell/appShell.css',
-    launcher: 'src/templates/launcher/launcher.css',
+    shell: '../design/layout/appShell.css',
+    launcher: '../design/layout/launcher.css',
     status: 'src/components/system/status-bar/statusBar.css',
-    indicator: 'src/components/system/page-indicator/pageIndicator.css',
+    indicator: '../design/layout/pageIndicator.css',
     edit: 'src/components/system/edit/edit.css',
   })) {
     css[key] = fs.readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');

@@ -140,12 +140,12 @@ describe('PERF-2: richieste passive soltanto sulla pagina visibile', () => {
       finishStatistics = resolve;
     });
     const { conn, sendMessagePromise } = fakeConnection((message) =>
-      message.type === 'recorder/statistics_during_period' ? statistics : {}
+      message.type === 'history/history_during_period' ? statistics : {}
     );
     const weather = fixtureEntity('weather.ufficio', 'sunny');
     const page = pageWrapper();
     const view = renderHook(
-      () => useCardWeather(conn, 'w', weather.entity_id, 'sensor.temperatura', weather),
+      () => useCardWeather(conn, 'w', weather.entity_id, 'sensor.temperatura', weather, '°C'),
       {
         wrapper: page.Wrapper,
       }
@@ -155,18 +155,17 @@ describe('PERF-2: richieste passive soltanto sulla pagina visibile', () => {
     await act(async () => vi.advanceTimersByTimeAsync(0));
     expect(
       sendMessagePromise.mock.calls.some(
-        ([message]) => message.type === 'recorder/statistics_during_period'
+        ([message]) => message.type === 'history/history_during_period'
       )
     ).toBe(true);
     page.hide();
     view.rerender();
     finishStatistics({});
     await flush();
-    expect(
-      sendMessagePromise.mock.calls.some(
-        ([message]) => message.type === 'history/history_during_period'
-      )
-    ).toBe(false);
+    expect(sendMessagePromise.mock.calls.filter(
+      ([message]) => message.type === 'history/history_during_period'
+    )).toHaveLength(1);
+    expect(view.result.current.history).toEqual([]);
   });
 
   it('videocamera: non firma né scarica istantanee nascosta, poi aggiorna al ritorno', async () => {

@@ -2,6 +2,7 @@
  * Entities and devices that a widget of the launcher already shows (F1 of the plan «Aggiungi
  * dispositivi»): what «Rileva dispositivi» must not offer again.
  */
+import { configuredCarSources } from '@/domain/car/carSources';
 import type { CardSettings, CardSettingsMap, PagesConfig } from '@/@types/dashboard';
 import { BINDING_KEYS } from '@/utils/launcher/bindingKeys';
 import { widgetDeviceKey } from '@/utils/launcher/deviceMemory';
@@ -46,6 +47,15 @@ export function boundEntityIds(
       if (device && ENTITY_ID.test(device)) bound.add(device);
       const keys = new Set([...Object.values(BINDING_KEYS), ...EXTRA_BINDING_KEYS]);
       for (const key of keys) entityIdsIn(settings[key]).forEach((id) => bound.add(id));
+      if (settings.categoryWidgetType === 'car' || widgetId === 'car' || widgetId.startsWith('car_card_')) {
+        const car = configuredCarSources(settings);
+        for (const value of [...Object.values(car.ids), ...car.chargeControlIds])
+          entityIdsIn(value).forEach(id => bound.add(id));
+      }
+      if (settings.categoryWidgetType === 'cost' || widgetId.startsWith('cost_card_')) {
+        for (const key of ['powerId', 'consumptionId', 'monthId'])
+          entityIdsIn(settings[key]).forEach(id => bound.add(id));
+      }
     }
   }
   return bound;

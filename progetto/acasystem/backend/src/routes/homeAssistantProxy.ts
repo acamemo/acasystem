@@ -1,5 +1,6 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
+import type { UpdateMaintenance } from '../updateMaintenance.ts';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import type { ApiErrorBody } from '../@types/http.ts';
 import { readHomeAssistantProxyResponseTimeoutMs } from '../config/env.ts';
@@ -177,7 +178,7 @@ const isWebSocketUpgrade = (req: IncomingMessage): boolean =>
  * Evitarlo richiederebbe `shouldUpgradeCallback` di http.createServer, che secondo la
  * revisione non è utilizzabile su tutte le versioni di Node ammesse da engines (>=22.18).
  */
-export const createHomeAssistantUpgradeHandler = () => {
+export const createHomeAssistantUpgradeHandler = (maintenance?: Pick<UpdateMaintenance, 'acceptSocket'>) => {
   const upgradeRateLimiter = createHomeAssistantWebSocketRateLimiter();
   const responseTimeoutMs = readHomeAssistantProxyResponseTimeoutMs();
 
@@ -218,6 +219,10 @@ export const createHomeAssistantUpgradeHandler = () => {
   };
 
   return (req: IncomingMessage, socket: Duplex, head: Buffer): void => {
+    if (maintenance && !maintenance.acceptSocket(socket)) {
+      writeSocketJsonError(socket, 503, { error: 'Aggiornamento ACA in corso.', code: 'ACA_UPDATING' });
+      return;
+    }
     // Un errore del socket prima del tunnel non deve diventare un'eccezione non gestita.
     socket.on('error', () => {});
     // Un errore imprevisto prima che parta la risposta diventa un 502, mai un'eccezione.
@@ -229,6 +234,6 @@ export const createHomeAssistantUpgradeHandler = () => {
 };
 
 /** Collega il WebSocket del proxy al server HTTP restituito da `app.listen`. */
-export const attachHomeAssistantWebSocketProxy = (server: Server): void => {
-  server.on('upgrade', createHomeAssistantUpgradeHandler());
+export const attachHomeAssistantWebSocketProxy = (server: Server, maintenance?: Pick<UpdateMaintenance, 'acceptSocket'>): void => {
+  server.on('upgrade', createHomeAssistantUpgradeHandler(maintenance));
 };

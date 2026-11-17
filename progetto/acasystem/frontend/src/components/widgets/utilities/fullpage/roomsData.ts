@@ -6,6 +6,7 @@ import type {
   HaEntityRegistryEntry,
 } from '@/@types/ha';
 import { stringAttr } from '../shared/entity';
+import { roomAreaIds } from '../room/roomMembership';
 
 export type RoomSort = 'name-az' | 'name-za' | 'entity-count' | 'active-count';
 
@@ -55,17 +56,7 @@ export function entitiesByArea(
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   for (const area of areas) {
-    const devices = new Set(
-      deviceRegistry.filter((device) => device.area_id === area.area_id).map((device) => device.id)
-    );
-    result[area.area_id] = entityRegistry
-      .filter(
-        (entry) =>
-          entry.area_id === area.area_id ||
-          (typeof entry.device_id === 'string' && devices.has(entry.device_id))
-      )
-      .filter((entry) => !entry.disabled_by && !entry.hidden_by)
-      .map((entry) => entry.entity_id);
+    result[area.area_id] = roomAreaIds(area.area_id, { areas, entities: entityRegistry, devices: deviceRegistry });
   }
   return result;
 }
@@ -80,6 +71,7 @@ export interface AreaStats {
   temperatureUnit: string | null;
   humidity: number | null;
   unavailableCount: number;
+  humidityUnit: string | null;
 }
 
 export const EMPTY_STATS: AreaStats = {
@@ -91,34 +83,36 @@ export const EMPTY_STATS: AreaStats = {
   temperatureUnit: null,
   humidity: null,
   unavailableCount: 0,
+  humidityUnit: null,
 };
 
 export function areaStats(ids: string[], entities: EntityMap): AreaStats {
-  const stats: AreaStats = { ...EMPTY_STATS, totalCount: ids.length };
-  for (const id of ids) {
+  const unique = [...new Set(ids)];
+  const stats: AreaStats = { ...EMPTY_STATS, totalCount: unique.length };
+  for (const id of unique) {
     const entity = entities[id];
-    if (!entity) continue;
+    if (id.startsWith('light.')) stats.lightsTotal += 1;
+    if (!entity) { stats.unavailableCount++; continue; }
     const domain = id.split('.')[0];
     if (entity.state === 'unavailable' || entity.state === 'unknown') {
       stats.unavailableCount += 1;
       continue;
     }
     if (domain === 'light') {
-      stats.lightsTotal += 1;
       if (entity.state === 'on') stats.lightsOn += 1;
     }
     if (['on', 'playing', 'cleaning', 'open'].includes(entity.state)) stats.activeCount += 1;
     const deviceClass = stringAttr(entity, 'device_class');
     if (domain === 'sensor' && deviceClass === 'temperature' && stats.temperature === null) {
-      const value = Number.parseFloat(entity.state);
-      if (!Number.isNaN(value)) {
-        stats.temperature = Math.round(value * 10) / 10;
+      const value = entity.state.trim() ? Number(entity.state) : NaN;
+      if (Number.isFinite(value)) {
+        stats.temperature = value;
         stats.temperatureUnit = stringAttr(entity, 'unit_of_measurement');
       }
     }
     if (domain === 'sensor' && deviceClass === 'humidity' && stats.humidity === null) {
-      const value = Number.parseFloat(entity.state);
-      if (!Number.isNaN(value)) stats.humidity = Math.round(value);
+      const value = entity.state.trim() ? Number(entity.state) : NaN;
+      if (Number.isFinite(value)) { stats.humidity = value; stats.humidityUnit = stringAttr(entity, 'unit_of_measurement'); }
     }
   }
   return stats;

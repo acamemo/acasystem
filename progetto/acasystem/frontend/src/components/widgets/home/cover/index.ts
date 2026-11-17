@@ -1,6 +1,6 @@
 import type { WidgetDefinition } from '@/@types/launcher';
 import type { IconName } from '@/components/primitives';
-import { ClockWidget, DateWidget, HomeWeatherWidget } from './CoverWidgets';
+import { ClockWidget, DateWidget, HomeWeatherWidget, HomeWeatherDetails } from './CoverWidgets';
 
 /*
  * Cards of the cover as widgets (REP-20261007-030). Ids by prefix: the cover starts with
@@ -32,10 +32,11 @@ export const coverWeatherWidget: WidgetDefinition = {
   type: 'cover_weather',
   label: 'Meteo di casa',
   icon: 'sun' satisfies IconName,
-  frameless: true,
+  frameless: false,
   sizes: { min: { w: 1, h: 1 }, max: { w: 4, h: 3 }, default: { w: 2, h: 2 } },
   matches: (id) => id.startsWith('cover_weather'),
   Widget: HomeWeatherWidget,
+  Details: HomeWeatherDetails,
 };
 
 /** The cover group, matched before the others (their ids never collide). */

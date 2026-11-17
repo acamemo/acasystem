@@ -6,7 +6,6 @@ import {
   isUnavailableState,
   friendlyName,
   listAttr,
-  numberAttr,
   stringAttr,
 } from '../../shared/entity';
 import { formatCompact, humanizeState } from '../../shared/format';
@@ -15,7 +14,9 @@ import { CollapseButton } from '../../shared/details';
 import { Notice, commandNotice } from '../../shared/UtilityCard';
 import { UtilityIcon, type UtilityIconName } from '../../shared/UtilityIcon';
 import { useCommand } from '../../shared/useCommand';
-import { haUnit } from '../../shared/units';
+import { roomServiceAllowed } from '../roomCapabilities';
+import { roomNumberAttr as numberAttr } from '../roomData';
+import { hvacActionLabel, hvacModeLabel } from '../../../home/climate/climateModel';
 
 const HVAC_LABEL: Record<string, string> = {
   off: 'Spento',
@@ -64,19 +65,20 @@ export function RoomSection({
 }
 
 export function ClimateControl({ climateId, entity }: { climateId: string; entity: HassEntity }) {
-  const { haConfig } = useWidgetRuntime();
+  const runtime = useWidgetRuntime();
+  const { haConfig } = runtime;
   const command = useCommand(entity);
   const target = numberAttr(entity, 'temperature');
   // Climate entities report in the unit of Home Assistant: label only, no conversion.
-  const unit = haUnit(
-    'temperature',
-    haConfig,
-    stringAttr(entity, 'temperature_unit') ?? stringAttr(entity, 'unit_of_measurement') ?? '°C'
-  );
+  const unit = stringAttr(entity, 'temperature_unit') ?? stringAttr(entity, 'unit_of_measurement')
+    ?? haConfig?.unit_system?.temperature ?? '';
   const current = numberAttr(entity, 'current_temperature');
   const modes = listAttr(entity, 'hvac_modes');
-  const action = stringAttr(entity, 'hvac_action') ?? entity.state ?? 'idle';
-  const unavailable = isUnavailableState(entity.state);
+  const action = stringAttr(entity, 'hvac_action');
+  const unavailable = isUnavailableState(entity.state) || !runtime.conn || runtime.conn.connected === false || runtime.editMode;
+  const min = numberAttr(entity, 'min_temp'), max = numberAttr(entity, 'max_temp'), step = numberAttr(entity, 'target_temp_step');
+  const canTarget = !unavailable && target !== null && min !== null && max !== null && max > min && step !== null && step > 0
+    && roomServiceAllowed(entity, runtime.services ?? null, 'climate', 'set_temperature', { temperature: target });
   const notice = commandNotice(command.errorKey, command.unconfirmedKey);
   return (
     <div className="utility-stack">
@@ -85,19 +87,20 @@ export function ClimateControl({ climateId, entity }: { climateId: string; entit
           <Body as="span" size="sm" tone="ink">
             {friendlyName(entity, climateId)}
           </Body>
-          <Caption>{HVAC_LABEL[action] ?? humanizeState(action)}</Caption>
+          <Caption>{isUnavailableState(entity.state) ? 'Non disponibile' : hvacModeLabel(entity.state)}</Caption>
+          {!isUnavailableState(entity.state) && action && <Caption>{hvacActionLabel(action)}</Caption>}
         </div>
         <Caption>
-          Attuale {current === null ? '--' : `${formatCompact(current, 1)} ${unit}`}
+          Attuale {isUnavailableState(entity.state) || current === null ? 'non disponibile' : `${formatCompact(current, 1)} ${unit}`}
         </Caption>
       </div>
-      {target !== null && (
+      {canTarget && (
         <ValueStepper
           label="Temperatura desiderata"
           confirmed={target}
-          min={numberAttr(entity, 'min_temp') ?? 16}
-          max={numberAttr(entity, 'max_temp') ?? 30}
-          step={0.5}
+          min={min as number}
+          max={max as number}
+          step={step as number}
           disabled={unavailable || !((numberAttr(entity, 'supported_features') ?? 0) & 1)}
           format={(value) => `${formatCompact(value, 1)} ${unit}`}
           toCall={(value) => ({
@@ -107,7 +110,7 @@ export function ClimateControl({ climateId, entity }: { climateId: string; entit
           })}
         />
       )}
-      {target !== null && (
+      {target !== null && !isUnavailableState(entity.state) && (
         <Caption>
           Desiderata {formatCompact(target, 1)} {unit}
         </Caption>
@@ -121,7 +124,7 @@ export function ClimateControl({ climateId, entity }: { climateId: string; entit
               size="sm"
               aria-pressed={entity.state === mode}
               loading={command.pendingKey === mode}
-              disabled={unavailable}
+              disabled={unavailable || command.pendingKey !== null || !roomServiceAllowed(entity, runtime.services ?? null, 'climate', 'set_hvac_mode', { hvac_mode: mode })}
               onClick={() =>
                 command.run({
                   key: mode,

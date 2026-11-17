@@ -1,3 +1,5 @@
+import { mediaProductBinding } from '../../home/media/productMediaModel';
+import { ProductMediaDetails } from '../../home/media/ProductMediaDetails';
 import { Body } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { stringList } from '../model/entity';
@@ -43,12 +45,20 @@ function MediaDetailsView(input: MediaDetailsInput) {
 }
 
 /** Details of a `media_player.*` widget. */
-export function MediaPlayerDetails({ id }: WidgetDetailsProps) {
+export function MediaPlayerDetails(props: WidgetDetailsProps) {
+  if (mediaProductBinding(props.settings)) return <ProductMediaDetails {...props} />;
+  return <LegacyMediaPlayerDetails {...props} />;
+}
+function LegacyMediaPlayerDetails({ id }: WidgetDetailsProps) {
   return <MediaDetailsView cardId={id} baseIds={[id]} initialId={id} isGroup={false} />;
 }
 
 /** Details of a `media_group_*` / `sonos_group_*` widget. */
-export function MediaGroupDetails({ id, settings }: WidgetDetailsProps) {
+export function MediaGroupDetails(props: WidgetDetailsProps) {
+  if (mediaProductBinding(props.settings)) return <ProductMediaDetails {...props} />;
+  return <LegacyMediaGroupDetails {...props} />;
+}
+function LegacyMediaGroupDetails({ id, settings }: WidgetDetailsProps) {
   const initial = useGroupInitialId(settings);
   return (
     <MediaDetailsView

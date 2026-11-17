@@ -9,9 +9,9 @@
 import type { CardSettings, CardSettingsMap, PagesConfig } from '@/@types/dashboard';
 import type { CellSize, LauncherLayout } from '@/@types/launcher';
 import { findWidgetDefinition } from '@/components/widgets/registry';
-import { categoryPageGeometry } from '@/templates/sheets/categoryPageGrid';
-import { categoryPageSeeds } from '@/templates/sheets/categoryPages';
-import { ADD_WIDGET_TYPES, WIDGET_CATEGORIES } from '@/templates/sheets/catalog';
+import { categoryPageGeometry } from '@/utils/launcher/categoryModels';
+import { categoryPageSeeds } from '@/utils/launcher/categoryModels';
+import { ADD_WIDGET_TYPES, WIDGET_CATEGORIES } from '@/domain/launcher/catalog';
 import { EDIT_HINT_KEY } from '@/hooks/launcher/useEditHint';
 import { DEFAULT_GRIDS } from '@/utils/launcher/deviceClass';
 import { addPageToLayout, placeWidgetInLayout, type LayoutContext } from '@/utils/launcher/layout';

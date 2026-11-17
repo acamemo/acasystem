@@ -1,0 +1,54 @@
+/*
+ * Wallpapers of the launcher and the accent taken from them (REP-20261007-038), as «Wallpaper
+ * & style» of Android: five soft gradients (their hues are WALLPAPER_HUES in
+ * utils/appearance.ts) or a photo of this device. Behind the pages only: bars, cards and sheets
+ * keep their own surface, so the text keeps its contrast; the dark theme dims the wallpaper.
+ */
+:root {
+  --aca-wallpaper-alba: linear-gradient(160deg, oklch(95% 0.04 85), oklch(88% 0.07 55));
+  --aca-wallpaper-mare: linear-gradient(160deg, oklch(93% 0.04 210), oklch(80% 0.08 240));
+  --aca-wallpaper-bosco: linear-gradient(160deg, oklch(93% 0.04 140), oklch(78% 0.07 160));
+  --aca-wallpaper-tramonto: linear-gradient(160deg, oklch(90% 0.06 60), oklch(74% 0.12 20));
+  --aca-wallpaper-notte: linear-gradient(160deg, oklch(42% 0.07 285), oklch(24% 0.05 265));
+}
+
+:root[data-wallpaper='alba'] {
+  --aca-wallpaper: var(--aca-wallpaper-alba);
+}
+:root[data-wallpaper='mare'] {
+  --aca-wallpaper: var(--aca-wallpaper-mare);
+}
+:root[data-wallpaper='bosco'] {
+  --aca-wallpaper: var(--aca-wallpaper-bosco);
+}
+:root[data-wallpaper='tramonto'] {
+  --aca-wallpaper: var(--aca-wallpaper-tramonto);
+}
+:root[data-wallpaper='notte'] {
+  --aca-wallpaper: var(--aca-wallpaper-notte);
+}
+:root[data-wallpaper='photo'] {
+  --aca-wallpaper: var(--aca-wallpaper-photo, none);
+}
+
+:root[data-wallpaper] body {
+  background:
+    var(--aca-wallpaper) center / cover no-repeat fixed,
+    var(--k2-bg);
+}
+:root[data-theme='dark'][data-wallpaper] body {
+  background:
+    linear-gradient(oklch(0% 0 0 / 45%), oklch(0% 0 0 / 45%)) fixed,
+    var(--aca-wallpaper) center / cover no-repeat fixed,
+    var(--k2-bg);
+}
+/* The pages let the wallpaper through; everything on them keeps its surface. */
+:root[data-wallpaper] .aca-shell {
+  background: transparent;
+}
+
+/* «Dallo sfondo»: the accent on the hue of the wallpaper, at the lightness of the others. */
+:root[data-accent='custom'],
+.k2[data-accent='custom'] {
+  --k2-accent: oklch(60% 0.19 var(--k2-accent-hue, 279));
+}

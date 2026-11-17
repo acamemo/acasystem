@@ -1,33 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { HassEntity } from 'home-assistant-js-websocket';
+import { useMemo, useState } from 'react';
 import {
   Body,
   Button,
   Caption,
   Field,
-  Heading,
   MaterialLayers,
   Skeleton,
-  Surface,
   materialClass,
 } from '@/components/primitives';
 import type { HaAreaEntry } from '@/@types/ha';
 import type { PageKindProps } from '@/@types/launcher';
-import { getAreas, getDeviceRegistry, getEntityRegistry } from '@/api/haClient';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
-import { domainOf, friendlyName } from '../shared/entity';
 import { formatCompact, lightsOnText } from '../shared/format';
-import { Chip, IconWell, Notice, callAll } from '../shared/UtilityCard';
+import { Chip, IconWell, Notice } from '../shared/UtilityCard';
 import { OptionPicker } from '../shared/details';
 import { UtilityIcon } from '../shared/UtilityIcon';
-import { temperatureReading } from '../shared/units';
-import { EntityRow, domainIcon } from '../room/EntityRow';
-import { domainLabel } from '../room/RoomDetails';
+import { RoomScope } from '../room/RoomScope';
+import { RoomExplorer } from '../room/RoomExplorer';
+import { useRoomRegistry } from '../room/useRoomMembership';
 import {
   EMPTY_STATS,
   ROOM_SORTS,
   areaStats,
-  domainPriority,
   entitiesByArea,
   isRoomSort,
   sortAreas,
@@ -35,10 +29,6 @@ import {
   type RoomSort,
 } from './roomsData';
 import '../utilities.css';
-
-type LoadState =
-  | { status: 'offline' | 'loading' | 'error' }
-  | { status: 'ready'; areas: HaAreaEntry[]; ids: Record<string, string[]> };
 
 function RoomTile({
   area,
@@ -49,15 +39,14 @@ function RoomTile({
   stats: AreaStats;
   onSelect: () => void;
 }) {
-  const { haConfig } = useWidgetRuntime();
   const name = area.name ?? area.area_id;
   const active = stats.lightsOn > 0 || stats.activeCount > 0;
-  const temperature = temperatureReading(stats.temperature, stats.temperatureUnit, haConfig);
+  const temperature = { value: stats.temperature, unit: stats.temperatureUnit ?? '' };
   return (
     <button
       type="button"
       className={materialClass({ behavior: 'press', shape: 'card' }, 'utility-tile')}
-      aria-label={`${name}: ${stats.totalCount} dispositivi${stats.lightsOn > 0 ? `, ${lightsOnText(stats.lightsOn)}` : ''}`}
+      aria-label={`${name}: ${stats.totalCount} entità${stats.lightsOn > 0 ? `, ${lightsOnText(stats.lightsOn)}` : ''}`}
       onClick={onSelect}
     >
       <MaterialLayers>
@@ -67,7 +56,7 @@ function RoomTile({
             <Body as="span" size="md" tone="ink" className="utility-truncate">
               {name}
             </Body>
-            <Caption>{stats.totalCount} dispositivi</Caption>
+            <Caption>{stats.totalCount} entità</Caption>
           </span>
         </span>
         <span className="utility-chips" aria-hidden="true">
@@ -79,13 +68,13 @@ function RoomTile({
           {temperature.value !== null && (
             <Chip icon="thermostat">{`${formatCompact(temperature.value, 1)} ${temperature.unit}`}</Chip>
           )}
-          {stats.humidity !== null && <Chip icon="humidity">{stats.humidity}%</Chip>}
+          {stats.humidity !== null && <Chip icon="humidity">{stats.humidity}{stats.humidityUnit ? ` ${stats.humidityUnit}` : ''}</Chip>}
           {stats.activeCount > 0 && (
             <Chip icon="energy">{`${stats.activeCount} ${stats.activeCount === 1 ? 'attivo' : 'attivi'}`}</Chip>
           )}
           {stats.unavailableCount > 0 && (
             <Chip icon="wifi" tone="danger">
-              {stats.unavailableCount} offline
+              {stats.unavailableCount} non disponibili
             </Chip>
           )}
         </span>
@@ -101,43 +90,13 @@ function RoomTile({
  */
 export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
   const runtime = useWidgetRuntime();
-  const { conn, entities, callService } = runtime;
+  const { entities } = runtime;
+  const load = useRoomRegistry();
   const sort: RoomSort = isRoomSort(settings.roomSort) ? settings.roomSort : 'name-az';
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const [domainFilter, setDomainFilter] = useState('all');
-  const [load, setLoad] = useState<LoadState>({ status: conn ? 'loading' : 'offline' });
-  const [lightsError, setLightsError] = useState(false);
-
-  useEffect(() => {
-    if (!conn) {
-      setLoad({ status: 'offline' });
-      return undefined;
-    }
-    let cancelled = false;
-    setLoad({ status: 'loading' });
-    Promise.all([getAreas(conn), getEntityRegistry(conn), getDeviceRegistry(conn)])
-      .then(([areas, entityRegistry, deviceRegistry]) => {
-        if (!cancelled)
-          setLoad({
-            status: 'ready',
-            areas,
-            ids: entitiesByArea(areas, entityRegistry, deviceRegistry),
-          });
-      })
-      .catch(() => {
-        if (!cancelled) setLoad({ status: 'error' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [conn]);
-
-  const areas = useMemo(() => (load.status === 'ready' ? load.areas : []), [load]);
-  const areaIds = useMemo<Record<string, string[]>>(
-    () => (load.status === 'ready' ? load.ids : {}),
-    [load]
-  );
+  const areas = useMemo(() => load.registry?.areas ?? [], [load.registry]);
+  const areaIds = useMemo(() => load.registry ? entitiesByArea(load.registry.areas, load.registry.entities, load.registry.devices) : {}, [load.registry]);
   const stats = useMemo(() => {
     const result: Record<string, AreaStats> = {};
     for (const area of areas)
@@ -154,150 +113,11 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
   const open = (areaId: string | null) => {
     setSelected(areaId);
     setSearch('');
-    setDomainFilter('all');
-    setLightsError(false);
   };
 
-  // ── Detail of one area ────────────────────────────────────────────────────────────
-  if (selectedArea) {
-    const ids = (areaIds[selectedArea.area_id] ?? []).filter((id) => entities[id]);
-    const domains = [...new Set(ids.map(domainOf))].sort(
-      (a, b) => domainPriority(a) - domainPriority(b)
-    );
-    const visible = ids.filter((id) => {
-      if (domainFilter !== 'all' && domainOf(id) !== domainFilter) return false;
-      if (!term) return true;
-      return (
-        friendlyName(entities[id], id).toLowerCase().includes(term) ||
-        id.toLowerCase().includes(term)
-      );
-    });
-    const groups = domains
-      .map((domain) => [domain, visible.filter((id) => domainOf(id) === domain)] as const)
-      .filter(([, list]) => list.length > 0);
-    const lights = ids.filter((id) => id.startsWith('light.'));
-    const lightsOn = lights.filter((id) => entities[id]?.state === 'on').length;
-    const toggleLights = () => {
-      const service = lightsOn > 0 ? 'turn_off' : 'turn_on';
-      setLightsError(false);
-      Promise.allSettled(
-        lights.map((id) => callAll(() => callService('light', service, { entity_id: id })))
-      ).then((results) => setLightsError(results.some((result) => result.status === 'rejected')));
-    };
-
-    return (
-      <div className="utility-page" data-page={pageId}>
-        <header className="utility-page__head">
-          <Button
-            variant="control"
-            shape="circle"
-            size="md"
-            aria-label="Torna alle stanze"
-            onClick={() => open(null)}
-          >
-            <UtilityIcon name="chevronLeft" size="md" />
-          </Button>
-          <div className="utility-page__title">
-            <Heading level={2} size="md">
-              {selectedArea.name ?? selectedArea.area_id}
-            </Heading>
-            <Body size="sm" tone="muted">
-              {visible.length} dispositivi
-            </Body>
-          </div>
-        </header>
-        <div className="utility-page__tools">
-          <Field
-            label="Cerca un dispositivo"
-            icon="search"
-            type="search"
-            placeholder="Cerca un dispositivo"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </div>
-        {domains.length > 1 && (
-          <div className="utility-toolbar" role="group" aria-label="Filtra per tipo">
-            <Button
-              variant="control"
-              size="sm"
-              aria-pressed={domainFilter === 'all'}
-              onClick={() => setDomainFilter('all')}
-            >
-              Tutti
-            </Button>
-            {domains.map((domain) => (
-              <Button
-                key={domain}
-                variant="control"
-                size="sm"
-                aria-pressed={domainFilter === domain}
-                onClick={() => setDomainFilter(domainFilter === domain ? 'all' : domain)}
-              >
-                <UtilityIcon name={domainIcon(domain)} size="sm" />
-                {`${domainLabel(domain)} (${ids.filter((id) => domainOf(id) === domain).length})`}
-              </Button>
-            ))}
-          </div>
-        )}
-        {lights.length > 0 && (
-          <Surface className="utility-panel">
-            <div className="utility-list__row">
-              <UtilityIcon
-                name="light"
-                size="lg"
-                color={lightsOn > 0 ? 'var(--aca-orange-ink-icon)' : 'var(--aca-ink-muted)'}
-              />
-              <span className="utility-list__main">
-                <Body as="span" size="sm" tone="ink">
-                  {`${lightsOn} su ${lights.length} ${lights.length === 1 ? 'luce accesa' : 'luci accese'}`}
-                </Body>
-              </span>
-              <span className="utility-list__end">
-                <Button variant="control" size="sm" onClick={toggleLights}>
-                  {lightsOn > 0 ? 'Spegni tutte' : 'Accendi tutte'}
-                </Button>
-              </span>
-              {lightsError && (
-                <span className="utility-list__wide">
-                  <Notice tone="danger" icon="warning" live>
-                    Alcune luci non hanno risposto. Riprova.
-                  </Notice>
-                </span>
-              )}
-            </div>
-          </Surface>
-        )}
-        {groups.length === 0 ? (
-          <Body size="sm" tone="muted" role="status">
-            {term
-              ? 'Nessun dispositivo corrisponde alla ricerca.'
-              : 'Nessun dispositivo in questa stanza.'}
-          </Body>
-        ) : (
-          groups.map(([domain, list]) => (
-            <section className="utility-group" key={domain} aria-label={domainLabel(domain)}>
-              <div className="utility-group__head">
-                <UtilityIcon name={domainIcon(domain)} size="md" color="var(--aca-ink-muted)" />
-                <Heading level={3} size="sm" tone="ink">
-                  {domainLabel(domain)}
-                </Heading>
-                <span className="utility-group__rule" />
-                <Caption>{list.length}</Caption>
-              </div>
-              <Surface className="utility-panel">
-                <ul className="utility-list">
-                  {list.map((id) => (
-                    <EntityRow key={id} entityId={id} entity={entities[id] as HassEntity} />
-                  ))}
-                </ul>
-              </Surface>
-            </section>
-          ))
-        )}
-      </div>
-    );
-  }
+  if (selectedArea) return <RoomScope settings={{ areaId: selectedArea.area_id, areaName: selectedArea.name, roomMembershipSource: 'area' }}>
+    {resolved => <RoomExplorer pageId={pageId} name={selectedArea.name ?? selectedArea.area_id} settings={resolved} onBack={() => open(null)} />}
+  </RoomScope>;
 
   // ── Overview of the areas ─────────────────────────────────────────────────────────
   const sorted = sortAreas(areas, sort, stats);
@@ -332,7 +152,8 @@ export function RoomsPage({ pageId, settings, onSaveSetting }: PageKindProps) {
         </Notice>
       ) : load.status === 'error' ? (
         <Notice icon="warning" tone="danger">
-          Impossibile leggere le stanze. Riprova più tardi.
+          Impossibile leggere le stanze.
+          <Button variant="control" onClick={load.retry}>Riprova</Button>
         </Notice>
       ) : load.status === 'loading' ? (
         <Skeleton variant="list" rows={4} label="Caricamento delle stanze…" />

@@ -1,14 +1,2 @@
-import type { ComponentPropsWithRef } from 'react';
-
-export type BadgeProps = ComponentPropsWithRef<'span'>;
-
-/** Decorative notification dot; the owner's accessible name must carry the information. */
-export function Badge({ className, ...props }: BadgeProps) {
-  return (
-    <span
-      aria-hidden="true"
-      className={['aca-badge', className].filter(Boolean).join(' ')}
-      {...props}
-    />
-  );
-}
+// Compatibilità: la stessa implementazione UI condivisa, senza duplicare stato o contesti.
+export * from '../../../../../ui/primitives/components/Badge';

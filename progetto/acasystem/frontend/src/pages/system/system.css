@@ -1,4 +1,4 @@
-/* Sistema: full page with an index and one metal surface per section; --aca-* tokens only. */
+/* Sistema: a bounded section index and one visible settings panel. */
 @layer components {
   .aca-system {
     /* Index column + gap + content: the whole composition is centred, so both margins match. */
@@ -11,15 +11,27 @@
     color: var(--aca-ink-solid);
     font-family: var(--aca-font);
   }
+  .aca-system[hidden] { display: none; }
   .aca-system__bar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     max-width: var(--aca-system-width, 72rem);
-    margin: 0 auto 1.75rem;
+    margin: 0 auto 1.25rem;
+  }
+  .aca-system__bar > button {
+    flex: none;
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+  }
+  .aca-system__bar > .aca-bar-button {
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
   }
   .aca-system__bar-text {
     display: flex;
+    flex: 1 1 6rem;
     flex-direction: column;
     gap: 0.125rem;
     min-width: 0;
@@ -32,37 +44,40 @@
     max-width: var(--aca-system-width, 72rem);
     margin: 0 auto;
   }
-  /* Phone: the index is one row that scrolls sideways and stays at the top while the page moves. */
+  /* Phone: a single row of tabs; panels keep their state while hidden. */
   .aca-system__nav {
     position: sticky;
     top: 0;
     z-index: var(--aca-z-sticky);
-    margin-inline: -1rem;
+    min-width: 0;
     background-color: var(--aca-page);
   }
-  .aca-system__nav ul {
+  .aca-system__tabs {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.75rem;
-    margin: 0;
-    padding: 0.5rem 1rem 0.75rem;
+    gap: 0.5rem;
+    padding: 0.5rem;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
     touch-action: pan-x;
-    list-style: none;
   }
-  .aca-system__nav ul::-webkit-scrollbar {
+  .aca-system__tabs::-webkit-scrollbar {
     display: none;
   }
-  .aca-system__nav li {
+  .aca-system__tabs > button {
     flex: none;
+    min-height: 2.75rem;
+    max-width: 100%;
+  }
+  .aca-system__tabs .aca-m__label,
+  .aca-system__panel .aca-m__label {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .aca-system__sections {
     display: flex;
     flex-direction: column;
-    /* Twice what sits between a heading and its panel: a section starts after a clear break. */
-    gap: 3rem;
     min-width: 0;
     max-width: var(--aca-system-content, 48rem);
   }
@@ -70,7 +85,14 @@
     display: flex;
     flex-direction: column;
     gap: 0.875rem;
-    scroll-margin-top: 5rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .aca-system__section[hidden] { display: none; }
+  .aca-system__section:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 0.5rem;
+    border-radius: var(--aca-radius-rounded);
   }
   .aca-system__section-head {
     display: flex;
@@ -86,6 +108,8 @@
   }
   .aca-m.aca-system__panel > .aca-m__outer > .aca-m__face > .aca-system__panel-content {
     display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   /* Content of a section. */
@@ -112,6 +136,7 @@
     align-items: center;
     gap: 0.625rem;
   }
+  .aca-system__actions > .aca-m { max-width: 100%; }
   .aca-system__subpanel {
     display: flex;
     flex-direction: column;
@@ -151,23 +176,27 @@
   }
   .aca-system__facts {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
     gap: 1rem 1.5rem;
     margin: 0;
   }
   .aca-system__facts dd {
     margin: 0.25rem 0 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
+  .aca-system__facts > div { min-width: 0; }
   .aca-system__facts-wide {
     grid-column: 1 / -1;
   }
   .aca-system__break {
     overflow-wrap: anywhere;
   }
-  /* The pills of the sections (theme, accent, wallpaper, quality) are real 44 px boxes. */
+  /* The pills of the sections are real 44 px boxes. */
   .aca-system button.aca-m:not(.aca-m--circle, .aca-m--hosted) {
     min-block-size: 2.75rem;
   }
+  .aca-system .aca-toggle { min-block-size: 2.75rem; }
   .aca-system__link {
     display: inline-flex;
     align-items: center;
@@ -195,40 +224,30 @@
       align-items: start;
       gap: 2.5rem;
     }
-    .aca-system__section {
-      scroll-margin-top: 1.5rem;
-    }
     .aca-system__nav {
       top: 1.5rem;
       margin-inline: 0;
       background-color: transparent;
     }
-    .aca-system__nav ul {
+    .aca-system__tabs {
       flex-direction: column;
       align-items: stretch;
       padding: 0.25rem;
-      overflow: visible;
+      max-height: calc(100dvh - 10rem);
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      overscroll-behavior-y: contain;
       touch-action: auto;
     }
     .aca-system__nav .aca-m {
       width: 100%;
     }
+    .aca-system__nav .aca-m__label {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
   }
-}
-
-/* Appearance (REP-20261007-008): accent buttons with a dot of their colour. */
-.aca-system__accents {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--aca-space-3, 0.75rem);
-}
-.aca-system__accent-dot {
-  display: inline-block;
-  flex: none;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  background: var(--k2-accent);
 }
 
 /* Posizione (REP-20261007-025): map, pin, coordinate fields and actions. */
@@ -267,7 +286,7 @@
 }
 .aca-location-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   gap: var(--aca-space-3, 0.75rem);
 }
 .aca-location-field {
@@ -280,36 +299,3 @@
   gap: var(--aca-space-3, 0.75rem);
 }
 
-/* Wallpapers of Aspetto (REP-20261007-038): a small swatch of each in its button. */
-.aca-system__wallpapers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--aca-space-3, 0.75rem);
-}
-.aca-system__wallpaper-swatch {
-  display: inline-block;
-  flex: none;
-  width: 1.25em;
-  height: 1.25em;
-  border-radius: 0.375em;
-  background: var(--k2-bg);
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--k2-ink) 15%, transparent);
-}
-.aca-system__wallpaper-swatch[data-swatch='alba'] {
-  background: var(--aca-wallpaper-alba);
-}
-.aca-system__wallpaper-swatch[data-swatch='mare'] {
-  background: var(--aca-wallpaper-mare);
-}
-.aca-system__wallpaper-swatch[data-swatch='bosco'] {
-  background: var(--aca-wallpaper-bosco);
-}
-.aca-system__wallpaper-swatch[data-swatch='tramonto'] {
-  background: var(--aca-wallpaper-tramonto);
-}
-.aca-system__wallpaper-swatch[data-swatch='notte'] {
-  background: var(--aca-wallpaper-notte);
-}
-.aca-system__wallpaper-swatch[data-swatch='photo'] {
-  background: var(--aca-wallpaper-photo, var(--k2-bg)) center / cover;
-}

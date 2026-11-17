@@ -200,7 +200,7 @@ describe('submitAddress (procedura guidata)', () => {
   it("salva l'indirizzo solo se risponde Acasystem", async () => {
     const { http } = createHttp({ [health]: { status: 'ok', version: '0.9.28' } });
     const store = createConfigStore();
-    expect(await submitAddress({ host: 'http://192.168.1.7:8123/' }, { http, config: store.store })).toEqual({
+    expect(await submitAddress({ host: '192.168.1.7' }, { http, config: store.store })).toEqual({
       ok: true,
       config,
       serverVersion: '0.9.28',

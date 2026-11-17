@@ -17,6 +17,9 @@
   justify-content: center;
   padding: var(--aca-space-2);
 }
+.aca-adaptive-widget:not([data-details]) {
+  container: aca-adaptive-widget / size;
+}
 
 .aca-adaptive-widget__header {
   flex: 0 0 auto;
@@ -115,8 +118,92 @@
   gap: var(--aca-space-3);
 }
 
+/* The same compact command at a physically small viewport: keep a real 44 px target and
+ * use the full card width for its label instead of squeezing words beside the icon. */
+.aca-adaptive-widget[data-pixel-compact='true'] {
+  padding: 2px;
+}
+.aca-adaptive-widget[data-pixel-compact='true'] .uikwa-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.aca-adaptive-widget[data-pixel-compact='true'] .uikwa-controls :is(.uikwa-toggle, .uikwa-action, .uikw-gesture) {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: 44px auto;
+  align-items: center;
+  justify-items: center;
+  gap: 2px 4px;
+  width: 100%;
+}
+.aca-adaptive-widget[data-pixel-compact='true'] .uikwa-controls :is(.uikwa-toggle, .uikwa-action) > button,
+.aca-adaptive-widget[data-pixel-compact='true'] .uikw-gesture__knob {
+  --aca-dim: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  grid-column: 1;
+  grid-row: 1;
+}
+.aca-adaptive-widget[data-pixel-compact='true'] .uikwa-controls :is(.uikwa-toggle, .uikwa-action) > button {
+  grid-column: 1 / -1;
+}
+.aca-adaptive-widget[data-pixel-compact='true'] .uikwa-controls :is(.uikwa-toggle, .uikwa-action, .uikw-gesture) > .aca-type--caption {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 15px;
+}
+.aca-adaptive-widget[data-pixel-compact='true'] .uikw-gesture > .aca-type--display-sm {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 14px;
+}
+.aca-adaptive-widget[data-pixel-compact='true'] .uikw-reading {
+  padding-block: 0;
+  gap: 2px;
+}
+
 .aca-adaptive-widget[data-tier='compact'] .uikwa-controls {
   gap: var(--aca-space-2);
+}
+/* A one-row phone cell fits the command, not an extra caption below it. Its
+ * accessible name/state stay on the command; readings keep the full value. */
+@container aca-adaptive-widget (max-height: 4rem) {
+  .aca-adaptive-widget[data-pixel-compact='true'] .uikwa-controls :is(.uikwa-toggle, .uikwa-action, .uikw-gesture) {
+    grid-template-rows: 44px;
+  }
+  .aca-adaptive-widget[data-pixel-compact='true'] .uikwa-controls :is(.uikwa-toggle, .uikwa-action, .uikw-gesture, .uikw-reading) > .aca-type--caption:not([role='status']) {
+    display: none;
+  }
+  .aca-adaptive-widget[data-pixel-compact='true'] .uikw-reading > .aca-type--display-sm {
+    font-size: var(--aca-step-0);
+    white-space: nowrap;
+  }
+  .aca-adaptive-widget[data-pixel-compact='true'] .aca-adaptive-widget__feedback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .aca-adaptive-widget[data-pixel-compact='true'] .aca-adaptive-widget__feedback-marker {
+    display: block;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    pointer-events: none;
+  }
+}
+@container aca-adaptive-widget (max-width: 4rem) and (max-height: 4rem) {
+  .aca-adaptive-widget[data-pixel-compact='true'] .uikw-gesture > .aca-type--display-sm {
+    display: none;
+  }
 }
 
 .aca-adaptive-widget[data-tier='page'] .aca-adaptive-widget__controls-wrap {
@@ -125,6 +212,9 @@
   overflow: auto;
   justify-content: start;
   overscroll-behavior: contain;
+  /* Room for the soft shadow of the first and last control; the negative margin keeps the layout. */
+  padding-block: var(--aca-shadow-reach);
+  margin-block: calc(-1 * var(--aca-shadow-reach));
 }
 /*
  * The body opens the details (ADR-0016, G3): a transparent button over the whole widget, under its
@@ -181,6 +271,16 @@
   width: 100%;
   text-align: center;
 }
+.aca-adaptive-widget__command {
+  position: relative;
+}
+.aca-adaptive-widget__feedback-marker {
+  display: none;
+}
+.aca-adaptive-widget__notice[data-compact] > .aca-m--circle {
+  min-width: 44px;
+  min-height: 44px;
+}
 
 .aca-adaptive-widget .uikwa-range,
 .aca-adaptive-widget .uikwa-toggle,
@@ -207,19 +307,13 @@
   max-width: 100%;
   overflow-wrap: anywhere;
 }
-.aca-adaptive-widget__select {
+.aca-adaptive-widget .uikwa-choice > button {
+  --aca-pad: 0.8em 0.65em;
   max-width: 100%;
-  min-height: 44px;
-  color: var(--k2-ink);
-  background: var(--k2-bg);
-  border: 1px solid var(--k2-shade);
-  border-radius: var(--aca-radius-sm);
-  font: inherit;
-  padding: var(--aca-space-2);
 }
-.aca-adaptive-widget__select:focus-visible {
-  outline: 2px solid var(--k2-accent);
-  outline-offset: 2px;
+.aca-adaptive-widget .uikwa-choice .aca-select__content {
+  min-width: 0;
+  gap: var(--aca-space-2);
 }
 .aca-adaptive-preference {
   display: grid;
@@ -243,15 +337,30 @@
 .aca-adaptive-spacer {
   box-sizing: border-box;
   width: 100%;
+  min-width: 0;
   max-height: 100%;
   display: flex;
   align-items: center;
   gap: var(--aca-space-2);
+  container-type: inline-size;
+}
+.aca-adaptive-spacer > .utility-spacer {
+  flex: 1 1 0;
+  min-width: 0;
 }
 /* The gear of the divider is a real 44 px box. */
 .aca-adaptive-spacer > .aca-m {
+  flex: none;
   min-width: 2.75rem;
   min-height: 2.75rem;
+}
+@container (max-width: 8rem) {
+  .aca-adaptive-spacer:has(> .aca-m) > .utility-spacer {
+    display: none;
+  }
+  .aca-adaptive-spacer > .aca-m {
+    margin-inline: auto;
+  }
 }
 .aca-adaptive-camera {
   width: 100%;

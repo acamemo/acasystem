@@ -1,3 +1,5 @@
+import { ProductClimateWidget } from './ProductClimateWidget';
+import { climateProductBinding } from './productClimateModel';
 import type { CardSettings } from '@/@types/dashboard';
 import type { CellSize, WidgetProps } from '@/@types/launcher';
 import { Button, Caption, Display, Heading, Numeric } from '@/components/primitives';
@@ -22,7 +24,7 @@ import {
   type ClimateView,
 } from './climateModel';
 
-export function ClimateWidget({ id, settings, size, editMode }: WidgetProps) {
+function LegacyClimateWidget({ id, settings, size, editMode }: WidgetProps) {
   const { entities, entitiesLoaded, customNames, haConfig } = useWidgetRuntime();
   const { entityId, entity } = settingEntity(entities, settings, 'climateId');
   const name = displayName(customNames, id, entity, entity && entityId ? entityId : 'Clima');
@@ -252,4 +254,8 @@ function ClimateCard({ id, name, view, settings, size, editMode }: ClimateCardPr
       )}
     </WidgetShell>
   );
+}
+
+export function ClimateWidget(props: WidgetProps) {
+  return climateProductBinding(props.settings) ? <ProductClimateWidget {...props} /> : <LegacyClimateWidget {...props} />;
 }

@@ -1,5 +1,13 @@
 # Pilota in ufficio e perimetro della fase 1
 
+**Precisazione umana 2026-11-16:** il destinatario deve creare una VM con **VirtualBox**, poi usare il client ACA collegato alla centrale. Questa scelta sostituisce Hyper-V come percorso predefinito del kit, conservando i materiali già preparati come alternativa. HAOS vergine, identità nuove, SonoffLAN e add-on ACA restano il risultato richiesto; nessuna clonazione del banco. Per ora è disponibile soltanto il PC attuale: stabilità VM e prove LAN del nuovo pilota restano da qualificare, senza assumere risolto ISSUE-129. Attuazione e ripresa nel [REP-20261116-001](../reports/REP-20261116-001-consegna-pilota-con-subagenti.md).
+
+**Pilota del capo,2026-11-13:** su richiesta successiva, avviata in [REP007](../reports/REP-20261113-007-installer-aggiornamenti-pilota.md) la procedura locale da base HAOS vergine, Hyper-V candidato/mini PC alternativo, SonoffLAN+ACA e aggiornamenti. Account/casa/eWeLink/dispositivi propri del destinatario, nessuna clonazione dei dati del banco. Materiali e logica locali distinti da collaudo sul target e consegna; criteri completi e limiti in [REP006 con annotazioni](../reports/REP-20261113-006-piano-pilota-capo.md). Questa annotazione conserva il perimetro degli interventi UI storici sotto, senza assegnare il redesign Sonoff del REP009.
+
+**Precisazione incarico 2026-11-12:** [REP002](../reports/REP-20261112-002-widget-rimanenti.md) conclude il lotto UI locale Agenda/Stanze/Zigbee, dopo Meteo .69. Non avvia un nuovo pilota, una VM o un deploy. Direzione corrente: centrale mini PC con HA/ACA e client collegati; esperimento VM desktop conservato e separato. Le annotazioni successive rimangono storiche.
+
+**Annotazione 2026-10-30:** il primo lotto della riprogettazione è ora Windows con centrale HA OS in VM avviata da ACA, design comune e Android client QR, su richiesta [U27-U30](../riprogettazione/diario/2026-10-30.md#u27-lavoro-notturno-e-risultato-windows-vm) e [ADR-0029](../decisions/ADR-0029-desktop-centrale-qr-design-condiviso.md). La distribuzione iniziale non richiede un mini PC separato; non dimostra ancora continuità su tablet, remoto o compatibilità universale. [Report e limiti](../reports/REP-20261030-009-windows-vm-automatica-design-condiviso.md). Le sezioni successive conservano la direzione precedente e i suoi criteri storici.
+
 Aggiornato: 2026-10-05. Direzione umana in [ADR-0003](../decisions/ADR-0003-home-assistant-locale-fase1.md); risposte di riferimento nel [report](../reports/REP-20261005-001-direzione-pilota.md). Stato di realizzazione in [project-status.md](../project-status.md): banco prova HA Container/Tunet disponibile, personalizzazione ACA e accettazione della fase 1 non completate.
 
 ## Risultato minimo confermato

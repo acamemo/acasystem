@@ -1,34 +1,43 @@
-import { Body, Console, type ConsoleOrigin } from '@/components/primitives';
+import { sensorProductBinding, multimediaProductBinding } from '@/utils/devices/productBinding';
+import { useLayoutEffect } from 'react';
+import { Body, Console, ConsoleColumns } from '@/components/primitives';
 import { findWidgetDefinition } from '@/components/widgets/registry';
 import { ErrorBoundary } from './ErrorBoundary';
-import { categoryDeviceId } from '../sheets/categoryPages';
-import type { DefinitionResolver, DetailsTarget } from './DetailsSheet';
+import { categoryDeviceId } from '@/domain/launcher/categoryPages';
+import { isProductDeviceBinding } from '../../../../contracts/productDevice';
+import { WidgetDetailsContent, type DefinitionResolver, type DetailsTarget } from './DetailsSheet';
+import './widgetConsole.css';
 
 /**
- * Full-screen console of a widget whose definition has one (`Console`), in place of the sheet. The
+ * Shared full-screen view of a widget's existing Console or Details. The
  * definition gives only the content; the console (back arrow, title, Android Back, Escape, swipe
- * down, the flight from the widget) is the kit's. It stays mounted with a null target so the
- * console can shrink back into the widget.
+ * down and the centered window transition) is the kit's. It stays mounted with a null target
+ * so the window can complete its exit.
  */
 export function WidgetConsole({
   target,
-  origin,
   onClose,
+  onOpenChange,
   resolve = findWidgetDefinition,
 }: {
   target: DetailsTarget | null;
-  origin?: ConsoleOrigin;
   onClose: () => void;
+  /** Actual loaded screen presence, so Home never fades while a lazy chunk is still loading. */
+  onOpenChange?: (open: boolean) => void;
   resolve?: DefinitionResolver;
 }) {
   const definition = target ? resolve(target.widgetId, target.settings) : undefined;
   const Content = definition?.Console;
+  const open = Boolean(target && (Content || definition?.Details));
+  useLayoutEffect(() => {
+    onOpenChange?.(open);
+    return () => onOpenChange?.(false);
+  }, [open, onOpenChange]);
   return (
     <Console
-      open={Boolean(target && Content)}
+      open={open}
       onClose={onClose}
       title={target?.title ?? 'Dettagli'}
-      origin={origin}
     >
       {target && Content && (
         <ErrorBoundary
@@ -47,6 +56,16 @@ export function WidgetConsole({
             onClose={onClose}
           />
         </ErrorBoundary>
+      )}
+      {target && !Content && definition?.Details && (
+        <ConsoleColumns main={<div className="widget-console-details">
+          {!definition.detailsWithoutLabel && definition.label !== target.title
+            && !(sensorProductBinding(target.settings) || multimediaProductBinding(target.settings) || isProductDeviceBinding(target.settings.productDevice) && ['light', 'plug', 'climate', 'cover', 'fan', 'lock', 'alarm', 'camera', 'vacuum', 'mower'].includes(target.settings.productDevice.family)
+              && target.settings.productDevice.primaryEntityId === categoryDeviceId(target.widgetId, target.settings)) && (
+            <Body size="sm" tone="muted">{definition.label}</Body>
+          )}
+          <WidgetDetailsContent target={target} definition={definition} onClose={onClose} />
+        </div>} />
       )}
     </Console>
   );

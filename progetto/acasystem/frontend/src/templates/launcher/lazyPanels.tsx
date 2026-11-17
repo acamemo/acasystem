@@ -9,6 +9,7 @@
  */
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import type { DiscoveredFlowProps } from '@/hooks/launcher/DiscoveredFlowContext';
+import type { PowerSetupProps } from '@/hooks/launcher/PowerSetupContext';
 import { whenIdle } from '@/utils/launcher/whenIdle';
 
 // Through the index of the sheets: one chunk for the two, and a single place for the tests to mock.
@@ -19,8 +20,10 @@ const loadCategoryPageSheet = () => import('../sheets/CategoryPageSheet');
 const loadDiscoveryScreen = () => import('../discovery/DiscoveryScreen');
 const loadDetailsSheet = () => import('./DetailsSheet');
 const loadWidgetConsole = () => import('./WidgetConsole');
+const loadUtilityTool = () => import('./UtilityToolScreen');
 const loadStackSheet = () => import('./StackSheet');
 const loadDiscoveredAddFlow = () => import('../devices/DiscoveredAddFlow');
+const loadPowerSetup = () => import('../devices/PowerSetup');
 
 export const LazyAddWidgetSheet = lazy(() =>
   loadAddWidgetSheet().then((m) => ({ default: m.AddWidgetSheet }))
@@ -40,6 +43,7 @@ export const LazyDetailsSheet = lazy(() =>
 export const LazyWidgetConsole = lazy(() =>
   loadWidgetConsole().then((m) => ({ default: m.WidgetConsole }))
 );
+export const LazyUtilityToolScreen = lazy(() => loadUtilityTool().then((m) => ({ default: m.UtilityToolScreen })));
 export const LazyStackSheet = lazy(() => loadStackSheet().then((m) => ({ default: m.StackSheet })));
 const InnerDiscoveredAddFlow = lazy(() =>
   loadDiscoveredAddFlow().then((m) => ({ default: m.DiscoveredAddFlow }))
@@ -54,6 +58,19 @@ export function DiscoveredAddFlowLazy(props: DiscoveredFlowProps) {
   );
 }
 
+const InnerPowerSetup = lazy(() =>
+  loadPowerSetup().then((m) => ({ default: m.PowerSetup }))
+);
+
+/** The power-on step handed to the TV details through `PowerSetupContext`. */
+export function PowerSetupLazy(props: PowerSetupProps) {
+  return (
+    <Suspense fallback={null}>
+      <InnerPowerSetup {...props} />
+    </Suspense>
+  );
+}
+
 /** Loads the chunks of every panel (what `usePanelsReady` does when idle). */
 export function preloadLauncherPanels(): Promise<unknown> {
   return Promise.all([
@@ -63,8 +80,10 @@ export function preloadLauncherPanels(): Promise<unknown> {
     loadDiscoveryScreen(),
     loadDetailsSheet(),
     loadWidgetConsole(),
+    loadUtilityTool(),
     loadStackSheet(),
     loadDiscoveredAddFlow(),
+    loadPowerSetup(),
   ]);
 }
 

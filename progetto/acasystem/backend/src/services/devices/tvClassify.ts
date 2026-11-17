@@ -1,3 +1,7 @@
+export type { TvConfirmation } from '../../../../contracts/devices.ts';
+import type { TvConfirmation } from '../../../../contracts/devices.ts';
+import type { TvInReteDto as SharedTvInReteDto } from '../../../../contracts/devices.ts';
+export type TvInReteDto = SharedTvInReteDto<TvBrandKey>;
 import { createHash } from 'node:crypto';
 import { displayText } from '../../helpers/text.ts';
 import type { HaNetworkDevice } from './haAdapter.ts';
@@ -14,7 +18,6 @@ import { brandForMac } from './tvOui.ts';
  */
 
 /** What the television asks of the person while it is being connected (the hint of the screen). */
-export type TvConfirmation = 'consenti' | 'pin' | 'codice' | 'nessuno';
 
 interface TvBrand {
   label: string;
@@ -131,17 +134,6 @@ export interface TvCandidate {
 }
 
 /** What the browser receives: no address, no MAC. */
-export interface TvInReteDto {
-  id: string;
-  brandKey: TvBrandKey;
-  brand: string;
-  name: string;
-  model: string | null;
-  handler: string | null;
-  conferma: TvConfirmation;
-  collegabile: boolean;
-  motivo?: string;
-}
 
 export const toTvDto = (candidate: TvCandidate): TvInReteDto => ({
   id: candidate.id,

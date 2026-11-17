@@ -16,10 +16,10 @@ import {
 } from '@/templates/launcher/Pager';
 
 const FILES = {
-  tokens: 'src/themes/acasystem/tokens.css',
-  launcher: 'src/templates/launcher/launcher.css',
+  tokens: '../design/themes/acasystem/tokens.css',
+  launcher: '../design/layout/launcher.css',
   edit: 'src/components/system/edit/edit.css',
-  indicator: 'src/components/system/page-indicator/pageIndicator.css',
+  indicator: '../design/layout/pageIndicator.css',
 } as const;
 type Sheet = keyof typeof FILES;
 

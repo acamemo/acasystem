@@ -1,10 +1,12 @@
+import { sensorProductBinding, multimediaProductBinding } from '@/utils/devices/productBinding';
 import { Body, Sheet } from '@/components/primitives';
 import { findWidgetDefinition } from '@/components/widgets/registry';
 import type { CardSettings } from '@/@types/dashboard';
 import type { WidgetDefinition } from '@/@types/launcher';
 import { ErrorBoundary } from './ErrorBoundary';
-import { categoryDeviceId } from '../sheets/categoryPages';
+import { categoryDeviceId } from '@/domain/launcher/categoryPages';
 import { AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
+import { isProductDeviceBinding } from '../../../../contracts/productDevice';
 
 export type DefinitionResolver = (
   widgetId: string,
@@ -45,7 +47,19 @@ export function DetailsSheet({
           : definition?.label
       }
     >
-      {target && Details && (
+      {target && Details && <WidgetDetailsContent target={target} definition={definition} onClose={onClose} />}
+    </Sheet>
+  );
+}
+
+/** Existing details and device header, shared by the compatibility sheet and widget screen. */
+export function WidgetDetailsContent({ target, definition, onClose }: {
+  target: DetailsTarget;
+  definition: WidgetDefinition | undefined;
+  onClose: () => void;
+}) {
+  const Details = definition?.Details;
+  return Details ? (
         <ErrorBoundary
           resetKey={`${target.settingsKey}|${definition?.type ?? ''}`}
           label={`details ${target.widgetId}`}
@@ -56,7 +70,10 @@ export function DetailsSheet({
           }
         >
           {Boolean(target.settings.categoryWidgetType) &&
-            !['lock', 'alarm'].includes(String(target.settings.categoryWidgetType)) && (
+            !(sensorProductBinding(target.settings) || multimediaProductBinding(target.settings) || isProductDeviceBinding(target.settings.productDevice) && ['light', 'plug', 'climate', 'cover', 'fan', 'lock', 'alarm', 'camera', 'vacuum', 'mower'].includes(target.settings.productDevice.family)
+              && target.settings.productDevice.primaryEntityId === categoryDeviceId(target.widgetId, target.settings)) &&
+            // The Zigbee gateway is not one device: its details have no device header.
+            !['cost', 'nordpool', 'lock', 'alarm', 'zigbee', 'weather', 'cover_weather', 'calendar', 'todo', 'room'].includes(String(target.settings.categoryWidgetType)) && (
               <AdaptiveCategoryWidget
                 id={target.widgetId}
                 entityId={categoryDeviceId(target.widgetId, target.settings)}
@@ -75,7 +92,5 @@ export function DetailsSheet({
             onClose={onClose}
           />
         </ErrorBoundary>
-      )}
-    </Sheet>
-  );
+  ) : null;
 }

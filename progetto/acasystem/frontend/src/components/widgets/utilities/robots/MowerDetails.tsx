@@ -1,3 +1,5 @@
+import { mowerProductBinding } from '../../home/mower/productMowerModel';
+import { ProductMowerDetails } from '../../home/mower/ProductMowerDetails';
 import { useServiceCatalog } from '../../adaptive/useServiceCatalog';
 import { Body, Button, Caption } from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
@@ -11,7 +13,7 @@ import { stateIn, useCommand } from '../shared/useCommand';
 import { isErrorState, robotActionSupported, mowerSpec, type RobotAction } from './robotSpecs';
 
 /** Lawn mower details (legacy MowerModal): state, start/pause, return to base, battery, zone. */
-export function MowerDetails({ id }: WidgetDetailsProps) {
+function LegacyMowerDetails({ id }: WidgetDetailsProps) {
   const runtime = useWidgetRuntime();
   const services = useServiceCatalog();
   const entity = runtime.entities[id];
@@ -117,4 +119,8 @@ export function MowerDetails({ id }: WidgetDetailsProps) {
       </Section>
     </DetailsBody>
   );
+}
+
+export function MowerDetails(props: WidgetDetailsProps) {
+  return mowerProductBinding(props.settings) ? <ProductMowerDetails {...props} /> : <LegacyMowerDetails {...props} />;
 }

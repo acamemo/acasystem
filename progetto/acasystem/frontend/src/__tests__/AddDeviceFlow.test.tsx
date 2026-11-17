@@ -97,7 +97,7 @@ describe('the service is not there', () => {
     const message = 'Servizio non attivo. La configurazione dei dispositivi da Acasystem è spenta.';
     fake = installFakeDevices({
       status: statusDto({
-        service: { state: 'inactive', active: false, message },
+        service: { state: 'missing', active: false, message, repairable: false },
         features: { catalog: false, flows: false, power: false },
       }),
     });

@@ -1,3 +1,5 @@
+import { DEVICE_SCOPED_SETTINGS, widgetTypeOf, widgetDeviceKey } from '../../../../contracts/widgetIdentity';
+export { DEVICE_SCOPED_SETTINGS, widgetTypeOf, widgetDeviceKey } from '../../../../contracts/widgetIdentity';
 /**
  * Memory of the configuration of a widget per device (ADR-0019).
  *
@@ -12,9 +14,8 @@
  */
 import type { CardSettings, CardSettingsMap, PagesConfig } from '@/@types/dashboard';
 import type { LauncherLayout } from '@/@types/launcher';
-import { CAR_KEYS, kindOf } from '@/templates/sheets/editTarget';
 import { isObject } from '@/validators/guards';
-import { BINDING_KEYS, categoryEntityId } from './bindingKeys';
+import { BINDING_KEYS } from './bindingKeys';
 
 /** Storage key of the memory (and of the field of a snapshot, `widgetMemory`). */
 export const WIDGET_MEMORY_STORAGE_KEY = 'tunet_widget_memory';
@@ -39,45 +40,6 @@ export const DEVICE_SCOPE_NOTE = 'Vale per tutti i widget di questo dispositivo'
  * The sheets show `DEVICE_SCOPE_NOTE` next to these; the lists follow the settings sheets
  * (`CAR_KEYS`, `VACUUM_MAPPINGS`) and a test checks them against those.
  */
-export const DEVICE_SCOPED_SETTINGS: ReadonlySet<string> = new Set([
-  // Associations of entities
-  'adaptiveBindings',
-  'sonosAlarmIds',
-  'remoteId',
-  'linkedMediaPlayers',
-  'roomScripts',
-  'batterySensorId',
-  'currentRoomSensorId',
-  'cleaningTimeSensorId',
-  'cleanedAreaSensorId',
-  'totalCleanTimeSensorId',
-  'totalCleanAreaSensorId',
-  'totalCleanCountSensorId',
-  'lastCleanStartSensorId',
-  'lastCleanEndSensorId',
-  'roomSelectEntityId',
-  'mopIntensityControlEntityId',
-  'mapImageEntityId',
-  ...CAR_KEYS.filter((key) => key !== 'batteryId'),
-  'chargingStateId',
-  'chargingId',
-  'chargeControlIds',
-  // Connection of a camera
-  'cameraStreamEngine',
-  'cameraWebrtcUrl',
-  'cameraGo2rtcMode',
-  'cameraRefreshMode',
-  'cameraRefreshInterval',
-  'cameraMotionSensor',
-  'cameraCastIds',
-  'cameraPtz',
-  'cameraCaptureDirectory',
-  'cameraRecordDuration',
-  // Defaults sent with the commands
-  'lightTransition',
-  'sonosSleepMinutes',
-]);
-
 export interface MemoryEntry {
   /** Widget type (`light`, `appletv`…), as `widgetTypeOf` reads it. */
   type: string;
@@ -170,32 +132,6 @@ export function sanitizeWidgetMemory(value: unknown): WidgetMemory {
 // ── What a widget is and which device it shows ──────────────────────────────────────────
 
 /** Widget types that are an entity themselves: their id is the device when nothing else is. */
-const ENTITY_WIDGET_TYPES = new Set(['light', 'fan', 'vacuum', 'mower', 'lock', 'media', 'sensor']);
-const ENTITY_ID = /^[a-z0-9_]+\.[A-Za-z0-9_]+$/;
-
-/** Type of a widget: its category type, else the kind the legacy id rules give it. */
-export function widgetTypeOf(widgetId: string, settings: CardSettings): string {
-  const category =
-    typeof settings.categoryWidgetType === 'string' ? settings.categoryWidgetType : '';
-  if (category) return category;
-  if (widgetId.startsWith('lawn_mower.')) return 'mower';
-  return kindOf(widgetId, settings);
-}
-
-/**
- * The device a widget shows, or null when it shows none (not linked yet, a spacer, the clock…).
- * A widget of a category is linked through its binding; a widget added from an entity is that
- * entity.
- */
-export function widgetDeviceKey(widgetId: string, settings: CardSettings): string | null {
-  const type = widgetTypeOf(widgetId, settings);
-  if (!Object.hasOwn(BINDING_KEYS, type)) return null;
-  const bound = categoryEntityId(type, settings);
-  if (bound) return bound;
-  if (settings.categoryWidgetType) return null;
-  return ENTITY_WIDGET_TYPES.has(type) && ENTITY_ID.test(widgetId) ? widgetId : null;
-}
-
 /**
  * A setting that says what the widget is or which device it is linked to, not how it is
  * configured: it is never copied from one widget to another and it does not count as an edit.
@@ -203,9 +139,9 @@ export function widgetDeviceKey(widgetId: string, settings: CardSettings): strin
  * climate's is its device).
  */
 export function isStructuralSetting(type: string, name: string): boolean {
-  if (name === 'categoryWidgetType' || name === 'type') return true;
+  if (name === 'categoryWidgetType' || name === 'type' || name === 'productDevice') return true;
   if (isBindingSetting(type, name)) return true;
-  return type === 'room' && (name === 'entityIds' || name === 'areaName');
+  return type === 'room' && (name === 'entityIds' || name === 'areaName' || name === 'roomMembershipSource' || name === 'areaIcon');
 }
 
 /** The setting that links a widget of this type to its device (the moment it is set is the link). */
@@ -232,6 +168,10 @@ export function widgetPages(layout: LauncherLayout): Map<string, Set<string>> {
     result.set(widgetId, pages);
   };
   for (const page of layout.pages) {
+    for (const widgetId of page.order ?? []) {
+      add(widgetId, page.id);
+      for (const member of layout.stacks?.[widgetId]?.ids ?? []) add(member, page.id);
+    }
     for (const placements of Object.values(page.placements)) {
       for (const widgetId of Object.keys(placements ?? {})) {
         add(widgetId, page.id);

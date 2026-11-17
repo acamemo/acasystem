@@ -1,15 +1,16 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { Body, Button, Caption, Heading, Numeric, Skeleton } from '@/components/primitives';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { isNonEmptyString } from '@/validators/guards';
-import { attributeString } from '../shared/entity';
+import { attributeString, isUnavailableState } from '../shared/entity';
 import { formatDayLabel, localeFor } from '../shared/format';
 import { HomeIcon } from '../shared/HomeIcon';
 import { CommandError } from '../shared/WidgetShell';
-import { groupByDay, isFinishedToday } from './calendarModel';
+import { calendarDay, groupByDay, isFinishedToday, selectedCalendars, withinDays } from './calendarModel';
 import { eventTimeText } from './CalendarWidget';
 import { DETAILS_WINDOW_DAYS, useCalendarEvents } from './useCalendarEvents';
+import './agenda.css';
 
 /** Selection of the legacy calendar modal, shared by every calendar card. */
 export const CALENDAR_SELECTION_KEY = 'tunet_calendar_modal_selection';
@@ -26,8 +27,9 @@ function readStoredSelection(): string[] | null {
 }
 
 /** Agenda of the next 30 days for the calendars chosen here (legacy CalendarModal). */
-export function CalendarDetails(_props: WidgetDetailsProps) {
-  const { entities, conn, language } = useWidgetRuntime();
+export function CalendarDetails({ settings }: WidgetDetailsProps) {
+  const { entities, entitiesLoaded, conn, language, haConfig } = useWidgetRuntime();
+  const timeZone = haConfig?.time_zone;
   const locale = localeFor(language);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const pickerId = `calendari-${uid}`;
@@ -37,40 +39,43 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
       id: entityId,
       name: attributeString(entities[entityId], 'friendly_name') ?? entityId,
     }));
-  const [selection, setSelection] = useState<string[]>(
-    () => readStoredSelection() ?? calendars.map((calendar) => calendar.id)
-  );
+  const [explicitSelection, setExplicitSelection] = useState<string[] | null>(readStoredSelection);
+  const selection = explicitSelection ?? selectedCalendars(settings.calendars);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  useEffect(() => {
+  const chooseSelection = (next: string[]) => {
+    setExplicitSelection(next);
     try {
-      localStorage.setItem(CALENDAR_SELECTION_KEY, JSON.stringify(selection));
+      localStorage.setItem(CALENDAR_SELECTION_KEY, JSON.stringify(next));
     } catch {
       // Storage full or blocked: the selection lasts for this sheet only.
     }
-  }, [selection]);
+  };
 
   const names = new Map(calendars.map((calendar) => [calendar.id, calendar.name]));
   // Calendars removed from HA would make the whole get_events call fail.
   const active =
     calendars.length > 0 ? selection.filter((calendarId) => names.has(calendarId)) : selection;
-  const { events, loading, error } = useCalendarEvents(conn, active, {
+  const unavailable = active.some((id) => !entities[id] || isUnavailableState(entities[id]?.state));
+  const missing = selection.filter((id) => !names.has(id));
+  const { events, loading, error, retry, updatedAt } = useCalendarEvents(conn, active, {
     days: DETAILS_WINDOW_DAYS,
     fromStartOfDay: true,
+    enabled: entitiesLoaded && !unavailable,
+    timeZone,
   });
-  const groups = groupByDay(events);
+  const today = calendarDay(new Date(), timeZone);
+  const groups = groupByDay(withinDays(events, DETAILS_WINDOW_DAYS, new Date(), timeZone), timeZone, { start: today, days: DETAILS_WINDOW_DAYS });
   const allSelected =
     calendars.length > 0 && calendars.every((calendar) => selection.includes(calendar.id));
 
   const toggle = (calendarId: string) =>
-    setSelection((current) =>
-      current.includes(calendarId)
-        ? current.filter((idItem) => idItem !== calendarId)
-        : [...current, calendarId]
-    );
+    chooseSelection(selection.includes(calendarId)
+      ? selection.filter((idItem) => idItem !== calendarId)
+      : [...selection, calendarId]);
 
   return (
-    <div className="home-details">
+    <div className="home-details home-agenda-details">
       <div className="home-row home-row--between home-row--wrap">
         <Caption as="p">
           {selection.length === 1
@@ -89,6 +94,8 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
           </Button>
         )}
       </div>
+      <Caption as="p">Prossimi 30 giorni{timeZone ? ` · ${timeZone}` : ''}</Caption>
+      {entitiesLoaded && missing.length > 0 && <Caption as="p">{missing.length === 1 ? 'Un calendario salvato non è più disponibile.' : `${missing.length} calendari salvati non sono più disponibili.`}</Caption>}
 
       {pickerOpen && (
         <section id={pickerId} className="home-section" aria-label="Calendari">
@@ -110,7 +117,7 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
               variant="control"
               size="sm"
               onClick={() =>
-                setSelection(allSelected ? [] : calendars.map((calendar) => calendar.id))
+                chooseSelection(allSelected ? [] : calendars.map((calendar) => calendar.id))
               }
             >
               {allSelected ? 'Deseleziona tutti' : 'Seleziona tutti'}
@@ -119,14 +126,18 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
         </section>
       )}
 
-      {calendars.length === 0 ? (
+      {!entitiesLoaded ? (
+        <Skeleton rows={4} label="Caricamento del calendario…" />
+      ) : calendars.length === 0 ? (
         <Caption as="p">Nessun calendario trovato.</Caption>
       ) : active.length === 0 ? (
         <Caption as="p">Scegli almeno un calendario per vedere gli eventi.</Caption>
+      ) : unavailable ? (
+        <Caption as="p">Un calendario selezionato non è disponibile.</Caption>
       ) : loading ? (
         <Skeleton rows={4} label="Caricamento del calendario…" />
       ) : error && events.length === 0 ? (
-        <CommandError>Non riesco a leggere gli eventi.</CommandError>
+        <div className="home-stack"><CommandError>Non riesco a leggere gli eventi.</CommandError><Button variant="control" size="sm" onClick={retry} disabled={!conn || conn.connected === false}>Riprova</Button></div>
       ) : groups.length === 0 ? (
         <div className="home-empty">
           <HomeIcon name="calendar" size="lg" tone="muted" />
@@ -137,18 +148,18 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
           <section
             key={group.key}
             className="home-section"
-            aria-label={formatDayLabel(group.date, locale)}
+            aria-label={formatDayLabel(group.date, locale, today)}
           >
             <Heading level={3} size="sm">
-              {formatDayLabel(group.date, locale)}
+              {formatDayLabel(group.date, locale, today)}
             </Heading>
             <ul className="home-list">
               {group.events.map((event) => {
-                const past = isFinishedToday(event);
+                const past = isFinishedToday(event, new Date(), timeZone);
                 return (
                   <li key={event.key} className="home-list__item" data-past={past || undefined}>
                     <Caption className="home-list__time">
-                      <Numeric>{eventTimeText(event, locale)}</Numeric>
+                      <Numeric>{eventTimeText(event, locale, timeZone)}</Numeric>
                     </Caption>
                     <div className="home-stack home-grow">
                       <Body as="span" size="md" tone={past ? 'muted' : undefined}>
@@ -164,7 +175,7 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
                           .join(' · ')}
                       </Caption>
                       {event.description && (
-                        <Caption className="home-clamp-2">{event.description}</Caption>
+                        <Caption>{event.description}</Caption>
                       )}
                     </div>
                   </li>
@@ -174,6 +185,7 @@ export function CalendarDetails(_props: WidgetDetailsProps) {
           </section>
         ))
       )}
+      {error && events.length > 0 && <div className="home-stack"><Caption as="p">Ultima lettura{updatedAt ? ` alle ${updatedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}` : ''} · aggiornamento non riuscito</Caption><Button variant="control" size="sm" onClick={retry} disabled={!conn || conn.connected === false}>Riprova</Button></div>}
     </div>
   );
 }

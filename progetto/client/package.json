@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "release:make": "node scripts/make-release.ts",
-    "test": "npm run test -w core && npm run test -w windows && npm run test -w android",
+    "test": "npm run test:shared && npm run test -w core && npm run test -w windows && npm run test -w android",
+    "test:shared": "node --test shared/packaging/webBundle.test.mjs shared/shell/browser-reset.test.mjs",
     "typecheck": "npm run typecheck -w core && npm run typecheck -w windows && npm run typecheck -w android"
   }
 }

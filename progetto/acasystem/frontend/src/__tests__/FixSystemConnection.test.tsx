@@ -5,12 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthData } from 'home-assistant-js-websocket';
 import { getClientId, getHassUrl } from '@/api/haUrl';
 import { hasOAuthTokens, saveTokens } from '@/api/oauthStorage';
+import { notifyHomeAssistantApiUnauthorized } from '@/api/apiAuth';
+import { cacheClientSession, readCachedClientSession } from '@/utils/clientSessionCache';
 import { StatusBar } from '@/components/system/status-bar/StatusBar';
 import { ConfigProvider } from '@/hooks/context/ConfigContext';
 import { ConnectPage } from '@/pages/connect';
 import { CREDENTIALS_NOTE } from '@/pages/connect/ConnectPage';
 import { SystemPage } from '@/pages/system';
 import { App } from '@/routes/AppRoot';
+vi.mock('@/api/centralSetup', () => ({ readCentralSetupStatus: async () => 'ready' }));
 import { connectionSummary } from '@/utils/launcher/connection';
 
 /**
@@ -64,6 +67,16 @@ vi.mock('@/hooks/useSettingsSync', () => ({ useSettingsSync: () => ({ status: 'i
 vi.mock('@/hooks/launcher/useSnapshotSetters', () => ({
   useSnapshotSetters: () => mocks.pages,
   useLauncherSettingsSync: () => ({ status: 'idle' }),
+}));
+// This suite isolates the existing auth/logout shell. Client binding and live profile
+// selection have independent integration tests and the production-shell e2e fixture.
+vi.mock('@/hooks/client/ClientAccessGate', () => ({
+  ClientAccessGate: ({ children }: { children: (session: object) => ReactNode }) => children({}),
+  useClientSession: () => null,
+}));
+vi.mock('@/hooks/liveProfiles/LiveProfilesContext', () => ({
+  LiveProfilesProvider: ({ children }: { children: ReactNode }) => children,
+  useOptionalLiveProfiles: () => null,
 }));
 
 const OAUTH_SLOT = 'tunet_auth_cache_v1';
@@ -204,8 +217,12 @@ const revoked = (seen: Seen[]) =>
 
 // Generous waits: the full suite runs these real-shell sequences under load (SR-9).
 const WAIT = { timeout: 5_000 };
-const loginHeading = () =>
-  screen.findByRole('heading', { level: 1, name: 'Accedi ad Acasystem' }, WAIT);
+const loginHeading = async () => {
+  const heading = await screen.findByRole('heading', { level: 1, name: 'Accedi ad Acasystem' }, WAIT);
+  const choice = screen.queryByRole('button', { name: 'Accedi al mio account' });
+  if (choice) fireEvent.click(choice);
+  return heading;
+};
 const systemHeading = () => screen.findByRole('heading', { level: 1, name: 'Sistema' }, WAIT);
 
 beforeEach(() => {
@@ -226,25 +243,39 @@ afterEach(() => {
 });
 
 describe('SEC-2, sequenza del verificatore sulla shell reale', () => {
-  it('token del cliente, Esci, ricarica e nuovo accesso non riattivano la sessione dell’installatore', async () => {
+  it('un rifiuto definitivo durante l’uso riapre l’accesso e invalida la cache del client', async () => {
+    installFakeServer(); installerSession();
+    cacheClientSession({ houseId: 'home', user: { id: installer.id, name: installer.name, color: '#6b8afd' },
+      client: { id: 'client', userId: installer.id, label: 'PC', platform: 'web', activeProfileId: null,
+        preferences: {}, createdAt: '', lastSeenAt: '', revokedAt: null, revocationPending: false } });
+    renderApp('/sistema');
+    expect(await systemHeading()).toBeVisible();
+    expect(readCachedClientSession()).not.toBeNull();
+    act(() => { notifyHomeAssistantApiUnauthorized('Questo accesso è stato revocato.'); });
+    expect(await loginHeading()).toBeVisible();
+    expect(oauthStored()).toBe(false);
+    expect(readCachedClientSession()).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Annulla' })).not.toBeInTheDocument();
+  });
+  it('accesso del cliente, Esci, ricarica e nuovo accesso non riattivano la sessione dell’installatore', async () => {
     const seen = installFakeServer();
     installerSession();
     const first = renderApp('/sistema');
     expect(await systemHeading()).toBeVisible();
     expect(screen.getByText('Utente e password')).toBeVisible();
 
-    // 2. Collega di nuovo > Altre opzioni > token del cliente: the installer's session is closed.
+    // 2. A personal customer login replaces the installer's session; no manual token entry.
     fireEvent.click(screen.getByRole('button', { name: 'Collega di nuovo' }));
     expect(await loginHeading()).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Altre opzioni' }));
-    fireEvent.change(screen.getByLabelText('Token di accesso a lunga durata'), {
-      target: { value: 'token-cliente' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Collega con il token' }));
+    expect(screen.queryByRole('button', { name: 'Altre opzioni' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Nome utente'), { target: { value: CUSTOMER } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: CUSTOMER_PASSWORD } });
+    fireEvent.click(screen.getByRole('button', { name: 'Accedi' }));
     expect(await systemHeading()).toBeVisible();
-    expect(screen.getByText('Token a lunga durata')).toBeVisible();
-    expect(oauthStored()).toBe(false);
-    expect(localStorage.getItem('ha_auth_method')).toBe('token');
+    expect(screen.getByText('Utente e password')).toBeVisible();
+    expect(oauthStored()).toBe(true);
+    expect(localStorage.getItem('ha_auth_method')).toBe('oauth');
+    expect(localStorage.getItem('ha_token')).toBeNull();
     await waitFor(() => expect(revoked(seen)).toEqual(['rinnovo-installatore']));
 
     // 3. Esci: no credential is left and the login page opens.
@@ -264,13 +295,13 @@ describe('SEC-2, sequenza del verificatore sulla shell reale', () => {
     expect(localStorage.getItem('ha_token')).toBeNull();
 
     // 5. The customer signs in with user and password through Acasystem.
-    fireEvent.change(screen.getByLabelText('Utente'), { target: { value: CUSTOMER } });
+    fireEvent.change(screen.getByLabelText('Nome utente'), { target: { value: CUSTOMER } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: CUSTOMER_PASSWORD } });
     fireEvent.click(screen.getByRole('button', { name: 'Accedi' }));
     expect(await systemHeading()).toBeVisible();
     const stored = JSON.parse(localStorage.getItem(OAUTH_SLOT) ?? '{}') as Record<string, unknown>;
     expect(stored).toMatchObject({ hassUrl: getHassUrl(), refresh_token: 'rinnovo-cliente' });
-    expect(revoked(seen)).toEqual(['rinnovo-installatore']);
+    expect(revoked(seen)).toEqual(['rinnovo-installatore', 'rinnovo-cliente']);
 
     // 6. Reload: the customer's session opens the app, never the installer's.
     second.unmount();
@@ -377,7 +408,7 @@ describe('F2, «Esci» da Sistema e nuovo accesso', () => {
     await waitFor(() => expect(route()).toBe('/'), WAIT);
     expect(screen.queryByRole('button', { name: 'Annulla' })).toBeNull();
 
-    fireEvent.change(screen.getByLabelText('Utente'), { target: { value: CUSTOMER } });
+    fireEvent.change(screen.getByLabelText('Nome utente'), { target: { value: CUSTOMER } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: CUSTOMER_PASSWORD } });
     fireEvent.click(screen.getByRole('button', { name: 'Accedi' }));
     expect(await screen.findByTestId('launcher', {}, WAIT)).toBeInTheDocument();
@@ -457,7 +488,7 @@ describe('DES-7, stesso codice di connessione nella barra e in Sistema', () => {
 });
 
 describe('SEC-5, testi sulle credenziali', () => {
-  it('dice dove vanno le credenziali e cosa resta nel browser, senza «restano su questo dispositivo»', () => {
+  it('mantiene l’ingresso essenziale senza percorso o istruzioni per il token manuale', () => {
     installFakeServer();
     render(
       <ConfigProvider>
@@ -465,17 +496,9 @@ describe('SEC-5, testi sulle credenziali', () => {
       </ConfigProvider>
     );
     expect(screen.queryByText(CREDENTIALS_NOTE)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Altre opzioni' }));
-    expect(
-      screen.getByText(
-        'Per i tablet fissi in modalità kiosk. Crealo nel tuo profilo di Home Assistant, nella scheda Sicurezza.'
-      )
-    ).toBeVisible();
-    expect(
-      screen.getByText(
-        'Il token resta salvato in questo browser e arriva a Home Assistant attraverso il server Acasystem, che lo usa anche per riconoscere l’utente. Non viene registrato nei log.'
-      )
-    ).toBeVisible();
+    expect(screen.getByRole('form', { name: 'Accesso' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Altre opzioni' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Token di accesso a lunga durata')).not.toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/rest[ao]n?o? su questo dispositivo/i);
   });
 });

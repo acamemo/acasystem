@@ -13,6 +13,17 @@ import { LockDetails } from './lock/LockDetails';
 import { LockWidget } from './lock/LockWidget';
 import { SensorDetails } from './sensor/SensorDetails';
 import { SensorWidget } from './sensor/SensorWidget';
+import { PlugDetails } from './plug/PlugDetails';
+import { PlugWidget } from './plug/PlugWidget';
+
+export { PlugDetails, PlugWidget };
+
+export const plugWidget: WidgetDefinition = {
+  type: 'plug', label: 'Prese e interruttori', icon: 'power',
+  sizes: { min: { w: 2, h: 2 }, default: { w: 2, h: 2 }, max: { w: 4, h: 4 } },
+  matches: (id, settings) => id.startsWith('plug_card_') || settings.categoryWidgetType === 'plug',
+  Widget: PlugWidget, Details: PlugDetails,
+};
 
 /** Generic types that the legacy registry renders with the SensorCard. */
 const SENSOR_TYPES: ReadonlySet<unknown> = new Set(['sensor', 'entity', 'toggle']);
@@ -84,6 +95,7 @@ export const sensorWidget: WidgetDefinition = {
 };
 
 export const controlsWidgets: WidgetDefinition[] = [
+  plugWidget,
   lightWidget,
   lockWidget,
   fanWidget,

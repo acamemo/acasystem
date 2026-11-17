@@ -1,0 +1,239 @@
+/*
+ * Strato finale del tema, nel layer delle primitive: le utility di layout restano prioritarie.
+ * Blur solo su pannelli di primo livello e navigazione. Nessun blur per tessera/controllo
+ * ripetuto, nessun filtro sul testo, nessuna animazione del blur o dell'ombra.
+ */
+@layer components {
+  :root :is(body, .aca-app-root, .aca-shell, .aca-connect, .aca-system, .connection-screen) {
+    background-color: var(--aca-page);
+    background-image: var(--aca-glass-scene);
+    color: var(--aca-ink-solid);
+  }
+
+  :root .aca-m {
+    min-width: 0;
+    transition: none;
+  }
+  :root .aca-m > .aca-m__outer {
+    box-shadow: none;
+    transition: transform var(--aca-press) var(--aca-ease-out);
+  }
+  :root .aca-m > .aca-m__outer > .aca-m__face {
+    background: var(--aca-glass-solid);
+    box-shadow: var(--aca-glass-rim);
+    transition: none;
+  }
+  :root :is(.aca-card, .aca-m--card) > .aca-m__outer > .aca-m__face {
+    background: var(--aca-glass-surface);
+  }
+  /* Dentro un pannello il campo rimane leggibile senza un secondo filtro. */
+  :root :is(.aca-well, .aca-m--well, .aca-well-soft, .aca-m--well-soft) {
+    box-shadow: none;
+  }
+  :root :is(.aca-well, .aca-m--well, .aca-well-soft, .aca-m--well-soft)
+    > .aca-m__outer > .aca-m__face {
+    background: var(--aca-glass-control);
+    box-shadow: inset 0 0 0 1px var(--aca-glass-line);
+  }
+  :root .aca-m.aca-field > .aca-m__outer > .aca-m__face {
+    box-shadow: inset 0 0 0 1px var(--aca-glass-control-line);
+  }
+
+  /* Luce nella lente dei controlli: nessun elemento/pseudo-elemento davanti al contenuto. */
+  :root .aca-m:is(button, a) > .aca-m__outer > .aca-m__face {
+    background: linear-gradient(145deg, var(--aca-glass-edge), var(--aca-glass-control) 60%);
+    box-shadow: var(--aca-glass-rim);
+  }
+  :root .aca-m:is(button, a):is(.aca-tone-primary, .aca-m--primary)
+    > .aca-m__outer > .aca-m__face {
+    background: linear-gradient(150deg, #7658e7, var(--k2-accent) 48%, var(--k2-accent-dark));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
+  }
+  :root .aca-m:is(button, a):is(.aca-tone-primary, .aca-m--primary)
+    > .aca-m__outer > .aca-m__face > .aca-m__content {
+    color: var(--k2-on-accent);
+  }
+  :root .aca-m:is(button, a):is(.aca-tone-primary, .aca-m--primary) .aca-m__label {
+    background-image: linear-gradient(var(--k2-on-accent), var(--k2-on-accent));
+  }
+  :root .aca-m:is(.aca-selected, .aca-current, [aria-pressed='true'], [aria-selected='true'])
+    > .aca-m__outer > .aca-m__face {
+    box-shadow: inset 0 0 0 1.5px var(--aca-focus), var(--aca-glass-rim);
+  }
+  :root .aca-m:is(.aca-error, .aca-m--error, [aria-invalid='true'])
+    > .aca-m__outer > .aca-m__face {
+    box-shadow: inset 0 0 0 1.5px var(--aca-danger-ink);
+  }
+  :root .aca-m:is(button, a):is(.aca-error, .aca-m--error, [aria-invalid='true'])
+    > .aca-m__outer > .aca-m__face {
+    box-shadow: inset 0 0 0 2px var(--aca-glass-solid), inset 0 0 0 4px var(--aca-danger-ink);
+  }
+  :root .aca-m:focus-visible,
+  :root .aca-m.aca-field:has(.aca-field__input:focus-visible) {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 3px;
+  }
+  :root .aca-m__label {
+    letter-spacing: 0;
+    text-shadow: none;
+  }
+  :root :is(input, textarea) {
+    caret-color: var(--aca-focus);
+  }
+  :root ::selection {
+    background: var(--k2-accent-dark);
+    color: var(--k2-on-accent);
+  }
+
+  /* Navigazione e controlli con una lente ottica, contenuto stabile e scansionabile. */
+  :root :is(.aca-status-bar__pill, .aca-edit-toolbar__group, .aca-system__nav) {
+    background: var(--aca-glass-solid);
+    box-shadow: var(--aca-glass-control-shadow), var(--aca-glass-rim);
+  }
+  :root .aca-system__nav {
+    border-radius: var(--aca-radius-rounded);
+  }
+  :root .aca-indicator__ball {
+    background: var(--aca-orb);
+    box-shadow: var(--aca-glass-control-shadow), var(--aca-orb-shade);
+    /* Il transform translateX del pager è di proprietà del componente. */
+  }
+  :root .aca-toggle {
+    background: transparent;
+    box-shadow: none;
+  }
+  :root .aca-toggle__track {
+    background: rgb(84 83 104 / 18%);
+    box-shadow: inset 0 0 0 1px var(--aca-glass-control-line);
+    transition: none;
+  }
+  :root .aca-toggle__track::before {
+    background: var(--aca-orb);
+    box-shadow: none;
+    transition: opacity 160ms var(--aca-motion-ease-out);
+  }
+  :root .aca-toggle__knob {
+    background: var(--aca-glass-solid);
+    box-shadow: var(--aca-glass-control-shadow), var(--aca-glass-rim);
+    width: 1.375em;
+    transition: transform 160ms var(--aca-motion-ease-out);
+  }
+  :root .aca-toggle:is(:active, .is-active):not(:disabled) .aca-toggle__knob {
+    width: 1.375em;
+  }
+  :root .aca-toggle[aria-checked='true']:is(:active, .is-active):not(:disabled) .aca-toggle__knob {
+    transform: translateX(1.5em);
+  }
+  :root .aca-toggle__grip {
+    opacity: 0;
+  }
+
+  :root .aca-connect__auth-footer {
+    background: rgb(255 255 255 / 28%);
+    box-shadow: inset 0 1px 0 var(--aca-glass-edge);
+  }
+  :root .aca-connect__auth-body {
+    overflow-wrap: anywhere;
+  }
+  :root .aca-connect__panel > .aca-m__outer,
+  :root .aca-connect__panel > .aca-m__outer > .aca-m__face {
+    min-width: 0;
+  }
+  :root .aca-m:is(button, a):active:not(:disabled, [aria-disabled='true']) > .aca-m__outer {
+    opacity: 0.8;
+  }
+
+  /* Base opaca: sui browser capaci si attiva un singolo piano satinato. */
+  :root :is(.aca-connect__panel, .connection-card, :where(main.card), .aca-sheet__panel,
+      .aca-popover__panel) > .aca-m__outer > .aca-m__face {
+    background: var(--aca-glass-solid);
+  }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root :is(.aca-connect__panel, .connection-card, :where(main.card), .aca-sheet__panel,
+        .aca-popover__panel) > .aca-m__outer > .aca-m__face {
+      background: var(--aca-glass-surface);
+      -webkit-backdrop-filter: blur(var(--aca-glass-blur));
+      backdrop-filter: blur(var(--aca-glass-blur));
+    }
+    :root :is(.aca-status-bar__pill, .aca-edit-toolbar__group, .aca-system__nav) {
+      background: var(--aca-glass-overlay);
+      -webkit-backdrop-filter: blur(var(--aca-glass-blur));
+      backdrop-filter: blur(var(--aca-glass-blur));
+    }
+    /* Un popup può coprire immagini/video: il fondo minimo resta leggibile anche sul nero. */
+    :root :is(.aca-sheet__panel, .aca-popover__panel) > .aca-m__outer > .aca-m__face {
+      background: var(--aca-glass-overlay);
+    }
+    /* Nessun filtro annidato: anche i popup ospitati dentro una superficie usano tinta solida. */
+    :root :is(.aca-connect__panel, .connection-card, :where(main.card), .aca-sheet__panel,
+        .aca-popover__panel)
+      :is(.aca-connect__panel, .connection-card, :where(main.card), .aca-sheet__panel,
+        .aca-popover__panel, .aca-system__nav) > .aca-m__outer > .aca-m__face {
+      background: var(--aca-glass-solid);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :root .aca-m:is(button, a):hover:not(:disabled, [aria-disabled='true'])
+      > .aca-m__outer > .aca-m__face {
+      /* Riflesso statico: nessun lavoro per frame su blur/ombre. */
+      background-color: var(--aca-glass-edge);
+    }
+  }
+
+  /* ADR-0014/0016: canvas 3D e ingranaggio non acquisiscono un filtro. */
+  :root :is(.aca-system-gear, .aca-system-gear *, .casa, .casa *, .c3d-shell, .c3d-shell *) {
+    /* Eccezione invariabile: prevale anche sui selettori dei pannelli con MaterialLayers. */
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root .aca-m > .aca-m__outer,
+    :root .aca-toggle__knob {
+      transition: none;
+    }
+    :root .aca-toggle__track::before {
+      transition: none;
+    }
+  }
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+    :root :is(.aca-m__face, .aca-status-bar__pill, .aca-edit-toolbar__group, .aca-system__nav) {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :root .aca-m > .aca-m__outer > .aca-m__face {
+      background: var(--aca-glass-solid);
+      box-shadow: inset 0 0 0 1px var(--aca-glass-line);
+    }
+    :root .aca-m:is(button, a):is(.aca-tone-primary, .aca-m--primary)
+      > .aca-m__outer > .aca-m__face {
+      background: var(--k2-accent-dark);
+    }
+  }
+  @media (forced-colors: active) {
+    :where(.aca-m) {
+      color: ButtonText;
+      outline: 1px solid ButtonText;
+    }
+    :root .aca-m > .aca-m__outer > .aca-m__face {
+      background: Canvas;
+    }
+    :root .aca-m__label {
+      color: ButtonText;
+      background: none;
+      -webkit-text-fill-color: ButtonText;
+    }
+    :root .aca-m:focus-visible {
+      outline: 2px solid Highlight;
+    }
+  }
+}
+
+/* Il fondo base storico di html/body è fuori layer: questa sola superficie lo sostituisce. */
+:root body {
+  background-color: var(--aca-page);
+  background-image: var(--aca-glass-scene);
+}

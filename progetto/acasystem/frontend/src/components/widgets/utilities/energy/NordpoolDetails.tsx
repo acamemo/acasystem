@@ -1,141 +1,164 @@
 import { useId, useState } from 'react';
-import { Body, Caption, Toggle } from '@/components/primitives';
+import {
+  Body,
+  Button,
+  Caption,
+  ConsoleColumns,
+  Disclosure,
+  DisclosureGroup,
+} from '@/components/primitives';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
-import { entityOf } from '../shared/entity';
-import { formatClock, formatNumber } from '../shared/format';
-import { PriceExplorer, type PricePoint } from '../shared/charts';
+import { EnergyHistory } from './EnergyHistory';
 import { DetailsBody, Section, StatList } from '../shared/details';
-import { Notice } from '../shared/UtilityCard';
+import { entityOf } from '../shared/entity';
 import { useQuarterHour } from './NordpoolWidget';
 import {
-  PRICE_LEVEL_LABEL,
-  priceLevel,
-  priceSeries,
-  priceUnit,
-  readNordpoolSettings,
-  withSupport,
-} from './nordpoolData';
+  energyPreferences,
+  energyReading,
+  parseEnergyPriceSlots,
+  validatableEnergySourceIds,
+} from './energyModel';
+import './energy.css';
 
-function dayLabel(date: Date, now: Date): string {
-  const day = new Date(date);
-  day.setHours(0, 0, 0, 0);
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const diff = Math.round((day.getTime() - today.getTime()) / 86_400_000);
-  if (diff === 0) return 'Oggi';
-  if (diff === 1) return 'Domani';
-  return date.toLocaleDateString('it-IT', { weekday: 'long' });
-}
-
-/** Prices of today (and tomorrow when published), explorable slot by slot. */
-export function NordpoolDetails({ settingsKey, settings }: WidgetDetailsProps) {
-  const runtime = useWidgetRuntime();
-  const now = useQuarterHour();
-  const config = readNordpoolSettings(settings);
-  const [support, setSupport] = useState(config.showWithSupport);
-  const supportLabelId = `sostegno-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const entity = entityOf(runtime.entities, config.nordpoolId);
-
-  if (!config.nordpoolId || !entity) {
-    return (
-      <DetailsBody>
-        <Notice icon="warning">
-          {config.nordpoolId
-            ? `Il sensore dei prezzi ${config.nordpoolId} non è stato trovato.`
-            : 'Nessun sensore dei prezzi configurato.'}
-        </Notice>
-      </DetailsBody>
-    );
-  }
-
-  const series = priceSeries(entity, now);
-  const unit = priceUnit(config, runtime.haConfig) ?? undefined;
-  const adjust = (value: number) => (support ? withSupport(value) : value);
-  const points: PricePoint[] = series.points.map((point) => ({
-    ...point,
-    value: adjust(point.value),
-  }));
-  const stats = series.stats
-    ? {
-        min: adjust(series.stats.min),
-        max: adjust(series.stats.max),
-        avg: adjust(series.stats.avg),
-      }
-    : null;
-  const current = series.current === null ? null : adjust(series.current);
-  const fmt = (value: number) => formatNumber(value, config.decimals);
-  const level = priceLevel(current, stats?.avg);
-
-  const toggleSupport = () => {
-    const next = !support;
-    setSupport(next);
-    runtime.saveCardSetting(settingsKey, 'showWithSupport', next);
+export function NordpoolDetails({ settings }: WidgetDetailsProps) {
+  const sectionId = useId();
+  const runtime = useWidgetRuntime(),
+    now = useQuarterHour(),
+    ids = validatableEnergySourceIds(settings);
+  const entity = entityOf(runtime.entities, ids.nordpoolId),
+    preferences = energyPreferences(settings);
+  const reading = energyReading(entity, 'price', preferences);
+  const published = parseEnergyPriceSlots(entity, now, runtime.haConfig?.time_zone);
+  const [page, setPage] = useState({ source: ids.nordpoolId, limit: 30 });
+  const limit = page.source === ids.nordpoolId ? page.limit : 30;
+  const priceText = (value: number) =>
+    new Intl.NumberFormat('it-IT', {
+      maximumFractionDigits: preferences.decimals,
+      minimumFractionDigits: preferences.decimals,
+    }).format(value);
+  const zone = runtime.haConfig?.time_zone || 'UTC';
+  const timeText = (value: Date) => {
+    try {
+      return new Intl.DateTimeFormat('it-IT', {
+        timeZone: zone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'shortOffset',
+      }).format(value);
+    } catch {
+      return value.toISOString();
+    }
   };
-
   return (
-    <DetailsBody>
-      <Section title="Adesso" icon="energy">
-        <StatList
-          items={[
-            {
-              key: 'current',
-              label: 'Prezzo attuale',
-              value: formatNumber(current, config.decimals),
-              unit,
-              note:
-                current !== null && stats ? <Caption>{PRICE_LEVEL_LABEL[level]}</Caption> : null,
-            },
-            ...(stats
-              ? [
-                  { key: 'avg', label: 'Media', value: fmt(stats.avg), unit },
-                  { key: 'min', label: 'Minimo', value: fmt(stats.min), unit },
-                  { key: 'max', label: 'Massimo', value: fmt(stats.max), unit },
-                ]
-              : []),
-          ]}
-        />
-      </Section>
-      <Section title="Andamento dei prezzi" icon="chart">
-        {points.length > 0 ? (
-          <>
-            <PriceExplorer
-              data={points}
-              currentIndex={series.currentIndex}
-              variant={config.graphStyle}
-              formatValue={fmt}
-              describe={(point, index) =>
-                `${dayLabel(point.start, now)} ${formatClock(point.start)}–${formatClock(point.end)}: ${fmt(point.value)}${unit ? ` ${unit}` : ''}${
-                  index === series.currentIndex ? ' (adesso)' : ''
-                }`
+    <div className="energy-details">
+      <DetailsBody label="Prezzo dell’energia">
+        <Section title="Adesso">
+          <StatList
+            items={[
+              {
+                key: 'current',
+                label: 'Prezzo attuale',
+                value: ids.nordpoolId
+                  ? reading.valueText
+                  : settings.nordpoolId != null && settings.nordpoolId !== ''
+                    ? 'Fonte incompatibile'
+                    : 'Fonte non configurata',
+                unit: reading.available ? (reading.unit ?? undefined) : undefined,
+                note: reading.reason ? <Caption>{reading.reason}</Caption> : undefined,
+              },
+            ]}
+          />
+        </Section>
+        <Section title="Prezzi pubblicati">
+          {published.slots.length ? (
+            <>
+              <Caption>Orari: {zone}</Caption>
+              <ol className="energy-price-slots">
+                {published.slots.slice(0, limit).map((slot) => (
+                  <li key={slot.start.toISOString() + slot.end.toISOString()}>
+                    <Caption>
+                      <time dateTime={slot.start.toISOString()}>{timeText(slot.start)}</time> –{' '}
+                      <time dateTime={slot.end.toISOString()}>{timeText(slot.end)}</time>
+                    </Caption>
+                    <Body size="sm">
+                      {priceText(slot.value)}
+                      {published.unit && ` ${published.unit}`}
+                    </Body>
+                  </li>
+                ))}
+              </ol>
+              {published.slots.length > limit && (
+                <Button
+                  variant="control"
+                  size="sm"
+                  onClick={() => setPage({ source: ids.nordpoolId, limit: limit + 30 })}
+                >
+                  Mostra altre fasce
+                </Button>
+              )}
+            </>
+          ) : (
+            <Body size="sm">
+              {published.reason ||
+                'La fonte non fornisce fasce prezzo con intervalli verificabili.'}
+            </Body>
+          )}
+        </Section>
+        {entity && reading.status !== 'invalid' ? (
+          <EnergyHistory
+            key={entity.entity_id}
+            entity={entity}
+            initialHours={settings.adaptiveHistoryHours}
+            kind="price"
+            preferences={preferences}
+          />
+        ) : (
+          <Body size="sm">Cronologia non disponibile per la fonte selezionata.</Body>
+        )}
+        <DisclosureGroup>
+          <Disclosure id={sectionId} title="Informazioni sulla fonte">
+            <StatList
+              items={
+                entity
+                  ? [
+                      {
+                        key: 'source',
+                        label: 'Fonte',
+                        value: reading.label,
+                        note: <Caption>{entity.entity_id}</Caption>,
+                      },
+                    ]
+                  : []
               }
             />
-            <Caption>
-              Usa le frecce o tocca il grafico per leggere il prezzo di ogni fascia.
-            </Caption>
-          </>
-        ) : (
-          <Body size="sm" tone="muted">
-            Il sensore non fornisce ancora i prezzi della giornata.
-          </Body>
-        )}
-      </Section>
-      <Section title="Calcolo" icon="wallet">
-        <div className="utility-split">
-          <div className="utility-stack">
-            <Body as="span" size="sm" tone="ink" id={supportLabelId}>
-              Con sostegno statale
-            </Body>
-            <Caption>Calcolo norvegese: 90% della quota oltre 75 øre/kWh, IVA inclusa.</Caption>
-          </div>
-          <Toggle
-            checked={support}
-            compact
-            aria-labelledby={supportLabelId}
-            onClick={toggleSupport}
-          />
+            <Caption>Prezzi originali di Home Assistant, nell’unità indicata dalla fonte.</Caption>
+            {settings.showWithSupport === true && (
+              <Caption>La formula norvegese storica non è applicata.</Caption>
+            )}
+            {preferences.currency && (
+              <Caption>
+                La valuta impostata non converte né sostituisce l’unità della fonte.
+              </Caption>
+            )}
+          </Disclosure>
+        </DisclosureGroup>
+      </DetailsBody>
+    </div>
+  );
+}
+
+export function NordpoolConsole(props: WidgetDetailsProps) {
+  return (
+    <ConsoleColumns
+      main={
+        <div className="widget-console-details">
+          <NordpoolDetails {...props} />
         </div>
-      </Section>
-    </DetailsBody>
+      }
+    />
   );
 }

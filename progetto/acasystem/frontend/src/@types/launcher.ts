@@ -64,10 +64,20 @@ export interface LauncherPage {
   categoryGrids?: Partial<Record<BaseDeviceClass, CellSize>>;
   /** Widget placements per device class; a missing class is packed from another one on first use. */
   placements: Partial<Record<DeviceClass, Record<string, CellRect>>>;
+  /** Ordine autorevole comune; i rettangoli sono soltanto una proiezione dello schermo. */
+  order?: string[];
+  /** Preferenze dimensionali espresse sulla griglia tablet normale. */
+  sizeHints?: Record<string, CellSize>;
+  /** Posizione relativa nello spazio disponibile (0–1), adattata alla griglia corrente. */
+  positionHints?: Record<string, { x: number; y: number }>;
+  /** Solo per segmenti visuali derivati: identità della pagina del profilo. */
+  logicalPageId?: string;
+  segmentIndex?: number;
 }
 
 export interface LauncherLayout {
   version: 1;
+  commonOrderVersion?: 1;
   /** Initial category pages installed once; removals are user preferences thereafter. */
   categoryDefaultsVersion?: 1;
   /**

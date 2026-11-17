@@ -23,8 +23,8 @@ beforeAll(async () => {
     readFileSync: (path: string, encoding: 'utf8') => string;
   };
   const read = (file: string) => fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  tokens = read('src/themes/acasystem/tokens.css');
-  material = read('src/themes/acasystem/material.css');
+  tokens = read('../design/themes/acasystem/tokens.css');
+  material = read('../design/themes/acasystem/material.css');
   tear = read('src/components/system/tear-calendar/tearCalendar.css');
   cover = read('src/pages/cover/cover.css');
 });

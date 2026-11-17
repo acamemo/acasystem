@@ -6,6 +6,7 @@
 import type { EntityMap } from '@/@types/ha';
 import { getMediaLogoUrl } from '@/utils/mediaLogos';
 import { getMediaPlayerPowerAction } from '@/utils/mediaPlayerFeatures';
+import { testi } from '../testi';
 import { attrString, isUnavailable, type Entity } from './entity';
 import { MEDIA_FEATURE } from './features';
 
@@ -18,18 +19,37 @@ export function pairedRemoteId(mediaPlayerId: string, entities?: EntityMap): str
   return entities[remoteId] ? remoteId : '';
 }
 
+/**
+ * What the TV is doing, in one word for the card, the details and the console. `unreachable` is
+ * the only fault: an off TV, a TV in standby or an LG that sleeps is not one.
+ */
+export type TvStatus = 'playing' | 'paused' | 'buffering' | 'on' | 'off' | 'standby' | 'unreachable';
+
 export interface TvView {
   entity: Entity | undefined;
   displayId: string;
   display: Entity | undefined;
   /** A linked player (Emby, Jellyfin…) is playing, paused or buffering. */
   linkedActive: boolean;
+  /** Home Assistant cannot reach the TV and there is no way to wake it (a real fault). */
   unavailable: boolean;
+  /**
+   * An LG webOS TV that is off, which Home Assistant reports as `unavailable`, and that can be
+   * woken from the network: it counts as off, not as a fault.
+   */
+  wakeable: boolean;
   isOn: boolean;
+  status: TvStatus;
   isPlaying: boolean;
   isPaused: boolean;
   deviceName: string;
   appName: string;
+  /** The TV shows its own channels (source «Live TV»/«TV», or a `channel` content type). */
+  liveTv: boolean;
+  /** Where the TV is, for a line of text: the app, «TV in diretta», the source or the home screen. */
+  place: string;
+  /** Previous/next are channel keys: live TV, and always a Samsung TV (KEY_CHUP/KEY_CHDOWN). */
+  channelSkip: boolean;
   title: string;
   /** Raw entity_picture of the display entity. */
   picture: unknown;
@@ -40,13 +60,65 @@ export interface TvView {
 
 const LINKED_ACTIVE_STATES = new Set(['playing', 'paused', 'buffering']);
 
+/**
+ * The only platform whose off TV Home Assistant reports as `unavailable` (webOS docs): with a way
+ * to wake it, `unavailable` means «Spento». Other platforms report `off`.
+ */
+const SLEEPS_AS_UNAVAILABLE = 'webostv';
+
+/**
+ * Integrations whose Home Assistant brand logo is the integration's (Android TV, Google Cast), not
+ * the maker's: for these the maker of the device, when known, is tried first.
+ */
+const GENERIC_BRAND_PLATFORMS = new Set(['androidtv_remote', 'androidtv', 'cast']);
+
+/**
+ * The brand domains to ask for the logo of a TV. HA brand logos are per domain: the integration
+ * (`webostv`, `samsungtv`, `apple_tv`) for a branded integration; for a generic one the logo of
+ * the maker (`Sony` -> `sony`, from the device `manufacturer`) comes first and the integration's
+ * is the fallback. An empty string is «none»: a TV with no `platform` has no logo.
+ */
+export function tvBrandDomains(entity: Entity | undefined): { maker: string; platform: string } {
+  const platform = attrString(entity, 'platform').trim().toLowerCase();
+  if (!platform) return { maker: '', platform: '' };
+  const maker = GENERIC_BRAND_PLATFORMS.has(platform)
+    ? (/[a-z0-9]+/.exec(attrString(entity, 'manufacturer').toLowerCase())?.[0] ?? '')
+    : '';
+  return { maker, platform };
+}
+
+/**
+ * The image of the TV cover: the media picture, then the logo of the app, then the logo of the
+ * brand of the TV; null leaves the TV icon. Pictures fill the well, logos are contained.
+ */
+export function tvCover(
+  picture: string | null,
+  appLogo: string | null,
+  brandLogo: string | null
+): { src: string | null; fit: 'cover' | 'contain' } {
+  return { src: picture ?? appLogo ?? brandLogo, fit: picture ? 'cover' : 'contain' };
+}
+
+/** The entity could be an LG webOS TV that is off: `unavailable` and of the webOS platform. */
+export const tvMaybeAsleep = (entity: Entity | undefined): boolean =>
+  isUnavailable(entity) && entity?.attributes?.platform === SLEEPS_AS_UNAVAILABLE;
+
+export interface ResolveTvOptions {
+  /**
+   * The TV can be switched on from the network (see `useTvWake`); only used for webOS. `null`
+   * while it is still being checked: the TV is shown as asleep until Home Assistant says no.
+   */
+  canWake?: boolean | null;
+}
+
 export function resolveTv(
   kind: TvKind,
   entities: EntityMap,
   cardId: string,
   mediaPlayerId: string,
   linkedMediaPlayers: readonly string[],
-  customNames: Record<string, string>
+  customNames: Record<string, string>,
+  { canWake = false }: ResolveTvOptions = {}
 ): TvView {
   const entity = entities[mediaPlayerId];
   let displayId = mediaPlayerId;
@@ -60,8 +132,21 @@ export function resolveTv(
   }
   const display = entities[displayId];
   const state = entity?.state ?? '';
-  const unavailable = isUnavailable(entity);
-  const isOn = !unavailable && state !== 'off' && !(kind === 'apple' && state === 'standby');
+  const noAnswer = isUnavailable(entity);
+  const wakeable = noAnswer && canWake !== false && tvMaybeAsleep(entity);
+  const unavailable = noAnswer && !wakeable;
+  // `standby` is deprecated in Home Assistant: off for every kind of TV.
+  const isOn = !noAnswer && state !== 'off' && state !== 'standby';
+  const shownState = display?.state ?? '';
+  const status: TvStatus = unavailable
+    ? 'unreachable'
+    : wakeable || state === 'off'
+      ? 'off'
+      : state === 'standby'
+        ? 'standby'
+        : shownState === 'playing' || shownState === 'paused' || shownState === 'buffering'
+          ? shownState
+          : 'on';
 
   let appName = attrString(display, 'app_name');
   const title = attrString(display, 'media_title');
@@ -87,6 +172,11 @@ export function resolveTv(
   }
   if (!logo) logo = getMediaLogoUrl(appName);
 
+  const source = attrString(display, 'source');
+  const liveTv =
+    /^(live tv|tv)$/i.test(source.trim()) || attrString(display, 'media_content_type') === 'channel';
+  const place = appName || (liveTv ? testi.tvInDiretta : source || testi.schermataHome);
+  const channelSkip = liveTv || entity?.attributes?.platform === 'samsungtv';
   const fallbackName = kind === 'apple' ? 'Apple TV' : 'Android TV';
   const sourceList = entity?.attributes?.source_list;
   return {
@@ -95,7 +185,9 @@ export function resolveTv(
     display,
     linkedActive,
     unavailable,
+    wakeable,
     isOn,
+    status,
     isPlaying: display?.state === 'playing',
     isPaused: display?.state === 'paused',
     deviceName:
@@ -104,6 +196,9 @@ export function resolveTv(
       attrString(entity, 'friendly_name') ||
       fallbackName,
     appName,
+    liveTv,
+    place,
+    channelSkip,
     title,
     picture: display?.attributes?.entity_picture ?? null,
     logo,
@@ -121,8 +216,54 @@ export function resolveTv(
  * shows it (REQ-18). Apple TV always shows it.
  */
 export function tvCanPower(kind: TvKind, view: TvView): boolean {
-  return kind === 'apple' || getMediaPlayerPowerAction(view.entity) !== null;
+  return kind === 'apple' || view.wakeable || getMediaPlayerPowerAction(view.entity) !== null;
 }
+
+const STATUS_WORDS: Record<TvStatus, string> = {
+  playing: testi.inRiproduzione,
+  paused: testi.inPausa,
+  buffering: testi.caricamento,
+  on: testi.acceso,
+  off: testi.spento,
+  standby: testi.inStandby,
+  unreachable: testi.nonRaggiungibile,
+};
+
+/**
+ * The word for a raw state of a TV entity (the adaptive card has no `TvView`): the same words
+ * as `tvStatusOf`, null for a state that has none (`unavailable` is a fault, not a state).
+ */
+export function tvStateWord(state: string): string | null {
+  if (state === 'idle') return STATUS_WORDS.on;
+  if (state === 'unreachable' || !Object.hasOwn(STATUS_WORDS, state)) return null;
+  return STATUS_WORDS[state as TvStatus];
+}
+
+/**
+ * The state of the TV in words, the same on the card, the details and the console. Pending
+ * requests do not change it: only what Home Assistant reports does.
+ */
+export const tvStatusOf = (view: TvView): string => STATUS_WORDS[view.status];
+
+/**
+ * The status line of the card and the details: the state in words, then (while the TV is on)
+ * the app and the title. An off TV, a TV in standby and an unreachable one show only the word.
+ */
+export function tvStatusLine(view: TvView): string {
+  const word = tvStatusOf(view);
+  if (!view.isOn) return word;
+  return [word, view.place, view.title].filter(Boolean).join(' · ');
+}
+
+/**
+ * The power key is inert because nothing can switch the TV on from here: a TV that is off and
+ * declares no turn-on (Samsung on Wi-Fi), or an LG that does not answer and has no power-on
+ * recipe. The widget says so instead of leaving a dead key.
+ */
+export const tvPowerWaiting = (kind: TvKind, view: TvView, on: boolean): boolean =>
+  view.unavailable
+    ? tvMaybeAsleep(view.entity)
+    : !on && !tvCanPower(kind, view);
 
 /**
  * The «App» list of the details: Apple TV when the entity lists sources; Android TV only when

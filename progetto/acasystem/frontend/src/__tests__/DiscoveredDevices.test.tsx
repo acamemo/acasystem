@@ -21,6 +21,7 @@ vi.mock('@/api/apiAuth', () => ({
 
 import type { EntityMap } from '@/@types/ha';
 import type { AddWidgetSelection, LauncherApi, LauncherLayout } from '@/@types/launcher';
+import { UNDO_MS } from '@/components/widgets/utilities/discover/DiscoveryContent';
 import { DISCOVERED_POLL_MS } from '@/components/widgets/utilities/discover/useDiscoveredDevices';
 import { DiscoverDetails } from '@/components/widgets/utilities/discover/DiscoverDetails';
 import { PageProvider } from '@/hooks/context/PageContext';
@@ -156,20 +157,17 @@ describe('«Trovati in rete»: the section', () => {
     withFound(discoveredDto(), nestFound());
     details();
 
-    const list = await screen.findByRole('list', { name: 'Dispositivi trovati in rete' });
+    const list = await screen.findByRole('list', { name: 'Dispositivi da collegare' });
     expect(list).toHaveTextContent('Samsung 7 Series (49)');
     expect(list).toHaveTextContent('UE49NU7100');
-    expect(screen.getByRole('button', { name: 'Aggiungi Samsung 7 Series (49)' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Collega Samsung 7 Series (49)' })).toBeEnabled();
     expect(
-      screen.getByRole('button', { name: 'Non mi interessa: Samsung 7 Series (49)' })
+      screen.getByRole('button', { name: 'Nascondi Samsung 7 Series (49)' })
     ).toBeEnabled();
 
-    // Put first: «Trovati in rete» comes before «Pronti da aggiungere».
-    const network = screen.getByRole('heading', { name: 'Trovati in rete' });
-    const ready = await screen.findByRole('heading', { name: 'Pronti da aggiungere' });
-    expect(network.compareDocumentPosition(ready) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The section of the F1 keeps working beside it.
-    expect(await screen.findByRole('group', { name: 'Luci' })).toHaveTextContent('Lampada studio');
+    // Both sources remain reachable, now through the same operative filters.
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
+    expect(screen.getByRole('list', { name: 'Dispositivi pronti' })).toHaveTextContent('Lampada studio');
   });
 
   it('shows why a device cannot be added here, and offers no «Aggiungi» for it', async () => {
@@ -177,15 +175,16 @@ describe('«Trovati in rete»: the section', () => {
     details();
 
     expect(await screen.findByText('Nest Thermostat')).toBeInTheDocument();
-    expect(screen.getByText('Richiede l’installatore.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Collega Nest Thermostat' })).toHaveTextContent('Richiede l’installatore.');
+    expect(screen.getByRole('button', { name: 'Collega Nest Thermostat' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: /^Aggiungi Nest/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Non mi interessa: Nest Thermostat' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Nascondi Nest Thermostat' })).toBeEnabled();
   });
 
   it('says so when nothing new was found', async () => {
     details();
     expect(
-      await screen.findByText('Nessun dispositivo nuovo trovato in rete.')
+      await screen.findByText('Nessun dispositivo da collegare.')
     ).toBeInTheDocument();
   });
 
@@ -197,15 +196,16 @@ describe('«Trovati in rete»: the section', () => {
       await screen.findByText('Il servizio dei dispositivi non è attivo.')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ripara il servizio' })).toBeEnabled();
-    expect(screen.getByRole('heading', { name: 'Trovati in rete' })).toBeInTheDocument();
-    expect(await screen.findByRole('group', { name: 'Luci' })).toHaveTextContent('Lampada studio');
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
+    expect(screen.getByRole('list', { name: 'Dispositivi pronti' })).toHaveTextContent('Lampada studio');
   });
 
   it('stays quiet when the network fails: no section, the F1 list still there', async () => {
     fake.fetchMock.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
     details();
 
-    expect(await screen.findByRole('group', { name: 'Luci' })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Pronti (1)' }));
+    expect(screen.getByRole('list', { name: 'Dispositivi pronti' })).toHaveTextContent('Lampada studio');
     expect(screen.queryByRole('heading', { name: 'Trovati in rete' })).toBeNull();
     expect(document.body.textContent).not.toMatch(/Failed to fetch/);
   });
@@ -218,51 +218,55 @@ describe('«Trovati in rete»: the polling', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(fake.callsTo('GET /scoperti')).toHaveLength(1);
+    expect(fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti')).toHaveLength(1);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(DISCOVERED_POLL_MS);
     });
-    expect(fake.callsTo('GET /scoperti')).toHaveLength(2);
+    expect(fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti')).toHaveLength(2);
 
     // The tab goes to the background: no more requests...
     act(() => setVisibility('hidden'));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(DISCOVERED_POLL_MS * 3);
     });
-    expect(fake.callsTo('GET /scoperti')).toHaveLength(2);
+    expect(fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti')).toHaveLength(2);
 
     // ...and one at once when it comes back.
     act(() => setVisibility('visible'));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(fake.callsTo('GET /scoperti')).toHaveLength(3);
+    expect(fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti')).toHaveLength(3);
 
     // The details close: the timer goes with them.
     view.unmount();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(DISCOVERED_POLL_MS * 4);
     });
-    expect(fake.callsTo('GET /scoperti')).toHaveLength(3);
+    expect(fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti')).toHaveLength(3);
   });
 });
 
 describe('«Non mi interessa»', () => {
-  it('asks the server to ignore the device and takes the row off the list', async () => {
+  it('nasconde subito e invia l’ignore solo dopo il tempo per Annulla', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     withFound(discoveredDto(), nestFound());
     fake.on('POST /scoperti/:id/ignora', () => ({ body: { ignored: true } }));
     details();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Non mi interessa: Samsung 7 Series (49)' })
+      await screen.findByRole('button', { name: 'Nascondi Samsung 7 Series (49)' })
     );
     await waitFor(() => expect(screen.queryByText('Samsung 7 Series (49)')).toBeNull());
-    expect(fake.callsTo('POST /scoperti/found-samsung/ignora')).toHaveLength(1);
+    expect(fake.callsTo('POST /scoperti/found-samsung/ignora')).toHaveLength(0);
+    await act(async () => { await vi.advanceTimersByTimeAsync(UNDO_MS); });
+    await waitFor(() => expect(fake.callsTo('POST /scoperti/found-samsung/ignora')).toHaveLength(1));
     expect(screen.getByText('Nest Thermostat')).toBeInTheDocument();
   });
 
   it('keeps the row and says why when the server refuses', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     withFound(discoveredDto());
     fake.on('POST /scoperti/:id/ignora', () =>
       errorReply(502, 'HA_REFUSED', 'Home Assistant ha rifiutato l’operazione.')
@@ -270,9 +274,10 @@ describe('«Non mi interessa»', () => {
     details();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Non mi interessa: Samsung 7 Series (49)' })
+      await screen.findByRole('button', { name: 'Nascondi Samsung 7 Series (49)' })
     );
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    await act(async () => { await vi.advanceTimersByTimeAsync(UNDO_MS); });
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Home Assistant ha rifiutato l’operazione.'
     );
     expect(screen.getByText('Samsung 7 Series (49)')).toBeInTheDocument();
@@ -281,7 +286,7 @@ describe('«Non mi interessa»', () => {
 
 describe('«Aggiungi» on a device found in the network', () => {
   const addSamsung = async () => {
-    fireEvent.click(await screen.findByRole('button', { name: 'Aggiungi Samsung 7 Series (49)' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Collega Samsung 7 Series (49)' }));
   };
 
   it('takes the flow over, asks «Consenti» on the TV, then opens «Aggiungi un widget» on the TV', async () => {
@@ -300,7 +305,7 @@ describe('«Aggiungi» on a device found in the network', () => {
     expect(fake.callsTo('GET /catalogo')).toHaveLength(0);
     expect(screen.getByText(/scegliere Consenti/)).toBeInTheDocument();
     // While the flow is open the list is not polled any more.
-    const reads = fake.callsTo('GET /scoperti').length;
+    const reads = fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti').length;
 
     fireEvent.click(screen.getByRole('button', { name: 'Avanti' }));
     // The step is answered on the flow id of the discovery, with the empty body of «Consenti».
@@ -319,7 +324,7 @@ describe('«Aggiungi» on a device found in the network', () => {
       entityIds: [SAMSUNG_ENTITY],
     });
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(fake.callsTo('GET /scoperti')).toHaveLength(reads);
+    await waitFor(() => expect(fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti').length).toBeGreaterThan(reads));
   });
 
   it('a light: the flow without a wait, and the widget of the lights with its entity', async () => {
@@ -373,7 +378,7 @@ describe('«Aggiungi» on a device found in the network', () => {
     }));
     details();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Aggiungi Philips Hue' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Collega Philips Hue' }));
     expect(
       await screen.findByRole('heading', { name: 'Premi il pulsante del bridge' })
     ).toBeInTheDocument();
@@ -405,13 +410,13 @@ describe('«Aggiungi» on a device found in the network', () => {
     await addSamsung();
     expect(await screen.findByText('Richiede l’installatore.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ricomincia' })).toBeNull();
-    const before = fake.callsTo('GET /scoperti').length;
+    const before = fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti').length;
 
     fireEvent.click(screen.getByRole('button', { name: 'Esci' }));
     expect(
-      await screen.findByRole('list', { name: 'Dispositivi trovati in rete' })
+      await screen.findByRole('list', { name: 'Dispositivi da collegare' })
     ).toBeInTheDocument();
-    await waitFor(() => expect(fake.callsTo('GET /scoperti').length).toBeGreaterThan(before));
+    await waitFor(() => expect(fake.calls.filter((call) => call.method === 'GET' && call.path === '/scoperti').length).toBeGreaterThan(before));
     expect(openAddWidget).not.toHaveBeenCalled();
   });
 
@@ -425,7 +430,7 @@ describe('«Aggiungi» on a device found in the network', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Esci' }));
     await waitFor(() => expect(fake.callsTo(`DELETE /flussi/${SAMSUNG_FLOW}`)).toHaveLength(1));
     expect(
-      await screen.findByRole('list', { name: 'Dispositivi trovati in rete' })
+      await screen.findByRole('list', { name: 'Dispositivi da collegare' })
     ).toBeInTheDocument();
   });
 
@@ -446,7 +451,7 @@ describe('«Aggiungi» on a device found in the network', () => {
       </PageProvider>
     );
     expect(
-      await screen.findByRole('button', { name: 'Aggiungi Samsung 7 Series (49)' })
+      await screen.findByRole('button', { name: 'Collega Samsung 7 Series (49)' })
     ).toBeDisabled();
   });
 });

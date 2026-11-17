@@ -71,6 +71,7 @@ describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
       utilityWidgets.map((definition) => [definition.type, definition.icon])
     );
     expect(icons).toEqual({
+      tavano: 'menu',
       cost: 'wallet',
       nordpool: 'energy',
       car: 'car',
@@ -78,6 +79,7 @@ describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
       mower: 'mower',
       room: 'room',
       rileva: 'wifi',
+      zigbee: 'server',
       spacer: 'grid',
     });
     for (const definition of utilityWidgets) {
@@ -87,6 +89,13 @@ describe('matcher dei widget utilità (prefissi del registro legacy)', () => {
       expect(container.querySelector('svg'), definition.type).not.toBeNull();
       unmount();
     }
+  });
+
+  it('Tavano non richiede entità e apre direttamente la console a schermo intero', () => {
+    const definition = findWidgetDefinition('tavano_card_1', {});
+    expect(definition?.type).toBe('tavano');
+    expect(definition?.Console).toBeDefined();
+    expect(definition?.Console).toBe(definition?.Details);
   });
 
   it('UtilityIcon disegna le icone del kit con la primitiva e pochi glifi extra esistenti a runtime', () => {

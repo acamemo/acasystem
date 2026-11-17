@@ -1,3 +1,5 @@
+import { alarmProductBinding } from './productAlarmModel';
+import { ProductAlarmDetails } from './ProductAlarmDetails';
 import { useEffect, useId, useState } from 'react';
 import type { HassEntity } from 'home-assistant-js-websocket';
 import type { WidgetDetailsProps } from '@/@types/launcher';
@@ -22,7 +24,7 @@ import { useAlarmCommand } from './useAlarmCommand';
 const TEXT_CODE_HINT =
   'Questo allarme usa un codice testuale: il tastierino accetta solo PIN numerici.';
 
-export function AlarmDetails({ id, settings, onClose }: WidgetDetailsProps) {
+function LegacyAlarmDetails({ id, settings, onClose }: WidgetDetailsProps) {
   const { entities, customNames } = useWidgetRuntime();
   const { entityId, entity } = settingEntity(entities, settings, 'alarmId');
   const name = displayName(customNames, id, entity, entity && entityId ? entityId : 'Allarme');
@@ -195,4 +197,8 @@ function AlarmDetailsContent({ id, name, entityId, entity, onClose }: AlarmDetai
         ))}
     </div>
   );
+}
+
+export function AlarmDetails(props: WidgetDetailsProps) {
+  return alarmProductBinding(props.settings) ? <ProductAlarmDetails {...props} /> : <LegacyAlarmDetails {...props} />;
 }

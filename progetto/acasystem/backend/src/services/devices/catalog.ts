@@ -1,3 +1,5 @@
+export type { CatalogItem, CatalogEntryDto } from '../../../../contracts/devices.ts';
+import type { CatalogItem, CatalogEntryDto } from '../../../../contracts/devices.ts';
 import { FACADE_DOMAINS, SYSTEM_DOMAINS } from '../../config/devices.ts';
 import { DISCOVERY_SOURCES } from '../../config/deviceFamilies.ts';
 import { isRecord } from '../../helpers/objects.ts';
@@ -11,22 +13,6 @@ import { asString } from '../../helpers/text.ts';
  * customer, except the domains of Home Assistant itself (SYSTEM_DOMAINS), which are not listed.
  * Custom integrations (`custom_components`) are not listed in D1.
  */
-
-export interface CatalogItem {
-  domain: string;
-  name: string;
-  brand: string | null;
-  integrationType: string | null;
-  iotClass: string | null;
-  /** Domain whose flow is started (a virtual integration is served by `supported_by`). */
-  startDomain: string;
-}
-
-export interface CatalogEntryDto extends CatalogItem {
-  startable: boolean;
-  requiresInstaller: boolean;
-}
-
 
 const itemFrom = (domain: string, value: unknown, brand: string | null): CatalogItem | null => {
   if (!isRecord(value)) return null;

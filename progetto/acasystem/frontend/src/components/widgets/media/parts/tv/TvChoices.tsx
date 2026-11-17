@@ -1,7 +1,13 @@
-import { Button, Heading } from '@/components/primitives';
+import { useState, type ReactNode } from 'react';
+import { Button, Caption, Heading } from '@/components/primitives';
+import { useConfirmedCommand } from '../../hooks/commands';
+import { MediaIcon } from '../../icons';
+import { MediaChooser } from '../MediaChooser';
+import { CommandStatus } from '../Controls';
 import { attrString, stringList } from '../../model/entity';
 import { MEDIA_FEATURE, declares } from '../../model/features';
 import { tvApps, tvInputs } from '../../model/tvApps';
+import { tvSoundOutput, tvSoundOutputs } from '../../model/tvSound';
 import { testi } from '../../testi';
 import type { TvDetailsState } from './useTvDetailsState';
 
@@ -15,6 +21,8 @@ function ChoiceList({
   choose,
   pending = null,
   disabled = false,
+  labelOf = (item) => item,
+  note = null,
 }: {
   tv: TvDetailsState;
   heading: string;
@@ -25,6 +33,10 @@ function ChoiceList({
   choose: (item: string) => unknown;
   pending?: string | null;
   disabled?: boolean;
+  /** The name shown for an item, when it differs from its value. */
+  labelOf?: (item: string) => string;
+  /** Under the buttons: the message of a choice that did not work. */
+  note?: ReactNode;
 }) {
   return (
     <section className="aca-media-section" aria-labelledby={headingId}>
@@ -42,10 +54,11 @@ function ChoiceList({
             disabled={disabled}
             onClick={() => tv.actions.run(`${prefix}:${item}`, () => choose(item))}
           >
-            {item}
+            {labelOf(item)}
           </Button>
         ))}
       </div>
+      {note}
     </section>
   );
 }
@@ -53,7 +66,7 @@ function ChoiceList({
 /** Apps (Netflix, Prime Video…), apart from the inputs, only when the TV has some. */
 export function TvAppsSection({ tv }: { tv: TvDetailsState }) {
   const { kind, view, mediaPlayerId, appLaunch, powerWaiting } = tv;
-  const apps = tvApps(kind, view, mediaPlayerId);
+  const apps = tvApps(kind, view, mediaPlayerId, tv.browsedApps);
   if (apps.length === 0) return null;
   return (
     <ChoiceList
@@ -120,5 +133,75 @@ export function TvSoundSection({ tv }: { tv: TvDetailsState }) {
         })
       }
     />
+  );
+}
+
+/**
+ * Sound output of an LG TV (TV speakers, soundbar on HDMI ARC, optical…), only while it is on. The
+ * TV says where the sound goes in `sound_output`: the choice waits for that attribute to change,
+ * and one the TV does not take (nothing connected there) says so.
+ */
+export function TvSoundOutputSection({ tv }: { tv: TvDetailsState }) {
+  const { view, runtime, mediaPlayerId } = tv;
+  const current = tvSoundOutput(view.entity);
+  const output = useConfirmedCommand(current, { timeoutMessage: testi.uscitaNonCollegata });
+  const outputs = view.isOn ? tvSoundOutputs(view.entity) : [];
+  if (outputs.length === 0) return null;
+  const names = new Map(outputs.map(({ value, name }) => [value, name]));
+  return (
+    <ChoiceList
+      tv={tv}
+      heading={testi.uscitaAudio}
+      headingId={`${tv.id}-uscita-audio`}
+      items={outputs.map(({ value }) => value)}
+      labelOf={(value) => names.get(value) ?? value}
+      isCurrent={(value) => current === value}
+      prefix="output"
+      choose={(value) =>
+        output.request(value, () =>
+          runtime.callService('webostv', 'select_sound_output', {
+            entity_id: mediaPlayerId,
+            sound_output: value,
+          })
+        )
+      }
+      pending={output.pending ? output.value : null}
+      note={
+        (output.error || output.timedOut) && (
+          <CommandStatus error message={testi.uscitaNonCollegata} />
+        )
+      }
+    />
+  );
+}
+
+/**
+ * «Scegli contenuto» of a TV that can browse its content (BROWSE_MEDIA), while it is on: the same
+ * panel as the media player, without the apps (they are in the «App» section).
+ */
+export function TvChooseSection({ tv }: { tv: TvDetailsState }) {
+  const [choosing, setChoosing] = useState(false);
+  const { view, mediaPlayerId } = tv;
+  if (!view.isOn || !declares(view.entity, MEDIA_FEATURE.BROWSE_MEDIA)) return null;
+  return (
+    <section className="aca-media-section" aria-label={testi.scegliContenuto}>
+      <div className="aca-media-wrap">
+        <Button
+          variant="control"
+          size="md"
+          aria-expanded={choosing}
+          onClick={() => setChoosing((value) => !value)}
+        >
+          <MediaIcon name="playlist" size="sm" />
+          {testi.scegliContenuto}
+        </Button>
+      </div>
+      {choosing && (
+        <>
+          <Caption>{testi.scegliContenutoTvNota}</Caption>
+          <MediaChooser entityId={mediaPlayerId} open={choosing} forTv />
+        </>
+      )}
+    </section>
   );
 }

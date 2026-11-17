@@ -24,8 +24,19 @@ import type {
 } from '@/@types/devices';
 import type { IgnoredDeviceDto } from '@/@types/discovery';
 import type { DeviceFamily } from '@/utils/devices/classify';
+import { mockBrandLogo } from './brandLogos';
 import type { MockHaStore } from './haStore';
-import { makeEntity, type MockDeviceSpec } from './mockData';
+import {
+  LG_CHANNELS,
+  LG_SOURCES,
+  LIVE_TV_SOURCE,
+  NO_WAKE_ENTRIES,
+  SAMSUNG_SOURCES,
+  lgFeatures,
+  makeEntity,
+  samsungFeatures,
+  type MockDeviceSpec,
+} from './mockData';
 
 export interface MockRequest {
   method?: string;
@@ -38,7 +49,7 @@ export interface MockRequest {
 export interface MockResponse {
   status: number;
   body: unknown;
-  /** Only the logos answer with an image; the demo has none (404). */
+  /** Only the logos answer with an image (the demo has stand-ins for a few TV brands). */
   blob?: Blob;
 }
 
@@ -206,7 +217,7 @@ const CATALOG: CatalogEntryDto[] = [
 
 const STATUS: StatusDto = {
   user: { isAdmin: true },
-  service: { state: 'active', active: true, message: null },
+  service: { state: 'active', active: true, message: null, repairable: false },
   homeAssistant: { reachable: true, onboarded: true, version: '2026.9.4', verified: true },
   features: { catalog: true, flows: true, power: true },
 };
@@ -251,18 +262,37 @@ function entitiesOf(device: DemoDevice, name: string, base: string): HassEntity[
         }),
       ];
     case 'tv': {
-      const player = makeEntity(`media_player.${base}`, 'off', {
-        friendly_name: name,
-        device_class: 'tv',
-        supported_features: 1048575,
-        volume_level: 0.3,
-        is_volume_muted: false,
-        source_list: ['HDMI 1', 'HDMI 2', 'Netflix', 'YouTube'],
-      });
-      // The Samsung integration brings a remote; the webOS one does not.
-      return device.handler === 'samsungtv'
-        ? [player, makeEntity(`remote.${base}`, 'on', { friendly_name: `${name} telecomando` })]
-        : [player];
+      // Each integration declares what it really does (webostv and samsungtv media_player.py);
+      // both come with the power-on recipe, so they declare TURN_ON.
+      if (device.handler === 'samsungtv') {
+        // No UPnP: no `volume_level`, the volume moves in steps. The integration brings a remote.
+        return [
+          makeEntity(`media_player.${base}`, 'off', {
+            friendly_name: name,
+            device_class: 'tv',
+            supported_features: samsungFeatures(true),
+            is_volume_muted: false,
+            source: 'TV',
+            source_list: [...SAMSUNG_SOURCES],
+          }),
+          makeEntity(`remote.${base}`, 'on', { friendly_name: `${name} telecomando` }),
+        ];
+      }
+      // The webOS integration has no remote. The store keeps it as it sleeps (see addDevice).
+      return [
+        makeEntity(`media_player.${base}`, 'off', {
+          friendly_name: name,
+          device_class: 'tv',
+          supported_features: lgFeatures('tv_speaker', true),
+          sound_output: 'tv_speaker',
+          volume_level: 0.3,
+          is_volume_muted: false,
+          media_title: LG_CHANNELS[0],
+          media_content_type: 'channel',
+          source: LIVE_TV_SOURCE,
+          source_list: [...LG_SOURCES],
+        }),
+      ];
     }
     default:
       return [makeEntity(`switch.${base}`, 'off', { friendly_name: name, device_class: 'outlet' })];
@@ -309,9 +339,16 @@ export function createMockDeviceFacade(
   const ignored = new Set<string>(hiddenAtStart);
   const taken = new Set<string>();
   const tvsTaken = new Set<string>();
+  /** Entries whose power-on recipe was set up from «Configura l'accensione» during the visit. */
+  const powerSetUp = new Set<string>();
   const flows = new Map<string, FlowState>();
   const entries = new Map<string, EntryDto>();
   let counter = 0;
+
+  /** The media player of an entry: a house device is `entry_dev_<name>`, `media_player.<name>`. */
+  const playerOfEntry = (entryId: string): string | null =>
+    entries.get(entryId)?.mediaPlayerEntityId ??
+    (entryId.startsWith('entry_dev_tv_') ? `media_player.${entryId.slice('entry_dev_'.length)}` : null);
 
   const reply = (body: unknown, status = 200): Promise<MockResponse> =>
     Promise.resolve({ status, body });
@@ -642,7 +679,14 @@ export function createMockDeviceFacade(
       return reply({ items, total: items.length, degraded: false, message: null });
     }
 
-    if (area === 'loghi') return fail(404, 'NOT_FOUND', 'Nessun logo.');
+    if (area === 'loghi') {
+      // Neutral stand-in wordmarks for the televisions; the other brands have none, like before.
+      const dark = new URLSearchParams(query).get('tema') === 'scuro';
+      const blob = get && first ? mockBrandLogo(decodeURIComponent(first), dark) : null;
+      return blob
+        ? Promise.resolve({ status: 200, body: null, blob })
+        : fail(404, 'NOT_FOUND', 'Nessun logo.');
+    }
 
     if (area === 'servizio' && first === 'ripara' && post) {
       return reply({ active: true, message: 'Il servizio dei dispositivi è attivo.' });
@@ -771,7 +815,15 @@ export function createMockDeviceFacade(
     }
 
     if (area === 'accensione' && first) {
-      return reply({ entryId: first, configured: true, active: true, message: null });
+      // The power-on recipe is set up for every TV but the one of the kitchen (it has no wake
+      // method) until `POST` sets it up, like the step «Accensione dalla rete» does.
+      if (method === 'POST') {
+        powerSetUp.add(first);
+        const player = playerOfEntry(first);
+        if (player) store.setWakeRecipe(player, true);
+      }
+      const configured = powerSetUp.has(first) || !NO_WAKE_ENTRIES.includes(first);
+      return reply({ entryId: first, configured, active: configured ? true : null, message: null });
     }
 
     return fail(404, 'NOT_FOUND', 'Non disponibile nella modalità dimostrativa.');
@@ -785,6 +837,11 @@ export function createMockDeviceFacade(
       for (const flowId of hiddenAtStart) ignored.add(flowId);
       taken.clear();
       tvsTaken.clear();
+      for (const entry of powerSetUp) {
+        const player = playerOfEntry(entry);
+        if (player && NO_WAKE_ENTRIES.includes(entry)) store.setWakeRecipe(player, false);
+      }
+      powerSetUp.clear();
       flows.clear();
     },
   };

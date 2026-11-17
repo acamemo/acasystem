@@ -1,5 +1,7 @@
 # ADR-0023 — App client «A-ibrida»: guscio per Windows e Android, interfaccia scaricata da un repository pubblico, server sul mini PC
 
+**Annotazione 2026-11-02:** [ADR-0031](ADR-0031-ritorno-mini-pc-client.md) riporta mini PC e client IP alla direzione corrente dopo l'esperimento desktop VM. Questo ADR torna riferimento per quel confine, senza confermare in blocco ogni dettaglio storico di distribuzione/bootstrap. Collocazione della prima configurazione/accesso ancora da decidere; ripristino del codice non ancora eseguito. Le sezioni seguenti conservano le decisioni del 2026-10-26.
+
 | Campo | Valore |
 |---|---|
 | ID e titolo | ADR-0023: l'app client di Acasystem per Windows (Electron) e Android (Capacitor) è un guscio che scarica l'interfaccia web dalle GitHub Releases di un repository pubblico nuovo e la collega al server Acasystem sul mini PC HA OS. |

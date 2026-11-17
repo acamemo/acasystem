@@ -1,4 +1,2 @@
-/** Joins class names, dropping empty values; undefined when nothing is left. */
-export function classes(...names: Array<string | false | null | undefined>) {
-  return names.filter(Boolean).join(' ') || undefined;
-}
+// Compatibilità: la stessa implementazione UI condivisa, senza duplicare stato o contesti.
+export * from '../../../../ui/primitives/classes';

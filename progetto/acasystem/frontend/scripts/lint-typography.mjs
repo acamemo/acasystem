@@ -1,14 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { isSharedUiShim } from './lint-paths.mjs';
 
 /*
  * Typography rules of ADR-0007: no all-caps or other text-transform, no added letter-spacing,
- * no bold (weights 300/400/500 only). Fails for every file in src; the legacy Tunet UI that was
- * only counted is gone (REP-20261006-001, ISSUE-029).
+ * no bold (weights 300/400/500 only). Checks src, shared UI and shared design CSS; the legacy Tunet UI
+ * that was only counted is gone (REP-20261006-001, ISSUE-029).
  */
 
 const root = process.cwd();
 const srcDir = path.join(root, 'src');
+const sharedStylesDir = path.resolve(root, '../design');
+const sharedUiDir = path.resolve(root, '../ui');
 const extensions = new Set(['.tsx', '.jsx', '.ts', '.js', '.css']);
 
 const POSITIVE_SPACING = /^\+?(?:0*[1-9]\d*(?:\.\d+)?|0*\.\d*[1-9]\d*)(?:[a-z%]+)?$/i;
@@ -139,7 +142,15 @@ const toPosix = (file) => path.relative(root, file).split(path.sep).join('/');
 const violations = [];
 let scanned = 0;
 
-for (const file of fs.existsSync(srcDir) ? walk(srcDir) : []) {
+const files = [
+  ...(fs.existsSync(srcDir) ? walk(srcDir) : []),
+  ...(fs.existsSync(sharedUiDir) ? walk(sharedUiDir) : []),
+  ...(fs.existsSync(sharedStylesDir)
+    ? walk(sharedStylesDir).filter((file) => path.extname(file) === '.css')
+    : []),
+].filter((file) => !isSharedUiShim(toPosix(file)));
+
+for (const file of files) {
   const relative = toPosix(file);
   const lines = stripComments(fs.readFileSync(file, 'utf8')).split(/\r?\n/);
   scanned += 1;

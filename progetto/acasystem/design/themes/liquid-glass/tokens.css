@@ -1,0 +1,79 @@
+/* Materiale ottico leggero, non rifrazione SVG. Colori personali/stati HA indipendenti. */
+:root {
+  --aca-glass-page: #e9edf5;
+  --aca-glass-solid: #f8f9fc;
+  --aca-glass-surface: var(--aca-glass-solid);
+  --aca-glass-control: var(--aca-glass-solid);
+  --aca-glass-overlay: var(--aca-glass-solid);
+  --aca-glass-edge: rgb(255 255 255 / 92%);
+  --aca-glass-line: rgb(67 56 110 / 24%);
+  --aca-glass-control-line: #8b849f;
+  --aca-glass-shadow: 0 12px 36px rgb(40 32 82 / 10%);
+  --aca-glass-control-shadow: 0 3px 10px rgb(40 32 82 / 10%);
+  --aca-glass-rim: inset 0 1px 0 var(--aca-glass-edge), inset 0 -1px 0 rgb(67 56 110 / 12%);
+  --aca-glass-blur: 12px;
+  --aca-glass-scene:
+    radial-gradient(circle clamp(14rem, 30vw, 28rem) at 88% 18%, rgb(194 179 239 / 56%), rgb(230 223 250 / 72%) 64%, transparent 65%),
+    radial-gradient(circle clamp(12rem, 28vw, 26rem) at 5% 90%, rgb(232 225 254 / 80%), rgb(189 177 226 / 40%) 64%, transparent 65%),
+    linear-gradient(135deg, #eff2f8, #e1e6f0);
+
+  --k2-bg: var(--aca-glass-page);
+  --k2-ink: #222235;
+  --k2-ink-muted: #545368;
+  --k2-shade: rgb(40 32 82 / 14%);
+  --k2-light: #ffffff;
+  --k2-accent: #6145d7;
+  --k2-accent-light: #a99aee;
+  --k2-accent-dark: #5036b8;
+  --k2-accent-text: #5036b8;
+  --k2-on-accent: #ffffff;
+  --k2-raised: var(--aca-glass-control-shadow);
+  --k2-raised-lg: var(--aca-glass-shadow);
+  --k2-inset: inset 0 0 0 1px var(--aca-glass-line);
+  --k2-inset-soft: var(--k2-inset);
+  --aca-page: var(--aca-glass-page);
+  --aca-ink-solid: var(--k2-ink);
+  --aca-ink-muted: var(--k2-ink-muted);
+  --aca-ink: linear-gradient(var(--k2-ink), var(--k2-ink));
+  --aca-ink-strong: var(--aca-ink);
+  --aca-face: linear-gradient(var(--aca-glass-control), var(--aca-glass-control));
+  --aca-face-well: linear-gradient(var(--aca-glass-solid), var(--aca-glass-solid));
+  --aca-socket-shadow: var(--aca-glass-control-shadow);
+  --aca-socket-shadow-card: var(--aca-glass-shadow);
+  --aca-shell: 0 0 transparent;
+  --aca-shell-card: 0 0 transparent;
+  --aca-radius-card: 24px;
+  --aca-radius-rounded: 14px;
+  --aca-face-rest-layers: var(--aca-glass-rim);
+  --aca-face-soft-layers: inset 0 0 0 1px var(--aca-glass-line);
+  --aca-face-pressed-layers: inset 0 0 0 1px var(--aca-glass-line);
+  --aca-focus: #5036b8;
+  --aca-blue-ink: #5036b8;
+  --aca-blue-ink-icon: #5036b8;
+  --aca-orange-ink: #5036b8;
+  --aca-orange-ink-icon: #5036b8;
+  --aca-orb: linear-gradient(145deg, #8166ec, #5036b8);
+  --aca-orb-shade: inset 0 1px 0 rgb(255 255 255 / 44%);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --aca-glass-surface: rgb(255 255 255 / 66%);
+    --aca-glass-control: rgb(255 255 255 / 76%);
+    --aca-glass-overlay: rgb(255 255 255 / 86%);
+  }
+}
+
+/* La modalità opaca è anche la base per browser senza backdrop-filter. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root {
+    --aca-glass-surface: var(--aca-glass-solid);
+    --aca-glass-control: var(--aca-glass-solid);
+    --aca-glass-overlay: var(--aca-glass-solid);
+    --aca-glass-blur: 0px;
+    --aca-glass-scene: none;
+    --aca-glass-shadow: 0 0 transparent;
+    --aca-glass-control-shadow: 0 0 transparent;
+    --aca-glass-line: #696579;
+  }
+}

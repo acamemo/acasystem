@@ -1,4 +1,5 @@
 import type { LayoutOptions } from '@/@types/launcher';
+import { useEffect, useRef, useState } from 'react';
 import type { LauncherApi } from '@/@types/launcher';
 import {
   useConfig,
@@ -10,7 +11,6 @@ import { useLauncher } from '@/hooks/launcher/LauncherContext';
 import { useSnapshotSetters } from '@/hooks/launcher/useSnapshotSetters';
 import { useConnectionSetup } from '@/hooks/useConnectionSetup';
 import { useProfiles } from '@/hooks/useProfiles';
-import { useAppearance } from '@/utils/appearance';
 import { connectionSummary } from '@/utils/launcher/connection';
 import { AboutSection, CoverSection, useRunningVersion } from './sections/AboutSection';
 import { HomeScreenSection } from './sections/HomeScreenSection';
@@ -22,6 +22,15 @@ import { isClientShell, openChangeAddress } from '@/utils/clientShell';
 import { ProfilesSection } from './sections/ProfilesSection';
 import { StatusBarSection } from './sections/StatusBarSection';
 import { SystemLayout } from './SystemLayout';
+import { QrCodeSection } from './sections/qrCodeSection';
+import { importQrConfiguration } from '@/api/qrPairing';
+import { ClientsSection } from './sections/ClientsSection';
+import { mutateHaConfiguration } from '@/api/commandApi';
+import { AccountView } from '@/components/account/AccountView';
+import { AccountAvatar } from '@/components/account/AccountAvatar';
+import { Button } from '@/components/primitives';
+import { useClientSession } from '@/hooks/client/ClientAccessGate';
+import { useOptionalLiveProfiles } from '@/hooks/liveProfiles/LiveProfilesContext';
 
 export interface SystemPageProps {
   onClose: () => void;
@@ -41,18 +50,29 @@ function useOptionalLauncher(): LauncherApi | null {
 
 /**
  * Sistema: connection to Home Assistant (through Acasystem, ADR-0009), profiles, status bar,
- * cover, appearance, the quality of the Casa 3D view and information. Appearance holds only the Kit 2 theme and accent of this
- * device (ADR-0011); language, units, font, background, lock and return to home of the legacy
+ * cover, the fixed Vetro Bianco appearance, the quality of the Casa 3D view and information.
+ * Language, units, font, background, lock and return to home of the legacy
  * app stay gone (ADR-0007). Profiles apply layout only, never appearance preferences.
  */
 export function SystemPage({ onClose }: SystemPageProps) {
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountTrigger = useRef<HTMLButtonElement>(null);
+  const accountWasOpen = useRef(false);
+  useEffect(() => {
+    if (accountOpen) accountWasOpen.current = true;
+    else if (accountWasOpen.current) {
+      accountWasOpen.current = false;
+      accountTrigger.current?.focus({ preventScroll: true });
+    }
+  }, [accountOpen]);
+  const clientSession = useClientSession();
+  const liveProfiles = useOptionalLiveProfiles();
   const launcher = useOptionalLauncher();
   const pages = usePages();
   const { config, setConfig } = useConfig();
   const meta = useHomeAssistantMeta();
   const entities = useHomeAssistantEntities();
   const version = useRunningVersion(__APP_VERSION__);
-  const [appearance, setAppearance] = useAppearance();
   // Home location of Home Assistant, used by its weather forecast (REP-20261007-025).
   const latitude = meta.haConfig?.latitude;
   const longitude = meta.haConfig?.longitude;
@@ -65,7 +85,7 @@ export function SystemPage({ onClose }: SystemPageProps) {
 
   // Profiles and imports apply the layout, launcher included, never the old appearance.
   const contextSetters = useSnapshotSetters();
-  const profiles = useProfiles({ haUser: meta.haUser, contextSetters });
+  const profiles = useProfiles({ haUser: meta.haUser, contextSetters, syncCurrentSettings: false });
   // Home Assistant is reached through the Acasystem server: the section shows the session and
   // offers a new sign-in (the login page) and the sign-out, which revokes the session.
   const setup = useConnectionSetup({ config, setConfig });
@@ -84,14 +104,17 @@ export function SystemPage({ onClose }: SystemPageProps) {
   };
 
   return (
+    <>
     <SystemLayout
+      hidden={accountOpen}
       onClose={onClose}
+      accountAction={<Button ref={accountTrigger} variant="control" aria-label="Apri il mio account" onClick={() => setAccountOpen(true)}>
+        <AccountAvatar userId={meta.haUser?.id || null} name={meta.haUser?.name || 'Account'} color={clientSession?.user.color} size="sm" />
+      </Button>}
       sections={[
         {
           id: 'sistema-collegamento',
           title: 'Collegamento',
-          description:
-            'Home Assistant, raggiunto attraverso il server Acasystem, e l’utente in uso.',
           content: (
             <ConnectionSection
               status={connectionSummary(meta)}
@@ -110,9 +133,24 @@ export function SystemPage({ onClose }: SystemPageProps) {
           ),
         },
         {
+          id: 'sistema-dispositivi-account',
+          title: 'I miei dispositivi',
+          content: <ClientsSection onLogout={() => { onClose(); void setup.logout(); }} />,
+        },
+        {
+          id: 'sistema-qr-code',
+          title: 'QR Code',
+          content: <QrCodeSection authenticated={Boolean(meta.haUser?.id)}
+            onImportConfiguration={async (configuration) => {
+              if (liveProfiles) await liveProfiles.create('Layout importato', clientSession?.client.label || '', {
+                snapshot: configuration.snapshot, appearance: configuration.appearance,
+              });
+              else importQrConfiguration(configuration, contextSetters);
+            }} />,
+        },
+        {
           id: 'sistema-profili',
           title: 'Profili',
-          description: 'Salva, carica, esporta e importa la configurazione delle pagine.',
           content: (
             <ProfilesSection
               hasUser={Boolean(meta.haUser?.id)}
@@ -133,9 +171,10 @@ export function SystemPage({ onClose }: SystemPageProps) {
         {
           id: 'sistema-barra',
           title: 'Barra di stato',
-          description: 'Titolo, ora, persone fissate e indicatori in alto.',
           content: (
             <StatusBarSection
+              key={`${clientSession?.houseId ?? ''}:${clientSession?.user.id ?? meta.haUser?.id ?? ''}`}
+              scopeKey={liveProfiles?.state.profile?.id ?? 'legacy'}
               entities={entities}
               title={pages.headerTitle}
               onTitle={pages.updateHeaderTitle}
@@ -170,9 +209,9 @@ export function SystemPage({ onClose }: SystemPageProps) {
         {
           id: 'sistema-home',
           title: 'Schermata Home',
-          description: 'Come si comportano widget e pagine.',
           content: (
             <HomeScreenSection
+              liveEditing={Boolean(liveProfiles)}
               locked={currentLayout?.locked === true}
               onLocked={(locked) => setLayoutOptions({ locked })}
               density={currentLayout?.density ?? 'normal'}
@@ -197,18 +236,13 @@ export function SystemPage({ onClose }: SystemPageProps) {
         {
           id: 'sistema-posizione',
           title: 'Posizione',
-          description: 'La posizione della casa, usata dal meteo.',
           content: (
             <LocationSection
               home={home}
               canEdit={canEditLocation}
               onSave={async ({ lat, lon }) => {
                 if (!meta.conn) throw new Error('Casa non collegata');
-                await meta.conn.sendMessagePromise({
-                  type: 'config/core/update',
-                  latitude: lat,
-                  longitude: lon,
-                });
+                await mutateHaConfiguration('home.location', { latitude: lat, longitude: lon });
               }}
             />
           ),
@@ -216,13 +250,11 @@ export function SystemPage({ onClose }: SystemPageProps) {
         {
           id: 'sistema-aspetto',
           title: 'Aspetto',
-          description: 'Tema e colore d’accento di questo dispositivo.',
-          content: <AppearanceSection appearance={appearance} onChange={setAppearance} />,
+          content: <AppearanceSection />,
         },
         {
           id: 'sistema-casa3d',
           title: 'Casa 3D',
-          description: 'Apri la casa e scegli la qualità della vista 3D di questo dispositivo.',
           content: <Casa3dSection />,
         },
         {
@@ -232,5 +264,7 @@ export function SystemPage({ onClose }: SystemPageProps) {
         },
       ]}
     />
+    {accountOpen && <AccountView onClose={() => setAccountOpen(false)} />}
+    </>
   );
 }

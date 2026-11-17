@@ -1,4 +1,6 @@
 import { ConsoleColumns } from '@/components/primitives';
+import { ProductCameraConsole } from '../../home/camera/ProductCameraDetails';
+import { cameraProductBinding } from '../../home/camera/productCameraModel';
 import type { WidgetDetailsProps } from '@/@types/launcher';
 import {
   CameraControlsRow,
@@ -14,6 +16,9 @@ import { useCameraDetailsState } from '../parts/camera/useCameraDetailsState';
  * mounted once. On a narrow screen the columns stack in that order.
  */
 export function CameraConsole(props: WidgetDetailsProps) {
+  return cameraProductBinding(props.settings) ? <ProductCameraConsole {...props} /> : <LegacyCameraConsole {...props} />;
+}
+function LegacyCameraConsole(props: WidgetDetailsProps) {
   const cam = useCameraDetailsState(props);
   if (!cam.camera.cameraId || !cam.entity) return <CameraMissing cam={cam} />;
   return (

@@ -1,5 +1,2 @@
-import type { ComponentPropsWithRef } from 'react';
-
-export function Input({ className = '', ...props }: ComponentPropsWithRef<'input'>) {
-  return <input className={`aca-input ${className}`} {...props} />;
-}
+// Compatibilità: la stessa implementazione UI condivisa, senza duplicare stato o contesti.
+export * from '../../../../../ui/primitives/components/Input';

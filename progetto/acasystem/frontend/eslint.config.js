@@ -2,11 +2,12 @@ import js from '@eslint/js';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import babelParser from '@babel/eslint-parser';
+import { sharedUiShimGlobs } from './scripts/lint-paths.mjs';
 
 export default [
   js.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx,ts,tsx}'],
+    files: ['frontend/src/**/*.{js,jsx,ts,tsx}', 'ui/**/*.{js,jsx,ts,tsx}'],
     plugins: { react, 'react-hooks': reactHooks },
     languageOptions: {
       ecmaVersion: 2022,
@@ -53,7 +54,7 @@ export default [
     },
   },
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['frontend/src/**/*.{ts,tsx}', 'ui/**/*.{ts,tsx}'],
     languageOptions: {
       parser: babelParser,
       parserOptions: {
@@ -72,13 +73,22 @@ export default [
   // Layer hierarchy (ADR-0004/0008): primitives → system → widgets → templates → pages.
   // A layer may import from the layers before it, never from the ones after it.
   ...layerRules([
-    ['src/components/primitives/**', ['components/system', 'components/widgets', 'templates', 'pages', 'api']],
-    ['src/components/system/**', ['components/widgets', 'templates', 'pages']],
-    ['src/components/widgets/**', ['templates', 'pages']],
-    ['src/templates/**', ['pages']],
+    ['ui/primitives/**', ['components/system', 'components/widgets', 'templates', 'pages', 'api']],
+    ['frontend/src/domain/**', ['components/system', 'components/widgets', 'templates', 'pages', 'hooks', 'api']],
+    ['frontend/src/components/system/**', ['components/widgets', 'templates', 'pages']],
+    ['frontend/src/components/widgets/**', ['templates', 'pages']],
+    ['frontend/src/templates/**', ['pages']],
   ]),
   {
-    ignores: ['dist/', 'node_modules/', 'scripts/', 'src/__tests__/', 'src/**/*.d.ts'],
+    ignores: [
+      '**/dist/',
+      '**/node_modules/',
+      'frontend/scripts/',
+      'frontend/src/__tests__/',
+      'ui/**/*.test.{js,mjs,cjs,ts,tsx}',
+      '**/*.d.ts',
+      ...sharedUiShimGlobs.map((glob) => `frontend/${glob}`),
+    ],
   },
 ];
 

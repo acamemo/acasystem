@@ -1,4 +1,6 @@
 import type { CardSettings } from '@/@types/dashboard';
+import { plugOperationalProfile } from '../controls/plug/plugModel';
+import { isProductDeviceBinding } from '@/utils/devices/productBinding';
 import type { EntityMap, ServiceData } from '@/@types/ha';
 import type { Capability, SampleValue, SampleValues } from './widgetDesignModel';
 import {
@@ -182,6 +184,7 @@ export function resolveOperationalEntityId(
 
 /** Logical widgets may bind several HA entities. Only configured targets receive commands. */
 export function operationalProfile(input: OperationalInput): OperationalProfile {
+  if (input.type === 'plug') return plugOperationalProfile(input);
   const { type, settings, entities, services } = input;
   const entityId = resolveOperationalEntityId(type, input.entityId, settings, entities);
   const entity = entities[entityId];
@@ -411,6 +414,19 @@ export function operationalProfile(input: OperationalInput): OperationalProfile 
         (value) => ({ calls: [], setting: { key: 'lightTransition', value: Number(value) } })
       );
     history = { entityId, attribute: 'brightness', factor: 100 / 255 };
+    const device = settings.productDevice;
+    if (isProductDeviceBinding(device) && device.family === 'light' && device.primaryEntityId === entityId) {
+      for (const channelId of device.channelEntityIds) {
+        if (channelId === entityId || device.technicalEntityIds?.includes(channelId)) continue;
+        const channel = operationalProfile({ ...input, entityId: channelId, settings: { ...settings, productDevice: undefined } });
+        for (const cap of channel.capabilities.filter(item => item.id === 'power' || item.id === 'brightness')) {
+          const id = `channel:${channelId}:${cap.id}`;
+          const label = text(entities[channelId]?.attributes.friendly_name) || channelId;
+          add({ ...cap, id, label: `${label} · ${cap.label}` }, channelId,
+            value => channel.execute(cap.id, value, channel.values));
+        }
+      }
+    }
   }
   if (type === 'climate' && entity) {
     for (const [id, attr, feature, svc] of [

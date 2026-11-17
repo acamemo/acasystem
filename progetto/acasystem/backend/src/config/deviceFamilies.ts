@@ -1,3 +1,5 @@
+export type { DeviceFamily } from '../../../contracts/devices.ts';
+import type { DeviceFamily } from '../../../contracts/devices.ts';
 /**
  * What the facade knows about the integrations that Home Assistant discovers on the network
  * (ADR-0024, F2 and F3 of REP-20261026-006).
@@ -9,22 +11,6 @@
  */
 
 import { SYSTEM_DOMAINS } from './devices.ts';
-
-export type DeviceFamily =
-  | 'tv'
-  | 'sonos'
-  | 'media'
-  | 'light'
-  | 'plug'
-  | 'climate'
-  | 'sensor'
-  | 'cover'
-  | 'lock'
-  | 'camera'
-  | 'vacuum'
-  | 'mower'
-  | 'fan'
-  | 'alarm';
 
 /** Family of the devices of an integration, when the integration alone says it. */
 export const PLATFORM_FAMILY: Readonly<Record<string, DeviceFamily>> = {

@@ -1379,7 +1379,7 @@ describe('the stylesheet', () => {
       readFileSync: (path: string, encoding: 'utf8') => string;
     };
     css = fs
-      .readFileSync('src/templates/launcher/launcher.css', 'utf8')
+      .readFileSync('../design/layout/launcher.css', 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '');
   });
 

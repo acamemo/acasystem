@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { AuthData } from 'home-assistant-js-websocket';
-import { Body, Button, Field, Icon } from '@/components/primitives';
+import { Button, Field, PasswordField } from '@/components/primitives';
 import { FormRow, Notice } from '@/templates/sheets/parts/Form';
 import { useHaLogin } from './useHaLogin';
 import './connect.css';
@@ -8,6 +8,9 @@ import './connect.css';
 export interface LoginFormProps {
   /** Home Assistant ha accettato l'accesso: i token da salvare. */
   onSession: (tokens: AuthData) => void;
+  /** Optional metadata for first-account appearance; credentials/session semantics stay unchanged. */
+  onAuthenticatedUsername?: (username: string) => void;
+  initialUsername?: string;
 }
 
 interface FieldErrors {
@@ -20,12 +23,11 @@ interface FieldErrors {
  * Utente e password di Home Assistant e, se attivo, il codice a due fattori. Gli errori sono in
  * linea; il focus va al campo da correggere e, al passo del codice, al codice.
  */
-export function LoginForm({ onSession }: LoginFormProps) {
-  const login = useHaLogin(onSession);
-  const [username, setUsername] = useState('');
+export function LoginForm({ onSession, onAuthenticatedUsername, initialUsername = '' }: LoginFormProps) {
+  const login = useHaLogin((tokens) => { onAuthenticatedUsername?.(username.trim()); onSession(tokens); });
+  const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -100,10 +102,6 @@ export function LoginForm({ onSession }: LoginFormProps) {
         aria-label="Verifica in due passaggi"
         onSubmit={(event) => void submitCode(event)}
       >
-        <Body>
-          Home Assistant chiede un secondo passaggio. Inserisci il codice dell’app di
-          autenticazione.
-        </Body>
         <FormRow label="Codice di verifica">
           {({ labelId }) => (
             <Field
@@ -155,11 +153,11 @@ export function LoginForm({ onSession }: LoginFormProps) {
       aria-label="Accesso"
       onSubmit={(event) => void submitCredentials(event)}
     >
-      <FormRow label="Utente">
+      <FormRow label="Nome utente">
         {({ labelId }) => (
           <Field
             ref={usernameRef}
-            label="Utente"
+            label="Nome utente"
             aria-labelledby={labelId}
             name="username"
             autoComplete="username"
@@ -177,30 +175,14 @@ export function LoginForm({ onSession }: LoginFormProps) {
       </FormRow>
       <FormRow label="Password">
         {({ labelId }) => (
-          <Field
+          <PasswordField
             ref={passwordRef}
             label="Password"
             aria-labelledby={labelId}
             name="password"
-            type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             value={password}
             error={errors.password}
-            action={
-              <button
-                type="button"
-                className="aca-field__action"
-                aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
-                title={showPassword ? 'Nascondi password' : 'Mostra password'}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => setShowPassword((shown) => !shown)}
-              >
-                <Icon
-                  name={showPassword ? 'eyeSlash' : 'eye'}
-                  className="aca-field__action-icon"
-                />
-              </button>
-            }
             onChange={(event) => {
               setPassword(event.target.value);
               setErrors((current) => ({ ...current, password: undefined }));

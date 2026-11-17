@@ -367,7 +367,9 @@
     gap: 0.1rem;
     min-height: 0;
     margin: 0;
-    padding: 0;
+    /* The buttons at the row ends keep their soft shadow inside the clip (negative margin = no shift). */
+    padding: var(--aca-shadow-reach);
+    margin: calc(-1 * var(--aca-shadow-reach));
     overflow: hidden;
     list-style: none;
   }
@@ -566,6 +568,23 @@
     }
     .home-widget__body .aca-type--display-sm {
       font-size: var(--aca-step-2);
+    }
+  }
+  @container home-widget (max-height: 6.25rem) and (min-width: 81px) {
+    .home-notice > .aca-icon {
+      display: none;
+    }
+    .home-notice__text {
+      width: 100%;
+    }
+    .home-notice__text > .home-truncate,
+    .home-notice__message {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
     }
   }
   /* Reduced motion: no pulse; orange ink and the «In attesa di conferma» text remain. */

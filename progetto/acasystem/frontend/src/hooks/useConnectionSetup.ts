@@ -20,6 +20,7 @@ import {
 } from '@/api/haSession';
 import { clearOAuthTokens } from '@/api/oauthStorage';
 import { useConnectPageControl } from '@/hooks/context/ConfigContext';
+import { resetClientAccess } from '@/utils/clientSessionCache';
 
 export interface ConnectionSetupDeps {
   config: HomeAssistantConfig;
@@ -77,6 +78,7 @@ export function useConnectionSetup({ config, setConfig }: ConnectionSetupDeps): 
 
   const logout = useCallback(async () => {
     const session = loadSessionTokens();
+    resetClientAccess();
     clearOAuthTokens();
     forgetKioskToken();
     forgetAccessMethod();

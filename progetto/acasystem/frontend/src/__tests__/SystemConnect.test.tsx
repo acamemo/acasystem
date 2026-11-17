@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getHassUrl } from '@/api/haUrl';
 import { probeToken } from '@/pages/connect/connection';
 import { ConnectPage } from '@/pages/connect';
+import { TokenForm } from '@/pages/connect/TokenForm';
 
 /**
- * Pagina di accesso e verifica del token a lunga durata (ADR-0009): il token passa dal proxy di
- * Acasystem; la pagina consegna sessione e token a useConnectionSetup, che li salva.
+ * Ingresso personale senza opzione token. Probe e TokenForm restano verificati separatamente
+ * per compatibilità tecnica, senza renderli nel percorso di accesso.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -105,17 +106,30 @@ describe('probeToken', () => {
 });
 
 describe('ConnectPage', () => {
-  it('consegna il token verificato e segnala il collegamento', async () => {
-    const onConnected = vi.fn();
+  it('mostra solo l’accesso personale e non altera credenziali legacy alla sola apertura', () => {
+    localStorage.setItem('ha_token', TOKEN);
+    localStorage.setItem('ha_auth_method', 'token');
+    render(<ConnectPage />);
+    expect(screen.getByRole('form', { name: 'Accesso' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Altre opzioni' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Token di accesso a lunga durata')).not.toBeInTheDocument();
+    expect(localStorage.getItem('ha_token')).toBe(TOKEN);
+    expect(localStorage.getItem('ha_auth_method')).toBe('token');
+    expect(mocks.acceptToken).not.toHaveBeenCalled();
+    expect(mocks.acceptSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('TokenForm standalone legacy, non raggiungibile da ConnectPage', () => {
+  it('consegna il token verificato al chiamante', async () => {
+    const accepted = vi.fn();
     mocks.createConnection.mockResolvedValueOnce({ close: vi.fn() });
-    render(<ConnectPage onConnected={onConnected} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Altre opzioni' }));
+    render(<TokenForm onAccepted={accepted} />);
     fireEvent.change(screen.getByLabelText('Token di accesso a lunga durata'), {
       target: { value: TOKEN },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Collega con il token' }));
-    await waitFor(() => expect(onConnected).toHaveBeenCalledOnce());
-    expect(mocks.acceptToken).toHaveBeenCalledWith(TOKEN);
+    await waitFor(() => expect(accepted).toHaveBeenCalledWith(TOKEN));
     expect(mocks.acceptSession).not.toHaveBeenCalled();
   });
 
@@ -127,8 +141,7 @@ describe('ConnectPage', () => {
       vi.spyOn(console, 'info'),
     ];
     mocks.createConnection.mockRejectedValueOnce(2);
-    render(<ConnectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Altre opzioni' }));
+    render(<TokenForm onAccepted={mocks.acceptToken} />);
     fireEvent.change(screen.getByLabelText('Token di accesso a lunga durata'), {
       target: { value: TOKEN },
     });

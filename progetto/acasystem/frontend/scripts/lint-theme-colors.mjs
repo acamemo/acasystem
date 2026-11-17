@@ -1,14 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { isSharedUiShim } from './lint-paths.mjs';
 
 /*
- * Colour rule of the Acasystem theme (ADR-0006/0007): outside src/themes the code uses the kit
+ * Colour rule of the Acasystem theme (ADR-0006/0007): outside the shared theme the code uses kit
  * tokens (--aca-*) and primitives, never palette or hex colours. It checks the layered folders
- * and the app entry:
+ * and the app entry, shared UI and shared non-theme CSS:
  * - in .ts/.tsx: Tailwind palette colours (text-gray-500, bg-blue-600/20…), arbitrary colour
  *   utilities (bg-[#123456], text-[rgb(…)]) and hex colours in the source;
  * - in .css: hex colours and rgb()/rgba()/hsl()/hsla()/oklch() literals, which belong to the
- *   tokens in src/themes/acasystem (the theme itself is not scanned).
+ *   tokens in ../design/themes/acasystem (the theme itself is not scanned).
  * It also scans src/hooks, src/utils and src/casa3d. src/utils/mockup and src/utils/fixtures are
  * demo data and are skipped. A literal that has to stay (a drag preview, a runtime hue, a neutral
  * shadow) goes in ALLOWED below with the reason; nothing else is exempt.
@@ -19,7 +20,9 @@ import path from 'node:path';
 
 const root = process.cwd();
 const dirs = [
-  'src/components/primitives',
+  '../ui',
+  '../design/layout',
+  '../design/components',
   'src/components/system',
   'src/components/widgets',
   'src/templates',
@@ -38,6 +41,10 @@ const skipped = ['src/pages/kit', 'src/utils/mockup', 'src/utils/fixtures'];
  */
 const FUNCTIONAL = 'colore funzionale (rgb, hsl, oklch)';
 const ALLOWED = {
+  'src/pages/connect/AccountCreationFields.tsx': {
+    rules: ['colore esadecimale'],
+    why: 'black/white avatar ink maximizes contrast on the arbitrary personal colour chosen by the user; these are functional data, not app palette choices',
+  },
   'src/hooks/useSmartTheme.ts': {
     rules: ['colore esadecimale'],
     why: 'legacy sun/weather gradients of the old Tunet theme; the hook is only exercised by its own test and no screen uses it',
@@ -50,7 +57,7 @@ const ALLOWED = {
     rules: [FUNCTIONAL],
     why: 'inline styles of the drag preview and drop target while dragging, outside any theme scope',
   },
-  'src/components/primitives/components/Modal.tsx': {
+  '../ui/primitives/components/Modal.tsx': {
     rules: [FUNCTIONAL],
     why: 'neutral veil of the dialog, the same value as the Sheet backdrop in the kit; no veil token exists',
   },
@@ -66,7 +73,7 @@ const ALLOWED = {
     rules: [FUNCTIONAL],
     why: 'white ink and neutral 10% shadow of the edit tooltip; no token for a fixed white or black layer',
   },
-  'src/components/system/page-indicator/pageIndicator.css': {
+  '../design/layout/pageIndicator.css': {
     rules: [FUNCTIONAL],
     why: 'neutral shadow and light layers of the dots, as the kit material writes them; theme tokens would change the look',
   },
@@ -74,7 +81,7 @@ const ALLOWED = {
     rules: [FUNCTIONAL],
     why: 'neutral inset shadow, as the kit material writes it',
   },
-  'src/templates/launcher/launcher.css': {
+  '../design/layout/launcher.css': {
     rules: [FUNCTIONAL],
     why: 'neutral drop shadows of the launcher; the oklch(from …) greys are relative colours (not flagged)',
   },
@@ -180,7 +187,7 @@ const isSkipped = (file) => {
 const targets = [
   ...dirs.flatMap((dir) => walk(path.join(root, dir))),
   ...files.map((file) => path.join(root, file)).filter((file) => fs.existsSync(file)),
-].filter((file) => !isSkipped(file));
+].filter((file) => !isSkipped(file) && !isSharedUiShim(toPosix(file)));
 
 const violations = [];
 for (const file of targets) {

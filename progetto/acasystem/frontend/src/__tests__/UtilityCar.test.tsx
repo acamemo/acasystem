@@ -9,6 +9,7 @@ import {
 } from '@/components/widgets/utilities/car/carData';
 import { createFixtureRuntime, fixtureEntities, fixtureEntity } from '@/utils/fixtures/runtime';
 import { renderWithRuntime } from './UtilityHarness';
+import { fakeConnection, flush } from './ControlsHarness';
 
 const settings = {
   batteryId: 'sensor.leaf_battery',
@@ -27,7 +28,7 @@ const settings = {
 };
 
 const entities = fixtureEntities([
-  fixtureEntity('sensor.leaf_battery', '74.46'),
+  fixtureEntity('sensor.leaf_battery', '74.46', { unit_of_measurement: '%' }),
   fixtureEntity('sensor.leaf_range', '215', { unit_of_measurement: 'km' }),
   fixtureEntity('device_tracker.leaf', 'home', { latitude: 45.07, longitude: 7.68 }),
   fixtureEntity('binary_sensor.leaf_charging', 'on'),
@@ -37,16 +38,34 @@ const entities = fixtureEntities([
     temperature: 21,
     current_temperature: 14.5,
     temperature_unit: '°C',
+    min_temp: 16,
+    max_temp: 30,
+    target_temp_step: 0.5,
   }),
   fixtureEntity('button.leaf_update', 'unknown'),
   fixtureEntity('switch.leaf_charge', 'off', { friendly_name: 'Ricarica' }),
   fixtureEntity('button.leaf_start_charge', 'unknown', { friendly_name: 'Avvia ricarica' }),
   fixtureEntity('script.leaf_charge_now', 'off', { friendly_name: 'Ricarica subito' }),
-  fixtureEntity('number.leaf_limit', '80', { min: 50, max: 100, step: 5 }),
+  fixtureEntity('number.leaf_limit', '80', {
+    min: 50,
+    max: 100,
+    step: 5,
+    unit_of_measurement: '%',
+  }),
   fixtureEntity('select.leaf_limit', '80%', { options: ['80%', '90%', '100%'] }),
   fixtureEntity('lock.leaf', 'locked'),
   fixtureEntity('switch.leaf_ignition', 'off'),
 ]);
+
+const services = {
+  switch: { turn_on: {}, turn_off: {} },
+  button: { press: {} },
+  script: { turn_on: {} },
+  number: { set_value: {} },
+  select: { select_option: {} },
+  climate: { turn_on: {}, turn_off: {}, set_temperature: {} },
+  lock: { lock: {}, unlock: {} },
+};
 
 const props = (id = 'car_card_1', w = 2, h = 2) => ({
   id,
@@ -115,35 +134,45 @@ describe('auto: dati', () => {
 });
 
 describe('auto: widget', () => {
-  it('2×2: batteria, autonomia, posizione, ricarica e immagine', () => {
+  it('2×2: due misure native, stato ricarica e immagine sicura, senza soglia batteria inventata', () => {
     const { container } = renderWithRuntime(<CarWidget {...props()} />, { entities });
     expect(screen.getByText('Auto')).toBeInTheDocument();
     expect(screen.getByText('74,5')).toBeInTheDocument();
     expect(screen.getByText('215')).toBeInTheDocument();
-    expect(screen.getByText('A casa')).toBeInTheDocument();
     expect(screen.getByText('In carica')).toBeInTheDocument();
-    expect(screen.getByRole('meter', { name: 'Livello della batteria' })).toHaveAttribute(
-      'aria-valuenow',
-      '75'
-    );
+    expect(screen.queryByRole('meter')).not.toBeInTheDocument();
     expect(container.querySelector('img')?.getAttribute('src')).toBe(
       'http://ha.local/local/leaf.png'
     );
   });
 
-  it('widget e dettagli in miglia e °F con un’installazione imperiale', () => {
-    const metric = createFixtureRuntime().haConfig;
-    const haConfig = metric && {
-      ...metric,
-      unit_system: { ...metric.unit_system, length: 'mi', temperature: '°F' },
+  it('sensori mantengono l’unità nativa; clima usa i valori già serializzati nell’unità HA', () => {
+    const metric = createFixtureRuntime().haConfig,
+      haConfig = metric && {
+        ...metric,
+        unit_system: { ...metric.unit_system, length: 'mi', temperature: '°F' },
+      };
+    const imperialEntities = {
+      ...entities,
+      'climate.leaf': fixtureEntity('climate.leaf', 'off', {
+        supported_features: 385,
+        temperature: 70,
+        current_temperature: 58,
+        min_temp: 62,
+        max_temp: 86,
+        target_temp_step: 1,
+      }),
     };
-    const view = renderWithRuntime(<CarWidget {...props()} />, { entities, haConfig });
-    expect(screen.getByText('133,6')).toBeInTheDocument();
-    expect(screen.getByText('mi')).toBeInTheDocument();
-    view.update({}, details());
-    expect(screen.getByText('133,6 mi')).toBeInTheDocument();
-    // The climate entity already reports in the HA unit: only the label changes.
-    expect(screen.getByText('14,5 °F')).toBeInTheDocument();
+    const view = renderWithRuntime(<CarWidget {...props()} />, {
+      entities: imperialEntities,
+      haConfig,
+    });
+    expect(screen.getByText('215')).toBeInTheDocument();
+    expect(screen.getByText('km')).toBeInTheDocument();
+    view.update({ services, conn: fakeConnection().conn }, details());
+    expect(screen.getByText('215 km')).toBeInTheDocument();
+    expect(screen.getByText('Temperatura desiderata: 70 °F')).toBeInTheDocument();
+    expect(screen.queryByText('Temperatura desiderata: 21 °C')).not.toBeInTheDocument();
   });
 
   it('id legacy «car», taglia 2×1, nome personalizzato', () => {
@@ -161,40 +190,53 @@ describe('auto: widget', () => {
     const view = renderWithRuntime(<CarWidget {...props()} />, { entities, entitiesLoaded: false });
     expect(screen.getByRole('status')).toHaveTextContent(/Caricamento/);
     view.update({ entitiesLoaded: true }, <CarWidget {...props()} settings={{}} />);
-    expect(screen.getByText('Collega le entità dell’auto')).toBeInTheDocument();
+    expect(screen.getByText('Collega le fonti dell’auto')).toBeInTheDocument();
   });
 });
 
 describe('auto: dettagli (stessi servizi di LeafModal)', () => {
-  it('clima, aggiornamento, serratura e motore', async () => {
+  it('clima e aggiornamento espliciti; serratura e motore con conferma, mappa solo su click', async () => {
     const callService = vi.fn().mockResolvedValue(undefined);
-    renderWithRuntime(details(), { entities, callService, conn: {} as never });
-    fireEvent.click(screen.getByRole('switch', { name: 'Clima dell’auto' }));
+    const view = renderWithRuntime(details(), {
+      entities,
+      callService,
+      services,
+      conn: fakeConnection().conn,
+    });
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Accendi clima' }));
     expect(callService).toHaveBeenLastCalledWith('climate', 'turn_on', {
       entity_id: 'climate.leaf',
     });
-    fireEvent.click(screen.getByRole('button', { name: /Aggiorna dati/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tecnica e manutenzione' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Aggiorna dati' }));
     expect(callService).toHaveBeenLastCalledWith('button', 'press', {
       entity_id: 'button.leaf_update',
     });
-    const unlock = screen.getByRole('button', { name: /Sblocca/ });
-    fireEvent.click(unlock);
+    fireEvent.click(screen.getByRole('button', { name: 'Sblocca' }));
     expect(callService).not.toHaveBeenCalledWith('lock', 'unlock', expect.anything());
-    fireEvent.click(unlock);
+    fireEvent.click(screen.getByRole('button', { name: 'Conferma sblocco' }));
     expect(callService).toHaveBeenLastCalledWith('lock', 'unlock', { entity_id: 'lock.leaf' });
-    fireEvent.click(screen.getByRole('button', { name: /Avvia il motore/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Avvio motore' }));
+    expect(callService).not.toHaveBeenCalledWith('switch', 'turn_on', {
+      entity_id: 'switch.leaf_ignition',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Conferma avvio motore' }));
     expect(callService).toHaveBeenLastCalledWith('switch', 'turn_on', {
       entity_id: 'switch.leaf_ignition',
     });
-    expect(
-      screen.getByTitle('Mappa con l’ultima posizione dell’auto').getAttribute('src')
-    ).toContain('marker=45.07%2C7.68');
+    expect(view.container.querySelector('iframe')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Apri la posizione sulla mappa' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('mlat=45.07&mlon=7.68')
+    );
   });
 
-  it('temperatura desiderata: passi di 0,5 e limite 16–30, inviata una volta', async () => {
-    vi.useFakeTimers();
+  it('temperatura desiderata: passo e limiti dichiarati dal dispositivo, inviata una volta', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const callService = vi.fn().mockResolvedValue(undefined);
-    renderWithRuntime(details(), { entities, callService });
+    renderWithRuntime(details(), { entities, callService, services, conn: fakeConnection().conn });
+    await flush();
     const up = screen.getByRole('button', { name: 'Aumenta temperatura desiderata' });
     fireEvent.click(up);
     fireEvent.click(up);
@@ -206,36 +248,26 @@ describe('auto: dettagli (stessi servizi di LeafModal)', () => {
       entity_id: 'climate.leaf',
       temperature: 22,
     });
-    // Requested, not yet confirmed.
     expect(screen.getByRole('slider', { name: 'Temperatura desiderata' })).toHaveAttribute(
       'aria-busy',
       'true'
     );
-    fireEvent.change(screen.getByRole('slider', { name: 'Temperatura desiderata' }), {
-      target: { value: '40' },
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(300);
-    });
-    expect(callService).toHaveBeenLastCalledWith('climate', 'set_temperature', {
-      entity_id: 'climate.leaf',
-      temperature: 30,
-    });
   });
 
-  it('ricarica: interruttore, pulsante, script, limite numerico e a scelta', async () => {
+  it('ricarica: switch, pulsante, script, limite nativo numerico e scelta supportata', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const callService = vi.fn().mockResolvedValue(undefined);
-    renderWithRuntime(details(), { entities, callService });
-    fireEvent.click(screen.getByRole('switch', { name: 'Ricarica' }));
+    renderWithRuntime(details(), { entities, callService, services, conn: fakeConnection().conn });
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Avvia ricarica: Ricarica' }));
     expect(callService).toHaveBeenLastCalledWith('switch', 'turn_on', {
       entity_id: 'switch.leaf_charge',
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Premi: Avvia ricarica' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Avvia ricarica' }));
     expect(callService).toHaveBeenLastCalledWith('button', 'press', {
       entity_id: 'button.leaf_start_charge',
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Esegui: Ricarica subito' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ricarica subito' }));
     expect(callService).toHaveBeenLastCalledWith('script', 'turn_on', {
       entity_id: 'script.leaf_charge_now',
     });
@@ -247,7 +279,7 @@ describe('auto: dettagli (stessi servizi di LeafModal)', () => {
       entity_id: 'number.leaf_limit',
       value: 85,
     });
-    fireEvent.click(screen.getByRole('button', { name: /leaf limit: 80%/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Limite di ricarica: 80%' }));
     fireEvent.click(screen.getByRole('button', { name: '90%' }));
     expect(callService).toHaveBeenLastCalledWith('select', 'select_option', {
       entity_id: 'select.leaf_limit',

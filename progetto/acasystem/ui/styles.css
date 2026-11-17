@@ -1,0 +1,6 @@
+/* Ingresso completo per un nuovo consumatore UI. I moduli restano disponibili separatamente. */
+@import '../design/index.css';
+@import '../design/components/toast.css';
+@import '../design/layout/appShell.css';
+@import '../design/layout/pageIndicator.css';
+@import './pager.css';

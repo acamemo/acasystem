@@ -53,8 +53,8 @@ describe('Android TV: widget', () => {
     // The launcher draws the card frame: the widget never nests a card of its own.
     expect(container.querySelector('.aca-m--card')).toBeNull();
     expect(screen.getByText('TV sala')).toBeInTheDocument();
-    // Two rows: one small status line with the app and the title.
-    expect(screen.getByText('Dark · Episodio 3')).toBeInTheDocument();
+    // Two rows: one small status line with the state, the app and the title.
+    expect(screen.getByText('In riproduzione · Dark · Episodio 3')).toBeInTheDocument();
     // Play/pause is no longer on the tile: the third key is the channel.
     expect(screen.queryByRole('button', { name: /Riproduci|Metti in pausa/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Canale' }));
@@ -121,8 +121,9 @@ describe('Apple TV: widget', () => {
     const power = screen.getByRole('button', { name: 'Spegni' });
     fireEvent.click(power);
     expect(callService).toHaveBeenCalledWith('media_player', 'turn_off', { entity_id: TV });
-    expect(screen.getByRole('button', { name: 'Accendi' })).toHaveAttribute('aria-busy', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'Accendi' }));
+    // Until Home Assistant confirms, the key pulses and still shows the state it reports.
+    expect(screen.getByRole('button', { name: 'Spegni' })).toHaveAttribute('aria-busy', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Spegni' }));
     expect(callService).toHaveBeenCalledTimes(1);
   });
 

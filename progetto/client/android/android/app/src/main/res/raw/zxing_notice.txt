@@ -1,0 +1,11 @@
+Acasystem include il lettore QR locale ZXing Android Embedded 4.3.0
+https://github.com/journeyapps/zxing-android-embedded/tree/v4.3.0
+Copyright (C) 2012-201 ZXing authors, Journey Mobile
+(attribuzione conservata come nella README della release v4.3.0).
+
+Il lettore include ZXing Core 3.4.1:
+https://github.com/zxing/zxing/tree/zxing-3.4.1
+Copyright 2007 ZXing authors.
+
+Entrambi sono distribuiti con licenza Apache License, Version 2.0.
+La copia della licenza è inclusa nella risorsa zxing_license.txt.

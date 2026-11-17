@@ -8,11 +8,15 @@ Home Assistant con un frontend migliorato. Deriva da [Tunet](https://github.com/
 |---|---|
 | `frontend/` | Interfaccia React + Vite, in migrazione a TypeScript. |
 | `backend/` | Server Express: API dei profili, impostazioni, icone, validazione dell'identità HA; serve anche la build del frontend. |
+| `casa3d/` | Workspace Lit: upstream e override distinti dai sorgenti generati e dalla build. |
+| `ui/` | Primitive React, popup, movimento, toast e layout/navigazione comuni. |
+| `design/` | Fonte CSS/font/temi, condivisa anche con le shell dei client. |
+| `contracts/` | Tipi API, costanti e modelli runtime puri condivisi da server e browser, senza React/storage/servizi. |
 | `upstream-tunet/` | File solo di riferimento di Tunet: changelog, documentazione, add-on, workflow. Non vengono costruiti. |
 
 Nel frontend gli strati seguono una gerarchia: ogni strato importa solo da quelli precedenti.
 
-1. `src/components/primitives`: componenti, tipografia e layout. Non conoscono Home Assistant.
+1. `ui/primitives`: componenti, tipografia e layout. I vecchi src/components/primitives sono rimandi compatibili; non conoscono Home Assistant.
 2. `src/components/system`: barra di stato, indicatore pagina, fogli.
 3. `src/components/widgets`: un widget per dominio HA.
 4. `src/templates`.
@@ -24,6 +28,7 @@ Le altre cartelle seguono ADR-0008:
 |---|---|
 | `@types` | Tipi globali e di dominio. |
 | `api` | Client HA e backend. |
+| `domain/launcher` | Catalogo/geometria/classificazione puri, senza dipendenze dalle schermate; gli adattatori del registry restano fuori dai modelli. |
 | `hooks` | Hook React. |
 | `routes` | Instradamento. |
 | `themes` | Tema Acasystem. |
@@ -32,18 +37,33 @@ Le altre cartelle seguono ADR-0008:
 
 L'alias `@/` punta a `frontend/src`.
 
+## Provare account, profili e Tavano
+
+La [guida di prova locale](../../documentazione/riprogettazione/blocchi/03-profili-client-tavano-prova.md) descrive ingresso IP/QR, registrazione HA, nomi dei client, profili condivisi, editing/bozze, Tavano e personalizzazione account. Le nuove funzioni richiedono webapp e backend v2 della centrale nella versione locale 0.9.34; ZIP Windows e APK Android 0.1.0 sono soltanto i contenitori che ricevono la webapp. Artefatti locali, immagine della centrale e installazione/pubblicazione hanno stati distinti nel [report corrente](../../documentazione/reports/REP-20261102-012-profili-client-editing-tavano.md).
+
 ## Comandi (da questa cartella)
 
 ```text
-npm install            dipendenze dei due workspace
+npm ci                 dipendenze bloccate dei tre workspace
 npm run dev            frontend (Vite, porta 5173) e backend (porta 3002)
-npm run build          build del frontend
-npm test               test del frontend e del backend
+npm run build          build di frontend e Casa3D
+npm test               test comuni UI/design, poi frontend, backend e Casa3D
 npm run typecheck      controlli TypeScript
 npm run lint           ESLint
 ```
 
+Per preparare un rilascio usare lo snapshot di build dalla radice Git:
+
+```powershell
+node progetto/ha-app/build-base.mjs --version 0.9.33 --tag aca-system:locale
+node progetto/ha-app/prepare.mjs --version 0.9.33 --base-image aca-system:locale --check
+```
+
+Il primo comando costruisce un'immagine locale dai byte congelati e registra il loro SHA; il secondo controlla sorgenti/versione senza creare contenitori o output. Per una nuova versione sostituire il numero approvato. Una normale build Docker di sviluppo senza provenienza rimane utilizzabile localmente, ma non passa la preparazione del rilascio. Il prepare completo genera out/<versione> e richiede i prerequisiti operativi già indicati in infrastructure.md; non pubblica. Non sovrascrivere una versione pubblicata per provare modifiche locali.
+
 Pagina di prova con l'app e un Home Assistant finto: `http://127.0.0.1:5173/#/mockup` (le pagine `kit.html`, `launcher.html` e `preview-*.html` sono state tolte il 2026-10-28).
+
+Preparazione pilota aggiornata2026-11-13: il `ha-app/prepare.mjs` completo richiede anche `--haos-version`, `--core-version` e `--sonoff-archive` per generare materiali coerenti; `--check` sopra resta invariato. [Bootstrap](../ha-app/bootstrap/README.md) e [piano/setup candidato](../ha-app/pilot/README.md) distinguono la generazione locale dal collaudo HAOS/Hyper-V e dalla pubblicazione. Non eseguire il template bootstrap sorgente direttamente.
 
 Home Assistant sta dietro Acasystem (ADR-0009). Il browser parla solo con il server Acasystem, che inoltra a Home Assistant le richieste sotto `/ha`: HTTP in streaming e WebSocket, solo i percorsi usati dal frontend. L'accesso avviene con la pagina Acasystem (utente e password di Home Assistant).
 

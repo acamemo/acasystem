@@ -13,6 +13,7 @@ import { useSettingsSync } from '@/hooks/useSettingsSync';
 import { collectSnapshot, applySnapshot, isValidSnapshot } from '@/api/snapshot';
 import { errorMessage, isObject, type UnknownRecord } from '@/validators/guards';
 import { unwrapImportedSnapshot } from '@/validators/snapshot';
+import { useOptionalLiveProfiles } from '@/hooks/liveProfiles/LiveProfilesContext';
 
 function cloneJson<T>(value: T | null | undefined, fallback: T): T {
   try {
@@ -121,6 +122,7 @@ export interface UseProfilesOptions {
   haUser: HaUser | null | undefined;
   contextSetters: SnapshotContextSetters;
   prefetchProfiles?: boolean;
+  syncCurrentSettings?: boolean;
 }
 
 /**
@@ -134,7 +136,9 @@ export function useProfiles({
   haUser,
   contextSetters,
   prefetchProfiles = true,
+  syncCurrentSettings = true,
 }: UseProfilesOptions) {
+  const live = useOptionalLiveProfiles();
   const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -143,14 +147,14 @@ export function useProfiles({
   const contextSettersRef = useRef(contextSetters);
   contextSettersRef.current = contextSetters;
   const autoSync = useSettingsSync({
-    haUserId: haUser?.id,
+    haUserId: live ? undefined : haUser?.id,
     contextSettersRef,
-    autoBootstrap: prefetchProfiles,
+    autoBootstrap: prefetchProfiles && syncCurrentSettings,
   });
 
   // ── Load profiles when haUser changes ──
   const refreshProfiles = useCallback(async () => {
-    if (!haUser?.id) return;
+    if (!haUser?.id || live) return;
     try {
       const data = await apiFetchProfiles(haUser.id);
       setProfiles(data);
@@ -159,7 +163,7 @@ export function useProfiles({
       console.warn('Failed to fetch profiles:', err);
       setBackendAvailable(false);
     }
-  }, [haUser?.id]);
+  }, [haUser?.id, live]);
 
   useEffect(() => {
     if (!prefetchProfiles) return;

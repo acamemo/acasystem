@@ -25,7 +25,6 @@ import { findWidgetDefinition } from '@/components/widgets/registry';
 import { PageProvider, usePages } from '@/hooks/context/PageContext';
 import { ToastProvider } from '@/hooks/context/ToastContext';
 import { DISCOVERY_SEEN_KEY } from '@/hooks/launcher/useDiscoveryScreen';
-import { resetShownTiles } from '@/templates/discovery/DiscoveryScreen';
 import {
   useLauncherController,
   type LauncherController,
@@ -43,12 +42,24 @@ const layout: LauncherLayout = {
   pages: [{ id: 'home', label: 'Casa', kind: 'widgets', placements: { tablet: {} } }],
 };
 
+const deviceRegistry = [{ id: 'lampada', name: 'Lampada studio' }, { id: 'relay', name: 'Relè studio' }, { id: 'termostato', name: 'Termostato studio' }, { id: 'veneziana', name: 'Veneziana studio' }, { id: 'ventilatore', name: 'Ventilatore studio' }, { id: 'serratura', name: 'Serratura studio' }, { id: 'allarme', name: 'Allarme studio' }, { id: 'videocamera', name: 'Videocamera studio' }, { id: 'robot', name: 'Aspirapolvere studio' }, { id: 'giardino', name: 'Tagliaerba studio' }];
+const entityRegistry = [{ entity_id: 'light.studio', device_id: 'lampada', platform: 'hue' },
+  { entity_id: 'switch.studio_a', device_id: 'relay', platform: 'mqtt' },
+  { entity_id: 'switch.studio_b', device_id: 'relay', platform: 'mqtt' },
+  { entity_id: 'light.studio_led', device_id: 'relay', platform: 'mqtt', entity_category: 'config' },
+  { entity_id: 'climate.studio', device_id: 'termostato', platform: 'mqtt' },
+  { entity_id: 'cover.studio', device_id: 'veneziana', platform: 'mqtt' },
+  { entity_id: 'fan.studio', device_id: 'ventilatore', platform: 'mqtt' },
+  { entity_id: 'lock.studio', device_id: 'serratura', platform: 'mqtt' },
+  { entity_id: 'alarm_control_panel.studio', device_id: 'allarme', platform: 'mqtt' },
+  { entity_id: 'camera.studio', device_id: 'videocamera', platform: 'onvif' },
+  { entity_id: 'vacuum.studio', device_id: 'robot', platform: 'mqtt' },
+  { entity_id: 'lawn_mower.studio', device_id: 'giardino', platform: 'mqtt' }];
+let registryGate: { devices: Promise<typeof deviceRegistry>; entities: Promise<typeof entityRegistry> } | null = null;
 const connection = () =>
   fakeConnection({
-    'config/device_registry/list': () => [{ id: 'lampada', name: 'Lampada studio' }],
-    'config/entity_registry/list': () => [
-      { entity_id: 'light.studio', device_id: 'lampada', platform: 'hue' },
-    ],
+    'config/device_registry/list': () => registryGate?.devices ?? deviceRegistry,
+    'config/entity_registry/list': () => registryGate?.entities ?? entityRegistry,
   });
 
 let latest: LauncherController | null = null;
@@ -66,6 +77,7 @@ function Harness({ firstOpen = true }: { firstOpen?: boolean }) {
       persistPagesConfig: pages.persistConfig,
       persistPageSettings: pages.persistPageSettings,
       persistCardSettings: pages.persistCardSettings,
+      commitWidgetAddition: pages.commitWidgetAddition,
     }),
     [pages]
   );
@@ -80,6 +92,18 @@ function Harness({ firstOpen = true }: { firstOpen?: boolean }) {
       createFixtureRuntime({
         entities: fixtureEntities([
           fixtureEntity('light.studio', 'off', { friendly_name: 'Lampada studio' }),
+          fixtureEntity('switch.studio_a', 'on', { friendly_name: 'Uscita monitor' }),
+          fixtureEntity('switch.studio_b', 'unavailable', { friendly_name: 'Uscita caricatore' }),
+          fixtureEntity('light.studio_led', 'on', { friendly_name: 'LED di stato', supported_color_modes: ['onoff'] }),
+          fixtureEntity('vacuum.studio', 'docked', { friendly_name: 'Aspirapolvere studio', supported_features: 8192 | 4096 | 4 | 8 | 16 }),
+          fixtureEntity('lawn_mower.studio', 'docked', { friendly_name: 'Tagliaerba studio', supported_features: 15 }),
+          fixtureEntity('camera.studio', 'idle', { friendly_name: 'Videocamera studio', supported_features: 3 }),
+          fixtureEntity('alarm_control_panel.studio', 'disarmed', { friendly_name: 'Allarme studio', supported_features: 3, code_format: null, code_arm_required: false }),
+          fixtureEntity('lock.studio', 'locked', { friendly_name: 'Serratura studio', supported_features: 1 }),
+          fixtureEntity('fan.studio', 'on', { friendly_name: 'Ventilatore studio', supported_features: 49, percentage: 50, percentage_step: 25 }),
+          fixtureEntity('cover.studio', 'open', { friendly_name: 'Veneziana studio', supported_features: 255, current_position: 40, current_tilt_position: 30 }),
+          fixtureEntity('climate.studio', 'heat', { friendly_name: 'Termostato studio', current_temperature: 21, temperature: 22,
+            temperature_unit: '°C', supported_features: 385, hvac_modes: ['off', 'heat'], min_temp: 15, max_temp: 25, target_temp_step: 0.5 }),
         ]),
         conn: connection().conn,
       }),
@@ -109,13 +133,23 @@ async function openLauncher(firstOpen = true) {
   );
   await waitFor(() => expect(latest?.ready).toBe(true));
   act(() => latest?.goToPageId('home'));
+  // Controller readiness precedes the public grid measurement needed by placement.
+  await waitFor(() => expect(document.querySelector('[data-launcher-page="home"] .aca-launcher-grid'))
+    .toHaveAttribute('data-layout-ready', 'true'));
   return view;
 }
 
-const discovery = () => screen.queryByRole('dialog', { name: 'Dispositivi trovati' });
+const discovery = () => screen.queryByRole('dialog', { name: 'Trova dispositivi' });
 
 beforeEach(() => {
-  resetShownTiles();
+  registryGate = null;
+  // The real grid requires a positive physical page; jsdom supplies no layout.
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const measured = this.classList.contains('aca-launcher-page') || this.classList.contains('aca-launcher-grid');
+    const width = measured ? 973 : 0;
+    const height = measured ? 430 : 0;
+    return { x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, width, height, toJSON: () => ({}) };
+  });
   localStorage.clear();
   localStorage.setItem(LAUNCHER_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
   localStorage.setItem('aca_edit_hint_seen', '1');
@@ -132,12 +166,12 @@ afterEach(() => {
 describe('«Dispositivi trovati» nel launcher', () => {
   it('compare da sola alla prima apertura; «Salta» la chiude e non torna', async () => {
     const view = await openLauncher();
-    const dialog = await screen.findByRole('dialog', { name: 'Dispositivi trovati' });
+    const dialog = await screen.findByRole('dialog', { name: 'Trova dispositivi' });
     expect(localStorage.getItem(DISCOVERY_SEEN_KEY)).toBeNull();
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /^Salta|^Continua/ }));
-    expect(localStorage.getItem(DISCOVERY_SEEN_KEY)).toBe('1');
-    await waitFor(() => expect(discovery()).toBeNull());
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Chiudi' }));
+    await waitFor(() => expect(localStorage.getItem(DISCOVERY_SEEN_KEY)).toBe('1'));
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
 
     // The next start on this device: nothing by itself.
     view.unmount();
@@ -170,28 +204,67 @@ describe('«Dispositivi trovati» nel launcher', () => {
       await screen.findByRole('button', { name: /^Trova dispositivi, apri l’elenco/ })
     );
 
-    expect(await screen.findByRole('dialog', { name: 'Dispositivi trovati' })).toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { name: 'Trova dispositivi' })).toBeNull();
+    expect(await screen.findByRole('dialog', { name: 'Trova dispositivi' })).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog', { name: 'Trova dispositivi' })).toHaveLength(1);
   });
 
-  it('«Crea il widget» mette il widget del tipo giusto nella pagina corrente, e la schermata resta aperta', async () => {
+  it.each([
+    ['Lampada studio', 'lampada', 'light.studio', 'light'],
+    ['Relè studio', 'relay', 'switch.studio_a', 'plug'],
+    ['Termostato studio', 'termostato', 'climate.studio', 'climate'],
+    ['Veneziana studio', 'veneziana', 'cover.studio', 'cover'],
+    ['Ventilatore studio', 'ventilatore', 'fan.studio', 'fan'],
+    ['Serratura studio', 'serratura', 'lock.studio', 'lock'],
+    ['Allarme studio', 'allarme', 'alarm_control_panel.studio', 'alarm'],
+    ['Videocamera studio', 'videocamera', 'camera.studio', 'camera'],
+    ['Aspirapolvere studio', 'robot', 'vacuum.studio', 'vacuum'],
+    ['Tagliaerba studio', 'giardino', 'lawn_mower.studio', 'mower'],
+  ])('%s passa dalla scoperta alla bozza associata e salva soltanto dopo Conferma', async (name, deviceId, primaryEntityId, family) => {
     // The first opening shows the screen by itself.
     await openLauncher();
-    await screen.findByRole('dialog', { name: 'Dispositivi trovati' });
+    const tool = await screen.findByRole('dialog', { name: 'Trova dispositivi' });
 
-    fireEvent.click(await screen.findByRole('button', { name: /^Collegati/ }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Crea il widget: Lampada studio' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Pronti/ }));
+    fireEvent.click(await screen.findByRole('button', { name: `Crea il widget: ${name}` }));
+    // aria-hidden removes the tool from role queries before its exit has completed.
+    // Wait for physical removal: only onExited starts placement.
+    await waitFor(() => expect(tool).not.toBeInTheDocument());
 
-    // The light is on the page, at a place of the page, and the sheet never took the screen.
-    await waitFor(() =>
-      expect(latest?.layout.pages[0]?.placements.tablet?.['light.studio']).toBeDefined()
-    );
-    expect(JSON.parse(localStorage.getItem('tunet_pages_config') ?? '{}').home).toContain(
-      'light.studio'
-    );
-    expect(discovery()).not.toBeNull();
+    const confirm = await screen.findByRole('button', { name: 'Conferma' });
+    expect(Object.keys(latest?.layout.pages[0]?.placements.tablet ?? {})).toHaveLength(0);
+    expect(discovery()).toBeNull();
     expect(screen.queryByRole('dialog', { name: 'Aggiungi un widget' })).toBeNull();
-    // The row now says where the device is.
-    await waitFor(() => expect(screen.getByText('Nel widget')).toBeInTheDocument());
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
+    await waitFor(() => expect(Object.keys(latest?.layout.pages[0]?.placements.tablet ?? {})).toHaveLength(1));
+    const [id] = Object.keys(latest!.layout.pages[0]!.placements.tablet!);
+    expect(JSON.parse(localStorage.getItem('tunet_pages_config') ?? '{}').home).toContain(id);
+    const settings = JSON.parse(localStorage.getItem('tunet_card_settings') ?? '{}');
+    expect(settings[`home::${id}`]?.productDevice).toMatchObject({ deviceId, primaryEntityId, family });
+    expect(settings[`home::${id}`]?.categoryWidgetType).toBe(family);
+    expect(settings[`home::${id}`]?.[family === 'camera' ? 'cameraId' : family === 'alarm' ? 'alarmId' : family === 'lock' ? 'lockId' : family === 'cover' ? 'coverId' : family === 'climate' ? 'climateId' : 'bindingEntityId']).toBe(primaryEntityId);
+  });
+
+  it('chiudere Trova durante la lettura del dispositivo invalida il risultato tardivo', async () => {
+    await openLauncher();
+    const dialog = await screen.findByRole('dialog', { name: 'Trova dispositivi' });
+    fireEvent.click(await screen.findByRole('button', { name: /^Pronti/ }));
+    const keys = [LAUNCHER_LAYOUT_STORAGE_KEY, 'tunet_pages_config', 'tunet_card_settings'];
+    const before = keys.map(key => localStorage.getItem(key));
+    let resolveDevices!: (value: typeof deviceRegistry) => void;
+    let resolveEntities!: (value: typeof entityRegistry) => void;
+    registryGate = {
+      devices: new Promise(resolve => { resolveDevices = resolve; }),
+      entities: new Promise(resolve => { resolveEntities = resolve; }),
+    };
+    fireEvent.click(screen.getByRole('button', { name: 'Crea il widget: Lampada studio' }));
+    expect(screen.getByRole('button', { name: 'Crea il widget: Lampada studio' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Chiudi' }));
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    await act(async () => { resolveDevices(deviceRegistry); resolveEntities(entityRegistry); await Promise.all([registryGate!.devices, registryGate!.entities]); });
+    expect(screen.queryByRole('button', { name: 'Conferma' })).toBeNull();
+    expect(document.querySelector('[data-pending-widget-preview]')).toBeNull();
+    expect(keys.map(key => localStorage.getItem(key))).toEqual(before);
+    await waitFor(() => expect(document.querySelector('[data-launcher-page="home"] .aca-launcher-grid')?.closest('[inert]')).toBeNull());
   });
 });

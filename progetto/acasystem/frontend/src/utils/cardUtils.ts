@@ -49,6 +49,8 @@ const REMOVABLE_PREFIXES = [
   'alarm_card_',
   'spacer_card_',
   'rileva_card_',
+  'zigbee_card_',
+  'tavano_card_',
   'fan.',
 ];
 
@@ -77,6 +79,8 @@ const SPECIAL_CARD_PREFIXES = [
   'alarm_card_',
   'spacer_card_',
   'rileva_card_',
+  'zigbee_card_',
+  'tavano_card_',
 ];
 
 /**

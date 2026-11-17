@@ -13,7 +13,9 @@ const state = vi.hoisted(() => ({
     haConfig: null,
   },
   helpers: vi.fn(() => ({ callService: vi.fn(), getEntityImageUrl: () => null })),
+  command: vi.fn(async () => undefined),
 }));
+vi.mock('@/api/commandApi', async (original) => ({ ...await original<typeof import('@/api/commandApi')>(), sendUserCommand: state.command }));
 vi.mock('@/hooks/context/HomeAssistantContext', () => ({ useHomeAssistant: () => state.ha }));
 vi.mock('@/hooks/context/PageContext', () => ({
   usePages: () => ({
@@ -47,7 +49,8 @@ describe('Connessione mantenuta con socket chiuso', () => {
   it('conserva il contratto dei client leggeri quando lo stato non è esposto', async () => {
     const conn = { sendMessagePromise: vi.fn().mockResolvedValue({}) };
     await callService(conn, 'light', 'turn_on', { entity_id: 'light.fixture' });
-    expect(conn.sendMessagePromise).toHaveBeenCalledOnce();
+    expect(state.command).toHaveBeenCalledWith({ kind: 'service', domain: 'light', service: 'turn_on', data: { entity_id: 'light.fixture' } });
+    expect(conn.sendMessagePromise).not.toHaveBeenCalled();
   });
   it('propaga null ai widget e agli helper offline e riusa la connessione al ritorno', () => {
     const conn = { connected: true, sendMessagePromise: vi.fn() };

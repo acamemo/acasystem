@@ -6,6 +6,7 @@
  * nothing outlives the visit. The device paths go to the device facade.
  */
 import type { MockDeviceFacade, MockRequest, MockResponse } from './deviceFacade';
+import { createMockAccountActivity } from './accountActivity';
 
 type Row = Record<string, unknown>;
 
@@ -26,6 +27,7 @@ export function createMockBackend(
 ): MockDeviceFacade {
   const now = options.now ?? Date.now;
   const stamp = () => new Date(now()).toISOString();
+  const accountActivity = createMockAccountActivity(now);
   const settings = new Map<string, SettingsEntry>();
   const profiles = new Map<string, Row>();
   let profileCounter = 0;
@@ -196,6 +198,7 @@ export function createMockBackend(
         // A body that is not JSON is read as empty, like the server's validators would refuse it.
       }
       if (area === 'health') return reply({ status: 'ok', version: __APP_VERSION__ });
+      if (area === 'v2') return Promise.resolve(accountActivity(method, rest, params, body));
       if (area === 'settings') return handleSettings(method, rest, params, body);
       if (area === 'profiles') return handleProfiles(method, rest[0], params, body);
       return devices.handle(request);

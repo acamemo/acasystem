@@ -31,17 +31,23 @@ export interface MediaChooserProps {
   open: boolean;
   /** Called after play_media was sent with the chosen content. */
   onPlayed?: (choice: MediaChoice) => void;
+  /**
+   * The player is a TV: it offers video content too and leaves the apps out, because the TV
+   * lists them in its own «App» section.
+   */
+  forTv?: boolean;
 }
 
 /**
  * «Scegli contenuto»: favourites, playlists, library and search over the player's media tree and
  * its Sonos attributes; a tile sends play_media (legacy MediaModal/MediaPage).
  */
-export function MediaChooser({ entityId, open, onPlayed }: MediaChooserProps) {
+export function MediaChooser({ entityId, open, onPlayed, forTv }: MediaChooserProps) {
   const { conn, entities, callService, getEntityImageUrl } = useWidgetRuntime();
-  const [tab, setTab] = useState<ChooseTab>('favorites');
+  // A TV has no favourites of its own: its content is in the library.
+  const [tab, setTab] = useState<ChooseTab>(forTv ? 'library' : 'favorites');
   const [query, setQuery] = useState('');
-  const browse = useMediaBrowse(conn, entityId, open);
+  const browse = useMediaBrowse(conn, entityId, open, { skipApps: forTv, allowVideo: forTv });
   const actions = useServiceActions();
   const entity = entities[entityId];
 

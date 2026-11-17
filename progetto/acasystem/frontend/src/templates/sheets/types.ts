@@ -2,7 +2,8 @@
  * Props of the system sheets used by the launcher (contract of wave 2, REP-20261006-001).
  * The launcher (B1) renders the sheets; index.tsx re-exports these interfaces unchanged.
  */
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
+import type { BottomDrawerInteraction } from '@/components/primitives';
 import type { AddWidgetSelection, CellSize } from '@/@types/launcher';
 
 export type { AddWidgetSelection };
@@ -17,6 +18,8 @@ export interface AddWidgetSheetProps {
    * size of its definition (the size is then changed on the grid, REP-20261007-027).
    */
   onAdded: (widgetId: string, size?: CellSize) => void;
+  /** A catalog tap starts local placement; device selections and legacy entry points stay separate. */
+  onPlaceType?: (type: string) => void;
   /** Widget type to open on (a tile of the tray): the sheet starts from its details. */
   initialType?: string;
   /**
@@ -31,6 +34,11 @@ export interface AddWidgetSheetProps {
    * type with the device selected. It takes the place of `initialType`.
    */
   initialSelection?: AddWidgetSelection;
+  /** The loaded drawer reports its actual DOM presence for the shared Home fade. */
+  onOpenChange?: (open: boolean) => void;
+  interactionRef?: RefObject<BottomDrawerInteraction | null>;
+  onRequestOpen?: () => boolean;
+  onProgress?: (progress: number | null, immediate: boolean) => void;
 }
 
 export interface WidgetSettingsSheetProps {

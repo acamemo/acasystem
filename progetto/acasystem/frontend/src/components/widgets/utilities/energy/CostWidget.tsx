@@ -1,128 +1,108 @@
-import type { ReactNode } from 'react';
 import { Body, Caption } from '@/components/primitives';
 import type { WidgetProps } from '@/@types/launcher';
 import type { MaybeEntity } from '../shared/entity';
 import { entityOf, numericState, safeState } from '../shared/entity';
 import { formatNumber } from '../shared/format';
-import { currencyUnit } from '../shared/units';
-import { Amount } from '../shared/Amount';
 import { CardMessage, CardSkeleton, IconWell, UtilityCard } from '../shared/UtilityCard';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
 import { readCostSettings } from './costData';
+import { energyPreferences, energyReading, validatableEnergySourceIds } from './energyModel';
+import './energy.css';
 
-export const COST_DEFAULT_NAME = 'Costi energetici';
+export const COST_DEFAULT_NAME = 'Energia e consumi';
 
-/** Legacy getEntityValue: fixed decimals for numbers, the raw state otherwise, «--» if unavailable. */
+/** Compatibility helpers for the historical data model; not used by the new interface. */
 export function costValue(entity: MaybeEntity, decimals: number): string {
   const value = numericState(entity);
-  if (value !== null) return formatNumber(value, decimals);
-  return safeState(entity) ?? '--';
+  return value !== null ? formatNumber(value, decimals) : (safeState(entity) ?? '--');
 }
-
-/** Legacy formatMonthValue: the month total is rounded to whole units. */
 export function monthValue(entity: MaybeEntity): string {
   const value = numericState(entity);
-  if (value !== null) return formatNumber(Math.round(value), 0);
-  return safeState(entity) ?? '--';
+  return value !== null ? formatNumber(Math.round(value), 0) : (safeState(entity) ?? '--');
 }
 
-/** Energy cost of today and of the month (`cost_card_*`). */
-export function CostWidget({ id, settings, size, editMode }: WidgetProps) {
-  const runtime = useWidgetRuntime();
-  const config = readCostSettings(settings);
-  const name = runtime.customNames[id] || COST_DEFAULT_NAME;
-  const currency = currencyUnit(config.currency, runtime.haConfig);
-  const row = size.h <= 1;
-  const card = (children: ReactNode) => (
-    <UtilityCard
-      openLabel={`${name}, apri lo storico dei costi`}
-      onOpen={() => runtime.openDetails(id)}
-      editMode={editMode}
-      row={row}
-    >
-      {children}
-    </UtilityCard>
+export function CostWidget({ openDetails, ...props }: WidgetProps & { openDetails?: () => void }) {
+  const runtime = useWidgetRuntime(),
+    { id, settings, size, editMode } = props;
+  const config = readCostSettings(settings),
+    ids = validatableEnergySourceIds(settings),
+    preferences = energyPreferences(settings);
+  const name =
+    runtime.customNames[id] ||
+    (typeof settings.name === 'string' && settings.name) ||
+    COST_DEFAULT_NAME;
+  const sources = (
+    [
+      ['powerId', 'power', 'Potenza'],
+      ['consumptionId', 'energy', 'Energia'],
+      ['todayId', 'cost', config.todayLabel],
+      ['monthId', 'cost', config.monthLabel],
+    ] as const
+  ).flatMap(([key, kind, label]) =>
+    settings[key] != null && settings[key] !== ''
+      ? [
+          {
+            key,
+            label,
+            reading: energyReading(entityOf(runtime.entities, ids[key]), kind, preferences),
+          },
+        ]
+      : []
   );
-
-  if (!runtime.entitiesLoaded) return card(<CardSkeleton label={`Caricamento di ${name}…`} />);
-
-  if (!config.todayId && !config.monthId) {
-    return card(
-      <CardMessage
-        icon="wallet"
-        title="Scegli le entità dei costi"
-        detail="Dalle impostazioni del widget"
-      />
-    );
-  }
-
-  const today = entityOf(runtime.entities, config.todayId);
-  const month = entityOf(runtime.entities, config.monthId);
-  if (!today && !month) {
-    return card(
-      <CardMessage
-        icon="warning"
-        title="Entità dei costi non trovate"
-        detail={[config.todayId, config.monthId].filter(Boolean).join(', ')}
-      />
-    );
-  }
-
-  const todayText = costValue(today, config.decimals);
-  const monthText = monthValue(month);
-  const unavailable = todayText === '--' && monthText === '--';
-
-  if (row) {
-    return card(
-      <>
-        <IconWell icon="wallet" className="utility-hide-narrow" />
-        <div className="utility-stack utility-grow">
-          <Caption className="utility-truncate">{name}</Caption>
-          <span className="utility-inline">
-            <Amount value={todayText} unit={todayText === '--' ? null : currency} size="md" />
-            <Caption>{config.todayLabel.toLocaleLowerCase('it-IT')}</Caption>
-          </span>
-        </div>
-        {config.monthId && size.w >= 3 && (
-          <div className="utility-stack utility-hide-narrow">
-            <Caption>{config.monthLabel}</Caption>
-            <Amount value={monthText} unit={monthText === '--' ? null : currency} size="sm" />
-          </div>
+  const visible = sources.slice(0, size.h <= 1 ? 1 : 2),
+    remainder = sources
+      .slice(visible.length)
+      .map((source) => source.label)
+      .join(' · ');
+  return (
+    <article className="energy-widget" data-widget-type="cost">
+      <UtilityCard
+        openLabel={`${name}, apri letture e cronologia`}
+        onOpen={openDetails ?? (() => runtime.openDetails(id))}
+        editMode={editMode}
+        className={`energy-widget__card${size.h <= 1 ? ' energy-widget--compact' : ''}`}
+      >
+        {!runtime.entitiesLoaded ? (
+          <CardSkeleton label={`Caricamento di ${name}…`} />
+        ) : sources.length === 0 ? (
+          <CardMessage
+            icon="energy"
+            title="Scegli le fonti energetiche"
+            detail="Dalle impostazioni del widget"
+          />
+        ) : (
+          <>
+            <div className="utility-head">
+              <IconWell icon="energy" small />
+              <Body as="span" size="sm" className="energy-widget__name ctl-clamp-2" title={name}>
+                {name}
+              </Body>
+            </div>
+            <dl className="energy-widget__readings">
+              {visible.map((source) => (
+                <div key={source.key}>
+                  <dt>
+                    <Caption className="ctl-clamp-1" title={source.label}>
+                      {source.label}
+                    </Caption>
+                  </dt>
+                  <dd>
+                    <Body size="sm" className="ctl-clamp-2">
+                      {ids[source.key] ? source.reading.valueText : 'Fonte incompatibile'}
+                      {source.reading.available && source.reading.unit && ` ${source.reading.unit}`}
+                    </Body>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {remainder && (
+              <Caption className="energy-widget__summary ctl-clamp-1" title={remainder}>
+                {remainder}
+              </Caption>
+            )}
+          </>
         )}
-      </>
-    );
-  }
-
-  const wide = size.w >= 4;
-  return card(
-    <>
-      <div className="utility-head">
-        <IconWell icon="wallet" />
-        <div className="utility-head__text">
-          <Body as="span" size="sm" tone="ink" className="utility-truncate">
-            {name}
-          </Body>
-          {unavailable && <Caption>Non disponibile</Caption>}
-        </div>
-      </div>
-      <div className={wide ? 'utility-split utility-bottom' : 'utility-stack utility-bottom'}>
-        {config.todayId && (
-          <div className="utility-stack">
-            <Caption>{config.todayLabel}</Caption>
-            <Amount value={todayText} unit={todayText === '--' ? null : currency} />
-          </div>
-        )}
-        {config.monthId && (
-          <div className="utility-stack utility-hide-short">
-            <Caption>{config.monthLabel}</Caption>
-            <Amount
-              value={monthText}
-              unit={monthText === '--' ? null : currency}
-              size={config.todayId ? 'sm' : 'lg'}
-            />
-          </div>
-        )}
-      </div>
-    </>
+      </UtilityCard>
+    </article>
   );
 }

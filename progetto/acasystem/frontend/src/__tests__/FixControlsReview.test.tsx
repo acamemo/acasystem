@@ -191,7 +191,7 @@ describe('DES-4: acceso e spento si distinguono anche senza colore', () => {
       /\.ctl-knob[^{}]*\[aria-checked='true'\][^{}]*>\s*\.aca-m__outer\s*>\s*\.aca-m__face \{([^}]*)\}/
     );
     expect(face).toMatch(/box-shadow: var\(--aca-face-pressed-soft\);/);
-    const tokens = await readSource('src/themes/acasystem/tokens.css');
+    const tokens = await readSource('../design/themes/acasystem/tokens.css');
     for (const token of ['--aca-face-pressed-soft:', '--aca-shell-flat:', '--aca-ring:']) {
       expect(tokens).toContain(token);
     }

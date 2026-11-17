@@ -7,17 +7,19 @@ import {
   domainOf,
   friendlyName,
   isUnavailableState,
-  numberAttr,
   stringAttr,
 } from '../shared/entity';
-import { CommandButton, CommandToggle } from '../shared/controls';
+import { CommandButton } from '../shared/controls';
 import { Notice, commandNotice } from '../shared/UtilityCard';
 import { UtilityIcon, type UtilityIconName } from '../shared/UtilityIcon';
 import { stateIn, useCommand } from '../shared/useCommand';
 import { useRequestedValue } from '../shared/useRequestedValue';
-import { haUnit } from '../shared/units';
-import { brightnessPercent, isDimmable } from './roomData';
+import { brightnessPercent, isDimmable, roomNumber, roomNumberAttr as numberAttr } from './roomData';
 import { useWidgetRuntime } from '@/hooks/launcher/WidgetRuntimeContext';
+import { roomServiceAllowed } from './roomCapabilities';
+import { RoomToggle } from './RoomToggle';
+import { hvacActionLabel, hvacModeLabel } from '../../home/climate/climateModel';
+import { stateLabel } from '../../controls/shared/labels';
 
 const TOGGLE_DOMAINS = new Set(['light', 'switch', 'fan', 'input_boolean', 'automation']);
 
@@ -74,20 +76,22 @@ export function entityStateText(
   const domain = domainOf(entityId);
   const state = entity.state;
   const unit = stringAttr(entity, 'unit_of_measurement');
+  if (isUnavailableState(state)) return STATE_TEXT[state] ?? 'Non disponibile';
   if ((domain === 'sensor' || domain === 'binary_sensor') && !isUnavailableState(state)) {
-    const value = Number.parseFloat(state);
-    if (Number.isFinite(value) && /^\s*-?\d+([.,]\d+)?\s*$/.test(state))
+    const value = roomNumber(state);
+    if (value !== null)
       return `${formatCompact(value, 1)}${unit ? ` ${unit}` : ''}`;
   }
   if (domain === 'climate') {
-    const tempUnit = haUnit('temperature', haConfig, stringAttr(entity, 'temperature_unit') ?? '°');
+    const tempUnit = stringAttr(entity, 'temperature_unit') ?? stringAttr(entity, 'unit_of_measurement')
+      ?? haConfig?.unit_system?.temperature ?? '';
     const current = numberAttr(entity, 'current_temperature');
     const target = numberAttr(entity, 'temperature');
-    const action = stringAttr(entity, 'hvac_action') ?? state;
+    const action = stringAttr(entity, 'hvac_action');
     return [
       current !== null ? `${formatCompact(current, 1)}${tempUnit}` : null,
       target !== null ? `→ ${formatCompact(target, 1)}${tempUnit}` : null,
-      humanizeState(action),
+      action ? hvacActionLabel(action) : hvacModeLabel(state),
     ]
       .filter(Boolean)
       .join(' ');
@@ -97,9 +101,10 @@ export function entityStateText(
     const artist = stringAttr(entity, 'media_artist');
     if (title || artist) return [artist, title].filter(Boolean).join(' – ');
   }
-  if (domain === 'light' && state === 'on' && isDimmable(entity))
+  if (domain === 'light' && state === 'on' && isDimmable(entity) && brightnessPercent(entity) !== null)
     return `${brightnessPercent(entity)}%`;
-  const text = STATE_TEXT[state] ?? humanizeState(state);
+  const text = domain === 'binary_sensor' ? stateLabel(state, stringAttr(entity, 'device_class') ?? undefined)
+    : STATE_TEXT[state] ?? humanizeState(state);
   const battery = domain === 'vacuum' ? numberAttr(entity, 'battery_level') : null;
   return battery !== null ? `${text} · ${formatCompact(battery, 0)}%` : text;
 }
@@ -113,6 +118,7 @@ function LightBrightness({
   entity: HassEntity;
   name: string;
 }) {
+  const runtime = useWidgetRuntime();
   const brightness = useRequestedValue({
     confirmed: brightnessPercent(entity),
     tolerance: 1,
@@ -136,6 +142,7 @@ function LightBrightness({
         valueText={`${Math.round(brightness.value ?? 0)}%`}
         pending={brightness.pending}
         error={brightness.error}
+        disabled={!runtime.conn || runtime.conn.connected === false || runtime.editMode || !roomServiceAllowed(entity, runtime.services ?? null, 'light', 'turn_on')}
         onValueChange={brightness.request}
       />
       {brightness.error && (
@@ -156,7 +163,6 @@ function IconCommand({
   label,
   confirm,
   commandKey,
-  command,
 }: {
   entityId: string;
   entity: HassEntity;
@@ -166,16 +172,20 @@ function IconCommand({
   label: string;
   confirm?: string[];
   commandKey: string;
-  command: ReturnType<typeof useCommand>;
 }) {
+  const runtime = useWidgetRuntime();
+  const command = useCommand(entity);
+  const notice = commandNotice(command.errorKey, command.unconfirmedKey);
+  const supported = roomServiceAllowed(entity, runtime.services ?? null, domain, service);
+  if (!supported) return null;
   return (
-    <Button
+    <span className="utility-stack"><Button
       variant="control"
       shape="circle"
       size="md"
       aria-label={label}
       loading={command.pendingKey === commandKey}
-      disabled={isUnavailableState(entity.state)}
+      disabled={isUnavailableState(entity.state) || !runtime.conn || runtime.conn.connected === false || runtime.editMode || command.pendingKey !== null}
       onClick={() =>
         command.run({
           key: commandKey,
@@ -187,7 +197,7 @@ function IconCommand({
       }
     >
       <UtilityIcon name={icon} size="md" />
-    </Button>
+    </Button>{notice && <Notice tone={notice.tone} icon="warning" live>{notice.text}</Notice>}</span>
   );
 }
 
@@ -210,18 +220,21 @@ export function EntityRow({
 }) {
   const runtime = useWidgetRuntime();
   const [pictureFailed, setPictureFailed] = useState(false);
-  const command = useCommand(entity);
   const domain = domainOf(entityId);
-  const name = friendlyName(entity, (entityId.split('.')[1] ?? entityId).replace(/_/g, ' '));
+  const baseName = friendlyName(entity, (entityId.split('.')[1] ?? entityId).replace(/_/g, ' '));
+  const duplicateName = Object.values(runtime.entities).filter(other => other && domainOf(other.entity_id) === domainOf(entityId)
+    && friendlyName(other, other.entity_id) === baseName).length > 1;
+  const name = duplicateName ? `${baseName} (${entityId})` : baseName;
   const state = entity.state;
   const unavailable = isUnavailableState(state);
-  const notice = commandNotice(command.errorKey, command.unconfirmedKey);
-  const shared = { entityId, entity, command };
+  const shared = { entityId, entity };
+  const supports = (service: string) => roomServiceAllowed(entity, runtime.services ?? null, domain, service);
+  const blocked = !runtime.conn || runtime.conn.connected === false || runtime.editMode;
 
   let controls = null;
   if (!unavailable) {
     if (TOGGLE_DOMAINS.has(domain)) {
-      controls = <CommandToggle entity={entity} entityId={entityId} domain={domain} label={name} />;
+      controls = <RoomToggle entity={entity} entityId={entityId} domain={domain} label={name} />;
     } else if (domain === 'cover') {
       controls = (
         <>
@@ -264,6 +277,7 @@ export function EntityRow({
           icon={locked ? 'unlock' : 'lock'}
           label={`${locked ? 'Sblocca' : 'Blocca'} ${name}`}
           confirm={(current) => current?.state === (locked ? 'unlocked' : 'locked')}
+          disabled={blocked || !supports(locked ? 'unlock' : 'lock')}
         >
           {locked ? 'Sblocca' : 'Blocca'}
         </CommandButton>
@@ -331,6 +345,7 @@ export function EntityRow({
           service="turn_on"
           data={{ entity_id: entityId }}
           label={`Esegui ${name}`}
+          disabled={blocked || !supports('turn_on')}
         >
           Esegui
         </CommandButton>
@@ -343,6 +358,7 @@ export function EntityRow({
           service="press"
           data={{ entity_id: entityId }}
           label={`Premi ${name}`}
+          disabled={blocked || !supports('press')}
         >
           Premi
         </CommandButton>
@@ -358,7 +374,7 @@ export function EntityRow({
       : null;
 
   return (
-    <li className="utility-list__row">
+    <li className="utility-list__row" data-room-entity={entityId}>
       {picture && (
         <img
           className="utility-thumb"
@@ -379,16 +395,10 @@ export function EntityRow({
       {domain === 'light' &&
         !unavailable &&
         isDimmable(entity) &&
+        brightnessPercent(entity) !== null &&
         (brightness === 'always' || state === 'on') && (
           <LightBrightness entityId={entityId} entity={entity} name={name} />
         )}
-      {notice && (
-        <span className="utility-list__wide">
-          <Notice tone={notice.tone} icon="warning" live>
-            {notice.text}
-          </Notice>
-        </span>
-      )}
     </li>
   );
 }

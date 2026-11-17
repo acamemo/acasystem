@@ -3,11 +3,13 @@ import type { ReleaseRepository } from './defaults.ts';
 import { serverOrigin } from './config.ts';
 import { checkServer } from './health.ts';
 import { verifyArchive } from './integrity.ts';
+import { parseManifest } from './manifest.ts';
 import type { ReleaseManifest } from './manifest.ts';
 import type { BundleCache, ConfigStore, HttpClient } from './ports.ts';
 import { HttpRequestError } from './ports.ts';
 import { archiveUrl, fetchLatestManifest, findLatestRelease } from './releases.ts';
 import { compareVersionStrings } from './version.ts';
+import { waitForCentralUpdate } from './centralUpdate.ts';
 
 /**
  * Decisione all'avvio del guscio (ADR-0023):
@@ -28,6 +30,7 @@ export type StartupResult =
   | { kind: 'wizard' }
   | { kind: 'server-unreachable'; origin: string }
   | { kind: 'not-acasystem'; origin: string }
+  | { kind: 'update-in-progress'; origin: string }
   | { kind: 'launch'; origin: string; version: string; notices: Notice[] }
   | {
       kind: 'no-bundle';
@@ -44,6 +47,8 @@ export interface StartupDeps {
   repository?: ReleaseRepository;
   healthTimeoutMs?: number;
   downloadTimeoutMs?: number;
+  /** Centrale ACA associata: usa il bundle preparato insieme al backend, senza pubblicare su GitHub. */
+  preferServerBundle?: boolean;
 }
 
 type Blocker = 'server' | 'shell';
@@ -77,17 +82,27 @@ export const resolveStartup = async ({
   repository = RELEASE_REPOSITORY,
   healthTimeoutMs = DEFAULT_RELEASE_TIMEOUTS.health,
   downloadTimeoutMs = DEFAULT_RELEASE_TIMEOUTS.download,
+  preferServerBundle = false,
 }: StartupDeps): Promise<StartupResult> => {
   const saved = await config.load();
   if (!saved) return { kind: 'wizard' };
   const origin = serverOrigin(saved);
 
-  const health = await checkServer(http, origin, healthTimeoutMs);
+  let health = await checkServer(http, origin, healthTimeoutMs);
   if (health.kind === 'unreachable') return { kind: 'server-unreachable', origin };
   if (health.kind === 'not-acasystem') return { kind: 'not-acasystem', origin };
 
+  const update = await waitForCentralUpdate(http, origin, shellVersion, health.version);
+  if (update.refreshHealth) {
+    health = await checkServer(http, origin, healthTimeoutMs);
+    if (health.kind === 'unreachable') return { kind: 'server-unreachable', origin };
+    if (health.kind === 'not-acasystem') return { kind: 'not-acasystem', origin };
+  }
+  if (update.kind === 'updating') return { kind: 'update-in-progress', origin };
+  const serverVersion = health.version;
+
   const compatible = (manifest: ReleaseManifest) =>
-    blockersOf(manifest, health.version, shellVersion).length === 0;
+    blockersOf(manifest, serverVersion, shellVersion).length === 0;
   const cached = await cache.list();
   const bestCached = newest(cached.filter(compatible));
   const launch = (manifest: ReleaseManifest, notices: Notice[]): StartupResult => ({
@@ -96,6 +111,29 @@ export const resolveStartup = async ({
     version: manifest.version,
     notices,
   });
+
+  if (preferServerBundle) {
+    // Il nuovo flusso QR richiede la UI della centrale, non una release pubblica precedente.
+    const sameServerCached = cached.find((item) => item.version === serverVersion && compatible(item));
+    let expectedHash: string | undefined;
+    try {
+      const manifest = parseManifest(await http.getJson(`${origin}/api/client-bundle/manifest`, healthTimeoutMs));
+      if (!manifest || !compatible(manifest)) return { kind: 'no-bundle', origin, reason: 'incompatible' };
+      expectedHash = manifest.archive.sha256;
+      if (cached.some((item) => item.version === manifest.version && item.archive.sha256 === manifest.archive.sha256)) {
+        return launch(manifest, []);
+      }
+      const archive = await http.getBytes(`${origin}/api/client-bundle/archive`, downloadTimeoutMs);
+      if (!(await verifyArchive(manifest, archive))) throw new Error('Archivio della centrale non verificato');
+      await cache.install(manifest, archive);
+      return launch(manifest, []);
+    } catch {
+      if (sameServerCached && (!expectedHash || sameServerCached.archive.sha256 === expectedHash)) {
+        return launch(sameServerCached, [{ kind: 'offline' }]);
+      }
+      return { kind: 'no-bundle', origin, reason: 'download-failed' };
+    }
+  }
 
   let latest: ReleaseManifest;
   try {

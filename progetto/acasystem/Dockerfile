@@ -10,6 +10,9 @@ COPY backend/package.json backend/
 COPY casa3d/package.json casa3d/
 # --ignore-scripts: the build stage needs no native module; esbuild runs from its platform package (no postinstall download).
 RUN npm ci --ignore-scripts
+COPY design design
+COPY ui ui
+COPY contracts contracts
 COPY frontend frontend
 # The release of progetto/.env (REP-20261012-004), shown in Sistema by the frontend build.
 ARG ACASYSTEM_VERSION=""
@@ -22,6 +25,11 @@ COPY casa3d casa3d
 RUN npm run build -w casa3d
 
 FROM node:26-alpine
+ARG ACA_SOURCE_SHA256=""
+ARG ACASYSTEM_VERSION=""
+LABEL org.acasystem.source.sha256=$ACA_SOURCE_SHA256
+LABEL org.opencontainers.image.version=$ACASYSTEM_VERSION
+ENV ACASYSTEM_VERSION=$ACASYSTEM_VERSION
 # Build tools for native modules (better-sqlite3)
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
@@ -33,6 +41,7 @@ RUN npm ci --omit=dev -w backend
 RUN apk del python3 make g++
 
 COPY backend/src backend/src
+COPY contracts contracts
 COPY --from=builder /app/frontend/dist frontend/dist
 COPY --from=builder /app/casa3d/dist casa3d/dist
 

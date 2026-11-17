@@ -28,7 +28,7 @@ const entities = fixtureEntities([
     manufacturer: 'Sonos',
   }),
   fixtureEntity('media_player.tv', 'on', { friendly_name: 'TV salotto' }),
-  fixtureEntity('todo.ufficio', '1', { friendly_name: 'Attività ufficio' }),
+  fixtureEntity('todo.ufficio', '1', { friendly_name: 'Attività ufficio', supported_features: 7 }),
   fixtureEntity('sensor.costo_oggi', '2.5', { friendly_name: 'Costo oggi' }),
   fixtureEntity('input_number.costo_mese', '40', { friendly_name: 'Costo mese manuale' }),
   fixtureEntity('binary_sensor.movimento_ingresso', 'off', {
@@ -84,6 +84,13 @@ function SettingsHarness({
 }) {
   const key = `home::${widgetId}`;
   const [cardSettings, setCardSettings] = useState<CardSettingsMap>({ [key]: initial });
+  if (widgetId.startsWith('todo_card_')) {
+    state.pages.cardSettings = cardSettings;
+    state.pages.setCardSettings = setCardSettings;
+    state.pages.customNames = {};
+    state.pages.persistCustomNames = vi.fn();
+    state.pages.persistWidgetMemory = vi.fn();
+  }
   const runtime = createFixtureRuntime({
     entities,
     conn,
@@ -140,7 +147,7 @@ describe('PAR-2: lista del widget Attività', () => {
     expect(
       screen.getByText('Scegli una lista di attività nelle impostazioni del widget.')
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Nessuna' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lista di attività: Non collegata' }));
     fireEvent.click(screen.getByRole('button', { name: /Attività ufficio/ }));
     await flush();
     expect(saved()).toMatchObject({ todoEntityId: 'todo.ufficio' });

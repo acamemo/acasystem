@@ -10,6 +10,7 @@ import type { SupervisorAccess } from '../../config/devices.ts';
 import { getHomeAssistantUrlCandidates } from '../../middlewares/homeAssistantAuth.ts';
 import { createSlidingWindowLimiter } from '../../helpers/slidingWindow.ts';
 import type { SqliteDatabase } from '../../models/database.ts';
+import type { ActivityService } from '../../v2/activity.ts';
 import { createDeviceModel } from '../../models/deviceModel.ts';
 import { createActionLog } from './actionLog.ts';
 import { createCompatibilityChecker } from './compatibility.ts';
@@ -35,6 +36,7 @@ import type { ServiceKeeper } from './serviceKeeper.ts';
  */
 
 export interface DeviceModuleOptions {
+  activity?: ActivityService;
   /** HA URLs of the server, never of the browser. Default: TUNET_INTERNAL_HA_URL (+ fallback). */
   haUrls?: () => readonly string[];
   secretPath?: () => string;
@@ -81,6 +83,8 @@ export interface DeviceModule {
   /** Cancels the flows left open by the previous run, checks compatibility, starts the sweep. */
   start(): Promise<void>;
   stop(): void;
+  pauseForUpdate(): Promise<void>;
+  resumeAfterUpdate(): Promise<void>;
 }
 
 export const createDeviceModule = (
@@ -129,7 +133,7 @@ export const createDeviceModule = (
     identity,
     compat,
     model,
-    actions: createActionLog(model, now),
+    actions: createActionLog(model, now, options.activity),
     settings: {
       flowTtlMs: options.flowTtlMs ?? readDeviceFlowTtlMs(),
       maxOpenFlowsPerUser: options.maxOpenFlowsPerUser ?? 3,
@@ -179,6 +183,31 @@ export const createDeviceModule = (
   const power = createPowerRecipe(context);
 
   let timer: NodeJS.Timeout | null = null;
+  let paused = false;
+  let started = false;
+  let startupDone = false;
+  let startup: Promise<void> | null = null;
+  const sweeps = new Set<Promise<void>>();
+  const startSweep = (): void => {
+    if (timer || paused) return;
+    timer = setInterval(() => {
+      if (paused) return;
+      const sweep = service.sweep().catch((error: unknown) => {
+        log(`[devices] sweep failed: ${describeForLog(error)}`);
+      }).finally(() => sweeps.delete(sweep));
+      sweeps.add(sweep);
+    }, options.sweepIntervalMs ?? 30_000);
+    timer.unref();
+  };
+  const finishStartup = async (): Promise<void> => {
+    if (startupDone) return;
+    if (!startup) {
+      startup = service.startup().catch((error: unknown) => {
+        log(`[devices] start-up failed: ${describeForLog(error)}`);
+      }).finally(() => { startupDone = true; startup = null; });
+    }
+    await startup;
+  };
 
   return {
     service,
@@ -190,23 +219,31 @@ export const createDeviceModule = (
     context,
 
     async start() {
-      if (!timer) {
-        timer = setInterval(() => {
-          service.sweep().catch((error: unknown) => {
-            log(`[devices] sweep failed: ${describeForLog(error)}`);
-          });
-        }, options.sweepIntervalMs ?? 30_000);
-        timer.unref();
-      }
-      try {
-        await service.startup();
-      } catch (error) {
-        log(`[devices] start-up failed: ${describeForLog(error)}`);
-      }
-      await activeKeeper.start();
+      started = true;
+      if (paused) return;
+      startSweep();
+      await finishStartup();
+      if (!paused) await activeKeeper.resumeAfterUpdate();
+    },
+
+    async pauseForUpdate() {
+      paused = true;
+      if (timer) clearInterval(timer);
+      timer = null;
+      await Promise.all([activeKeeper.pauseForUpdate(), startup, ...sweeps]);
+    },
+
+    async resumeAfterUpdate() {
+      paused = false;
+      if (!started) return;
+      startSweep();
+      await finishStartup();
+      if (!paused) await activeKeeper.resumeAfterUpdate();
     },
 
     stop() {
+      started = false;
+      startupDone = false;
       if (timer) clearInterval(timer);
       timer = null;
       activeKeeper.stop();
