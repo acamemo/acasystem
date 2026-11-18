@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="it" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<title>Collega Acasystem</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #20232a; color: #eef0f4; font-family: "DejaVu Sans", sans-serif; }
+  main { min-height: 100%; display: grid; place-items: center; }
+  .card { width: 820px; background: #2d3139; border-radius: 12px; padding: 36px 44px; }
+  h1 { margin: 0 0 6px; font-size: 30px; }
+  p { margin: 0; color: #b8bdc8; font-size: 17px; line-height: 1.5; }
+  .stato { display: flex; justify-content: space-between; margin: 22px 0; padding: 14px 18px; background: #363b44; border-radius: 8px; font-size: 17px; }
+  .box { display: flex; justify-content: space-between; align-items: center; gap: 24px; border: 1px solid #4a505b; border-radius: 8px; padding: 18px 22px; margin-top: 14px; }
+  .box h2 { margin: 0 0 6px; font-size: 20px; }
+  .qr { width: 170px; height: 170px; background: #fff; border-radius: 6px; padding: 6px; box-sizing: border-box; }
+  .url { color: #7aa7ff; font-size: 22px; font-weight: bold; }
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1>Acasystem è pronto</h1>
+    <p>Collega telefono, tablet o computer alla centrale.</p>
+    <div class="stato"><span>Stato di rete: {{STATO}}</span><span>Indirizzo IP: {{IP}}</span></div>
+    <div class="box">
+      <div>
+        <h2>Telefono o tablet</h2>
+        <p>1. Installa l'app Acasystem (Android) o apri il browser (iPhone).<br>2. Inquadra il codice QR.</p>
+      </div>
+      <img class="qr" src="qr.svg" alt="Codice QR della centrale">
+    </div>
+    <div class="box">
+      <div>
+        <h2>Computer</h2>
+        <p>Apri Acasystem per PC e inserisci l'indirizzo:</p>
+        <p class="url">{{URL}}</p>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
