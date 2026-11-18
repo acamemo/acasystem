@@ -11,10 +11,10 @@ current_ip() { ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\
 
 render() {
   ip_addr=$1
-  if [ -n "$ip_addr" ]; then url="http://$ip_addr:$PORT/"; state="Collegato"; else url=""; state="In attesa della rete"; fi
+  if [ -n "$ip_addr" ]; then url="http://$ip_addr:$PORT/"; state="Collegata"; net="on"; else url=""; state="In attesa"; net="off"; fi
   cp -r /opt/schermata/. "$WEB/"
   if [ -n "$url" ]; then qrencode -t SVG -m 2 -l M -o "$WEB/qr.svg" "$url"; else : > "$WEB/qr.svg"; fi
-  sed -e "s|{{URL}}|$url|g" -e "s|{{IP}}|${ip_addr:-—}|g" -e "s|{{STATO}}|$state|g" \
+  sed -e "s|{{URL}}|$url|g" -e "s|{{IP}}|${ip_addr:-—}|g" -e "s|{{STATO}}|$state|g" -e "s|{{RETE}}|$net|g" \
     /opt/schermata/index.template.html > "$WEB/index.html"
 }
 

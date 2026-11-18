@@ -187,6 +187,34 @@ L'utente ha scelto «VirtualBox log noise». Evidenze in `backup/rep20261118-bui
 
 **Proposta, non applicata.** `Test-AcaVirtualBoxStability.ps1` potrebbe riconoscere la riga `muting it` del gruppo TM e segnalare che il criterio sugli avvisi non è più affidabile. Serve un'autorizzazione.
 
+### Grafica della schermata in stile ACA, 2026-11-18 sera (approvata)
+
+L'utente ha scelto «Screen design». Dopo lo screenshot del kiosk l'utente ha approvato la grafica («Approve», 2026-11-18); REQ-29, `product.md` e `design.md` sono aggiornati.
+
+**Scelte.**
+- Materiale e font dal design condiviso `progetto/acasystem/design`, oggi Vetro Bianco (ADR-0043): paesaggio con velo, card di vetro con blur solo sulla card, testo bianco, Inter locale. Il tema prevedeva già la classe `.connection-screen`.
+- Composizione ripresa dalla reference Reolink, senza pulsanti né schede (il kiosk non ha input; REQ-29 esclude pulsanti):
+  - titolo e sottotitolo;
+  - riga di stato con «Rete» e «Indirizzo IP»;
+  - riquadro «Telefono o tablet» con due passi e QR nero su bianco;
+  - riquadro «Computer» con l'indirizzo in evidenza.
+- Stato senza rete: titolo «Acasystem si sta collegando», niente QR né indirizzo, indicazione sul cavo di rete.
+- Testi non sotto i 16 px. Sui TV Full HD la card è ingrandita in proporzione (1,35×; 2× oltre 2400 px), così si legge a distanza.
+- Puntatore nascosto (`cursor: none`); aggiunto dopo lo screenshot della VM, non ancora ricostruito nell'immagine.
+
+**File.**
+- `page/index.template.html` e `page/screen.css`, riscritti.
+- `prepare-page.mjs` (nuovo): copia il design condiviso in `page/design-aca/` (generata, esclusa da Git) prima della build e genera un'anteprima locale con `--preview <URL>` e `--offline`.
+- `run.sh`: aggiunto il segnaposto `{{RETE}}` (`on`/`off`).
+- `config.yaml`: versione 0.2.0.
+
+**Verifiche.**
+- Anteprima nel browser a 1024×768, 1920×1080 e nello stato senza rete: nessuno scorrimento, riquadri allineati.
+- Nella VM di prova, kiosk cage + Chromium senza GPU: resa corretta di paesaggio, vetro e font (`backup/rep20261118-build/grafica-vm-1024.png`). QR letto da `zbarimg` come `http://192.168.1.80:3002/`.
+- Immagine 1,18 GB (prima 1,17); memoria dell'app circa 460 MB (prima circa 340 MB), per il blur e la foto.
+
+**Limiti.** Non provata su un vero TV/mini PC né su un'uscita a 1080p reale. Lo stato senza rete è stato provato solo nell'anteprima del browser.
+
 ## Verifiche ed evidenze
 
 | Controllo | Comando/procedura e ambiente | Esito | Evidenza e limiti |
@@ -204,6 +232,7 @@ L'utente ha scelto «VirtualBox log noise». Evidenze in `backup/rep20261118-bui
 | Supervisore con `clocks` dopo il riavvio gestito | `ha host reboot`, poi idle 300 s, poi `ha host shutdown` | Superato | VirtualSync 300,100 / 300,099 s, 0 avvisi; HA in 41 s; VM rimasta spenta. Una sola finestra |
 | Riavvio del guest con il supervisore aggiornato | Due `ha host reboot` sulla VM di prova | Superato | Reset riconosciuto in circa 20 s, VM riaccesa in 4 s, HA raggiungibile in circa 1 min; `reboot-supervisore.png`, log in `supervisore-reset/`. Non provato con un vero aggiornamento di HAOS né sul PC del capo |
 | Spegnimento voluto | `ha host shutdown` con il supervisore aggiornato | Superato | VM rimasta spenta |
+| Grafica della schermata 0.2.0 nel kiosk | `ha apps update local_aca_schermata` sulla VM di prova, screenshot e `zbarimg` | Superato | `grafica-vm-1024.png`; QR corretto; solo 1024×768 in VM, 1920×1080 e senza rete solo nel browser; grafica approvata dall'utente |
 | Repository pubblico delle release | Richiesta anonima a `api.github.com/repos/acamemo/acasystem-releases` | Superato | Pubblico; release `v0.9.34`, `v0.9.33`, `v0.9.30` |
 
 ## Chiusura e punto di ripresa

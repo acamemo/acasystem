@@ -1,40 +1,62 @@
 <!doctype html>
-<html lang="it" translate="no">
+<html lang="it" translate="no" data-theme="light" data-accent="violet">
 <head>
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Collega Acasystem</title>
-<style>
-  html, body { margin: 0; height: 100%; background: #20232a; color: #eef0f4; font-family: "DejaVu Sans", sans-serif; }
-  main { min-height: 100%; display: grid; place-items: center; }
-  .card { width: 820px; background: #2d3139; border-radius: 12px; padding: 36px 44px; }
-  h1 { margin: 0 0 6px; font-size: 30px; }
-  p { margin: 0; color: #b8bdc8; font-size: 17px; line-height: 1.5; }
-  .stato { display: flex; justify-content: space-between; margin: 22px 0; padding: 14px 18px; background: #363b44; border-radius: 8px; font-size: 17px; }
-  .box { display: flex; justify-content: space-between; align-items: center; gap: 24px; border: 1px solid #4a505b; border-radius: 8px; padding: 18px 22px; margin-top: 14px; }
-  .box h2 { margin: 0 0 6px; font-size: 20px; }
-  .qr { width: 170px; height: 170px; background: #fff; border-radius: 6px; padding: 6px; box-sizing: border-box; }
-  .url { color: #7aa7ff; font-size: 22px; font-weight: bold; }
-</style>
+<!-- Design ACA condiviso (Vetro Bianco, ADR-0043), copiato da prepare-page.mjs. -->
+<link rel="stylesheet" href="./design-aca/index.css">
+<link rel="stylesheet" href="./screen.css">
 </head>
 <body>
-<main>
-  <section class="card">
-    <h1>Acasystem è pronto</h1>
-    <p>Collega telefono, tablet o computer alla centrale.</p>
-    <div class="stato"><span>Stato di rete: {{STATO}}</span><span>Indirizzo IP: {{IP}}</span></div>
-    <div class="box">
-      <div>
-        <h2>Telefono o tablet</h2>
-        <p>1. Installa l'app Acasystem (Android) o apri il browser (iPhone).<br>2. Inquadra il codice QR.</p>
-      </div>
-      <img class="qr" src="qr.svg" alt="Codice QR della centrale">
-    </div>
-    <div class="box">
-      <div>
-        <h2>Computer</h2>
-        <p>Apri Acasystem per PC e inserisci l'indirizzo:</p>
-        <p class="url">{{URL}}</p>
+<main class="connection-screen boot-screen" data-network="{{RETE}}">
+  <section class="boot-card aca-m aca-raised aca-card aca-md aca-m--static aca-m--card aca-m--md" aria-labelledby="boot-title">
+    <div class="aca-m__outer">
+      <div class="aca-m__face">
+        <div class="aca-m__content boot-content">
+          <header class="boot-heading">
+            <h1 id="boot-title" class="aca-type aca-type--title"><span class="boot-when-on">Acasystem è pronto</span><span class="boot-when-off">Acasystem si sta collegando</span></h1>
+            <p class="boot-muted aca-type aca-type--body-sm">Collega telefono, tablet o computer a questa centrale.</p>
+          </header>
+
+          <dl class="boot-status">
+            <div class="boot-status__item">
+              <dt class="aca-type aca-type--body-sm">Rete</dt>
+              <dd class="aca-type"><span class="boot-dot" aria-hidden="true"></span>{{STATO}}</dd>
+            </div>
+            <div class="boot-status__item">
+              <dt class="aca-type aca-type--body-sm">Indirizzo IP</dt>
+              <dd class="aca-type boot-number">{{IP}}</dd>
+            </div>
+          </dl>
+
+          <section class="boot-pane boot-pane--phone" aria-labelledby="boot-phone">
+            <div class="boot-pane__text">
+              <h2 id="boot-phone" class="aca-type">Telefono o tablet</h2>
+              <ol class="boot-steps aca-type aca-type--body-sm">
+                <li>Installa l'app Acasystem su Android, oppure apri la fotocamera su iPhone.</li>
+                <li>Inquadra il codice QR.</li>
+              </ol>
+            </div>
+            <img class="boot-qr" src="qr.svg" alt="Codice QR con l'indirizzo della centrale">
+          </section>
+
+          <section class="boot-pane boot-pane--pc" aria-labelledby="boot-pc">
+            <div class="boot-pane__text">
+              <h2 id="boot-pc" class="aca-type">Computer</h2>
+              <p class="boot-muted aca-type aca-type--body-sm">Apri Acasystem per PC e inserisci questo indirizzo:</p>
+            </div>
+            <p class="boot-url aca-type boot-number">{{URL}}</p>
+          </section>
+
+          <section class="boot-pane boot-pane--waiting" aria-labelledby="boot-wait">
+            <div class="boot-pane__text">
+              <h2 id="boot-wait" class="aca-type">In attesa della rete</h2>
+              <p class="boot-muted aca-type aca-type--body-sm">Controlla che il cavo di rete sia collegato al router. Il codice QR e l'indirizzo compaiono qui appena la centrale è in rete.</p>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   </section>

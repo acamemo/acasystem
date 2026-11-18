@@ -1,5 +1,9 @@
 # ACA SYSTEM — Specifica di design
 
+## Schermata di avvio della centrale in Vetro Bianco (approvata 2026-11-18)
+
+Approvata dall'utente («Approve») il 2026-11-18 per REQ-29: [REP-20261118-001](../reports/REP-20261118-001-installer-exe-chiavetta-schermata-avvio.md), fonti in `progetto/ha-app/schermata-avvio/page/`. Usa il design condiviso corrente (Vetro Bianco, ADR-0043) senza nuovi token: paesaggio con velo, una sola card di vetro, riquadri interni senza filtro, QR nero su bianco, Inter locale. Composizione dalla reference Reolink fornita dall'utente, senza pulsanti né schede: titolo, riga «Rete / Indirizzo IP», riquadro «Telefono o tablet» con passi e QR, riquadro «Computer» con l'indirizzo. Senza rete: titolo «Acasystem si sta collegando» e indicazione sul cavo, senza QR né indirizzo. Testi non sotto la taglia base; sui TV la card è ingrandita in proporzione. Sostituisce l'anteprima del 2026-11-04 descritta più sotto, che resta conservata come storico.
+
 ## Ultime aree widget (2026-11-12)
 
 [Agenda](componenti/agenda.md), [Stanze](componenti/stanze.md), [Gateway Zigbee](componenti/gateway-zigbee.md), [REP002](../reports/REP-20261112-002-widget-rimanenti.md): stesso ACA Vetro Bianco, Home sintetica e dettagli operativi, associazioni comuni con ACK, tecnica/manutenzione separate. Densità misurata sulla tessera reale, nessun nuovo blur/zoom o transizione globale. Calendario distingue giorni interi e fusi; Attività espone solo funzioni supportate; Stanze conserva gli snapshot storici; Zigbee distingue richiesta accettata e stato osservato. Build locale .70 e QA nel report, hardware e banco separati.

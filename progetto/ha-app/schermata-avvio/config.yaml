@@ -2,7 +2,7 @@
 # Mostra a schermo intero sull'uscita video istruzioni, QR del solo URL della centrale e indirizzo IP.
 # Prova tecnica: full_access è provvisorio finché non si conoscono i dispositivi strettamente necessari.
 name: Schermata Acasystem
-version: "0.1.3"
+version: "0.2.0"
 slug: aca_schermata
 description: Schermata di avvio con QR code e indirizzo della centrale sull'uscita video.
 arch:

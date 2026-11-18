@@ -30,6 +30,12 @@
         "--strictPort"
       ],
       "port": 5179
+    },
+    {
+      "name": "schermata-avvio-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4189", "--bind", "127.0.0.1", "--directory", "progetto/ha-app/out/schermata-avvio-preview"],
+      "port": 4189
     }
   ]
 }
