@@ -1,0 +1,76 @@
+#!/bin/sh
+# ==============================================================================
+# ACA SYSTEM: prima configurazione della centrale (REP-20261118-001).
+# Al primo avvio installa e avvia l'app Acasystem dal catalogo pubblico e la
+# schermata di avvio con QR e indirizzo. Ripete i passi finché riescono: al primo
+# avvio il Supervisor scarica anche Home Assistant Core e può rifiutare lavori.
+# Non tocca account, dati o configurazioni di rete. Dopo il successo lascia un
+# segno in /mnt/data/aca e non riparte più, anche dopo gli aggiornamenti di HAOS.
+# ==============================================================================
+set -u
+
+MARK_DIR=/mnt/data/aca
+MARK="$MARK_DIR/firstboot-v1.done"
+REPOSITORY=https://github.com/acamemo/acasystem-releases
+ACA_SLUG=9960cdb4_acasystem
+SCREEN_SOURCE=/usr/share/aca/apps/aca_schermata
+SCREEN_DIR=/mnt/data/supervisor/apps/local/aca_schermata
+SCREEN_SLUG=local_aca_schermata
+
+log() { echo "aca-firstboot: $*"; }
+
+[ -f "$MARK" ] && { log "già configurata"; exit 0; }
+
+# Ripete un comando fino a 60 volte, 20 s tra un tentativo e l'altro.
+retry() {
+  what=$1; shift
+  n=0
+  until "$@"; do
+    n=$((n + 1))
+    [ "$n" -ge 60 ] && { log "$what: non riuscito dopo $n tentativi"; return 1; }
+    log "$what: nuovo tentativo tra 20 s ($n)"
+    sleep 20
+  done
+  log "$what: fatto"
+}
+
+supervisor_ready() { ha --raw-json supervisor info 2>/dev/null | jq -e '.result == "ok"' >/dev/null; }
+app_state() { ha --raw-json apps info "$1" 2>/dev/null | jq -r '.data.state // empty'; }
+app_installed() { [ -n "$(ha --raw-json apps info "$1" 2>/dev/null | jq -r '.data.version // empty')" ]; }
+
+add_repository() {
+  ha --raw-json store 2>/dev/null | jq -e --arg r "$REPOSITORY" 'any(.data.repositories[]?; (.source // .url) == $r)' >/dev/null && return 0
+  ha store add "$REPOSITORY" >/dev/null 2>&1
+}
+
+install_app() { app_installed "$1" || ha apps install "$1" >/dev/null 2>&1; }
+
+start_app() { [ "$(app_state "$1")" = started ] || ha apps start "$1" >/dev/null 2>&1; }
+
+copy_screen() {
+  [ -f "$SCREEN_DIR/config.yaml" ] && return 0
+  mkdir -p "$(dirname "$SCREEN_DIR")" && cp -a "$SCREEN_SOURCE" "$SCREEN_DIR"
+}
+
+# La schermata usa il terminale virtuale e l'uscita video: il Supervisor richiede
+# la protezione disattivata per i permessi dichiarati nella sua configurazione.
+unprotect_screen() {
+  docker exec hassio_cli sh -c 'curl -fsS -X POST -H "Authorization: Bearer $SUPERVISOR_TOKEN" -H "Content-Type: application/json" -d "{\"protected\":false}" http://supervisor/addons/local_aca_schermata/security' >/dev/null 2>&1
+}
+
+retry "Supervisor pronto" supervisor_ready || exit 1
+mkdir -p "$MARK_DIR"
+
+retry "copia della schermata" copy_screen || exit 1
+retry "repository Acasystem" add_repository || exit 1
+retry "catalogo aggiornato" ha store reload || exit 1
+
+retry "installazione schermata" install_app "$SCREEN_SLUG" || exit 1
+retry "permessi schermata" unprotect_screen || exit 1
+retry "avvio schermata" start_app "$SCREEN_SLUG" || exit 1
+
+retry "installazione Acasystem" install_app "$ACA_SLUG" || exit 1
+retry "avvio Acasystem" start_app "$ACA_SLUG" || exit 1
+
+date -u +%Y-%m-%dT%H:%M:%SZ > "$MARK"
+log "centrale configurata"

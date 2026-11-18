@@ -1,0 +1,48 @@
+ACA SYSTEM - CENTRALE DI PROVA SU PC (VirtualBox)
+==================================================
+
+Pacchetto di prova, non definitivo. Installa sul PC una centrale ACA
+(Home Assistant OS + Acasystem) dentro una macchina virtuale VirtualBox.
+Telefoni, tablet e PC della stessa rete si collegano poi alla centrale.
+
+Cosa serve
+----------
+- Windows 10 o 11 a 64 bit, almeno 8 GB di RAM e 40 GB liberi.
+- VirtualBox gia installato (https://www.virtualbox.org).
+- PC collegato alla rete di casa (cavo o Wi-Fi) e a Internet.
+- Il PC deve restare acceso: la centrale funziona solo quando il PC e acceso
+  e l'utente ha fatto l'accesso a Windows.
+
+Installazione
+-------------
+1. Estrarre lo ZIP in una cartella (non aprirlo solo con doppio clic).
+2. Doppio clic su Installa.cmd e scrivere SI quando richiesto.
+   Se Windows mostra un avviso di sicurezza, scegliere "Ulteriori informazioni"
+   e "Esegui comunque" solo se il pacchetto arriva da ACA.
+3. Attendere 10-20 minuti: al primo avvio la centrale scarica Home Assistant
+   e Acasystem da Internet.
+4. Doppio clic su Mostra-Schermata.cmd: si apre l'immagine della centrale con
+   il codice QR e l'indirizzo (per esempio http://192.168.1.50:3002/).
+   Se dice ancora "si sta collegando" o mostra una schermata nera, riprovare
+   dopo qualche minuto.
+
+Collegarsi
+----------
+- Telefono Android o iPhone: inquadrare il codice QR, si apre Acasystem nel
+  browser (su Android si puo installare anche l'app Acasystem).
+- PC: aprire nel browser l'indirizzo mostrato, oppure l'app Acasystem per PC.
+- Al primo accesso si crea l'account del proprietario della casa.
+
+Problemi noti della prova
+-------------------------
+- La centrale si avvia a ogni accesso a Windows tramite l'attivita pianificata
+  "ACA SYSTEM - ACA-Centrale". Uscendo da Windows la centrale viene sospesa.
+- Su alcuni PC con Windows 11 VirtualBox rallenta le macchine virtuali: il
+  supervisore incluso lo compensa. Se la centrale diventa lenta o irraggiungibile,
+  annotare data e ora e avvisare ACA, allegando la cartella
+  %LOCALAPPDATA%\ACA-System\Centrale\log.
+
+Rimuovere la prova
+------------------
+Doppio clic su Disinstalla.cmd e scrivere ELIMINA. Vengono cancellati la
+macchina virtuale e tutti i dati della centrale di prova.

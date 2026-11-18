@@ -1,0 +1,16 @@
+[Unit]
+Description=ACA SYSTEM: prima configurazione della centrale
+Requires=docker.service
+Wants=network-online.target haos-supervisor.service
+After=docker.service network-online.target haos-supervisor.service
+RequiresMountsFor=/mnt/data
+ConditionPathExists=!/mnt/data/aca/firstboot-v1.done
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/aca-firstboot
+Restart=on-failure
+RestartSec=60s
+
+[Install]
+WantedBy=multi-user.target

@@ -215,6 +215,61 @@ L'utente ha scelto «Screen design». Dopo lo screenshot del kiosk l'utente ha a
 
 **Limiti.** Non provata su un vero TV/mini PC né su un'uscita a 1080p reale. Lo stato senza rete è stato provato solo nell'anteprima del browser.
 
+### Pacchetto di prova per il PC di un collega, 2026-11-18 sera
+
+Richiesta: «sì, parti con il pacchetto di prova». Scopo: far installare la centrale su un altro PC con VirtualBox, senza passaggi manuali, prima dell'`.exe` definitivo.
+
+**Pubblicazione di Acasystem 0.9.76.1 (confermata dall'utente: «Sì, pubblica»).**
+- Il Supervisor scarica sempre l'immagine dell'app dal registro, anche se è già sul disco (`DockerInterface.install` in Supervisor 2026.11.0). Le app locali si costruiscono con `buildx --pull`. Non è quindi possibile precaricare nell'immagine HAOS una versione non pubblicata.
+- Immagine `ghcr.io/acamemo/acasystem:0.9.76.1` caricata dal login ghcr già salvato in Docker Desktop. Digest `sha256:64b0c1a4968d567faaa2185b13903f14a204731f3dcb1b7cb1cb3721fffcf870`, uguale al descriptor registrato in REP-20261116-005. Archivio sorgente `backup/rep093/materials/acasystem-0.9.76.1-image.tar`. Manifest scaricabile senza login (200) e con lo stesso SHA.
+- Catalogo `acamemo/acasystem-releases`: commit locale `c97c67f` (versione 0.9.76.1, voce in CHANGELOG, due frasi di DOCS). **Push rifiutato (403)**: l'account `Mattiapentagallo` non ha permesso di scrittura. L'utente concede il permesso dall'account `acamemo`; finché non accade il catalogo offre ancora 0.9.34.
+- Release v0.9.76.1 con i sorgenti (GPL, come dichiara DOCS) non ancora creata: richiede lo stesso permesso. `acasystem-src-0.9.76.1.zip` controllato: nessun percorso personale o email; tre IP privati di esempio nei test.
+- Compatibilità dichiarata dalla candidata: Core `< 2026.11.2`, mentre HAOS 18.4 scarica oggi Core 2026.11.2. Da osservare nella prova con la 0.9.76.1.
+
+**Immagine HAOS con primo avvio automatico (`progetto/haos-image/`).**
+- `overlay/usr/libexec/aca-firstboot` e `aca-firstboot.service`, attivato da `71-aca.preset`. Al primo avvio:
+  - attende il Supervisor;
+  - copia i sorgenti della schermata in `/mnt/data/supervisor/apps/local`;
+  - aggiunge il repository pubblico di Acasystem;
+  - installa la schermata, toglie la protezione e la avvia;
+  - installa e avvia Acasystem;
+  - ripete ogni passo fino a 60 volte e alla fine scrive `/mnt/data/aca/firstboot-v1.done`.
+- Nessun account, dato o rete viene toccato.
+- `build.sh` applica overlay e schermata al clone HAOS 18.4 e lancia la build. Rifiuta un `run.sh` con fine riga CRLF. Seconda build in circa 2 minuti: `haos_ova-18.4.vdi.zip` da 591.433.473 byte, SHA-256 `403a7cb5…6110`; servizio e link `multi-user.target.wants` presenti nel rootfs.
+
+**Script del pacchetto (`progetto/haos-image/pacchetto-prova/`).**
+- `Installa.cmd`:
+  - controlla checksum, VirtualBox e spazio;
+  - sceglie la scheda di rete della rotta predefinita e crea la VM (EFI, 2 CPU, 2 GB, bridged, disco con UUID nuovo);
+  - registra l'attività pianificata all'accesso dell'utente con il supervisore e la avvia.
+  - Chiede «SI»; non installa VirtualBox e non cambia protezioni o firewall.
+- `Mostra-Schermata.cmd`: la VM non ha finestra, quindi cattura la schermata con QR e indirizzo e la apre.
+- `Disinstalla.cmd`: chiede «ELIMINA», poi rimuove attività, VM e cartella.
+- `LEGGIMI.txt` per il collega; `assembla.ps1` crea lo ZIP (591 MB) con `SHA256SUMS`.
+- Corretto durante la prova: in PowerShell 5.1 l'avanzamento che VBoxManage scrive su stderr interrompeva gli script con `ErrorActionPreference=Stop`.
+
+**Prova sul PC di sviluppo, VM nuova `ACA-Prova-Pacchetto`.**
+- ZIP estratto in una cartella pulita, `Installa-Centrale.ps1` eseguito come l'utente. VM creata e collegata in bridge al Wi-Fi, attività avviata, supervisore attivo, VM accesa in 4 s.
+- Primo tentativo fallito per un limite dell'ambiente dell'agente: l'app Claude virtualizza `AppData\Local`, quindi VirtualBox non vedeva il disco copiato. Mezza VM rimossa; prova ripetuta con la cartella `C:\Users\matti\ACA-Test\Prova-Pacchetto`. Sul PC del collega `Installa.cmd` viene avviato da Esplora risorse e non ha questo limite.
+- Schermata con QR e IP a video entro 5 minuti dall'accensione, puntatore assente. QR letto come `http://192.168.1.12:3002/`. `GET /api/health` → `{"status":"ok","version":"0.9.34"}`, HA risponde (307). Evidenze in `backup/rep20261118-pacchetto/`.
+- La centrale di prova resta installata per provare l'aggiornamento 0.9.34 → 0.9.76.1 dopo il catalogo, poi verrà rimossa con `Disinstalla.cmd`.
+
+**Catalogo e release dopo il permesso (utente: «Fatto»).**
+- `Mattiapentagallo` ha ora il ruolo Write su `acasystem-releases`: push di `c97c67f` riuscito, il catalogo offre 0.9.76.1.
+- Release [v0.9.76.1](https://github.com/acamemo/acasystem-releases/releases/tag/v0.9.76.1) (ID 450443349, pre-release, non «latest»). Allegati: sorgenti, bundle web, `manifest.json`, `SOURCE-PROVENANCE.json`, `PUBBLICAZIONE.md` e `SHA256SUMS`. Tutti scaricati senza login: `sha256sum -c` OK. Credenziale GitHub letta dal Git Credential Manager solo in memoria.
+
+**Seconda prova del pacchetto, con la 0.9.76.1.**
+- `Disinstalla-Centrale.ps1` con «ELIMINA»: VM, attività pianificata, supervisore e cartella rimossi.
+- Reinstallazione da zero dallo stesso pacchetto: schermata in 303 s con IP `192.168.1.13`; `GET /api/health` → `{"status":"ok","version":"0.9.76"}` (app 0.9.76.1 sulla base 0.9.76); pagina 200.
+- `Mostra-Schermata.ps1`: immagine della centrale catturata e aperta.
+- Pacchetto finale `backup/rep20261118-pacchetto/finale/ACA-Centrale-0.9.76.1-prova.zip`, 591.491.863 byte, SHA-256 `b33b60da…94d3`; script identici a quelli provati.
+- Su richiesta dell'utente la centrale di prova è stata rimossa con `Disinstalla-Centrale.ps1`: nessuna VM `ACA-Prova-Pacchetto`, nessuna attività pianificata né supervisore attivi, cartella `C:\Users\matti\ACA-Test` eliminata.
+
+**Non ancora verificato.**
+- Aggiornamento di una centrale 0.9.34 alla 0.9.76.1 dal Supervisor.
+- Collegamento effettivo di Acasystem a Home Assistant: account e dispositivi oltre health e pagina, con Core 2026.11.2 fuori dall'intervallo dichiarato dalla candidata.
+- PC del collega; avvio da Esplora risorse con l'avviso SmartScreen; stabilità su più ore.
+
 ## Verifiche ed evidenze
 
 | Controllo | Comando/procedura e ambiente | Esito | Evidenza e limiti |
@@ -233,6 +288,11 @@ L'utente ha scelto «Screen design». Dopo lo screenshot del kiosk l'utente ha a
 | Riavvio del guest con il supervisore aggiornato | Due `ha host reboot` sulla VM di prova | Superato | Reset riconosciuto in circa 20 s, VM riaccesa in 4 s, HA raggiungibile in circa 1 min; `reboot-supervisore.png`, log in `supervisore-reset/`. Non provato con un vero aggiornamento di HAOS né sul PC del capo |
 | Spegnimento voluto | `ha host shutdown` con il supervisore aggiornato | Superato | VM rimasta spenta |
 | Grafica della schermata 0.2.0 nel kiosk | `ha apps update local_aca_schermata` sulla VM di prova, screenshot e `zbarimg` | Superato | `grafica-vm-1024.png`; QR corretto; solo 1024×768 in VM, 1920×1080 e senza rete solo nel browser; grafica approvata dall'utente |
+| Immagine Acasystem 0.9.76.1 pubblica | `docker push`, poi manifest anonimo da `ghcr.io` | Superato | 200, digest `64b0c1a4…f870` uguale a REP005 |
+| Catalogo 0.9.76.1 | `git push` su `acamemo/acasystem-releases` | Superato al secondo tentativo | Primo push 403; dopo il permesso Write `c97c67f` su main, `config.yaml` pubblico 0.9.76.1 |
+| Release v0.9.76.1 con sorgenti | API GitHub, poi download anonimo e `sha256sum -c` | Superato | 6 allegati, pre-release |
+| Pacchetto con 0.9.76.1 da zero | `Disinstalla`, `Installa`, `Mostra-Schermata` | Superato | health `0.9.76`, schermata in 303 s; nessuna prova di account o dispositivi |
+| Pacchetto di prova: installazione e primo avvio | ZIP estratto, `Installa-Centrale.ps1`, VM nuova | Superato | Schermata entro 5 min, QR `http://192.168.1.12:3002/`, health ok 0.9.34; cartella fuori da `AppData` per il limite dell'agente |
 | Repository pubblico delle release | Richiesta anonima a `api.github.com/repos/acamemo/acasystem-releases` | Superato | Pubblico; release `v0.9.34`, `v0.9.33`, `v0.9.30` |
 
 ## Chiusura e punto di ripresa
