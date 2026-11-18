@@ -15,3 +15,7 @@ progetto/compose.tunet.yaml text eol=lf
 progetto/tunet-origin.json text eol=lf
 progetto/ha-app/image/run.sh text eol=lf
 progetto/ha-app/bootstrap/*.sh text eol=lf
+# Script e unita systemd eseguiti in Linux (immagine HAOS, app della schermata): sempre LF.
+progetto/haos-image/build.sh text eol=lf
+progetto/haos-image/overlay/** text eol=lf
+progetto/ha-app/schermata-avvio/run.sh text eol=lf
