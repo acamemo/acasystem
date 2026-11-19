@@ -3,7 +3,7 @@
 | Campo | Valore |
 |---|---|
 | ID / incarico | REP-20261118-001 |
-| Stato | In attesa di input: pubblicazione della release su GitHub |
+| Stato | In corso: chiavetta e immagine del mini PC provate in VM, mini PC fisico e `.exe` da fare |
 | Data | 2026-11-18, Europe/Rome |
 | Autore / modello | Claude Code, Opus 5.5 (`claude-opus-5-5`) |
 | Commit di partenza | `c79f8c5` |
@@ -270,6 +270,46 @@ Richiesta: «sì, parti con il pacchetto di prova». Scopo: far installare la ce
 - Collegamento effettivo di Acasystem a Home Assistant: account e dispositivi oltre health e pagina, con Core 2026.11.2 fuori dall'intervallo dichiarato dalla candidata.
 - PC del collega; avvio da Esplora risorse con l'avviso SmartScreen; stabilità su più ore.
 
+### Chiavetta per il mini PC e aggiornamento dal Supervisor, 2026-11-18/19 notte
+
+Richiesta: «Procedi in automatico, non mi chiedere le cose per le prossime 2 ore», poi «ok continua, poi committa e pusha tutto». Perimetro: punto 2 dell'incarico (chiavetta del mini PC) e verifiche rimaste aperte.
+
+**Immagine `.img` per il mini PC (`generic_x86_64`).**
+- `build.sh` usa ora una cartella di output distinta per formato (`output`, `output-generic_x86_64`): Buildroot non cambia destinazione nella stessa cartella senza `distclean`.
+- Prima build (circa 60 min) fallita in `genimage`: `rootfs.erofs` 269.074.432 byte contro una partizione di sistema da 268.435.456. Spostata la schermata fuori dal sistema, il sistema supera ancora il limite di 49 KB **senza alcun file ACA**: la build ufficiale 18.4 compilata su questo PC non entrerebbe. Causa del divario con le immagini ufficiali non individuata.
+- Correzioni in `build.sh`, solo per `generic_x86_64`:
+  - `BR2_TARGET_ROOTFS_EROFS_DEDUPE=y`: mkfs.erofs comprime una sola volta i blocchi identici (firmware ripetuti). Contenuto invariato, nessun file tolto; sistema da 248.631.296 byte, circa 20 MB di margine.
+  - `CONFIG_SYSFB_SIMPLEFB=y` e `CONFIG_DRM_SIMPLEDRM=y` nel kernel, come nel kernel `ova` di HAOS. Senza, la schermata registrava «Found 0 GPUs» in VirtualBox: il kernel generic ha solo i driver Intel/AMD. Con `simpledrm` lo schermo UEFI è un dispositivo DRM finché non subentra il driver della scheda.
+- **Schermata nella partizione dati, per entrambi i formati.** I sorgenti vanno in `supervisor/apps/local/aca_schermata` della partizione dati tramite un aggancio a `create-data-partition.sh`; nel sistema resta solo `aca-firstboot`, che salta la copia quando trova i file.
+- Artefatto: `haos_generic-x86-64-18.4.img.xz`, 556.661.980 byte, SHA-256 `772eb67f…196c`.
+
+**Chiavetta d'installazione (`progetto/haos-image/chiavetta/`).** HAOS non ha un programma d'installazione, quindi la chiavetta avvia Alpine standard 3.24.4 (ISO ufficiale, SHA-256 `92e3e4e4…3582` verificato con il file `.sha256` del mirror ufficiale) con un overlay che esegue `aca-install.start`:
+- trova l'immagine sulla chiavetta ed esclude la chiavetta stessa, le unità virtuali e i dischi sotto 28 GB;
+- con un solo disco interno lo sceglie, con più dischi chiede il numero;
+- disco vuoto: parte dopo 15 s (Invio annulla); disco con partizioni: chiede di scrivere SI;
+- scrive con `xzcat | dd`, rilegge il disco e ne confronta l'impronta con quella calcolata in fase di build;
+- quando la chiavetta viene tolta, riavvia.
+- `build-chiavetta.sh` crea, in un container Alpine senza privilegi, un disco GPT con una partizione di sistema EFI FAT32. Artefatto `aca-chiavetta-18.4.img`, 1.043.439.616 byte, SHA-256 `287490d5…15bd`. Il caricatore GRUB della ISO cerca l'etichetta del CD e, non trovandola, usa il dispositivo da cui è partito.
+- `LEGGIMI.txt` descrive preparazione con balenaEtcher o Rufus (modalità DD), requisiti (UEFI, Secure Boot disattivato, disco da 32 GB, cavo di rete) e installazione.
+
+**Prove in VM (VirtualBox 7.2.22, EFI, 2 CPU, 2 GB).**
+- Immagine fittizia da 200 MB su disco vuoto da 32 GB: avvio dalla chiavetta, partenza dopo 15 s, scrittura e verifica, riavvio 2 s dopo la rimozione della chiavetta (`VBox.log`: `RUNNING` → `RESETTING`).
+- Immagine vera su disco vuoto da 64 GB: scritta e verificata in meno di 3 minuti; dopo la rimozione la VM parte dal disco interno con HAOS 18.4 (IP `192.168.1.16`). Primo avvio completato, Acasystem `{"status":"ok","version":"0.9.76"}`, ma senza schermata per l'assenza di DRM (vedi sopra).
+- Dopo la correzione del kernel, chiavetta nuova sullo stesso disco con la centrale: richiesta «Scrivere SI», scrittura e verifica riuscite; tolta la chiavetta, health ok dopo 453 s e schermata a video con IP `192.168.1.16`; QR letto da `zbarimg` come `http://192.168.1.16:3002/`.
+- Nuova immagine `ova` (schermata nella partizione dati, `haos_ova-18.4.vdi.zip` SHA-256 `631dd1ec…`): VM nuova con supervisore, schermata con IP `192.168.1.18` e health `0.9.76` entro 9 minuti; VM rimossa. Il pacchetto di prova `ACA-Centrale-0.9.76.1-prova.zip` contiene ancora il disco precedente, con la schermata nel sistema, provato il 2026-11-18.
+- La console seriale non è attiva nell'immagine generic: comandi e log letti dalla tastiera virtuale e dagli screenshot.
+- VM, supervisore (PID proprio) e dischi rimossi; evidenze e artefatti in `backup/rep20261119-chiavetta/`, escluso da Git.
+
+**Aggiornamento 0.9.34 → 0.9.76.1 dal Supervisor.**
+- VM dall'immagine `ova`, primo avvio automatico in circa 8 minuti (installata 0.9.76.1).
+- Disinstallata l'app, il clone locale del catalogo nella VM è stato riportato al commit `ff77efe` (0.9.34) con `git fetch --deepen=2` e `git checkout`, più riavvio del Supervisor: installata la 0.9.34, health `0.9.34`, database `tunet.db` creato con il punto di ripristino `aca-before-v2`. Il catalogo pubblico non è stato toccato.
+- Ripristinato il ramo `main` del clone e riavviato il Supervisor (il solo `ha store reload` non rilegge un checkout spostato a mano): `update_available: true`, `ha apps update` riuscito, app 0.9.76.1 avviata, health `0.9.76`, secondo punto di ripristino creato, nessun errore nei log.
+- Limite: database senza account né dispositivi; la prova copre il percorso di aggiornamento e l'avvio sul database della 0.9.34, non la migrazione di dati reali.
+
+**Non ancora verificato.**
+- Avvio su un mini PC fisico: driver Intel/AMD, Secure Boot, menu di avvio, eMMC.
+- Aggiornamenti OTA di HAOS su un sistema compilato qui con deduplicazione e `simpledrm`: il pacchetto RAUC ufficiale sostituirebbe kernel e sistema con quelli upstream, senza `simpledrm`.
+
 ## Verifiche ed evidenze
 
 | Controllo | Comando/procedura e ambiente | Esito | Evidenza e limiti |
@@ -294,8 +334,17 @@ Richiesta: «sì, parti con il pacchetto di prova». Scopo: far installare la ce
 | Pacchetto con 0.9.76.1 da zero | `Disinstalla`, `Installa`, `Mostra-Schermata` | Superato | health `0.9.76`, schermata in 303 s; nessuna prova di account o dispositivi |
 | Pacchetto di prova: installazione e primo avvio | ZIP estratto, `Installa-Centrale.ps1`, VM nuova | Superato | Schermata entro 5 min, QR `http://192.168.1.12:3002/`, health ok 0.9.34; cartella fuori da `AppData` per il limite dell'agente |
 | Repository pubblico delle release | Richiesta anonima a `api.github.com/repos/acamemo/acasystem-releases` | Superato | Pubblico; release `v0.9.34`, `v0.9.33`, `v0.9.30` |
+| Build `generic_x86_64` | `build.sh … generic_x86_64` in WSL2 | Superato alla quarta build | Prima e seconda: sistema oltre 256 MiB (anche senza file ACA); terza con deduplicazione EROFS; quarta con `simpledrm` |
+| Chiavetta: disco vuoto, immagine fittizia | VM EFI con disco da 32 GB | Superato | Partenza dopo 15 s, verifica, riavvio alla rimozione |
+| Chiavetta: disco vuoto, immagine vera | VM EFI con disco da 64 GB | Superato | Scritta e verificata in meno di 3 min; HAOS 18.4 dal disco interno; Acasystem health ok |
+| Chiavetta: disco con centrale, conferma SI | Stessa VM, chiavetta nuova | Superato | Richiesta SI, scrittura e verifica; `schermata-generic.png` |
+| Schermata sull'immagine generic | Screenshot e `zbarimg` | Superato dopo la correzione | Prima «Found 0 GPUs»; con `simpledrm` QR `http://192.168.1.16:3002/`. Solo VirtualBox, non hardware reale |
+| Aggiornamento 0.9.34 → 0.9.76.1 | Clone del catalogo nella VM riportato a `ff77efe`, poi `ha apps update` | Superato | Health `0.9.34` → `0.9.76`, nessun errore nei log; database senza dati reali |
+| Immagine `ova` con la schermata nella partizione dati | VM nuova con supervisore, screenshot e `GET /api/health` | Superato | Schermata con IP `192.168.1.18`, health `0.9.76`; `schermata-ova.png` |
 
 ## Chiusura e punto di ripresa
+
+Aggiornamento del 2026-11-19, notte: immagine `.img` per il mini PC e chiavetta d'installazione provate in VM dall'inizio alla fine, schermata compresa; aggiornamento 0.9.34 → 0.9.76.1 superato. Restano: prova su un mini PC fisico, `.exe` per PC (il pacchetto di prova resta la soluzione provvisoria), permessi e dimensione della schermata, effetto degli aggiornamenti OTA di HAOS sulle modifiche al kernel.
 
 Aggiornamento del 2026-11-18, primo pomeriggio: la prova tecnica della schermata è superata in VM; la grafica è da approvare. I passi 1–3 qui sotto restano validi; il passo 1 è stato provato come prototipo. Va aggiunta la soluzione per il riavvio dall'interno della VM in modalità NEM.
 

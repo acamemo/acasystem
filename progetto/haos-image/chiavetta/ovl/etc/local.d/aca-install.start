@@ -1,0 +1,101 @@
+#!/bin/sh
+# Installatore della centrale ACA da chiavetta USB (REP-20261118-001).
+# Gira in Alpine avviato dalla chiavetta: scrive l'immagine HAOS ACA sul disco interno del
+# mini PC, la verifica e riavvia quando la chiavetta viene tolta. Al primo avvio la centrale
+# installa da sola schermata e Acasystem (servizio aca-firstboot).
+
+exec </dev/tty1 >/dev/tty1 2>&1
+dmesg -n 1 2>/dev/null
+MIN_BYTES=28000000000   # dischi da 32 GB in su
+
+titolo() { clear; echo; echo "  ACA SYSTEM - installazione della centrale"; echo "  ----------------------------------------"; echo; }
+ferma() { echo; echo "  $1"; echo; echo "  Spegnere il mini PC tenendo premuto il pulsante di accensione."; while :; do sleep 3600; done; }
+gb() { echo $(( $1 / 1000000000 )); }
+
+titolo
+echo "  Ricerca dell'immagine sulla chiavetta..."
+media=""; part=""
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    for m in /media/*; do
+        if [ -f "$m/centrale/aca-centrale.img.xz" ]; then media=$m; break 2; fi
+    done
+    sleep 1
+done
+[ -n "$media" ] || ferma "ERRORE: immagine della centrale non trovata sulla chiavetta."
+part=$(awk -v m="$media" '$2==m {print $1}' /proc/mounts | head -n1)
+part=${part#/dev/}
+bootdisk=$(basename "$(readlink -f "/sys/class/block/$part/..")")
+read -r atteso dimensione < "$media/centrale/aca-centrale.img.sha256"
+
+# Dischi interni candidati: esclusi la chiavetta, unita virtuali e ottiche, dischi troppo piccoli.
+candidati=""
+for d in /sys/block/*; do
+    n=$(basename "$d")
+    case "$n" in loop*|ram*|sr*|zram*|fd*|md*|dm-*|nbd*|mmcblk*boot*|mmcblk*rpmb) continue ;; esac
+    [ "$n" = "$bootdisk" ] && continue
+    byte=$(( $(cat "$d/size") * 512 ))
+    [ "$byte" -ge "$MIN_BYTES" ] || continue
+    candidati="$candidati $n"
+done
+set -- $candidati
+[ $# -gt 0 ] || ferma "ERRORE: nessun disco interno da almeno 32 GB trovato."
+
+descrivi() {
+    modello=$(cat "/sys/block/$1/device/model" 2>/dev/null | sed 's/ *$//')
+    echo "$1  $(gb $(( $(cat /sys/block/$1/size) * 512 ))) GB  ${modello:-disco}"
+}
+
+if [ $# -eq 1 ]; then
+    disco=$1
+else
+    echo "  Dischi interni trovati:"; i=1
+    for n in "$@"; do echo "    $i) $(descrivi "$n")"; i=$((i + 1)); done
+    echo; printf "  Numero del disco su cui installare: "; read -r scelta
+    i=1; disco=""
+    for n in "$@"; do [ "$i" = "$scelta" ] && disco=$n; i=$((i + 1)); done
+    [ -n "$disco" ] || ferma "Scelta non valida: installazione annullata."
+fi
+
+titolo
+echo "  Disco di destinazione: $(descrivi "$disco")"
+echo
+if ls -d "/sys/block/$disco/$disco"* >/dev/null 2>&1; then
+    echo "  ATTENZIONE: il disco contiene gia dati (per esempio Windows)."
+    echo "  Verra cancellato completamente e sostituito dalla centrale ACA."
+    echo; printf "  Scrivere SI e premere Invio per continuare: "; read -r risposta
+    [ "$risposta" = "SI" ] || ferma "Installazione annullata: il disco non e stato modificato."
+else
+    echo "  Il disco e vuoto. L'installazione parte tra 15 secondi."
+    echo "  Premere Invio per annullare."
+    if read -r -t 15 _; then ferma "Installazione annullata: il disco non e stato modificato."; fi
+fi
+
+titolo
+echo "  Scrittura della centrale su $disco (alcuni minuti)..."
+echo
+inizio=$(awk '{print $7}' "/sys/block/$disco/stat")
+( set -o pipefail; xzcat "$media/centrale/aca-centrale.img.xz" | dd of="/dev/$disco" bs=4M 2>/dev/null; r=$?; sync; echo $r > /tmp/esito ) &
+lavoro=$!
+while kill -0 "$lavoro" 2>/dev/null; do
+    scritti=$(( ($(awk '{print $7}' "/sys/block/$disco/stat") - inizio) * 512 ))
+    printf "\r  Scritti %s MB di %s MB   " $((scritti / 1000000)) $((dimensione / 1000000))
+    sleep 2
+done
+echo
+[ "$(cat /tmp/esito 2>/dev/null)" = "0" ] || ferma "ERRORE durante la scrittura del disco."
+
+echo; echo "  Verifica della copia..."
+echo 3 > /proc/sys/vm/drop_caches
+letto=$(head -c "$dimensione" "/dev/$disco" | sha256sum | cut -d' ' -f1)
+[ "$letto" = "$atteso" ] || ferma "ERRORE: la copia sul disco non corrisponde all'immagine. Riprovare o cambiare disco."
+
+titolo
+echo "  Installazione completata e verificata."
+echo
+echo "  Togliere la chiavetta: il mini PC si riavvia da solo e la centrale"
+echo "  si prepara (servono Internet e 10-20 minuti). Poi compare la schermata"
+echo "  con il codice QR e l'indirizzo da usare su telefono e PC."
+while [ -e "/sys/block/$bootdisk" ]; do
+    if read -r -t 2 _; then break; fi
+done
+reboot

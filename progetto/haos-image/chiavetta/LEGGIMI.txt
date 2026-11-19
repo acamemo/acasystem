@@ -1,0 +1,31 @@
+ACA SYSTEM - chiavetta d'installazione della centrale per mini PC
+
+Cosa fa
+  Avviato dalla chiavetta, il mini PC copia la centrale ACA (Home Assistant OS con
+  Acasystem e schermata di avvio) sul proprio disco interno e controlla la copia.
+  Tolta la chiavetta, si riavvia dalla centrale; al primo avvio scarica Home Assistant
+  e Acasystem (Internet via cavo, 10-20 minuti) e mostra sullo schermo il codice QR e
+  l'indirizzo da usare su telefono e PC.
+
+Requisiti del mini PC
+  - processore x86-64 (Intel o AMD), avvio UEFI, disco interno da almeno 32 GB;
+  - cavo di rete collegato al router di casa; monitor o TV HDMI per la schermata;
+  - Secure Boot disattivato nel BIOS/UEFI (Home Assistant OS non lo supporta).
+
+Preparare la chiavetta (una volta, da un PC)
+  1. Chiavetta USB da almeno 2 GB: il suo contenuto verra cancellato.
+  2. Scrivere il file aca-chiavetta-<versione>.img con balenaEtcher o Rufus
+     (in Rufus scegliere la modalita DD se viene chiesto).
+
+Installare
+  1. Collegare chiavetta, cavo di rete e schermo al mini PC spento.
+  2. Accendere e scegliere l'avvio dalla chiavetta (menu di avvio: di solito F7, F11,
+     F12 o Esc all'accensione, a seconda del modello).
+  3. Sullo schermo compare "ACA SYSTEM - installazione della centrale".
+     - Disco interno vuoto: l'installazione parte da sola dopo 15 secondi
+       (Invio per annullare).
+     - Disco con dati (per esempio Windows): scrivere SI e premere Invio.
+       ATTENZIONE: tutto il contenuto del disco interno viene cancellato.
+     - Piu dischi interni: scegliere il numero del disco.
+  4. Alla scritta "Installazione completata e verificata" togliere la chiavetta:
+     il mini PC si riavvia da solo nella centrale.
