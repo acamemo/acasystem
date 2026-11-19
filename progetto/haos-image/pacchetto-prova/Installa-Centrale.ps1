@@ -3,7 +3,11 @@ param(
     [string]$Cartella = (Join-Path $env:LOCALAPPDATA 'ACA-System\Centrale'),
     [string]$NomeVm = 'ACA-Centrale',
     [ValidateRange(2048, 8192)][int]$MemoriaMB = 2048,
-    [ValidateRange(2, 4)][int]$Cpu = 2
+    [ValidateRange(2, 4)][int]$Cpu = 2,
+    # Installatore .exe: disco scaricato da GitHub con impronta fissata, conferma gia data nella procedura.
+    [string]$UrlDisco = '',
+    [ValidatePattern('^([a-f0-9]{64})?$')][string]$ImprontaDisco = '',
+    [switch]$Conferma
 )
 # Pacchetto di prova ACA (REP-20261118-001): crea la VM VirtualBox della centrale dal disco
 # incluso, la collega alla rete del PC e avvia il supervisore all'accesso a Windows.
@@ -11,11 +15,17 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $pacchetto = $PSScriptRoot
+# Installatore .exe: registro dell'installazione, utile se la finestra si chiude.
+if ($Conferma) { try { Start-Transcript -Path (Join-Path $env:TEMP 'aca-installazione.log') -Append | Out-Null } catch {} }
 
 function Scrivi([string]$Testo) { Write-Host $Testo }
-function Fallisci([string]$Testo) { Write-Host ''; Write-Host "ERRORE: $Testo" -ForegroundColor Red; exit 1 }
+function Fallisci([string]$Testo) {
+    Write-Host ''; Write-Host "ERRORE: $Testo" -ForegroundColor Red
+    if ($Conferma) { Read-Host 'Premere Invio per chiudere' | Out-Null }
+    exit 1
+}
 
-$vbox = Join-Path $env:ProgramFiles 'Oracle\VirtualBox\VBoxManage.exe'
+$vbox = Join-Path $(if ($env:ProgramW6432) { $env:ProgramW6432 } else { $env:ProgramFiles }) 'Oracle\VirtualBox\VBoxManage.exe'
 if (-not (Test-Path -LiteralPath $vbox)) { Fallisci 'VirtualBox non e installato. Installarlo da https://www.virtualbox.org e rilanciare.' }
 function VBox([string[]]$Argomenti) {
     # VBoxManage scrive avanzamento e avvisi su stderr: conta solo il codice di uscita.
@@ -25,8 +35,8 @@ function VBox([string[]]$Argomenti) {
     return $out
 }
 
-$disco = Get-ChildItem -LiteralPath (Join-Path $pacchetto 'centrale') -Filter '*.vdi' | Select-Object -First 1
-if (-not $disco) { Fallisci 'Disco della centrale (.vdi) non trovato nella cartella centrale.' }
+$disco = Get-ChildItem -LiteralPath (Join-Path $pacchetto 'centrale') -Filter '*.vdi' -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $disco -and -not ($UrlDisco -and $ImprontaDisco)) { Fallisci 'Disco della centrale (.vdi) non trovato nella cartella centrale.' }
 
 # Integrita del pacchetto: controlla i file elencati in SHA256SUMS.
 $somme = Join-Path $pacchetto 'SHA256SUMS'
@@ -55,12 +65,42 @@ Scrivi ''
 Scrivi "Centrale ACA: VM $NomeVm, $Cpu CPU, $MemoriaMB MB di memoria, rete '$($scheda.Name)'."
 Scrivi "Cartella: $Cartella"
 Scrivi 'La centrale parte da sola a ogni accesso a Windows e resta accesa finche il PC e acceso.'
-if ((Read-Host 'Scrivere SI per installare') -ne 'SI') { Scrivi 'Installazione annullata.'; exit 0 }
+if (-not $Conferma -and (Read-Host 'Scrivere SI per installare') -ne 'SI') { Scrivi 'Installazione annullata.'; exit 0 }
 
 New-Item -ItemType Directory -Path $Cartella -Force | Out-Null
-$discoVm = Join-Path $Cartella $disco.Name
-Scrivi 'Copia del disco della centrale...'
-Copy-Item -LiteralPath $disco.FullName -Destination $discoVm
+if ($disco) {
+    $discoVm = Join-Path $Cartella $disco.Name
+    Scrivi 'Copia del disco della centrale...'
+    Copy-Item -LiteralPath $disco.FullName -Destination $discoVm
+} else {
+    # Disco da GitHub: curl.exe e tar.exe sono inclusi in Windows 10 1803 e successivi.
+    $zip = Join-Path $Cartella 'disco-centrale.zip'
+    Scrivi 'Download del disco della centrale (circa 600 MB)...'
+    # curl e tar scrivono avanzamento su stderr: con Stop PowerShell 5.1 lo tratterebbe come errore.
+    # Una connessione lenta puo cadere a meta (curl 18): ogni tentativo riprende dai byte gia scaricati.
+    $ErrorActionPreference = 'Continue'
+    for ($tentativo = 1; $tentativo -le 20; $tentativo++) {
+        if ($tentativo -gt 1) { Scrivi "Connessione interrotta: ripresa del download (tentativo $tentativo di 20)..."; Start-Sleep -Seconds 10 }
+        & "$env:SystemRoot\System32\curl.exe" -L --fail --retry 5 --retry-delay 10 --connect-timeout 30 -C - -o $zip $UrlDisco
+        $esito = $LASTEXITCODE
+        if ($esito -eq 0) { break }
+    }
+    $ErrorActionPreference = 'Stop'
+    if ($esito -ne 0) { Remove-Item -LiteralPath $Cartella -Recurse -Force; Fallisci "Download non riuscito (curl $esito): controllare la connessione a Internet e riprovare." }
+    Scrivi 'Controllo del disco scaricato...'
+    if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ImprontaDisco) {
+        Remove-Item -LiteralPath $Cartella -Recurse -Force; Fallisci 'Il disco scaricato non corrisponde a quello previsto: installazione interrotta.'
+    }
+    Scrivi 'Estrazione del disco...'
+    $ErrorActionPreference = 'Continue'
+    & "$env:SystemRoot\System32\tar.exe" -xf $zip -C $Cartella
+    $esito = $LASTEXITCODE
+    $ErrorActionPreference = 'Stop'
+    Remove-Item -LiteralPath $zip
+    $estratto = Get-ChildItem -LiteralPath $Cartella -Filter '*.vdi' | Select-Object -First 1
+    if ($esito -ne 0 -or -not $estratto) { Remove-Item -LiteralPath $Cartella -Recurse -Force; Fallisci 'Estrazione del disco non riuscita.' }
+    $discoVm = $estratto.FullName
+}
 VBox @('internalcommands', 'sethduuid', $discoVm) | Out-Null   # UUID nuovo: piu centrali di prova sullo stesso PC
 
 Scrivi 'Creazione della VM...'
@@ -88,4 +128,4 @@ Scrivi 'Avvio della centrale...'
 Start-ScheduledTask -TaskName "ACA SYSTEM - $NomeVm"
 Scrivi ''
 Scrivi 'Fatto. Al primo avvio la centrale scarica Home Assistant e Acasystem: servono 10-20 minuti e Internet.'
-Scrivi 'Poi usare Mostra-Schermata.cmd: compare la schermata con il codice QR e l''indirizzo da usare su telefono e PC.'
+Scrivi ('Poi usare ' + $(if ($Conferma) { 'menu Start > ACA SYSTEM > Mostra la schermata della centrale' } else { 'Mostra-Schermata.cmd' }) + ': compare la schermata con il codice QR e l''indirizzo da usare su telefono e PC.')

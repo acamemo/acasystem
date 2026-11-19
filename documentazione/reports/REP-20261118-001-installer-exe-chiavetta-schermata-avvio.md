@@ -3,7 +3,7 @@
 | Campo | Valore |
 |---|---|
 | ID / incarico | REP-20261118-001 |
-| Stato | In corso: chiavetta e immagine del mini PC provate in VM, mini PC fisico e `.exe` da fare |
+| Stato | In corso: `.exe`, chiavetta e immagine del mini PC provati in VM su questo PC; da provare su un altro PC e su un mini PC fisico |
 | Data | 2026-11-18, Europe/Rome |
 | Autore / modello | Claude Code, Opus 5.5 (`claude-opus-5-5`) |
 | Commit di partenza | `c79f8c5` |
@@ -310,6 +310,39 @@ Richiesta: «Procedi in automatico, non mi chiedere le cose per le prossime 2 or
 - Avvio su un mini PC fisico: driver Intel/AMD, Secure Boot, menu di avvio, eMMC.
 - Aggiornamenti OTA di HAOS su un sistema compilato qui con deduplicazione e `simpledrm`: il pacchetto RAUC ufficiale sostituirebbe kernel e sistema con quelli upstream, senza `simpledrm`.
 
+### Installatore `.exe` per PC, 2026-11-19
+
+Richiesta dell'utente: «facciamolo perché questo lo potrei provare su un altro pc in casa». Risposte: disco «Scaricato da GitHub», «Sì, anche il client».
+
+**Release del disco.** Pubblicata su `acamemo/acasystem-releases` la release `centrale-vm-18.4-1` come pre-release, non «latest»: `aca-centrale-vm-18.4-1.vdi.zip` (591.325.182 byte, SHA-256 `631dd1ec…fda2`, il disco `ova` provato sopra), `SHA256SUMS`, `PUBBLICAZIONE.md`. Client e politica di aggiornamento leggono solo i tag `v*` e la release «latest» (ancora `v0.9.34`), quindi la nuova release non li tocca.
+
+**Installatore.** `progetto/haos-image/installer-exe/`:
+- `aca-system.nsi` (NSIS 3.0.4.1, già presente nella cache di electron-builder): installa per l'utente corrente senza diritti di amministratore in `%LOCALAPPDATA%\ACA-System`. Controlla Windows a 64 bit, la presenza di VirtualBox (se manca apre la pagina di download) e un'installazione precedente.
+- Avvia `Installa-Centrale.ps1` con l'indirizzo e l'impronta del disco, poi copia l'app Acasystem per PC 0.1.1. Crea il collegamento sul desktop, tre voci nel menu Start (Acasystem, Mostra la schermata della centrale, Disinstalla ACA SYSTEM) e la voce in Impostazioni > App.
+- Il disinstallatore chiede conferma, rimuove la centrale con `Disinstalla-Centrale.ps1 -Conferma`, poi app, collegamenti e voce di registro.
+- `crea-installer.ps1` raccoglie script, supervisore e app per PC in una cartella temporanea e compila l'eseguibile. `LEGGIMI.txt` contiene le istruzioni per l'utente.
+
+**Modifiche agli script del pacchetto di prova.**
+- `Installa-Centrale.ps1`: nuovi parametri `-UrlDisco`, `-ImprontaDisco` e `-Conferma`. Se il pacchetto non contiene il disco, lo scarica con `curl.exe`, ne controlla l'impronta ed estrae il `.vdi` con `tar.exe` (entrambi inclusi in Windows 10 1803 e successivi). In caso di errore rimuove la cartella. Con `-Conferma` salta la domanda SI, scrive il registro in `%TEMP%\aca-installazione.log` e attende Invio prima di chiudersi su un errore.
+- `Disinstalla-Centrale.ps1`: `-Conferma` salta la domanda ELIMINA.
+- `Mostra-Schermata.ps1`: i messaggi compaiono anche in una finestra, perché dal menu Start la console è nascosta.
+- Tutti e tre cercano VirtualBox anche in `ProgramW6432`.
+
+**Problemi trovati nelle prove e correzioni.**
+- Smart App Control attivo su questo PC bloccava l'eseguibile non firmato, senza la possibilità di avviarlo comunque. Non è stato aggirato: lo ha disattivato l'utente. Il `LEGGIMI.txt` lo spiega. Senza firma resta anche l'avviso SmartScreen.
+- NSIS è a 32 bit: PowerShell avviato da `$SYSDIR` era a 32 bit e non trovava VirtualBox in Program Files. Corretto con `$WINDIR\Sysnative` e con la ricerca in `ProgramW6432`.
+- Con `ErrorActionPreference=Stop`, l'avanzamento che curl e tar scrivono su stderr diventava un errore in Windows PowerShell 5.1: impostato `Continue` attorno ai due comandi.
+- Primo download vero da GitHub: circa 90 KB/s, connessione caduta al 51% dopo 55 minuti (curl 18), installazione annullata e cartella rimossa. Ora il download fa fino a 20 tentativi e ognuno riprende dai byte già scaricati (`-C -`). Verificato che GitHub accetta la ripresa: una copia del disco troncata a 591.000.000 byte è stata completata scaricando solo la parte mancante, con l'impronta corretta.
+- Dopo la disinstallazione restava la cartella vuota: VBoxSVC, avviato per la prima volta durante l'installazione, ne aveva ereditato la cartella di lavoro. Ora PowerShell parte con la cartella di lavoro in `%TEMP%`, sia in installazione sia in disinstallazione.
+
+**Prova completa (Windows 11, VirtualBox 7.2.22, Wi-Fi).** Per non attendere il download lento è stato compilato un eseguibile di prova identico, con il disco servito da `127.0.0.1` (stesso file, stessa impronta).
+- Installazione silenziosa (`/S /D=…`): uscita 0 in 32 s. Presenti VM, attività pianificata in esecuzione, `installazione.json`, collegamento sul desktop, tre voci nel menu Start e voce in Impostazioni > App.
+- Primo avvio: schermata «Acasystem è pronto» con IP `192.168.1.20` e QR. Health `{"status":"ok","version":"0.9.76"}` dopo circa 67 minuti, perché la connessione era lenta (la VM aveva ricevuto 814 MB a circa 160 KB/s).
+- La voce «Mostra la schermata della centrale» del menu Start cattura la schermata e la apre nel visualizzatore.
+- Disinstallazione silenziosa: VM, attività, collegamenti, voce di registro e file rimossi in 15 s; restava la cartella vuota. Dopo la correzione, nuova installazione e disinstallazione in un'altra cartella: tutto rimosso in 9 s. VBoxSVC era già attivo, quindi la seconda prova non ricrea la condizione originale.
+- Eseguibile finale con l'indirizzo GitHub: `backup/rep20261119-exe/ACA-System-Setup-18.4-1.exe`, 115.510.265 byte, SHA-256 `36bedbee…0b57`, escluso da Git. Il download completo da GitHub con questo eseguibile non è stato ripetuto: la ripresa è verificata a parte.
+- Non verificati: firma del codice, un PC senza VirtualBox, Windows 10, PC con Smart App Control attivo.
+
 ## Verifiche ed evidenze
 
 | Controllo | Comando/procedura e ambiente | Esito | Evidenza e limiti |
@@ -341,8 +374,17 @@ Richiesta: «Procedi in automatico, non mi chiedere le cose per le prossime 2 or
 | Schermata sull'immagine generic | Screenshot e `zbarimg` | Superato dopo la correzione | Prima «Found 0 GPUs»; con `simpledrm` QR `http://192.168.1.16:3002/`. Solo VirtualBox, non hardware reale |
 | Aggiornamento 0.9.34 → 0.9.76.1 | Clone del catalogo nella VM riportato a `ff77efe`, poi `ha apps update` | Superato | Health `0.9.34` → `0.9.76`, nessun errore nei log; database senza dati reali |
 | Immagine `ova` con la schermata nella partizione dati | VM nuova con supervisore, screenshot e `GET /api/health` | Superato | Schermata con IP `192.168.1.18`, health `0.9.76`; `schermata-ova.png` |
+| Release `centrale-vm-18.4-1` | API GitHub, pre-release non «latest» | Superato | 3 allegati; «latest» resta `v0.9.34` |
+| `.exe` con Smart App Control attivo | Doppio clic sull'eseguibile non firmato | Bloccato | Nessuna possibilità di avviarlo; Smart App Control disattivato dall'utente, non aggirato |
+| Download da GitHub con l'`.exe` | Installazione silenziosa, Wi-Fi a circa 90 KB/s | Fallito | Connessione caduta al 51% dopo 55 min (curl 18); corretto con 20 tentativi che riprendono il download |
+| Ripresa del download da GitHub | `curl -C -` su una copia troncata a 591.000.000 byte | Superato | Impronta `631dd1ec…` corretta |
+| `.exe`: installazione e primo avvio | Eseguibile di prova con il disco da `127.0.0.1`, `/S` | Superato | Uscita 0 in 32 s; schermata con IP `192.168.1.20`, health `0.9.76` dopo circa 67 min (connessione lenta) |
+| `.exe`: Mostra la schermata | Voce del menu Start | Superato | Immagine aperta nel visualizzatore |
+| `.exe`: disinstallazione | `Disinstalla.exe /S` | Superato dopo la correzione | Prima restava la cartella vuota (occupata da VBoxSVC); dopo la correzione tutto rimosso in 9 s, ma con VBoxSVC già attivo |
 
 ## Chiusura e punto di ripresa
+
+Aggiornamento del 2026-11-19, pomeriggio: installatore `.exe` provato su questo PC dall'installazione alla disinstallazione, con il disco servito in locale; ripresa del download da GitHub verificata. Prossimo passo: prova dell'utente su un altro PC di casa con `backup/rep20261119-exe/ACA-System-Setup-18.4-1.exe` e `LEGGIMI.txt`. Restano: firma del codice (SmartScreen e Smart App Control), mini PC fisico, aggiornamenti OTA di HAOS.
 
 Aggiornamento del 2026-11-19, notte: immagine `.img` per il mini PC e chiavetta d'installazione provate in VM dall'inizio alla fine, schermata compresa; aggiornamento 0.9.34 → 0.9.76.1 superato. Restano: prova su un mini PC fisico, `.exe` per PC (il pacchetto di prova resta la soluzione provvisoria), permessi e dimensione della schermata, effetto degli aggiornamenti OTA di HAOS sulle modifiche al kernel.
 

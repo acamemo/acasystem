@@ -1,0 +1,32 @@
+ACA SYSTEM - installatore per Windows (ACA-System-Setup-<versione>.exe)
+
+Cosa installa (per l'utente di Windows che lo avvia, senza diritti di amministratore)
+  - la centrale ACA in una macchina virtuale VirtualBox: il disco (circa 600 MB) viene
+    scaricato da GitHub e controllato con la sua impronta prima dell'uso;
+  - il supervisore che avvia la centrale a ogni accesso a Windows;
+  - l'app Acasystem per PC, con collegamento sul desktop e voci nel menu Start.
+
+Prima di iniziare
+  - Windows 10 o 11 a 64 bit, VirtualBox 7 installato (https://www.virtualbox.org),
+    40 GB liberi, PC collegato alla rete di casa e a Internet.
+  - L'installatore non e firmato. Windows mostra "Windows ha protetto il PC": scegliere
+    "Ulteriori informazioni" e poi "Esegui comunque".
+  - Se in Sicurezza di Windows > Controllo app e browser > Smart App Control risulta
+    "Attivato", Windows blocca l'installatore senza alternative. Disattivarlo e una scelta
+    del proprietario del PC e non si puo riattivare senza reinstallare Windows; in
+    alternativa usare il pacchetto ZIP di prova.
+
+Installare
+  1. Doppio clic sul file .exe, poi "Avanti".
+  2. Si apre una finestra che scarica il disco della centrale: lasciarla lavorare. Con una
+     connessione lenta servono anche 1-2 ore; se la connessione cade, il download riprende
+     da dove si era fermato.
+  3. Alla fine la centrale parte. Al primo avvio scarica Home Assistant e Acasystem:
+     servono 10-20 minuti.
+  4. Menu Start > ACA SYSTEM > "Mostra la schermata della centrale": compaiono il codice QR
+     per telefono e tablet e l'indirizzo da inserire nell'app Acasystem per PC.
+  In caso di errore il registro e in %TEMP%\aca-installazione.log.
+
+Disinstallare
+  Menu Start > ACA SYSTEM > "Disinstalla ACA SYSTEM" (oppure Impostazioni > App).
+  Vengono eliminati la centrale con tutti i suoi dati e l'app per PC.
