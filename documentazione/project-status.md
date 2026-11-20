@@ -2313,3 +2313,12 @@ Verifica successiva della stessa prova: probe autenticato owner con `keeperActiv
 **Mitigazione 2026-11-18:** il supervisore legge le righe nuove di `VBox.log` e, al reset del guest, esegue `controlvm poweroff` e `startvm --type headless`; lo spegnimento voluto dal guest resta rispettato. 17 test unitari PASS; due riavvii reali superati (reset riconosciuto in circa 20 s, VM riaccesa in 4 s, HA in circa 1 min) e `ha host shutdown` rispettato. Da verificare: un vero aggiornamento di HAOS (lo spegnimento nel boot loader può consumare un tentativo di avvio dello slot), il PC del capo e l'integrazione nel kit. Causa interna del blocco dopo il reset non indagata.
 
 **Rumore e silenziamento TM, 2026-11-18:** la richiesta di risveglio `clocks` scrive 2 righe in `VBox.log` per chiamata finché VirtualBox silenzia il gruppo TM (circa 30 min). Alternative senza rumore non qualificate; supervisore su `clocks`, PASS dopo il riavvio gestito. Con il guest già in stallo (prova con `cpumguest`), `ha host shutdown` si è concluso con un reset ACPI e il supervisore ha riacceso la VM: caso limite da tenere presente. Proposta non applicata: far riconoscere a `Test-AcaVirtualBoxStability.ps1` la riga `muting it`. [REP-20261118-001](reports/REP-20261118-001-installer-exe-chiavetta-schermata-avvio.md).
+
+### ISSUE-168 — Attesa del primo avvio della centrale non comunicata
+
+**Aperta 2026-11-20, proposta dell'utente, non autorizzata all'implementazione ([REP-20261118-001](reports/REP-20261118-001-installer-exe-chiavetta-schermata-avvio.md)):** nella prova dell'`.exe` 18.4-2 su un altro PC di casa, durante il primo avvio la finestra della VM mostra la console di Home Assistant con Core `landingpage` e l'app Acasystem per PC risponde «Il mini PC non risponde. Controlla che sia acceso…». Sembra un guasto, ma è l'attesa normale del download di Home Assistant e Acasystem (15-30 minuti, secondo la connessione). L'utente chiede che il prossimo aggiornamento della centrale faccia capire l'attesa; rinviato con «Later».
+
+Proposte, nessuna applicata:
+1. App per PC e telefono: se l'indirizzo risponde sulle porte di Home Assistant ma non su 3002, mostrare «La centrale si sta preparando (primo avvio, 15-30 minuti)» e riprovare da sola. Cambia solo l'app.
+2. Centrale: messaggio a schermo dal servizio di primo avvio prima dell'installazione della schermata, che arriva solo dopo il download di Core. Richiede una nuova immagine e una nuova release del disco.
+3. Installatore: indicare sulla pagina finale un'attesa realistica (oggi 10-20 minuti).
