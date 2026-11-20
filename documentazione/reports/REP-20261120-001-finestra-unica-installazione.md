@@ -122,4 +122,6 @@ Piano dell'agente (2026-11-20):
 
 ## Chiusura e punto di ripresa
 
-Completato il 2026-11-20. Prossimo passo: prova dell'utente con `ACA-System-Setup-0.2.0.exe` su un altro PC, da pubblicare o consegnare su richiesta. Nessun incarico resta attivo in questo report.
+Completato il 2026-11-20. Prossimo passo: prova dell'utente con `ACA-System-Setup-0.2.0.exe` su un altro PC. Nessun incarico resta attivo in questo report.
+
+**Pubblicazione, 2026-11-20** (su richiesta dell'utente di scaricare il setup da GitHub): `ACA-System-Setup-0.2.0.exe` (115.529.097 byte, SHA-256 `e15365b5…9974`) e il nuovo `LEGGIMI.txt` sono allegati alla pre-release `centrale-vm-18.4-2`, insieme al disco che il setup scarica. `SHA256SUMS` è stato riscritto con le cinque impronte: un primo caricamento conteneva per errore la risposta JSON dell'API ed è stato sostituito. L'exe 18.4-2 resta allegato come versione precedente. Download anonimo verificato (HTTP 206).
