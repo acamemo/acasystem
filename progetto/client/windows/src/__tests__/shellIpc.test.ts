@@ -36,6 +36,8 @@ const m = vi.hoisted(() => ({
     isMinimized: vi.fn(),
     restore: vi.fn(),
     focus: vi.fn(),
+    isFocused: vi.fn(),
+    minimize: vi.fn(),
   },
   browserOptions: vi.fn(),
   openExternal: vi.fn(),
@@ -48,6 +50,16 @@ const m = vi.hoisted(() => ({
     enable: vi.fn(),
     ensureStarted: vi.fn(),
     pairingEndpoint: vi.fn(),
+  },
+  setup: {
+    getPhase: vi.fn(),
+    onChange: vi.fn(),
+    runChecks: vi.fn(),
+    start: vi.fn(),
+    cancel: vi.fn(),
+    resume: vi.fn(),
+    retry: vi.fn(),
+    dispose: vi.fn(),
   },
   createEngine: vi.fn(),
   bootstrap: vi.fn(),
@@ -83,6 +95,7 @@ vi.mock('../nodeHttp.ts', () => ({
   createNodeHttpClient: () => ({}),
   createNodeHaHttp: () => ({}),
 }));
+vi.mock('../setup/centralSetup.ts', () => ({ createCentralSetup: () => m.setup }));
 vi.mock('../localServer.ts', () => ({ startLocalServer: m.startServer }));
 vi.mock('../engine/localAppBootstrap.ts', () => ({
   bootstrapLocalApp: m.bootstrap,
@@ -103,7 +116,7 @@ const resourcesDescriptor = Object.getOwnPropertyDescriptor(
 );
 const invoke = (channel: string, senderFrame: { url: string } | undefined) =>
   m.handlers.get(channel)!({ senderFrame });
-const loadMain = async (): Promise<string> => {
+const loadMain = async (view: string = 'setup'): Promise<string> => {
   await import('../main.ts');
   await vi.waitFor(() => {
     const page = m.window.loadFile.mock.calls[0]?.[0] as string | undefined;
@@ -112,7 +125,7 @@ const loadMain = async (): Promise<string> => {
       m.handlers.get('shell:get-state')!({
         senderFrame: { url: pathToFileURL(page!).href },
       })?.view,
-    ).toBe('wizard');
+    ).toBe(view);
   });
   return pathToFileURL(m.window.loadFile.mock.calls[0]![0]).href;
 };
@@ -166,6 +179,12 @@ beforeEach(() => {
   });
   m.engine.pairingEndpoint.mockResolvedValue('http://192.168.1.20:3002');
   m.createEngine.mockReturnValue(m.engine);
+  m.setup.getPhase.mockReturnValue({ phase: 'welcome', checking: false, checks: [] });
+  m.setup.resume.mockResolvedValue(false);
+  m.setup.runChecks.mockResolvedValue(undefined);
+  m.setup.start.mockResolvedValue(undefined);
+  m.setup.cancel.mockResolvedValue(undefined);
+  m.setup.retry.mockResolvedValue(undefined);
   m.bootstrap.mockResolvedValue({ kind: 'prepared' });
   m.startup.mockResolvedValue({ kind: 'wizard' });
 });
@@ -229,7 +248,7 @@ describe('IPC Windows e separazione dal motore', () => {
 
   it('non espone più comandi di registrazione o attivazione VM', async () => {
     await loadMain();
-    for (const channel of ['shell:prepare-local-pc', 'shell:setup-owner', 'shell:setup-admin', 'shell:setup-home', 'shell:setup-retry']) {
+    for (const channel of ['shell:prepare-local-pc', 'shell:setup-owner', 'shell:setup-admin', 'shell:setup-home']) {
       expect(m.handlers.has(channel)).toBe(false);
     }
     expect(m.createEngine).not.toHaveBeenCalled();
@@ -238,7 +257,7 @@ describe('IPC Windows e separazione dal motore', () => {
   it('ignora il vecchio flag locale e chiede il mini PC se era salvato il loopback', async () => {
     m.engine.enabled.mockResolvedValue(true);
     m.config.load.mockResolvedValue({ host: '127.0.0.1', port: 3002 });
-    await loadMain();
+    await loadMain('wizard');
     expect(m.createEngine).not.toHaveBeenCalled();
     expect(m.engine.enabled).not.toHaveBeenCalled();
     expect(m.engine.ensureStarted).not.toHaveBeenCalled();
@@ -249,7 +268,9 @@ describe('IPC Windows e separazione dal motore', () => {
 
   it('l’app installata ignora le sostituzioni di prova e preferisce il bundle del mini PC', async () => {
     m.app.isPackaged = true;
-    await loadMain();
+    m.config.load.mockResolvedValue({ host: '192.168.1.20', port: 3002 });
+    m.startup.mockResolvedValue({ kind: 'wizard' });
+    await loadMain('wizard');
     expect(m.app.setPath).not.toHaveBeenCalled();
     expect(m.startServer).toHaveBeenCalledWith(47320);
     expect(m.createEngine).not.toHaveBeenCalled();
@@ -264,7 +285,89 @@ describe('IPC Windows e separazione dal motore', () => {
     expect(m.app.quit).toHaveBeenCalledOnce();
     m.events.get('will-quit')!();
     expect(m.closeServer).toHaveBeenCalledOnce();
+    expect(m.setup.dispose).toHaveBeenCalledOnce();
     expect(m.engine.ensureStarted).not.toHaveBeenCalled();
     expect(m.bootstrap).not.toHaveBeenCalled();
+  });
+
+  it('senza centrale salvata mostra la preparazione e avvia i controlli', async () => {
+    await loadMain();
+    expect(m.setup.resume).toHaveBeenCalledOnce();
+    expect(m.setup.runChecks).toHaveBeenCalledOnce();
+    expect(m.startup).not.toHaveBeenCalled();
+  });
+
+  it('riprende una preparazione già avviata senza rifare i controlli', async () => {
+    m.setup.resume.mockResolvedValue(true);
+    m.setup.getPhase.mockReturnValue({ phase: 'verify' });
+    await loadMain();
+    expect(m.setup.runChecks).not.toHaveBeenCalled();
+  });
+
+  it('con una centrale salvata non tocca il motore di preparazione', async () => {
+    m.config.load.mockResolvedValue({ host: '192.168.1.20', port: 3002 });
+    await loadMain('wizard');
+    expect(m.setup.resume).not.toHaveBeenCalled();
+    expect(m.setup.runChecks).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['shell:setup-checks', 'runChecks'],
+    ['shell:setup-start', 'start'],
+    ['shell:setup-cancel', 'cancel'],
+    ['shell:setup-retry', 'retry'],
+  ] as const)('%s risponde solo al guscio locale', async (channel, method) => {
+    const fileUrl = await loadMain();
+    m.setup.runChecks.mockClear();
+    for (const sender of [undefined, { url: `${origin}/` }, { url: 'https://example.com/' }]) {
+      await invoke(channel, sender);
+    }
+    expect(m.setup[method]).not.toHaveBeenCalled();
+    await invoke(channel, { url: fileUrl });
+    expect(m.setup[method]).toHaveBeenCalledOnce();
+  });
+
+  it('setup-use-existing e setup-new cambiano vista solo dal guscio', async () => {
+    const fileUrl = await loadMain();
+    const view = () => m.handlers.get('shell:get-state')!({ senderFrame: { url: fileUrl } })?.view;
+    await invoke('shell:setup-use-existing', { url: `${origin}/` });
+    expect(view()).toBe('setup');
+    await invoke('shell:setup-use-existing', { url: fileUrl });
+    await vi.waitFor(() => expect(view()).toBe('wizard'));
+    m.setup.runChecks.mockClear();
+    await invoke('shell:setup-new', { url: `${origin}/` });
+    expect(view()).toBe('wizard');
+    await invoke('shell:setup-new', { url: fileUrl });
+    await vi.waitFor(() => expect(view()).toBe('setup'));
+    expect(m.setup.runChecks).toHaveBeenCalledOnce();
+  });
+
+  it('setup-open collega la centrale solo se è pronta e la richiesta viene dal guscio', async () => {
+    const fileUrl = await loadMain();
+    const refused = { ok: false, message: expect.any(String) };
+    expect(await invoke('shell:setup-open', { url: fileUrl })).toEqual(refused);
+    m.setup.getPhase.mockReturnValue({ phase: 'ready', ip: '192.168.1.66', port: 3002, elapsedMinutes: 20, qr: [[true]] });
+    expect(await invoke('shell:setup-open', { url: `${origin}/` })).toEqual(refused);
+    expect(m.config.save).not.toHaveBeenCalled();
+  });
+
+  it('apertura di VirtualBox e riduzione a icona rispondono solo al guscio', async () => {
+    const fileUrl = await loadMain();
+    await invoke('shell:open-virtualbox-download', { url: 'https://example.com/' });
+    await invoke('shell:minimize', undefined);
+    expect(m.openExternal).not.toHaveBeenCalled();
+    expect(m.window.minimize).not.toHaveBeenCalled();
+    await invoke('shell:open-virtualbox-download', { url: fileUrl });
+    await invoke('shell:minimize', { url: fileUrl });
+    expect(m.openExternal).toHaveBeenCalledExactlyOnceWith('https://www.virtualbox.org/wiki/Downloads');
+    expect(m.window.minimize).toHaveBeenCalledOnce();
+  });
+
+  it('il passaggio a pronta con la finestra non attiva non rompe il guscio', async () => {
+    await loadMain();
+    const listener = m.setup.onChange.mock.calls[0]![0] as (phase: unknown) => void;
+    m.window.isFocused.mockReturnValue(false);
+    listener({ phase: 'ready', ip: '192.168.1.66', port: 3002, elapsedMinutes: 1, qr: [[true]] });
+    await vi.waitFor(() => expect(m.web.send).toHaveBeenCalledWith('shell:state', expect.objectContaining({ view: 'setup' })));
   });
 });

@@ -9,6 +9,7 @@
     />
     <title>Acasystem</title>
     <link rel="stylesheet" href="shell.css" />
+    <link rel="stylesheet" href="setup.css" />
   </head>
   <body data-view="loading">
     <main class="card aca-m aca-raised aca-card aca-md aca-m--static aca-m--card aca-m--md">
@@ -20,6 +21,107 @@
         <div class="spinner" aria-hidden="true"></div>
         <p id="loading-message">Avvio in corso…</p>
       </section>
+
+      <section class="view view-setup" aria-labelledby="sp-title">
+        <ol class="stepper" id="stepper" aria-label="Avanzamento della preparazione" hidden>
+          <li class="st" data-step="1"><span class="st-dot" aria-hidden="true"><span class="st-num">1</span><svg class="st-check" viewBox="0 0 22 22" focusable="false"><circle cx="11" cy="11" r="10"/><path d="M6.5 11.5 L9.5 14.2 L15.5 8"/></svg></span><span class="st-label">Scarico</span></li>
+          <li class="st-line" aria-hidden="true"></li>
+          <li class="st" data-step="2"><span class="st-dot" aria-hidden="true"><span class="st-num">2</span><svg class="st-check" viewBox="0 0 22 22" focusable="false"><circle cx="11" cy="11" r="10"/><path d="M6.5 11.5 L9.5 14.2 L15.5 8"/></svg></span><span class="st-label">Preparo</span></li>
+          <li class="st-line" aria-hidden="true"></li>
+          <li class="st" data-step="3"><span class="st-dot" aria-hidden="true"><span class="st-num">3</span><svg class="st-check" viewBox="0 0 22 22" focusable="false"><circle cx="11" cy="11" r="10"/><path d="M6.5 11.5 L9.5 14.2 L15.5 8"/></svg></span><span class="st-label">Pronta</span></li>
+        </ol>
+
+        <h1 id="sp-title" class="setup-title aca-type aca-type--title"></h1>
+        <p id="sp-sub" class="setup-sub" aria-live="polite"></p>
+
+        <div class="sp" data-sp="welcome">
+          <ul class="checklist panel" id="welcome-checks" aria-label="Controlli del PC"></ul>
+          <p id="welcome-hint" class="setup-note" hidden>Sistema le voci segnate in giallo, poi controlla di nuovo.</p>
+          <p class="setup-note">Ci vogliono circa 30 minuti, quasi tutti di attesa: puoi usare il PC nel frattempo.</p>
+          <div class="actions">
+            <button id="setup-start" type="button" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Prepara la centrale</span></span></span></span></button>
+            <button id="setup-recheck" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet" hidden><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Controlla di nuovo</span></span></span></span></button>
+            <button id="setup-existing" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Ho già una centrale o un mini PC</span></span></span></span></button>
+          </div>
+        </div>
+
+        <div class="sp" data-sp="virtualbox">
+          <ul class="checklist panel" id="vbox-checks" aria-label="Controlli del PC"></ul>
+          <ol class="howto">
+            <li>Scarica VirtualBox dal sito ufficiale e installalo con le opzioni proposte.</li>
+            <li>Torna qui e premi Controlla di nuovo.</li>
+          </ol>
+          <div class="actions">
+            <button id="vbox-download" type="button" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Scarica VirtualBox</span></span></span></span></button>
+            <button id="vbox-recheck" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">L'ho installato, controlla di nuovo</span></span></span></span></button>
+          </div>
+          <p class="setup-foot"><button id="vbox-existing" type="button" class="link-button">Hai un mini PC ACA? Collega quello</button></p>
+        </div>
+
+        <div class="sp" data-sp="progress">
+          <div class="panel metric" id="dl-metric">
+            <div class="metric-top"><span id="dl-percent" class="metric-percent">0%</span><span id="dl-eta" class="metric-eta"></span></div>
+            <div id="dl-bar" class="bar" role="progressbar" aria-label="Avanzamento" aria-valuemin="0" aria-valuemax="100"><div id="dl-fill" class="bar-fill"></div></div>
+            <span id="dl-bytes" class="metric-bytes"></span>
+            <span id="dl-live" class="sr-only" aria-live="polite"></span>
+          </div>
+          <ul class="notes" id="dl-notes">
+            <li><svg class="note-ic" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><span id="dl-note-resume">Se la connessione cade, riprendo da dove mi ero fermato.</span></li>
+            <li><svg class="note-ic" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Prima di usarlo controllo che il file sia quello originale.</span></li>
+          </ul>
+          <div class="actions" id="dl-actions">
+            <button id="setup-cancel" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Annulla</span></span></span></span></button>
+          </div>
+        </div>
+
+        <div class="sp" data-sp="preparing">
+          <ul class="checklist panel" id="prep-steps" aria-label="Passi della preparazione"></ul>
+          <p class="setup-note">Puoi ridurre a icona: ti avviso quando è pronta. Anche se chiudi l'app, la centrale continua da sola. Non spegnere il PC.</p>
+          <div class="actions-inline">
+            <button id="setup-minimize" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Riduci a icona</span></span></span></span></button>
+            <span id="prep-elapsed" class="elapsed"></span>
+          </div>
+        </div>
+
+        <div class="sp" data-sp="ready">
+          <p class="status-line"><span class="status-dot" aria-hidden="true"></span><span id="ready-ip"></span></p>
+          <div class="ready-grid">
+            <div class="panel ready-card ready-card--qr">
+              <div class="ready-text">
+                <h2 class="ready-h">Telefono o tablet</h2>
+                <p>Apri l'app Acasystem o la fotocamera e inquadra il codice.</p>
+              </div>
+              <div id="ready-qr" class="qr"></div>
+            </div>
+            <div class="panel ready-card">
+              <h2 class="ready-h">Questo PC</h2>
+              <p>Sei già collegato: nessun indirizzo da scrivere.</p>
+            </div>
+          </div>
+          <p class="setup-note">La centrale si avvia da sola a ogni accensione del PC e si aggiorna da sola.</p>
+          <p id="ready-message" class="message" role="alert"></p>
+          <div class="actions">
+            <button id="setup-open" type="button" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Apri Acasystem</span></span></span></span></button>
+          </div>
+        </div>
+
+        <div class="sp" data-sp="failed">
+          <p id="failed-message" class="message failed-message" role="alert"></p>
+          <div class="actions">
+            <button id="failed-retry" type="button" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Riprova</span></span></span></span></button>
+            <button id="failed-existing" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Ho già una centrale o un mini PC</span></span></span></span></button>
+          </div>
+        </div>
+      </section>
+
+      <template id="tpl-row">
+        <li class="row" data-status="pending">
+          <span class="row-icon" aria-hidden="true"><svg class="ic ic-ok" viewBox="0 0 20 20" focusable="false"><circle cx="10" cy="10" r="9"/><path d="M6 10.5 L8.8 13 L14 7.5"/></svg><svg class="ic ic-warn" viewBox="0 0 20 20" focusable="false"><circle cx="10" cy="10" r="9"/><path d="M10 5.5 V11"/><circle class="dot" cx="10" cy="14.2" r="1.1"/></svg><svg class="ic ic-spin" viewBox="0 0 20 20" focusable="false"><circle class="track" cx="10" cy="10" r="8"/><path d="M10 2 A8 8 0 0 1 18 10"/></svg><svg class="ic ic-pending" viewBox="0 0 20 20" focusable="false"><circle cx="10" cy="10" r="8"/></svg></span>
+          <span class="row-label"></span>
+          <span class="row-detail"></span>
+          <span class="sr-only row-status"></span>
+        </li>
+      </template>
 
       <section class="view view-wizard">
         <p class="lead">Collega ACA al mini PC della tua casa.</p>
@@ -35,6 +137,7 @@
           <p id="wizard-message" class="message" role="alert"></p>
           <button id="submit" type="submit" class="primary aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--primary"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Collega</span></span></span></span></button>
         </form>
+        <button id="setup-new" type="button" class="aca-m aca-raised aca-pill aca-lg aca-fx-press aca-fx-hover-light aca-m--press aca-m--pill aca-m--lg aca-m--quiet"><span class="aca-m__outer"><span class="aca-m__face"><span class="aca-m__content"><span class="aca-m__label">Prepara una centrale su questo PC</span></span></span></span></button>
       </section>
 
       <section class="view view-error view-fatal">

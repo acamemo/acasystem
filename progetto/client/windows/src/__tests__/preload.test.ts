@@ -33,13 +33,42 @@ describe('confine del preload Windows', () => {
       [
         'changeAddress',
         'getState',
+        'minimize',
         'onState',
+        'openVirtualBoxDownload',
         'retry',
+        'setupCancel',
+        'setupChecks',
+        'setupNew',
+        'setupOpen',
+        'setupRetry',
+        'setupStart',
+        'setupUseExisting',
         'submit',
       ].sort(),
     );
     await bridge!.submit!('192.168.1.20', '3002');
     expect(invoke).toHaveBeenCalledExactlyOnceWith('shell:submit', '192.168.1.20', '3002');
+  });
+
+  it('i comandi di preparazione della centrale usano canali dedicati, senza argomenti', async () => {
+    const { bridge, invoke } = load('file:///app/shell/index.html');
+    const channels: Record<string, string> = {
+      setupChecks: 'shell:setup-checks',
+      setupStart: 'shell:setup-start',
+      setupCancel: 'shell:setup-cancel',
+      setupRetry: 'shell:setup-retry',
+      setupUseExisting: 'shell:setup-use-existing',
+      setupNew: 'shell:setup-new',
+      setupOpen: 'shell:setup-open',
+      openVirtualBoxDownload: 'shell:open-virtualbox-download',
+      minimize: 'shell:minimize',
+    };
+    for (const [method, channel] of Object.entries(channels)) {
+      invoke.mockClear();
+      await bridge![method]!('ignorato');
+      expect(invoke).toHaveBeenCalledExactlyOnceWith(channel);
+    }
   });
 
   it('la UI su loopback riceve soltanto la lettura dell’endpoint', async () => {

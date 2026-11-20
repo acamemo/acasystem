@@ -1,20 +1,17 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Uscita,   # file .exe da creare, fuori dal repository
-    [string]$Versione = '18.4-2',
-    [string]$UrlDisco = 'https://github.com/acamemo/acasystem-releases/releases/download/centrale-vm-18.4-2/aca-centrale-vm-18.4-2.vdi.zip',
-    [string]$ImprontaDisco = '30e03ec078bc5501d67ad5fa0fc44d7570b3405424ac6b7ed1b67a07908e3d18',
-    [string]$ClientZip = (Join-Path $PSScriptRoot '..\..\client\windows\release\Acasystem-0.1.1-win-x64.zip'),
+    [string]$Versione = '0.2.0',
+    [string]$ClientZip = (Join-Path $PSScriptRoot '..\..\client\windows\release\Acasystem-0.2.0-win-x64.zip'),
     [string]$MakeNsis = (Join-Path $env:LOCALAPPDATA 'electron-builder\Cache\nsis-3.0.4.1\nsis-3.0.4.1-1mx3n\makensis.exe')
 )
-# Crea l'installatore .exe di ACA SYSTEM (REP-20261118-001): script della centrale, supervisore e
-# app per PC dentro l'eseguibile; il disco della centrale si scarica dalla release GitHub indicata.
+# Crea l'installatore .exe di ACA SYSTEM (REP-20261118-001, REP-20261120-001): app per PC, script della
+# centrale e supervisore dentro l'eseguibile. Il disco della centrale lo scarica l'app al primo avvio.
 # NSIS e quello gia scaricato da electron-builder per il client Windows.
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (Test-Path -LiteralPath $Uscita) { throw "Il file $Uscita esiste gia" }
 foreach ($f in $MakeNsis, $ClientZip) { if (-not (Test-Path -LiteralPath $f)) { throw "Non trovato: $f" } }
-if ($ImprontaDisco -notmatch '^[a-f0-9]{64}$') { throw 'Impronta del disco non valida' }
 
 $qui = $PSScriptRoot
 $pacchetto = Join-Path $qui '..\pacchetto-prova'
@@ -34,7 +31,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $client 'Acasystem.exe'))) { throw 'App per PC non estratta correttamente' }
 
     $out = [IO.Path]::GetFullPath($Uscita)
-    & $MakeNsis /V2 "/DVERSIONE=$Versione" "/DUSCITA=$out" "/DURL_DISCO=$UrlDisco" "/DIMPRONTA_DISCO=$ImprontaDisco" "/DSCRIPT_DIR=$script" "/DCLIENT_DIR=$client" (Join-Path $qui 'aca-system.nsi')
+    & $MakeNsis /V2 "/DVERSIONE=$Versione" "/DUSCITA=$out" "/DSCRIPT_DIR=$script" "/DCLIENT_DIR=$client" (Join-Path $qui 'aca-system.nsi')
     if ($LASTEXITCODE -ne 0) { throw 'Compilazione NSIS non riuscita' }
     Get-Item -LiteralPath $out | Select-Object FullName, Length, @{ n = 'SHA256'; e = { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } }
 } finally {

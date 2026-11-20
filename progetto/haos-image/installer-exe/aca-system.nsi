@@ -1,9 +1,11 @@
-; Installatore Windows di ACA SYSTEM (REP-20261118-001).
+; Installatore Windows di ACA SYSTEM (REP-20261118-001, semplificato da REP-20261120-001).
 ; Installa per l'utente corrente, senza diritti di amministratore:
-;  - la centrale ACA in VirtualBox (disco scaricato da GitHub con impronta fissata, supervisore all'accesso);
-;  - l'app Acasystem per PC.
+;  - l'app Acasystem per PC (cartella Client);
+;  - gli script della centrale (cartella Installatore), usati dall'app al primo avvio.
+; La centrale (download del disco, VirtualBox, creazione della macchina) la prepara l'app, non l'installatore:
+; la cartella Centrale non viene mai toccata da installazione o aggiornamento.
 ; Non installa VirtualBox e non cambia protezioni, firewall o piano energetico del PC.
-; Compilato da crea-installer.ps1, che passa VERSIONE, USCITA, URL_DISCO, IMPRONTA_DISCO, SCRIPT_DIR, CLIENT_DIR.
+; Compilato da crea-installer.ps1, che passa VERSIONE, USCITA, SCRIPT_DIR, CLIENT_DIR.
 
 Unicode true
 !include "MUI2.nsh"
@@ -29,11 +31,13 @@ VIAddVersionKey /LANG=1040 "LegalCopyright" "MeMo Srl - GPL-3.0"
 
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "Installazione di ACA SYSTEM"
-!define MUI_WELCOMEPAGE_TEXT "Verranno installati su questo PC:$\r$\n$\r$\n  - la centrale ACA, in una macchina virtuale VirtualBox;$\r$\n  - l'app Acasystem per PC.$\r$\n$\r$\nServono VirtualBox, una connessione a Internet e 40 GB liberi sul disco. Il PC deve essere collegato alla rete di casa.$\r$\n$\r$\nLa centrale parte da sola a ogni accesso a Windows e resta accesa finché il PC è acceso."
+!define MUI_WELCOMEPAGE_TEXT "Verrà installata l'app Acasystem. Al primo avvio ti guida nella preparazione della centrale di casa."
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_TITLE "ACA SYSTEM è installato"
-!define MUI_FINISHPAGE_TEXT "Al primo avvio la centrale scarica Home Assistant e Acasystem: servono 10-20 minuti.$\r$\n$\r$\nPoi apri dal menu Start la voce $\"Mostra la schermata della centrale$\": compaiono il codice QR per telefono e tablet e l'indirizzo da inserire nell'app Acasystem per PC."
+!define MUI_FINISHPAGE_TEXT "Acasystem ti guida nella preparazione della centrale di casa: servono circa 30 minuti, quasi tutti di attesa."
+!define MUI_FINISHPAGE_RUN "$INSTDIR\Client\Acasystem.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "Apri Acasystem"
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
@@ -44,29 +48,9 @@ Section "ACA SYSTEM"
     MessageBox MB_OK|MB_ICONSTOP "ACA SYSTEM richiede Windows a 64 bit." /SD IDOK
     Abort "Windows a 32 bit non supportato."
   ${EndIf}
-  ${IfNot} ${FileExists} "$PROGRAMFILES64\Oracle\VirtualBox\VBoxManage.exe"
-    MessageBox MB_OK|MB_ICONEXCLAMATION "VirtualBox non è installato.$\r$\n$\r$\nInstallarlo dal sito ufficiale che si apre ora, poi rilanciare questa installazione." /SD IDOK
-    ExecShell "open" "https://www.virtualbox.org/wiki/Downloads"
-    Abort "VirtualBox non installato."
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\Centrale\installazione.json"
-    MessageBox MB_OK|MB_ICONEXCLAMATION "ACA SYSTEM è già installato su questo PC.$\r$\nPer reinstallarlo usare prima $\"Disinstalla ACA SYSTEM$\" dal menu Start." /SD IDOK
-    Abort "ACA SYSTEM già installato."
-  ${EndIf}
-
   SetOutPath "$INSTDIR\Installatore"
+  DetailPrint "Copia degli script della centrale..."
   File /r "${SCRIPT_DIR}\*"
-  DetailPrint "Installazione della centrale: seguire la finestra che si apre (download di circa 600 MB)..."
-  ; Cartella di lavoro fuori da $INSTDIR: VBoxSVC, avviato qui per la prima volta, la erediterebbe e la terrebbe occupata.
-  SetOutPath "$TEMP"
-  ExecWait '${PS} -File "$INSTDIR\Installatore\Installa-Centrale.ps1" -Cartella "$INSTDIR\Centrale" -UrlDisco "${URL_DISCO}" -ImprontaDisco ${IMPRONTA_DISCO} -Conferma' $0
-  ${If} $0 != 0
-    RMDir /r "$INSTDIR\Installatore"
-    RMDir "$INSTDIR"
-    MessageBox MB_OK|MB_ICONSTOP "Installazione della centrale non riuscita (codice $0). Il PC non è stato modificato: correggere il problema indicato e riprovare." /SD IDOK
-    Abort "Installazione della centrale non riuscita."
-  ${EndIf}
-
   DetailPrint "Installazione dell'app Acasystem per PC..."
   SetOutPath "$INSTDIR\Client"
   File /r "${CLIENT_DIR}\*"

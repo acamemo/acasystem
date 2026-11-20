@@ -16,6 +16,16 @@ if (location.protocol === 'file:') {
     submit: (host: string, port: string): Promise<SubmitResult> => ipcRenderer.invoke('shell:submit', host, port),
     retry: (): Promise<void> => ipcRenderer.invoke('shell:retry'),
     changeAddress: (): Promise<void> => ipcRenderer.invoke('shell:change-address'),
+    // Preparazione della centrale su questo PC (REP-20261120-001).
+    setupChecks: (): Promise<void> => ipcRenderer.invoke('shell:setup-checks'),
+    setupStart: (): Promise<void> => ipcRenderer.invoke('shell:setup-start'),
+    setupCancel: (): Promise<void> => ipcRenderer.invoke('shell:setup-cancel'),
+    setupRetry: (): Promise<void> => ipcRenderer.invoke('shell:setup-retry'),
+    setupUseExisting: (): Promise<void> => ipcRenderer.invoke('shell:setup-use-existing'),
+    setupNew: (): Promise<void> => ipcRenderer.invoke('shell:setup-new'),
+    setupOpen: (): Promise<SubmitResult> => ipcRenderer.invoke('shell:setup-open'),
+    openVirtualBoxDownload: (): Promise<void> => ipcRenderer.invoke('shell:open-virtualbox-download'),
+    minimize: (): Promise<void> => ipcRenderer.invoke('shell:minimize'),
   });
 } else if (location.protocol === 'http:' && location.hostname === '127.0.0.1') {
   // La UI applicativa legge soltanto l'indirizzo della centrale configurata.

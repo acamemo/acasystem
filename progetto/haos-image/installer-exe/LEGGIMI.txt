@@ -1,14 +1,12 @@
 ACA SYSTEM - installatore per Windows (ACA-System-Setup-<versione>.exe)
 
 Cosa installa (per l'utente di Windows che lo avvia, senza diritti di amministratore)
-  - la centrale ACA in una macchina virtuale VirtualBox: il disco (circa 600 MB) viene
-    scaricato da GitHub e controllato con la sua impronta prima dell'uso;
-  - il supervisore che avvia la centrale a ogni accesso a Windows;
-  - l'app Acasystem per PC, con collegamento sul desktop e voci nel menu Start.
+  - l'app Acasystem per PC, con collegamento sul desktop e voci nel menu Start;
+  - gli script con cui l'app prepara la centrale di casa.
+La centrale (circa 600 MB) la scarica e la prepara l'app, non l'installatore.
 
 Prima di iniziare
-  - Windows 10 o 11 a 64 bit, VirtualBox 7 installato (https://www.virtualbox.org),
-    40 GB liberi, PC collegato alla rete di casa e a Internet.
+  - Windows 10 o 11 a 64 bit, 40 GB liberi, PC collegato alla rete di casa e a Internet.
   - L'installatore non e firmato. Windows mostra "Windows ha protetto il PC": scegliere
     "Ulteriori informazioni" e poi "Esegui comunque".
   - Se in Sicurezza di Windows > Controllo app e browser > Smart App Control risulta
@@ -17,14 +15,17 @@ Prima di iniziare
     alternativa usare il pacchetto ZIP di prova.
 
 Installare
-  1. Doppio clic sul file .exe, poi "Avanti".
-  2. Si apre una finestra che scarica il disco della centrale: lasciarla lavorare. Con una
-     connessione lenta servono anche 1-2 ore; se la connessione cade, il download riprende
-     da dove si era fermato.
-  3. Alla fine la centrale parte. Al primo avvio scarica Home Assistant e Acasystem:
-     servono 10-20 minuti.
-  4. Menu Start > ACA SYSTEM > "Mostra la schermata della centrale": compaiono il codice QR
-     per telefono e tablet e l'indirizzo da inserire nell'app Acasystem per PC.
+  1. Doppio clic sul file .exe, poi "Avanti" e "Fine" (lasciare spuntato "Apri Acasystem").
+  2. L'app si apre e guida i passi successivi: controlla il PC, scarica la centrale, la
+     prepara e alla fine mostra il codice QR per telefono e tablet.
+  3. VirtualBox (https://www.virtualbox.org) non serve prima: se manca, l'app lo dice e
+     apre la pagina di download; poi si torna all'app e si preme "Controlla di nuovo".
+  4. Tempi: circa 30 minuti, quasi tutti di attesa (download e primo avvio della
+     centrale). Con una connessione lenta il download puo richiedere piu tempo; se la
+     connessione cade, riprende da dove si era fermato. Si puo usare il PC nel frattempo
+     e ridurre a icona la finestra: l'app avvisa quando la centrale e pronta.
+  Reinstallare o aggiornare l'app sopra una versione esistente e possibile e non tocca la
+  centrale gia creata.
   In caso di errore il registro e in %TEMP%\aca-installazione.log.
 
 Disinstallare

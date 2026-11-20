@@ -7,7 +7,11 @@ param(
     # Installatore .exe: disco scaricato da GitHub con impronta fissata, conferma gia data nella procedura.
     [string]$UrlDisco = '',
     [ValidatePattern('^([a-f0-9]{64})?$')][string]$ImprontaDisco = '',
-    [switch]$Conferma
+    [switch]$Conferma,
+    # App Windows: disco .vdi gia scaricato e verificato (viene spostato nella cartella della centrale);
+    # -NonInterattivo implica -Conferma e non attende mai l'utente: gli errori escono come 'ERRORE: ...' con codice 1.
+    [string]$Disco = '',
+    [switch]$NonInterattivo
 )
 # Pacchetto di prova ACA (REP-20261118-001): crea la VM VirtualBox della centrale dal disco
 # incluso, la collega alla rete del PC e avvia il supervisore all'accesso a Windows.
@@ -16,12 +20,12 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $pacchetto = $PSScriptRoot
 # Installatore .exe: registro dell'installazione, utile se la finestra si chiude.
-if ($Conferma) { try { Start-Transcript -Path (Join-Path $env:TEMP 'aca-installazione.log') -Append | Out-Null } catch {} }
+if ($Conferma -or $NonInterattivo) { try { Start-Transcript -Path (Join-Path $env:TEMP 'aca-installazione.log') -Append | Out-Null } catch {} }
 
 function Scrivi([string]$Testo) { Write-Host $Testo }
 function Fallisci([string]$Testo) {
     Write-Host ''; Write-Host "ERRORE: $Testo" -ForegroundColor Red
-    if ($Conferma) { Read-Host 'Premere Invio per chiudere' | Out-Null }
+    if ($Conferma -and -not $NonInterattivo) { Read-Host 'Premere Invio per chiudere' | Out-Null }
     exit 1
 }
 
@@ -35,8 +39,14 @@ function VBox([string[]]$Argomenti) {
     return $out
 }
 
-$disco = Get-ChildItem -LiteralPath (Join-Path $pacchetto 'centrale') -Filter '*.vdi' -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $disco -and -not ($UrlDisco -and $ImprontaDisco)) { Fallisci 'Disco della centrale (.vdi) non trovato nella cartella centrale.' }
+# Attenzione: PowerShell non distingue maiuscole, $disco sarebbe lo stesso parametro $Disco: variabile con altro nome.
+if ($Disco) {
+    if ($Disco -notlike '*.vdi' -or -not (Test-Path -LiteralPath $Disco -PathType Leaf)) { Fallisci 'Il disco della centrale (.vdi) non e stato trovato.' }
+    $discoPronto = Get-Item -LiteralPath $Disco
+} else {
+    $discoPronto = Get-ChildItem -LiteralPath (Join-Path $pacchetto 'centrale') -Filter '*.vdi' -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+if (-not $discoPronto -and -not ($UrlDisco -and $ImprontaDisco)) { Fallisci 'Disco della centrale (.vdi) non trovato nella cartella centrale.' }
 
 # Integrita del pacchetto: controlla i file elencati in SHA256SUMS.
 $somme = Join-Path $pacchetto 'SHA256SUMS'
@@ -65,13 +75,19 @@ Scrivi ''
 Scrivi "Centrale ACA: VM $NomeVm, $Cpu CPU, $MemoriaMB MB di memoria, rete '$($scheda.Name)'."
 Scrivi "Cartella: $Cartella"
 Scrivi 'La centrale parte da sola a ogni accesso a Windows e resta accesa finche il PC e acceso.'
-if (-not $Conferma -and (Read-Host 'Scrivere SI per installare') -ne 'SI') { Scrivi 'Installazione annullata.'; exit 0 }
+if (-not $Conferma -and -not $NonInterattivo -and (Read-Host 'Scrivere SI per installare') -ne 'SI') { Scrivi 'Installazione annullata.'; exit 0 }
 
 New-Item -ItemType Directory -Path $Cartella -Force | Out-Null
-if ($disco) {
-    $discoVm = Join-Path $Cartella $disco.Name
-    Scrivi 'Copia del disco della centrale...'
-    Copy-Item -LiteralPath $disco.FullName -Destination $discoVm
+if ($discoPronto) {
+    $discoVm = Join-Path $Cartella $discoPronto.Name
+    if ($Disco) {
+        # Disco scaricato dall'app: e nostro, si sposta senza duplicare 8 GB.
+        Scrivi 'Spostamento del disco della centrale...'
+        Move-Item -LiteralPath $discoPronto.FullName -Destination $discoVm
+    } else {
+        Scrivi 'Copia del disco della centrale...'
+        Copy-Item -LiteralPath $discoPronto.FullName -Destination $discoVm
+    }
 } else {
     # Disco da GitHub: curl.exe e tar.exe sono inclusi in Windows 10 1803 e successivi.
     $zip = Join-Path $Cartella 'disco-centrale.zip'

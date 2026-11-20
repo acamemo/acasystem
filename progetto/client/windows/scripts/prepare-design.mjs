@@ -9,3 +9,4 @@ if (!fileURLToPath(output).startsWith(windows)) throw new Error('Output del laun
 await rm(output, { recursive: true, force: true });
 await copyShellAssets(output);
 await copyFile(new URL('../shell/index.html', import.meta.url), new URL('index.html', output));
+await copyFile(new URL('../shell/setup.css', import.meta.url), new URL('setup.css', output));
