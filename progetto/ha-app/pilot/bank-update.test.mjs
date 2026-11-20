@@ -139,7 +139,9 @@ test('directory dedicata con ACL Windows esplicita; nessuna modifica permessi ho
     assert.equal(calls[0][2].env.PSModulePath, 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules');
     const script = Buffer.from(calls[0][1].at(-1), 'base64').toString('utf16le');
     assert.ok(script.includes('SetAccessRuleProtection($true,$false)'));
-    assert.ok(script.includes('S-1-5-18')); assert.ok(script.includes('Set-Acl -LiteralPath'));
+    assert.ok(script.includes('S-1-5-18')); assert.ok(script.includes('$AcaItem.SetAccessControl($AcaAcl)'));
+    // Set-Acl scrive anche la SACL: con file già nella cartella servirebbe SeSecurityPrivilege.
+    assert.ok(!script.includes('Set-Acl'));
     if (process.platform === 'win32') {
       const parser = '$ErrorActionPreference="Stop";Get-Command Get-Acl -ErrorAction Stop|Out-Null;$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseInput([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($env:ACA_BANK_SCRIPT_TO_PARSE)),[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){exit 2}';
       execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(parser, 'utf16le').toString('base64')], {
