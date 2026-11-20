@@ -1,5 +1,22 @@
 # ACA SYSTEM — Specifica di design
 
+## Finestra unica di installazione dell'app per PC, v2 (approvata 2026-11-20)
+
+Approvata dall'utente («Approve v2») il 2026-11-20 per [REP-20261120-001](../reports/REP-20261120-001-finestra-unica-installazione.md). Le demo sono nel canvas privato «Finestra unica di installazione», riga «Proposta v2». È la rifinitura delle viste locali del guscio Windows (installazione, collegamento, errori), nello stesso Vetro Bianco: paesaggio, una card di vetro, testo bianco. La revisione è stata fatta con le skill impeccable, Apple design e UI/UX Pro Max su richiesta dell'utente.
+- **Pulsanti:**
+  - un solo pulsante principale per vista, bianco pieno con testo scuro, alto 48 px, a destra;
+  - l'alternativa è trasparente con bordo, alta 44 px, a sinistra, come negli installatori desktop;
+  - anello del fuoco visibile su ogni pulsante.
+- **Avanzamento:** percentuale grande al centro sopra la barra (12 px, riempimento bianco), sotto «Tempo stimato» e «Tempo trascorso»; nella preparazione la percentuale è quella reale riportata dalla centrale.
+- **Tipografia:** titoli 28 px, peso 600, spaziatura -0,02 em; tutte le cifre a larghezza fissa.
+- **Pronta:**
+  - spunta verde disegnata una volta all'ingresso, disattivata con movimento ridotto;
+  - QR da 140 px e indirizzo con «Copia»;
+  - «Apri Acasystem» a destra.
+- **Movimento:** ingresso della vista con dissolvenza e salita di 8 px in 240 ms; solo dissolvenza con movimento ridotto.
+
+L'utente ha indicato che, dopo questa fase, la stessa revisione passerà a tutta l'app, con demo da approvare prima.
+
 ## Schermata di avvio della centrale in Vetro Bianco (approvata 2026-11-18)
 
 Approvata dall'utente («Approve») il 2026-11-18 per REQ-29: [REP-20261118-001](../reports/REP-20261118-001-installer-exe-chiavetta-schermata-avvio.md), fonti in `progetto/ha-app/schermata-avvio/page/`. Usa il design condiviso corrente (Vetro Bianco, ADR-0043) senza nuovi token: paesaggio con velo, una sola card di vetro, riquadri interni senza filtro, QR nero su bianco, Inter locale. Composizione dalla reference Reolink fornita dall'utente, senza pulsanti né schede: titolo, riga «Rete / Indirizzo IP», riquadro «Telefono o tablet» con passi e QR, riquadro «Computer» con l'indirizzo. Senza rete: titolo «Acasystem si sta collegando» e indicazione sul cavo, senza QR né indirizzo. Testi non sotto la taglia base; sui TV la card è ingrandita in proporzione. Sostituisce l'anteprima del 2026-11-04 descritta più sotto, che resta conservata come storico.

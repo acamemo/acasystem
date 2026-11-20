@@ -1,3 +1,8 @@
+::selection {
+  background: #e0d5ff;
+  color: #28213d;
+}
+
 /*
  * Preparazione della centrale su questo PC (REP-20261120-001): composizione delle viste dentro la
  * stessa scheda del guscio. Pulsanti e campi sono le primitive design-aca; qui solo layout.
@@ -5,6 +10,24 @@
 /* Il guscio è il vetro scuro sul paesaggio con testo bianco: colori chiari. Con trasparenza
    ridotta la scheda diventa bianca opaca con testo scuro: colori scuri. */
 :root {
+  /* Testo, linee e pulsanti sul vetro scuro (v2 approvata 2026-11-20). */
+  --st-ink: #fff;
+  --st-ink-2: rgb(255 255 255 / 80%);
+  --st-ink-3: rgb(255 255 255 / 72%);
+  --st-line: rgb(255 255 255 / 18%);
+  --st-line-soft: rgb(255 255 255 / 12%);
+  --st-panel: rgb(255 255 255 / 6%);
+  --st-track: rgb(255 255 255 / 16%);
+  --st-fill: #fff;
+  --st-btn-bg: rgb(255 255 255 / 94%);
+  --st-btn-bg-hover: #fff;
+  --st-btn-ink: #13201c;
+  --st-btn-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  --st-btn2-ink: #fff;
+  --st-btn2-border: rgb(255 255 255 / 40%);
+  --st-btn2-hover: rgb(255 255 255 / 12%);
+  --st-focus: #fff;
+  --st-dot-line: rgb(255 255 255 / 50%);
   --setup-ok: oklch(76% 0.15 160);
   --setup-ok-ink: oklch(24% 0.05 160);
   --setup-warn: oklch(80% 0.13 80);
@@ -17,6 +40,23 @@
     --setup-ok-ink: #fff;
     --setup-warn: oklch(55% 0.13 65);
     --setup-warn-ink: oklch(42% 0.1 60);
+    --st-ink: #222235;
+    --st-ink-2: #545368;
+    --st-ink-3: #545368;
+    --st-line: #8b849f;
+    --st-line-soft: rgb(34 34 53 / 18%);
+    --st-panel: transparent;
+    --st-track: rgb(34 34 53 / 14%);
+    --st-fill: #5036b8;
+    --st-btn-bg: #222235;
+    --st-btn-bg-hover: #000;
+    --st-btn-ink: #fff;
+    --st-btn-shadow: none;
+    --st-btn2-ink: #222235;
+    --st-btn2-border: #8b849f;
+    --st-btn2-hover: rgb(34 34 53 / 8%);
+    --st-focus: #5036b8;
+    --st-dot-line: #8b849f;
   }
 }
 
@@ -41,12 +81,19 @@ body[data-view='setup'] .view-setup {
   text-align: left;
 }
 
-body[data-view='setup'] .card {
-  width: min(34rem, 100%);
+/* Scheda: 560 px (580 in preparazione, 600 a centrale pronta), vetro del tema invariato. */
+body:is([data-view='setup'], [data-view='wizard'], [data-view='error'], [data-view='fatal']) .card {
+  --aca-pad: 30px 36px;
+  --aca-radius: 28px;
+  width: min(35rem, 100%);
+}
+
+body[data-view='setup'][data-phase='preparing'] .card {
+  width: min(36.25rem, 100%);
 }
 
 body[data-view='setup'][data-phase='ready'] .card {
-  width: min(40rem, 100%);
+  width: min(37.5rem, 100%);
 }
 
 /* Il titolo di ogni vista sostituisce logo e titolo generico del guscio. */
@@ -55,8 +102,22 @@ body[data-view='setup'] .shell-content > h1 {
   display: none;
 }
 
+/* Titoli e sottotitoli delle viste locali. */
+.setup-title,
+body:not([data-view='setup']) .shell-content > h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
 .setup-title {
-  margin: 0 0 var(--aca-space-1);
+  margin: 0;
+}
+
+body:not([data-view='setup']) .shell-content > h1 {
+  margin: var(--aca-space-3) 0 var(--aca-space-3);
 }
 
 /* Il titolo riceve il fuoco a ogni cambio di vista per i lettori di schermo: nessuna cornice. */
@@ -64,11 +125,81 @@ body[data-view='setup'] .shell-content > h1 {
   outline: none;
 }
 
+/* Intestazione: segno (logo o spunta) accanto a titolo e sottotitolo. */
+.sp-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 16px;
+}
+
+.sp-headtext {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sp-mark,
+.sp-logo,
+.sp-done {
+  display: none;
+}
+
+body[data-phase='welcome'] .sp-mark,
+body[data-phase='ready'] .sp-mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+}
+
+body[data-phase='welcome'] .sp-logo {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+body[data-phase='ready'] .sp-done {
+  display: block;
+  width: 48px;
+  height: 48px;
+}
+
+.sp-done circle {
+  fill: var(--setup-ok);
+}
+
+/* La spunta si disegna una sola volta all'ingresso; il tratto è normalizzato con pathLength. */
+.sp-done path {
+  fill: none;
+  stroke: var(--setup-ok-ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  animation: setup-draw 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both;
+}
+
+@keyframes setup-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 .setup-sub {
   min-height: 1.45em;
-  margin: 0 0 var(--aca-space-4);
-  color: var(--k2-ink-muted);
+  margin: 0;
+  color: var(--st-ink-2);
+  font-size: 0.9375rem;
   line-height: 1.45;
+  font-variant-numeric: tabular-nums;
 }
 
 .setup-sub:empty {
@@ -78,7 +209,11 @@ body[data-view='setup'] .shell-content > h1 {
 .sp {
   display: none;
   flex-direction: column;
-  gap: var(--aca-space-4);
+  gap: 16px;
+}
+
+body[data-phase='ready'] .sp {
+  gap: 20px;
 }
 
 .sp.is-active {
@@ -88,9 +223,13 @@ body[data-view='setup'] .shell-content > h1 {
 .setup-note,
 .setup-foot {
   margin: 0;
-  color: var(--k2-ink-muted);
-  font-size: var(--aca-step--1);
+  color: var(--st-ink-2);
+  font-size: 0.8125rem;
   line-height: 1.5;
+}
+
+.setup-note--lg {
+  font-size: 0.875rem;
 }
 
 .setup-foot {
@@ -109,14 +248,20 @@ body[data-view='setup'] .shell-content > h1 {
 }
 
 .link-button:hover {
-  color: var(--k2-ink);
+  color: var(--st-ink);
+}
+
+.link-button:focus-visible {
+  outline: 2px solid var(--st-focus);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .panel {
-  padding: var(--aca-space-2) var(--aca-space-4);
-  border: 1px solid color-mix(in oklch, var(--k2-ink) 14%, transparent);
-  border-radius: var(--k2-radius);
-  background: color-mix(in oklch, var(--k2-ink) 4%, transparent);
+  padding: 4px 18px;
+  border: 1px solid var(--st-line);
+  border-radius: 18px;
+  background: var(--st-panel);
 }
 
 /* Elenco con icona di stato, etichetta e dettaglio a destra. */
@@ -125,16 +270,42 @@ body[data-view='setup'] .shell-content > h1 {
   list-style: none;
 }
 
+/* Elenco compatto: i passi della preparazione stanno sotto il blocco di avanzamento. */
+.checklist--compact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.checklist--compact .row {
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.checklist--compact .row + .row {
+  border-top: 0;
+}
+
+.checklist--compact .row-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
 .row {
   display: flex;
   align-items: center;
-  gap: var(--aca-space-3);
-  padding: var(--aca-space-3) 0;
-  color: var(--k2-ink);
+  gap: 12px;
+  padding: 12px 0;
+  color: var(--st-ink);
+  font-size: 0.9375rem;
+  font-weight: 500;
 }
 
 .row + .row {
-  border-top: 1px solid color-mix(in oklch, var(--k2-ink) 12%, transparent);
+  border-top: 1px solid var(--st-line-soft);
 }
 
 .row-label {
@@ -146,10 +317,12 @@ body[data-view='setup'] .shell-content > h1 {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 55%;
-  color: var(--k2-ink-muted);
-  font-size: var(--aca-step--1);
+  color: var(--st-ink-3);
+  font-size: 0.875rem;
+  font-weight: 400;
   text-align: right;
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .row-icon {
@@ -200,21 +373,21 @@ body[data-view='setup'] .shell-content > h1 {
 }
 
 .ic-spin .track {
-  stroke: color-mix(in oklch, var(--k2-ink) 20%, transparent);
+  stroke: color-mix(in oklch, var(--st-ink) 25%, transparent);
   stroke-width: 2.5;
 }
 
 .ic-spin path {
-  stroke: var(--k2-accent);
+  stroke: var(--st-ink);
   stroke-width: 2.5;
 }
 
 .ic-spin {
-  animation: setup-spin 0.9s linear infinite;
+  animation: setup-spin 1.1s linear infinite;
 }
 
 .ic-pending circle {
-  stroke: color-mix(in oklch, var(--k2-ink) 40%, transparent);
+  stroke: color-mix(in oklch, var(--st-ink) 40%, transparent);
   stroke-width: 1.5;
 }
 
@@ -228,7 +401,7 @@ body[data-view='setup'] .shell-content > h1 {
 }
 
 .row[data-status='pending'] .row-label {
-  color: var(--k2-ink-muted);
+  color: var(--st-ink-3);
 }
 
 @keyframes setup-spin {
@@ -241,6 +414,8 @@ body[data-view='setup'] .shell-content > h1 {
 .howto {
   margin: 0;
   padding-left: 1.4rem;
+  color: var(--st-ink-2);
+  font-size: 0.9375rem;
   line-height: 1.5;
 }
 
@@ -252,34 +427,35 @@ body[data-view='setup'] .shell-content > h1 {
 .stepper {
   display: flex;
   align-items: center;
-  gap: var(--aca-space-2);
-  margin: 0 0 var(--aca-space-4);
+  gap: 8px;
+  margin: 0 0 16px;
   padding: 0;
   list-style: none;
-  color: var(--k2-ink-muted);
-  font-size: var(--aca-step--1);
+  color: var(--st-ink-3);
+  font-size: 0.8125rem;
 }
 
 .st {
   display: flex;
   align-items: center;
-  gap: var(--aca-space-2);
+  gap: 6px;
 }
 
 .st-line {
   flex: 1 1 auto;
   height: 1px;
-  background: color-mix(in oklch, var(--k2-ink) 25%, transparent);
+  background: color-mix(in oklch, var(--st-ink) 26%, transparent);
 }
 
 .st-dot {
   display: grid;
   place-items: center;
-  width: 1.375rem;
-  height: 1.375rem;
-  border: 1px solid color-mix(in oklch, var(--k2-ink) 45%, transparent);
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--st-dot-line);
   border-radius: 50%;
   font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .st-check {
@@ -301,14 +477,15 @@ body[data-view='setup'] .shell-content > h1 {
 }
 
 .st[data-state='current'] {
-  color: var(--k2-ink);
-  font-weight: var(--aca-weight-medium);
+  color: var(--st-ink);
+  font-weight: 600;
 }
 
+/* Passo attivo: cerchio bianco pieno con il numero scuro. */
 .st[data-state='current'] .st-dot {
   border-color: transparent;
-  background: var(--k2-accent);
-  color: #fff;
+  background: var(--st-btn-bg);
+  color: var(--st-btn-ink);
   font-weight: 600;
 }
 
@@ -324,51 +501,120 @@ body[data-view='setup'] .shell-content > h1 {
   display: block;
 }
 
-/* Scarico: percentuale, barra, byte. */
+/* Scarico e preparazione: riquadro con percentuale, barra, tempi e byte. */
 .metric {
   display: flex;
   flex-direction: column;
-  gap: var(--aca-space-3);
-  padding: var(--aca-space-4);
+  gap: 10px;
+  padding: 18px 22px 16px;
 }
 
-.metric-top {
+/* Blocco di avanzamento condiviso: etichetta, percentuale, barra, tempi. */
+.pg {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--aca-space-3);
+  flex-direction: column;
+  gap: 10px;
 }
 
-.metric-percent {
-  font-size: 2.125rem;
+.pg-label {
+  margin: 0;
+  color: var(--st-ink-2);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.pg-percent {
+  margin: 0;
+  font-size: 2.75rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.metric-eta,
-.metric-bytes {
-  color: var(--k2-ink-muted);
-  font-size: var(--aca-step--1);
+/* Senza percentuale lo spazio resta occupato: il blocco non cambia altezza. */
+.pg-percent[hidden] {
+  display: block;
+  visibility: hidden;
 }
 
-.bar {
-  height: 0.625rem;
+.pg-bar {
+  height: 12px;
   overflow: hidden;
-  border-radius: 0.3125rem;
-  background: color-mix(in oklch, var(--k2-ink) 14%, transparent);
+  border-radius: 6px;
+  background: var(--st-track);
 }
 
-.bar-fill {
+.pg-fill {
   width: 0;
   height: 100%;
-  border-radius: 0.3125rem;
-  background: var(--k2-accent);
+  border-radius: inherit;
+  background: var(--st-fill);
 }
 
-.bar.is-indeterminate .bar-fill {
+.pg-bar.is-indeterminate .pg-fill {
   width: 35%;
-  animation: setup-slide 1.4s ease-in-out infinite alternate;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--st-fill) 70%, transparent),
+    var(--st-fill),
+    color-mix(in oklch, var(--st-fill) 70%, transparent)
+  );
+  background-size: 200% 100%;
+  animation:
+    setup-slide 1.4s ease-in-out infinite alternate,
+    setup-sheen 1.8s linear infinite;
+}
+
+.pg-times {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin: 0;
+}
+
+.pg-times[hidden] {
+  display: none;
+}
+
+.pg-times > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pg-times > div:last-child {
+  text-align: right;
+}
+
+.pg-times dt {
+  color: var(--st-ink-3);
+  font-size: 0.75rem;
+}
+
+.pg-times dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-bytes {
+  color: var(--st-ink-3);
+  font-size: 0.8125rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes setup-sheen {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
 }
 
 @keyframes setup-slide {
@@ -381,114 +627,233 @@ body[data-view='setup'] .shell-content > h1 {
   }
 }
 
-.notes {
+/* Piè di vista: alternativa a sinistra, azione principale a destra; a stretto va a capo. */
+.foot {
   display: flex;
-  flex-direction: column;
-  gap: var(--aca-space-3);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
+.foot-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.foot--note .setup-note {
+  flex: 1 1 14rem;
+}
+
+body[data-view='fatal'] .view-fatal .foot {
+  display: none;
+}
+
+.app-version {
+  color: var(--st-ink-3);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.foot > .app-version {
   margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--k2-ink-muted);
-  font-size: var(--aca-step--1);
-  line-height: 1.45;
 }
 
-.notes li {
-  display: flex;
-  gap: var(--aca-space-3);
+/* La versione sta nel piè di vista di scarico e pronta; negli altri passi non serve. */
+body[data-phase='download'] #version,
+body[data-phase='verify'] #version,
+body[data-phase='creating'] #version,
+body[data-phase='preparing'] #version,
+body[data-phase='ready'] #version {
+  display: none;
 }
 
-.note-ic {
-  flex: 0 0 auto;
-  width: 1.125rem;
-  height: 1.125rem;
-  margin-top: 1px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+#version {
+  margin: 16px 0 0;
+  text-align: center;
 }
 
-/* Preparazione. */
-.actions-inline {
+/* Pulsanti: la primitiva ACA fornisce struttura, fuoco e pressione; qui solo il disegno v2.
+   Secondario: trasparente con bordo, 44 px. Principale: bianco pieno con testo scuro, 48 px. */
+main.card button.aca-m {
+  --btn-h: 44px;
+  --btn-px: 20px;
+  --aca-press: 100ms;
+  --aca-press-scale: 0.97;
+  width: auto;
+  box-shadow: none;
+  border-radius: 22px;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+main.card button.aca-m.primary {
+  --btn-h: 48px;
+  --btn-px: 28px;
+  border-radius: 24px;
+  font-size: 0.9375rem;
+}
+
+main.card button.aca-m > .aca-m__outer {
+  box-sizing: border-box;
+  height: var(--btn-h);
+  border: 1px solid var(--st-btn2-border);
+  border-radius: inherit;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    transform 100ms ease-out,
+    background-color 150ms ease-out;
+}
+
+main.card button.aca-m.primary > .aca-m__outer {
+  border-color: transparent;
+  background: var(--st-btn-bg);
+  box-shadow: var(--st-btn-shadow);
+}
+
+main.card button.aca-m > .aca-m__outer > .aca-m__face {
   display: flex;
   align-items: center;
-  gap: var(--aca-space-3);
+  justify-content: center;
+  height: 100%;
+  padding: 0 calc(var(--btn-px) - 1px);
+  border-radius: inherit;
+  background: none;
+  box-shadow: none;
+  clip-path: none;
+  overflow: visible;
+  filter: none;
 }
 
-.actions-inline button {
-  flex: 1 1 auto;
+main.card button.aca-m > .aca-m__outer > .aca-m__face::before,
+main.card button.aca-m > .aca-m__outer > .aca-m__face::after {
+  display: none;
 }
 
-.elapsed {
+main.card button.aca-m .aca-m__label {
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: var(--st-btn2-ink);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+main.card button.aca-m.primary .aca-m__label {
+  color: var(--st-btn-ink);
+  font-weight: 600;
+}
+
+main.card button.aca-m:focus-visible,
+.btn-copy:focus-visible {
+  outline: 2px solid var(--st-focus);
+  outline-offset: 3px;
+}
+
+main.card button.aca-m:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  main.card button.aca-m:hover:not(:disabled) > .aca-m__outer {
+    background: var(--st-btn2-hover);
+  }
+
+  main.card button.aca-m.primary:hover:not(:disabled) > .aca-m__outer {
+    background: var(--st-btn-bg-hover);
+  }
+
+  .btn-copy:hover {
+    background: var(--st-btn2-hover);
+  }
+}
+
+/* Copia indirizzo: pulsante secondario piccolo, 32 px. */
+.btn-copy {
   flex: 0 0 auto;
-  color: var(--k2-ink-muted);
-  font-size: var(--aca-step--1);
+  width: auto;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--st-btn2-border);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--st-btn2-ink);
+  font: 500 0.8125rem/1 var(--aca-font, inherit);
+  cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    background-color 150ms ease-out;
+}
+
+.btn-copy:active {
+  transform: scale(0.97);
 }
 
 /* Pronta. */
-.status-line {
-  display: flex;
-  align-items: center;
-  gap: var(--aca-space-2);
-  margin: calc(var(--aca-space-2) * -1) 0 0;
-}
-
 .status-dot {
-  width: 0.5625rem;
-  height: 0.5625rem;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--setup-ok);
 }
 
-.ready-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--aca-space-3);
-}
-
-.ready-card {
+.ready-panel {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--aca-space-2);
-  padding: var(--aca-space-4);
-}
-
-.ready-card--qr {
-  flex-direction: row;
   align-items: center;
-  gap: var(--aca-space-3);
+  gap: 20px;
+  padding: 18px;
 }
 
-.ready-text {
+.ready-body {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--aca-space-2);
+  gap: 10px;
+  min-width: 0;
 }
 
 .ready-h {
   margin: 0;
-  font-size: var(--aca-step-0);
+  font-size: 1rem;
   font-weight: 600;
 }
 
-.ready-card p,
-.ready-text p {
+.ready-body p {
   margin: 0;
-  color: var(--k2-ink-muted);
-  font-size: var(--aca-step--1);
+  color: var(--st-ink-2);
+  font-size: 0.875rem;
   line-height: 1.45;
+}
+
+.ready-addr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.ready-ip {
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .qr {
   flex: 0 0 auto;
-  width: 6.5rem;
-  height: 6.5rem;
+  width: 140px;
+  height: 140px;
   overflow: hidden;
-  border-radius: 0.625rem;
+  border-radius: 12px;
   background: #fff;
 }
 
@@ -501,22 +866,75 @@ body[data-view='setup'] .shell-content > h1 {
 .failed-message {
   min-height: 0;
   margin: 0;
-  color: var(--k2-ink);
+  color: var(--st-ink);
+}
+
+/* Cambio di vista: dissolvenza e salita di 8 px in 240 ms, un solo momento per vista. */
+@keyframes setup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes setup-enter-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.view-setup.is-entering,
+body[data-view='wizard'] .view-wizard,
+body[data-view='error'] .view-error,
+body[data-view='fatal'] .view-fatal {
+  animation: setup-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @media (max-width: 34rem) {
-  .ready-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .ready-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .qr {
+    align-self: center;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ic-spin,
-  .bar.is-indeterminate .bar-fill {
+  .pg-bar.is-indeterminate .pg-fill,
+  .sp-done path {
     animation: none;
   }
 
-  .bar.is-indeterminate .bar-fill {
+  .view-setup.is-entering,
+  body[data-view='wizard'] .view-wizard,
+  body[data-view='error'] .view-error,
+  body[data-view='fatal'] .view-fatal {
+    animation: setup-enter-fade 240ms ease-out both;
+  }
+
+  main.card button.aca-m > .aca-m__outer,
+  .btn-copy {
+    transition: none;
+  }
+
+  .pg-bar.is-indeterminate .pg-fill {
     width: 50%;
   }
+}
+
+/* Messaggi vuoti (errore di «Apri Acasystem», ecc.): niente spazio finché non c'è testo. */
+.view-setup .message:empty {
+  display: none;
 }

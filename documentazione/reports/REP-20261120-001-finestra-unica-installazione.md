@@ -124,4 +124,30 @@ Piano dell'agente (2026-11-20):
 
 Completato il 2026-11-20. Prossimo passo: prova dell'utente con `ACA-System-Setup-0.2.0.exe` su un altro PC. Nessun incarico resta attivo in questo report.
 
+## Rettifiche successive
+
+**2026-11-20, pomeriggio: avanzamento reale e rifinitura v2 (app 0.2.1).** Richiesta dell'utente: «aggiungi l'avanzamento del download di Home Assistant … barra di progresso con percentuale al centro … sotto … Tempo Stimato calcolato in base alle specs del pc e tempo trascorso», con una passata grafica impeccable, UI/UX Pro Max e Apple design e demo da approvare.
+- **Fonte dell'avanzamento.** I log del Supervisor forniti dall'utente (secondo PC: «Downloading Home Assistant Core image, 43%», poi un `connection reset by peer` da Docker Hub) hanno portato alla pagina di preparazione di HAOS. Sulla porta 80, senza autenticazione durante il primo avvio, `GET /supervisor-api/jobs/info` riporta `home_assistant_core_install.progress`: sul secondo PC 44,2% dopo 44 minuti.
+- **Peso misurato** su questo PC: un primo avvio completo scarica circa 1.366 MB in 242 s (contatore `BytesReceived` della scheda della VM).
+- **Motore.**
+  - Percentuale reale di Home Assistant, che non torna mai indietro.
+  - Tempo stimato dal ritmo degli ultimi 5 minuti, altrimenti dai byte mancanti e dalla velocità misurata nel download del passo 1.
+  - Per Acasystem: 300 MB alla stessa velocità, più 60 s con almeno 4 CPU e 8 GB oppure 120 s.
+  - Il limite fisso di 90 minuti è sostituito da un errore solo dopo 20 minuti senza progressi.
+  - Velocità persistita nello stato; nuovi campi del contratto `download.startedAt` e `preparing.progress`.
+- **Interfaccia.** Blocco di avanzamento con percentuale al centro, «Tempo stimato» e «Tempo trascorso» (aggiornato ogni secondo), nel download e nella preparazione.
+- **Rifinitura v2** (demo nel canvas, approvate dall'utente con «Approve v2», registrate in `design.md`):
+  - pulsante principale bianco pieno a destra, alternativa trasparente a sinistra;
+  - titoli a 28 px, cifre a larghezza fissa;
+  - in preparazione tre righe compatte;
+  - nella vista «Pronta» spunta disegnata una volta, QR da 140 px e «Copia».
+  - Correzione dell'orchestratore: i paragrafi di messaggio vuoti erano nascosti male e lasciavano spazio vuoto.
+- **Verifiche.**
+  - `npm run typecheck`, `npm test` (12 file, 178 test) e build superati.
+  - Schermate di tutte le viste confrontate con le demo.
+  - Percorso reale con l'exe 0.2.1 superato in 5 minuti: Home Assistant al 33%, 78% e 97% con stime da 2 a 1 minuto, poi «Pronta» e «Apri Acasystem».
+  - Centrale di prova rimossa.
+- **Limite noto:** a fine download Home Assistant resta al 97% per circa 1,5 min mentre si estrae, perché la centrale lo conta ancora come download. Proposta non applicata: etichetta «Installazione di Home Assistant» oltre il 97%.
+- **Eseguibile:** `backup/rep20261120-finestra/ACA-System-Setup-0.2.1.exe`, 115.568.614 byte, SHA-256 `deaad66e…ddcf`.
+
 **Pubblicazione, 2026-11-20** (su richiesta dell'utente di scaricare il setup da GitHub): `ACA-System-Setup-0.2.0.exe` (115.529.097 byte, SHA-256 `e15365b5…9974`) e il nuovo `LEGGIMI.txt` sono allegati alla pre-release `centrale-vm-18.4-2`, insieme al disco che il setup scarica. `SHA256SUMS` è stato riscritto con le cinque impronte: un primo caricamento conteneva per errore la risposta JSON dell'API ed è stato sostituito. L'exe 18.4-2 resta allegato come versione precedente. Download anonimo verificato (HTTP 206).

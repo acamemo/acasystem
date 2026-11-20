@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Uscita,   # file .exe da creare, fuori dal repository
-    [string]$Versione = '0.2.0',
-    [string]$ClientZip = (Join-Path $PSScriptRoot '..\..\client\windows\release\Acasystem-0.2.0-win-x64.zip'),
+    [string]$Versione = '0.2.1',
+    [string]$ClientZip = (Join-Path $PSScriptRoot '..\..\client\windows\release\Acasystem-0.2.1-win-x64.zip'),
     [string]$MakeNsis = (Join-Path $env:LOCALAPPDATA 'electron-builder\Cache\nsis-3.0.4.1\nsis-3.0.4.1-1mx3n\makensis.exe')
 )
 # Crea l'installatore .exe di ACA SYSTEM (REP-20261118-001, REP-20261120-001): app per PC, script della

@@ -16,7 +16,8 @@ import {
 } from './download.ts';
 import { buildQr } from './qr.ts';
 import { loadState, saveState } from './state.ts';
-import { buildSteps, createTracker, PREPARING_TIMEOUT_MESSAGE } from './tracker.ts';
+import type { PersistedState } from './state.ts';
+import { buildSteps, createTracker, LABEL_VM, PREPARING_STALL_MESSAGE } from './tracker.ts';
 import type { Tracker, TrackerOutcome } from './tracker.ts';
 import type { CentralSetup, SetupCheck, SetupFailureStep, SetupPhase } from './types.ts';
 import { createVm, findVBoxManage, readInstallInfo } from './vm.ts';
@@ -57,6 +58,22 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
   let cancelled = false;
   let tracker: Tracker | null = null;
   let checking: Promise<void> | null = null;
+  // Download della stessa installazione: inizio e punto di partenza della misura della velocità.
+  let downloadStartedAt: number | null = null;
+  let downloadBase: { bytes: number; at: number } | null = null;
+  /** Velocità media del download su questo PC (byte/s), misurata o letta dal file di stato. */
+  let downloadBytesPerSecond: number | undefined;
+
+  /** Scrive lo stato aggiungendo la velocità di download (anche quella già salvata in precedenza). */
+  const writeState = async (state: PersistedState): Promise<void> => {
+    if (downloadBytesPerSecond === undefined) {
+      downloadBytesPerSecond = (await loadState(userDataDir))?.downloadBytesPerSecond;
+    }
+    await saveState(userDataDir, {
+      ...state,
+      ...(downloadBytesPerSecond !== undefined ? { downloadBytesPerSecond } : {}),
+    });
+  };
 
   const setPhase = (next: SetupPhase): void => {
     const key = JSON.stringify(next);
@@ -84,11 +101,16 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
     qr: buildQr(`http://${ip}:${APP_PORT}/`),
   });
 
-  /** Avvia il tracciamento del primo avvio; la finestra dei 90 minuti parte da ora. */
+  /** Avvia il tracciamento del primo avvio; la finestra senza progressi parte da ora. */
   const startTracking = async (vmId: string, startedAt: number): Promise<void> => {
     stopTracking();
     const vbox = await findVBoxManage(deps);
-    setPhase({ phase: 'preparing', steps: buildSteps({ vm: false, core: false, aca: false }), startedAt });
+    setPhase({
+      phase: 'preparing',
+      steps: buildSteps({ vm: false, core: false, aca: false }),
+      startedAt,
+      progress: { label: LABEL_VM, percent: null, etaSeconds: null },
+    });
     const onOutcome = (outcome: TrackerOutcome): void => {
       if (disposed) return;
       if (outcome.kind === 'progress') {
@@ -97,19 +119,27 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
           steps: outcome.steps,
           ...(outcome.ip ? { ip: outcome.ip } : {}),
           startedAt,
+          progress: outcome.progress,
         });
       } else if (outcome.kind === 'ready') {
         const readyAt = deps.now();
         stopTracking();
-        void saveState(userDataDir, { schema: 1, phase: 'ready', vmId, ip: outcome.ip, startedAt, readyAt })
+        void writeState({ schema: 1, phase: 'ready', vmId, ip: outcome.ip, startedAt, readyAt })
           .catch(() => undefined)
           .finally(() => setPhase(readyPhase(outcome.ip, startedAt, readyAt)));
       } else {
         stopTracking();
-        fail('preparing', PREPARING_TIMEOUT_MESSAGE);
+        fail('preparing', PREPARING_STALL_MESSAGE);
       }
     };
-    const created = createTracker({ deps, vbox, vmId, windowStart: deps.now(), onOutcome });
+    const created = createTracker({
+      deps,
+      vbox,
+      vmId,
+      windowStart: deps.now(),
+      ...(downloadBytesPerSecond !== undefined ? { downloadBytesPerSecond } : {}),
+      onOutcome,
+    });
     tracker = created;
     created.start();
   };
@@ -121,14 +151,14 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
       return;
     }
     const startedAt = deps.now();
-    await saveState(userDataDir, { schema: 1, phase: 'preparing', vmId: info.vmId, startedAt });
+    await writeState({ schema: 1, phase: 'preparing', vmId: info.vmId, startedAt });
     await rm(downloadDir, { recursive: true, force: true }).catch(() => undefined);
     await startTracking(info.vmId, startedAt);
   };
 
   const runCreation = async (vdiPath: string, signal: AbortSignal): Promise<void> => {
     setPhase({ phase: 'creating' });
-    await saveState(userDataDir, { schema: 1, phase: 'creating' });
+    await writeState({ schema: 1, phase: 'creating' });
     const result = await createVm(deps, { scriptsDir, centraleDir, vdiPath, signal });
     if (!result.ok) {
       fail('creating', result.message);
@@ -140,6 +170,9 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
   /** Scarica, verifica ed estrae; restituisce il percorso del .vdi o null se si è fermato. */
   const runDownload = async (signal: AbortSignal): Promise<string | null> => {
     await recoverZip(partPath);
+    downloadStartedAt ??= deps.now();
+    const startedAt = downloadStartedAt;
+    let received = 0;
     setPhase({
       phase: 'download',
       progress: {
@@ -149,6 +182,7 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
         etaSeconds: null,
         attempt: 1,
       },
+      startedAt,
     });
     try {
       await downloadFile({
@@ -157,7 +191,10 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
         totalBytes: deps.tuning.diskSizeBytes,
         signal,
         onProgress: (progress) => {
-          if (!signal.aborted) setPhase({ phase: 'download', progress });
+          if (signal.aborted) return;
+          downloadBase ??= { bytes: progress.receivedBytes, at: deps.now() };
+          received = progress.receivedBytes;
+          setPhase({ phase: 'download', progress, startedAt });
         },
         now: deps.now,
         sleep: deps.sleep,
@@ -170,6 +207,14 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
       if (!signal.aborted) fail('download', MESSAGES.download);
       return null;
     }
+    if (downloadBase) {
+      // Velocità media dell'intero trasferimento di questa installazione, senza la parte già presente.
+      const seconds = (deps.now() - downloadBase.at) / 1000;
+      const transferred = received - downloadBase.bytes;
+      if (seconds > 0 && transferred > 0) downloadBytesPerSecond = Math.round(transferred / seconds);
+    }
+    downloadStartedAt = null;
+    downloadBase = null;
     setPhase({ phase: 'verify' });
     try {
       await verifyDisk(partPath, deps.tuning.diskSizeBytes, deps.tuning.diskSha256);
@@ -238,6 +283,7 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
       fail('preparing', MESSAGES.generic, false);
       return false;
     }
+    if (stored.downloadBytesPerSecond !== undefined) downloadBytesPerSecond = stored.downloadBytesPerSecond;
     await startTracking(stored.vmId, stored.startedAt);
     return true;
   };
@@ -255,6 +301,8 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
     cancel: async () => {
       if (phase.phase !== 'download' || !abort) return;
       cancelled = true;
+      downloadStartedAt = null;
+      downloadBase = null;
       abort.abort();
       backToWelcome();
       await running;
@@ -262,6 +310,7 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
     resume: async () => {
       const stored = await loadState(userDataDir);
       if (!stored) return false;
+      if (stored.downloadBytesPerSecond !== undefined) downloadBytesPerSecond = stored.downloadBytesPerSecond;
       if (stored.phase === 'preparing') return resumeTracking();
       if (stored.phase === 'ready') {
         if (!stored.ip) return false;

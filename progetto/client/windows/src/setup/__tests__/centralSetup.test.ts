@@ -203,23 +203,79 @@ describe('errori', () => {
     expect(phase.phase === 'failed' && phase.canRetry).toBe(false);
   });
 
-  it('90 minuti senza essere pronta: failed preparing; retry riprende il tracciamento', async () => {
+  it('20 minuti senza progressi: failed preparing; retry riprende il tracciamento', async () => {
     let time = 5_000_000;
     const { setup, state } = await make({ now: () => time }, { aca: { status: 503, body: '' } });
     await setup.start();
     await waitFor(setup, 'preparing');
-    time += 91 * 60_000;
+    time += 21 * 60_000;
     const failed = await waitFor(setup, 'failed');
     expect(failed).toEqual({
       phase: 'failed',
       step: 'preparing',
-      message: 'La centrale non ha finito di prepararsi entro 90 minuti. Controlla la connessione a Internet e riprova.',
+      message: 'Da 20 minuti la centrale non fa progressi. Controlla la connessione a Internet e riprova.',
       canRetry: true,
     });
     state.aca = { status: 200, body: '{"status":"ok"}' };
     await setup.retry();
     const ready = await waitFor(setup, 'ready');
-    expect(ready.phase === 'ready' && ready.elapsedMinutes).toBeGreaterThanOrEqual(91);
+    expect(ready.phase === 'ready' && ready.elapsedMinutes).toBeGreaterThanOrEqual(21);
+  });
+
+  it('retry azzera la finestra: non fallisce subito, fallisce dopo altri 20 minuti', async () => {
+    let time = 5_000_000;
+    const { setup } = await make({ now: () => time }, { aca: { status: 503, body: '' } });
+    await setup.start();
+    await waitFor(setup, 'preparing');
+    time += 21 * 60_000;
+    await waitFor(setup, 'failed');
+    await setup.retry();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(setup.getPhase().phase).toBe('preparing');
+    time += 19 * 60_000;
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(setup.getPhase().phase).toBe('preparing');
+    time += 2 * 60_000;
+    await waitFor(setup, 'failed');
+  });
+
+  it('la fase download porta startedAt e la velocità media viene salvata nello stato', async () => {
+    let time = 7_000_000;
+    const { setup, phases } = await make({ now: () => (time += 100) });
+    await setup.start();
+    await waitFor(setup, 'ready');
+    const downloads = phases.filter((phase) => phase.phase === 'download');
+    expect(downloads.length).toBeGreaterThan(0);
+    const starts = new Set(downloads.map((phase) => (phase.phase === 'download' ? phase.startedAt : 0)));
+    expect(starts.size).toBe(1);
+    const stored = await loadState(userData);
+    expect(stored?.downloadBytesPerSecond).toBeGreaterThan(0);
+  });
+
+  it('resume() usa la velocità salvata per stimare i tempi', async () => {
+    await saveState(userData, { schema: 1, phase: 'preparing', vmId: 'vm-1', startedAt: 1, downloadBytesPerSecond: 1_000_000 });
+    const jobs = JSON.stringify({ data: { jobs: [{ name: 'home_assistant_core_install', progress: 50 }] } });
+    const { setup } = await make(
+      {
+        machine: () => ({ totalMemoryBytes: 16 * 1024 ** 3, logicalCpus: 8 }),
+        httpGet: async (target) => {
+          if (target.endsWith('/supervisor-api/jobs/info')) return { status: 200, body: jobs };
+          if (target.includes(':8123')) return { status: 200, body: '' };
+          return { status: 503, body: '' };
+        },
+      },
+      {}
+    );
+    expect(await setup.resume()).toBe(true);
+    const end = Date.now() + 3000;
+    let eta: number | null = null;
+    while (Date.now() < end && eta === null) {
+      const phase = setup.getPhase();
+      if (phase.phase === 'preparing' && phase.progress.percent === 50) eta = phase.progress.etaSeconds;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    // 50% di 1.070 MB a 1 MB/s = 535 s, più 300 s di Acasystem e 60 s di installazione
+    expect(eta).toBe(535 + 360);
   });
 });
 

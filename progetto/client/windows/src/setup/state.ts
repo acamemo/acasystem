@@ -10,6 +10,8 @@ export interface PersistedState {
   ip?: string;
   startedAt?: number;
   readyAt?: number;
+  /** Velocità media del download su questo PC (byte/s); descrive la sua connessione. */
+  downloadBytesPerSecond?: number;
 }
 
 const PHASES = new Set(['creating', 'preparing', 'ready']);
@@ -26,6 +28,9 @@ export const loadState = async (userDataDir: string): Promise<PersistedState | n
     if (typeof data.ip === 'string') state.ip = data.ip;
     if (typeof data.startedAt === 'number') state.startedAt = data.startedAt;
     if (typeof data.readyAt === 'number') state.readyAt = data.readyAt;
+    if (typeof data.downloadBytesPerSecond === 'number' && data.downloadBytesPerSecond > 0) {
+      state.downloadBytesPerSecond = data.downloadBytesPerSecond;
+    }
     return state;
   } catch {
     return null;

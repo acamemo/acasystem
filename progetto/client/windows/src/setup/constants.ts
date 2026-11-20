@@ -16,6 +16,13 @@ export const COMFORT_MEMORY_GB = 6;
 export const MIN_CPUS = 2;
 export const COMFORT_CPUS = 4;
 
+/**
+ * Peso del primo avvio, misurato il 2026-11-20: circa 1.366 MB in tutto, di cui circa 1.070 MB per
+ * Home Assistant Core e 300 MB per Acasystem più l'app della schermata di avvio.
+ */
+export const CORE_DOWNLOAD_BYTES = 1_070_000_000;
+export const ACA_DOWNLOAD_BYTES = 300_000_000;
+
 export const APP_PORT = 3002;
 /** Porta di Home Assistant Core. */
 export const HA_PORT = 8123;
@@ -33,7 +40,14 @@ export const PROGRESS_INTERVAL_MS = 250;
 export const SPEED_WINDOW_MS = 5_000;
 
 export const POLL_MS = 10_000;
-export const PREPARING_TIMEOUT_MS = 90 * 60_000;
+/** Senza progressi (avanzamento di Home Assistant o passo attivo) per tanto tempo: la preparazione è ferma. */
+export const PREPARING_STALL_MS = 20 * 60_000;
+/** Attesa massima della risposta di supervisor-api/jobs/info durante il primo avvio. */
+export const JOBS_TIMEOUT_MS = 4_000;
+/** Finestra dei campioni per stimare la velocità di avanzamento di Home Assistant. */
+export const RATE_WINDOW_MS = 5 * 60_000;
+/** Tempo stimato del passo Acasystem se la velocità di download di questo PC non è nota. */
+export const ACA_FALLBACK_SECONDS = 180;
 export const SWEEP_INTERVAL_MS = 30_000;
 export const CHECK_TIMEOUT_MS = 15_000;
 export const CREATE_TIMEOUT_MS = 15 * 60_000;

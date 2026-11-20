@@ -36,16 +36,26 @@ export interface PrepStep {
   detail?: string;
 }
 
+/** Avanzamento del passo attivo della preparazione; percent null = indeterminato. */
+export interface PrepProgress {
+  /** Nome del passo attivo, es. «Download di Home Assistant». */
+  label: string;
+  percent: number | null;
+  /** Secondi stimati alla fine della preparazione; null se non stimabili. */
+  etaSeconds: number | null;
+}
+
 export type SetupFailureStep = 'checks' | 'download' | 'verify' | 'creating' | 'preparing';
 
 export type SetupPhase =
   | { phase: 'welcome'; checking: boolean; checks: SetupCheck[] }
-  | { phase: 'download'; progress: DownloadProgress }
+  /** startedAt: inizio del download, conservato tra ripresa e nuovi tentativi della stessa installazione. */
+  | { phase: 'download'; progress: DownloadProgress; startedAt: number }
   /** Controllo dell'impronta ed estrazione del disco. */
   | { phase: 'verify' }
   /** Creazione della VM e del supervisore con Installa-Centrale.ps1. */
   | { phase: 'creating' }
-  | { phase: 'preparing'; steps: PrepStep[]; ip?: string; startedAt: number }
+  | { phase: 'preparing'; steps: PrepStep[]; ip?: string; startedAt: number; progress: PrepProgress }
   | { phase: 'ready'; ip: string; port: number; elapsedMinutes: number; qr: boolean[][] }
   | { phase: 'failed'; step: SetupFailureStep; message: string; canRetry: boolean };
 

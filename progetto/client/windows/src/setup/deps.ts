@@ -14,7 +14,7 @@ import {
   DOWNLOAD_STALL_MS,
   MAX_DOWNLOAD_ATTEMPTS,
   POLL_MS,
-  PREPARING_TIMEOUT_MS,
+  PREPARING_STALL_MS,
   PROGRESS_INTERVAL_MS,
   REQUIRED_FREE_BYTES,
   SWEEP_INTERVAL_MS,
@@ -46,7 +46,8 @@ export interface SetupTuning {
   stallMs: number;
   progressIntervalMs: number;
   pollMs: number;
-  preparingTimeoutMs: number;
+  /** Minuti senza progressi dopo i quali la preparazione fallisce (20 min). */
+  preparingStallMs: number;
   sweepIntervalMs: number;
   checkTimeoutMs: number;
   createTimeoutMs: number;
@@ -83,7 +84,7 @@ export const DEFAULT_TUNING: SetupTuning = {
   stallMs: DOWNLOAD_STALL_MS,
   progressIntervalMs: PROGRESS_INTERVAL_MS,
   pollMs: POLL_MS,
-  preparingTimeoutMs: PREPARING_TIMEOUT_MS,
+  preparingStallMs: PREPARING_STALL_MS,
   sweepIntervalMs: SWEEP_INTERVAL_MS,
   checkTimeoutMs: CHECK_TIMEOUT_MS,
   createTimeoutMs: CREATE_TIMEOUT_MS,
