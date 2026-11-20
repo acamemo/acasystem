@@ -2,7 +2,8 @@
 # ==============================================================================
 # ACA SYSTEM: prima configurazione della centrale (REP-20261118-001).
 # Al primo avvio installa e avvia l'app Acasystem dal catalogo pubblico e la
-# schermata di avvio con QR e indirizzo. Ripete i passi finché riescono: al primo
+# schermata di avvio con QR e indirizzo, e attiva gli aggiornamenti automatici
+# di Acasystem. Ripete i passi finché riescono: al primo
 # avvio il Supervisor scarica anche Home Assistant Core e può rifiutare lavori.
 # Non tocca account, dati o configurazioni di rete. Dopo il successo lascia un
 # segno in /mnt/data/aca e non riparte più, anche dopo gli aggiornamenti di HAOS.
@@ -58,6 +59,15 @@ unprotect_screen() {
   docker exec hassio_cli sh -c 'curl -fsS -X POST -H "Authorization: Bearer $SUPERVISOR_TOKEN" -H "Content-Type: application/json" -d "{\"protected\":false}" http://supervisor/addons/local_aca_schermata/security' >/dev/null 2>&1
 }
 
+# Aggiornamenti automatici di Acasystem dal catalogo: il Supervisor installa una nuova
+# versione quando ha almeno un giorno, con un backup prima di ogni aggiornamento.
+auto_update_on() { ha --raw-json apps info "$ACA_SLUG" 2>/dev/null | jq -e '.data.auto_update == true' >/dev/null; }
+enable_auto_update() {
+  auto_update_on && return 0
+  docker exec hassio_cli sh -c 'curl -fsS -X POST -H "Authorization: Bearer $SUPERVISOR_TOKEN" -H "Content-Type: application/json" -d "{\"auto_update\":true}" http://supervisor/addons/'"$ACA_SLUG"'/options' >/dev/null 2>&1
+  auto_update_on
+}
+
 retry "Supervisor pronto" supervisor_ready || exit 1
 mkdir -p "$MARK_DIR"
 
@@ -71,6 +81,7 @@ retry "avvio schermata" start_app "$SCREEN_SLUG" || exit 1
 
 retry "installazione Acasystem" install_app "$ACA_SLUG" || exit 1
 retry "avvio Acasystem" start_app "$ACA_SLUG" || exit 1
+retry "aggiornamenti automatici" enable_auto_update || exit 1
 
 date -u +%Y-%m-%dT%H:%M:%SZ > "$MARK"
 log "centrale configurata"
