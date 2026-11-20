@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { test } from 'node:test';
-import { createBankAdapter, checkBank, monitorBank, readBankTokenFile, secureBankDirectory, validateBankTarget, validateBankTar, windowsPowerShellEnvironment } from './bank-update.mjs';
+import { createBankAdapter, checkBank, dockerHostPath, monitorBank, readBankTokenFile, secureBankDirectory, validateBankTarget, validateBankTar, windowsPowerShellEnvironment } from './bank-update.mjs';
 import { runUpdateTransaction } from './update-transaction.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -54,7 +54,8 @@ async function harness({ brokenCandidate = false, busy = false } = {}) {
     tokenFile: join(root, 'not-read-secret-token'), shellVersion: '0.1.0', lockPort: await freePort(), maxBackupBytes: 1024 * 1024, checkIntervalMs: 60000 };
   const oldBundle = { ...candidate.bundle, version: '0.9.72', minServer: '0.9.72', archive: { ...candidate.bundle.archive, name: 'acasystem-web-0.9.72.zip', sha256: hash('old web fixture') } };
   const state = { localImage: oldId, version: '0.9.72', appVersion: '0.9.72.99', running: true, fingerprint: oldFingerprint,
-    maintenance: { active: false }, bundle: oldBundle, currentCoreImage: coreId, extraFiles: [], wrongMount: false, clears: 0, restored: false };
+    maintenance: { active: false }, bundle: oldBundle, currentCoreImage: coreId, extraFiles: [], wrongMount: false, clears: 0, restored: false,
+    tokenMountSource: null };
   const calls = []; const statuses = [];
   const app = () => ({ targetId: target.targetId, version: state.version, appVersion: state.appVersion, bundle: state.bundle,
     dataFingerprint: state.fingerprint, maintenance: state.maintenance,
@@ -77,6 +78,7 @@ async function harness({ brokenCandidate = false, busy = false } = {}) {
         composeFiles: [...target.composeFiles.map(file => file.path), ...state.extraFiles].join(','), mounts: [
           { type: 'volume', name: state.wrongMount ? 'unrelated-data' : target.dataVolume, destination: '/app/data', rw: true },
           { type: 'volume', name: target.serviceSecretVolume, destination: '/app/service-secret', rw: true },
+          ...(state.tokenMountSource ? [{ type: 'bind', name: '', source: state.tokenMountSource, destination: '/run/aca-update/token', rw: false }] : []),
         ] });
     }
     if (args[0] === 'image' && args[1] === 'inspect') {
@@ -182,6 +184,25 @@ test('identity/Core/compose modificati fermano prima delle mutazioni; nessun dum
     assert.ok(h.calls.every(args => !['pull', 'stop', 'compose', 'run'].includes(args[0])));
     assert.ok(h.calls.every(args => !args.join(' ').includes('.Config.Env')));
     assert.throws(() => validateBankTarget({ ...h.target, dataVolume: 'data;other' }));
+  } finally { await h.cleanup(); }
+});
+
+test('percorso del bind della chiave nel formato Docker Desktop riconosciuto solo su Windows', () => {
+  assert.equal(dockerHostPath('/run/desktop/mnt/host/c/Users/utente/ACA-Bank/Updater/token', 'win32'), 'C:\\Users\\utente\\ACA-Bank\\Updater\\token');
+  assert.equal(dockerHostPath('/host_mnt/d/aca/token', 'win32'), 'D:\\aca\\token');
+  assert.equal(dockerHostPath('C:\\aca\\token', 'win32'), 'C:\\aca\\token');
+  assert.equal(dockerHostPath('/run/desktop/mnt/host/c/aca/token', 'linux'), '/run/desktop/mnt/host/c/aca/token');
+});
+
+test('bind della chiave: accettato lo stesso file anche come lo riporta Docker Desktop, rifiutato un altro file', async () => {
+  const h = await harness();
+  try {
+    const file = h.target.tokenFile;
+    h.state.tokenMountSource = process.platform === 'win32'
+      ? `/run/desktop/mnt/host/${file[0].toLowerCase()}${file.slice(2).replaceAll('\\', '/')}` : file;
+    assert.equal((await h.adapter.inspect()).coreVersion, '2026.9.4');
+    h.state.tokenMountSource = process.platform === 'win32' ? '/run/desktop/mnt/host/c/altro/token' : '/altro/token';
+    await assert.rejects(h.adapter.inspect());
   } finally { await h.cleanup(); }
 });
 

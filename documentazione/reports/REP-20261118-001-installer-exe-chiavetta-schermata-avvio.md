@@ -373,6 +373,18 @@ Domanda dell'utente: «installato poi quando farò aggiornamenti e faremo commit
 - **Correzioni:** nuovo override `compose-network-0973-local.yaml` con `ports: !override` sul solo `127.0.0.1:3002`, con lo stesso schema degli override di rete precedenti; script con `Continue` e controllo esplicito dei codici di uscita. Banco riavviato prima sulla 0.9.72.99.
 - **Secondo tentativo superato in 27 s.** Backup a freddo `aca-data-pre-0.9.73.tgz` (410.887 byte, SHA-256 `AE7B3A94…0A95`, integrità ok). 27/27 tabelle identiche prima e dopo, nessuna colonna aggiunta. Health `0.9.73` ok anche da `127.0.0.1:3002`, casa `ready`, HA e D1 non toccati. Immagine di ritorno `0.9.72.99` conservata.
 - **Limiti:** banco raggiungibile solo da questo PC (e da USB con `adb reverse`), non dalla rete Wi-Fi; nessun accesso umano o prova dei dispositivi dopo l'aggiornamento. Resta il passo 3: attivazione del controllore `bank-update.mjs`.
+- **Controllore attivato** (richiesta dell'utente «Yes, switch it on», 2026-11-20), secondo `UPDATES.md`:
+  - **Chiave:** `%USERPROFILE%\ACA-Bank\Updater\token`, 64 caratteri esadecimali casuali, ACL protetta solo utente e SYSTEM, accettata da `readBankTokenFile`. La cartella è fuori da `AppData` perché in questo ambiente quella cartella è virtualizzata.
+  - **Impostazioni del banco:** override `compose-updater-local.yaml` con `ACA_UPDATE_TARGET_ID=aca-pc-bank`, `ACA_UPDATE_TOKEN_FILE` e il bind in sola lettura della chiave, applicato con backup a freddo (`Apply-Updater.ps1`). 27/27 tabelle identiche; API di manutenzione attive, 401 senza chiave.
+  - **Target:** catturato con `--capture-target` (`bank-target.json`, 27 file Compose con impronta, volumi distinti, Core per immagine, `127.0.0.1:3002`, controllo ogni 10 minuti) e rivisto.
+- **Difetto trovato e corretto in `bank-update.mjs`.** Docker Desktop per Windows riporta il bind come `/run/desktop/mnt/host/c/...`: il confronto con il percorso Windows del file chiave falliva sempre e il primo ciclo si fermava in `recovery-required/preflight`, senza modifiche. Nuova funzione `dockerHostPath`, solo su Windows, e due test: percorso Docker Desktop accettato, altro file rifiutato. `node --test progetto/ha-app/pilot/*.test.mjs`: 79 test, 0 falliti, 3 saltati (archivio Sonoff).
+- **Primo ciclo dopo la correzione:** aggiornamento automatico 0.9.73.15 → **0.9.73.17** in 64 s, journal `complete`. Verifica indipendente: 27/27 tabelle identiche, health ok, casa `ready`, HA e D1 non toccati. Backup del controllore conservato in `%USERPROFILE%\ACA-Bank\Updater\bank`: dati 8,3 MB, immagine precedente 211 MB.
+- **Watch:** attività pianificata «ACA SYSTEM - Updater banco» all'accesso a Windows, script `Start-BankUpdater.ps1`, registro `watch.log`. Primo controllo alle 13:15: `keep`.
+- **Limiti:**
+  - i backup del controllore non vengono cancellati in automatico (circa 220 MB per aggiornamento, come previsto da `UPDATES.md`): serve una pulizia periodica;
+  - con il PC spento o senza accesso utente non ci sono controlli;
+  - un ritorno indietro reale non è stato provato sul banco;
+  - le prove di dispositivi e dell'accesso umano dopo gli aggiornamenti non sono state eseguite.
 - **Release `centrale-vm-18.4-2`** (pre-release, non «latest»): `aca-centrale-vm-18.4-2.vdi.zip` (591.441.407 byte, SHA-256 `30e03ec0…3d18`). `crea-installer.ps1` usa ora questo disco con la versione `18.4-2`. Verifica anonima: «latest» resta `v0.9.34`, `SHA256SUMS` scaricabile, intervallo finale dello zip HTTP 206. Eseguibile `backup/rep20261119-exe/ACA-System-Setup-18.4-2.exe`, 115.545.730 byte, SHA-256 `155905b4…e146`, escluso da Git; sostituisce il 18.4-1.
 
 ## Verifiche ed evidenze

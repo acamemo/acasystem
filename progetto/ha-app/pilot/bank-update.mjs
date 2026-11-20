@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { chmod, lstat, mkdir, open, readFile, readdir, realpath, statfs, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { isAbsolute, join, resolve, win32 } from 'node:path';
+import { isAbsolute, join, posix, resolve, win32 } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { isDeepStrictEqual, promisify } from 'node:util';
@@ -26,6 +26,20 @@ const runningFormat = '{{json .State.Running}}';
 const identityFormat = '{"name":{{json .Name}},"image":{{json .Image}},"command":{{json .Config.Cmd}},"entrypoint":{{json .Config.Entrypoint}},"workingDirectory":{{json .Config.WorkingDir}},"restart":{{json .HostConfig.RestartPolicy.Name}},"project":{{json (index .Config.Labels "com.docker.compose.project")}},"service":{{json (index .Config.Labels "com.docker.compose.service")}},"composeFiles":{{json (index .Config.Labels "com.docker.compose.project.config_files")}},"mounts":[{{range $index,$mount := .Mounts}}{{if $index}},{{end}}{"type":{{json $mount.Type}},"name":{{json $mount.Name}},"source":{{json $mount.Source}},"destination":{{json $mount.Destination}},"rw":{{json $mount.RW}}}{{end}}]}';
 const coreFormat = '{"name":{{json .Name}},"image":{{json .Image}},"project":{{json (index .Config.Labels "com.docker.compose.project")}},"service":{{json (index .Config.Labels "com.docker.compose.service")}},"version":{{json (index .Config.Labels "io.hass.version")}},"running":{{json .State.Running}}}';
 const candidateFormat = '{"id":{{json .Id}},"digests":{{json .RepoDigests}},"size":{{json .Size}},"version":{{json (index .Config.Labels "io.hass.version")}},"source":{{json (index .Config.Labels "org.acasystem.source.sha256")}}}';
+
+/**
+ * Percorso host di un bind come lo riporta `docker inspect`. Docker Desktop per Windows lo mostra
+ * nel proprio formato (`/run/desktop/mnt/host/c/...`, prima `/host_mnt/c/...`): su Windows va
+ * riportato al percorso del disco prima del confronto, altrimenti il file chiave non coincide mai.
+ */
+export function dockerHostPath(source, platform = process.platform) {
+  if (platform !== 'win32') return posix.resolve(source);
+  const desktop = /^\/(?:run\/desktop\/mnt\/host|host_mnt)\/([a-zA-Z])(\/.*)?$/.exec(source ?? '');
+  return win32.resolve(desktop ? `${desktop[1].toUpperCase()}:${(desktop[2] ?? '/').replaceAll('/', '\\')}` : source);
+}
+const sameHostPath = (source, file, platform = process.platform) => platform === 'win32'
+  ? dockerHostPath(source, platform).toLowerCase() === win32.resolve(file).toLowerCase()
+  : dockerHostPath(source, platform) === posix.resolve(file);
 
 export function validateBankTarget(target) {
   let url;
@@ -182,7 +196,7 @@ export function createBankAdapter({ target, maintenance, run = dockerRun, secure
     if (mounts.length !== 2 || mounts.some(mount => mount.type !== 'volume' || mount.rw !== true ||
       mount.name !== (mount.destination === '/app/data' ? target.dataVolume : target.serviceSecretVolume))) fail();
     if (actual.mounts.some(mount => mount.destination !== '/app/data' && mount.destination !== '/app/service-secret' &&
-      !(mount.type === 'bind' && mount.destination === '/run/aca-update/token' && mount.rw === false && resolve(mount.source) === resolve(target.tokenFile)))) fail();
+      !(mount.type === 'bind' && mount.destination === '/run/aca-update/token' && mount.rw === false && sameHostPath(mount.source, target.tokenFile)))) fail();
     await coreVersion();
   };
   const coreVersion = async () => {
