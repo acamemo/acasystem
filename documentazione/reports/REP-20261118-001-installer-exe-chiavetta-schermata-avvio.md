@@ -343,6 +343,22 @@ Richiesta dell'utente: «facciamolo perché questo lo potrei provare su un altro
 - Eseguibile finale con l'indirizzo GitHub: `backup/rep20261119-exe/ACA-System-Setup-18.4-1.exe`, 115.510.265 byte, SHA-256 `36bedbee…0b57`, escluso da Git. Il download completo da GitHub con questo eseguibile non è stato ripetuto: la ripresa è verificata a parte.
 - Non verificati: firma del codice, un PC senza VirtualBox, Windows 10, PC con Smart App Control attivo.
 
+### Aggiornamenti automatici di Acasystem, 2026-11-20
+
+Domanda dell'utente: «installato poi quando farò aggiornamenti e faremo commit, si aggiornerà l'app sul pc?». Risposta: no. Un push su `main` produce una pre-release di prova, il catalogo si aggiorna a parte e la centrale non installava nulla da sola. Il worker di aggiornamento ACA (`haos-update.mjs`) non è attivo. Proposta: attivare l'aggiornamento automatico del Supervisor per l'app Acasystem al primo avvio. Risposta dell'utente: «Yes, turn it on». Poi, per pubblicare il nuovo disco e ricompilare l'`.exe`: «Yes, publish it».
+
+- **Comportamento del Supervisor**, dal sorgente `home-assistant/supervisor` (`supervisor/misc/tasks.py`, ramo `main`, letto il 2026-11-20):
+  - controllo ogni 16 ore, rilettura del catalogo ogni 3 ore;
+  - una nuova versione viene installata solo quando ha almeno un giorno;
+  - nessun aggiornamento che attraversi una versione dichiarata `breaking_versions`;
+  - aggiornamento tramite Home Assistant Core con un backup prima.
+- **Limite:** ogni versione pubblicata nel catalogo arriva a tutte le centrali con l'opzione attiva, entro 1-2 giorni. Questo percorso non ha il controllo di compatibilità né il ritorno automatico alla versione precedente previsti dal worker ACA; resta il backup del Supervisor.
+- `aca-firstboot`: dopo l'avvio di Acasystem imposta `auto_update` con l'API del Supervisor (`POST /addons/<slug>/options`) e lo verifica con `ha apps info`; il passo si ripete finché riesce. Commit `609c12d`.
+- Le centrali già installate (banco, PC di prova precedenti) non cambiano: il primo avvio non si ripete. L'opzione si attiva a mano con la stessa API.
+- **Prova:** immagine `ova` ricompilata, disco servito in locale a un `.exe` di prova (`18.4-2-test`). Schermata con IP `192.168.1.63` e health `0.9.76` entro 10 minuti. Dalla console seriale (porta aggiunta alla sola VM di prova): `{"version":"0.9.76.1","update_available":false,"auto_update":true,"state":"started"}`, registro «aggiornamenti automatici: fatto». La VM ignorava il pulsante ACPI: spenta con `poweroff` dopo aver fermato la sua attività. VM disinstallata.
+- **Non verificato:** un vero aggiornamento automatico, perché richiede una nuova versione nel catalogo e almeno un giorno di attesa.
+- **Release `centrale-vm-18.4-2`** (pre-release, non «latest»): `aca-centrale-vm-18.4-2.vdi.zip` (591.441.407 byte, SHA-256 `30e03ec0…3d18`). `crea-installer.ps1` usa ora questo disco con la versione `18.4-2`. Verifica anonima: «latest» resta `v0.9.34`, `SHA256SUMS` scaricabile, intervallo finale dello zip HTTP 206. Eseguibile `backup/rep20261119-exe/ACA-System-Setup-18.4-2.exe`, 115.545.730 byte, SHA-256 `155905b4…e146`, escluso da Git; sostituisce il 18.4-1.
+
 ## Verifiche ed evidenze
 
 | Controllo | Comando/procedura e ambiente | Esito | Evidenza e limiti |
@@ -380,9 +396,12 @@ Richiesta dell'utente: «facciamolo perché questo lo potrei provare su un altro
 | Ripresa del download da GitHub | `curl -C -` su una copia troncata a 591.000.000 byte | Superato | Impronta `631dd1ec…` corretta |
 | `.exe`: installazione e primo avvio | Eseguibile di prova con il disco da `127.0.0.1`, `/S` | Superato | Uscita 0 in 32 s; schermata con IP `192.168.1.20`, health `0.9.76` dopo circa 67 min (connessione lenta) |
 | `.exe`: Mostra la schermata | Voce del menu Start | Superato | Immagine aperta nel visualizzatore |
+| Aggiornamenti automatici attivati al primo avvio | `.exe` di prova con il nuovo disco, `ha apps info` dalla console seriale | Superato | `auto_update: true`, Acasystem 0.9.76.1 avviato; un aggiornamento automatico reale non è stato osservato |
 | `.exe`: disinstallazione | `Disinstalla.exe /S` | Superato dopo la correzione | Prima restava la cartella vuota (occupata da VBoxSVC); dopo la correzione tutto rimosso in 9 s, ma con VBoxSVC già attivo |
 
 ## Chiusura e punto di ripresa
+
+Aggiornamento del 2026-11-20: le nuove centrali attivano gli aggiornamenti automatici di Acasystem; disco `centrale-vm-18.4-2` pubblicato e `.exe` 18.4-2 da dare all'utente. Da osservare: il primo aggiornamento automatico reale, dopo la prossima pubblicazione nel catalogo.
 
 Aggiornamento del 2026-11-19, pomeriggio: installatore `.exe` provato su questo PC dall'installazione alla disinstallazione, con il disco servito in locale; ripresa del download da GitHub verificata. Prossimo passo: prova dell'utente su un altro PC di casa con `backup/rep20261119-exe/ACA-System-Setup-18.4-1.exe` e `LEGGIMI.txt`. Restano: firma del codice (SmartScreen e Smart App Control), mini PC fisico, aggiornamenti OTA di HAOS.
 

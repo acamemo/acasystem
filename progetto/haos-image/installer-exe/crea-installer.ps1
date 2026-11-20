@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Uscita,   # file .exe da creare, fuori dal repository
-    [string]$Versione = '18.4-1',
-    [string]$UrlDisco = 'https://github.com/acamemo/acasystem-releases/releases/download/centrale-vm-18.4-1/aca-centrale-vm-18.4-1.vdi.zip',
-    [string]$ImprontaDisco = '631dd1ec47eff0e02dd00be4c8a56b0cb32a05f578d060d4e517cdb30c05fda2',
+    [string]$Versione = '18.4-2',
+    [string]$UrlDisco = 'https://github.com/acamemo/acasystem-releases/releases/download/centrale-vm-18.4-2/aca-centrale-vm-18.4-2.vdi.zip',
+    [string]$ImprontaDisco = '30e03ec078bc5501d67ad5fa0fc44d7570b3405424ac6b7ed1b67a07908e3d18',
     [string]$ClientZip = (Join-Path $PSScriptRoot '..\..\client\windows\release\Acasystem-0.1.1-win-x64.zip'),
     [string]$MakeNsis = (Join-Path $env:LOCALAPPDATA 'electron-builder\Cache\nsis-3.0.4.1\nsis-3.0.4.1-1mx3n\makensis.exe')
 )
