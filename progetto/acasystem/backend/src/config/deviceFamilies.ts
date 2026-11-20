@@ -18,6 +18,7 @@ export const PLATFORM_FAMILY: Readonly<Record<string, DeviceFamily>> = {
   samsungtv: 'tv',
   androidtv_remote: 'tv',
   androidtv: 'tv',
+  apple_tv: 'tv',
   cast: 'tv',
   braviatv: 'tv',
   philips_js: 'tv',
