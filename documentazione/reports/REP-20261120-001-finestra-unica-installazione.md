@@ -151,3 +151,11 @@ Completato il 2026-11-20. Prossimo passo: prova dell'utente con `ACA-System-Setu
 - **Eseguibile:** `backup/rep20261120-finestra/ACA-System-Setup-0.2.1.exe`, 115.568.614 byte, SHA-256 `deaad66e…ddcf`.
 
 **Pubblicazione, 2026-11-20** (su richiesta dell'utente di scaricare il setup da GitHub): `ACA-System-Setup-0.2.0.exe` (115.529.097 byte, SHA-256 `e15365b5…9974`) e il nuovo `LEGGIMI.txt` sono allegati alla pre-release `centrale-vm-18.4-2`, insieme al disco che il setup scarica. `SHA256SUMS` è stato riscritto con le cinque impronte: un primo caricamento conteneva per errore la risposta JSON dell'API ed è stato sostituito. L'exe 18.4-2 resta allegato come versione precedente. Download anonimo verificato (HTTP 206).
+
+**Pubblicazione 0.2.1 e pulizia della release, 2026-11-20.**
+- `ACA-System-Setup-0.2.1.exe` è allegato alla pre-release `centrale-vm-18.4-2`.
+- Su richiesta dell'utente («Yes, remove them») sono stati rimossi gli exe precedenti `ACA-System-Setup-0.2.0.exe` e `ACA-System-Setup-18.4-2.exe`.
+- Allegati rimasti: disco `aca-centrale-vm-18.4-2.vdi.zip`, `ACA-System-Setup-0.2.1.exe`, `LEGGIMI.txt` (invariato, già descrive la finestra unica), `PUBBLICAZIONE.md` e `SHA256SUMS`.
+- `SHA256SUMS` è stato riscritto con le quattro impronte rimaste (351 byte).
+- Verifica anonima: `SHA256SUMS` corretto e download dell'exe 0.2.1 con HTTP 206.
+- Le copie locali degli exe rimossi restano in `backup/`, escluso da Git.
