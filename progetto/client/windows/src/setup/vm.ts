@@ -20,12 +20,16 @@ export interface VmInfo {
   state: string | null;
   /** MAC della prima scheda, senza separatori e in minuscolo. */
   mac: string | null;
+  network?: string;
+  cableConnected?: boolean;
 }
 
 export const parseShowVmInfo = (text: string): VmInfo => {
   const state = /^VMState="([^"]*)"/m.exec(text)?.[1] ?? null;
   const mac = /^macaddress1="([0-9a-fA-F]{12})"/m.exec(text)?.[1]?.toLowerCase() ?? null;
-  return { state, mac };
+  const network = /^nic1="([^"]*)"/m.exec(text)?.[1];
+  const cable = /^cableconnected1="(on|off)"/m.exec(text)?.[1];
+  return { state, mac, ...(network ? { network } : {}), ...(cable ? { cableConnected: cable === 'on' } : {}) };
 };
 
 /** Stato e MAC della VM; null se VBoxManage non risponde. */
@@ -33,6 +37,24 @@ export const readVmInfo = async (deps: SetupDeps, vbox: string, vmId: string): P
   const result = await deps.exec(vbox, ['showvminfo', vmId, '--machinereadable'], { timeoutMs: 20_000 });
   if (result.code !== 0) return null;
   return parseShowVmInfo(result.stdout);
+};
+
+/** Contatore complessivo in ricezione della prima scheda virtuale, disponibile solo a VM accesa. */
+export const readVmReceivedBytes = async (
+  deps: SetupDeps,
+  vbox: string,
+  vmId: string,
+  signal: AbortSignal
+): Promise<number | null> => {
+  const counter = '/Public/NetAdapter/0/BytesReceived';
+  const result = await deps.exec(vbox, ['debugvm', vmId, 'statistics', `--pattern=${counter}`], {
+    timeoutMs: 3_000,
+    signal,
+  });
+  if (result.code !== 0) return null;
+  const entry = result.stdout.match(/<Counter\b[^>]*>/g)?.find((tag) => tag.includes(` name="${counter}"`));
+  const bytes = Number(/\sc="(\d+)"/.exec(entry ?? '')?.[1]);
+  return Number.isSafeInteger(bytes) ? bytes : null;
 };
 
 /** Ultimo messaggio «ERRORE: …» dello script: è già scritto per l'utente, in italiano. */
@@ -50,7 +72,43 @@ export interface InstallInfo {
   nomeVm: string;
   cartella: string;
   attivita: string;
+  setupNat?: SetupNat;
 }
+
+export interface SetupNat {
+  bridgeAdapter: string;
+  jobsPort: number;
+  corePort: number;
+  appPort: number;
+}
+
+const parseSetupNat = (value: unknown): SetupNat | undefined => {
+  if (!value || typeof value !== 'object') return undefined;
+  const { bridgeAdapter, jobsPort, corePort, appPort } = value as Partial<SetupNat>;
+  const isPort = (port: unknown): port is number => typeof port === 'number' && Number.isInteger(port) && port >= 1024 && port <= 65535;
+  if (typeof bridgeAdapter !== 'string' || !bridgeAdapter.trim()
+    || !isPort(jobsPort) || !isPort(corePort) || !isPort(appPort)
+    || new Set([jobsPort, corePort, appPort]).size !== 3) return undefined;
+  return { bridgeAdapter, jobsPort, corePort, appPort };
+};
+
+export const connectVmCable = async (deps: SetupDeps, vbox: string, vmId: string): Promise<boolean> =>
+  (await deps.exec(vbox, ['controlvm', vmId, 'setlinkstate1', 'on'], { timeoutMs: 5_000 })).code === 0;
+
+/** Passaggio a caldo. Il ciclo del link fa rinnovare il DHCP nel guest. */
+export const switchVmToBridge = async (deps: SetupDeps, vbox: string, vmId: string, adapter: string): Promise<boolean> => {
+  const link = await deps.exec(vbox, ['controlvm', vmId, 'setlinkstate1', 'off'], { timeoutMs: 5_000 });
+  if (link.code !== 0) return false;
+  let connected = false;
+  let changed = false;
+  try {
+    changed = (await deps.exec(vbox, ['controlvm', vmId, 'nic1', 'bridged', adapter], { timeoutMs: 10_000 })).code === 0;
+    await deps.sleep(1_000);
+  } finally {
+    connected = await connectVmCable(deps, vbox, vmId);
+  }
+  return changed && connected;
+};
 
 /** installazione.json: PowerShell 5.1 lo scrive con BOM. */
 export const readInstallInfo = async (centraleDir: string): Promise<InstallInfo | null> => {
@@ -58,11 +116,14 @@ export const readInstallInfo = async (centraleDir: string): Promise<InstallInfo 
     const raw = (await readFile(join(centraleDir, INSTALL_INFO_FILE), 'utf8')).replace(/^\uFEFF/, '');
     const data = JSON.parse(raw) as Partial<InstallInfo>;
     if (typeof data.vmId !== 'string' || !data.vmId) return null;
+    const setupNat = parseSetupNat(data.setupNat);
+    if (data.setupNat !== undefined && !setupNat) return null;
     return {
       vmId: data.vmId,
       nomeVm: String(data.nomeVm ?? ''),
       cartella: String(data.cartella ?? centraleDir),
       attivita: String(data.attivita ?? ''),
+      ...(setupNat ? { setupNat } : {}),
     };
   } catch {
     return null;

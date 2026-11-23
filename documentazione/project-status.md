@@ -1,5 +1,13 @@
 # Stato effettivo del progetto
 
+**Pubblicazione 2026-11-23.** L'installatore Windows 0.2.2 con NAT iniziale è scaricabile da GitHub. Download anonimo completo e SHA-256 verificati. Il collaudo sul PC ACA è il prossimo riscontro richiesto. [Release](https://github.com/acamemo/acasystem-releases/releases/tag/centrale-vm-18.4-2) · [Evidenze](reports/REP-20261123-003-nat-installatore-pc.md#pubblicazione-successiva--2026-11-23).
+
+**Aggiornamento 2026-11-23 — installatore Windows con NAT ([REP-20261123-003](reports/REP-20261123-003-nat-installatore-pc.md)).** L'EXE locale 0.2.2 usa NAT per il primo avvio delle nuove centrali e passa al bridge prima di mostrare il QR. Verificati download in NAT, health e QR LAN, persistenza dopo avvio a freddo, 187 test e contenuto del pacchetto. Collaudo e velocità sul PC lento da misurare.
+
+**Aggiornamento 2026-11-23 — primo avvio del client Windows ([REP-20261123-002](reports/REP-20261123-002-avanzamento-preparazione-core.md)).** Correzione locale verificata. A 0% la preparazione è indeterminata. Durante il job di Core, il traffico sostenuto della VM rinnova l'attesa e rende visibile «Dati in ricezione». 184 test, typecheck, build e renderer verificati. Il confronto bridge/NAT e il collaudo del nuovo client sul PC lento restano aperti.
+
+**Aggiornamento 2026-11-23 — diagnosi installazione su PC completata ([REP-20261123-001](reports/REP-20261123-001-diagnosi-installazione-pc.md)).** Disco pubblico della 0.2.1 scaricato in 58,89 s, verificato ed estratto in 2,34 s sul PC di sviluppo. Nel caso lento il trasferimento di Core era al 44,2% dopo 44 minuti, con una connessione a Docker Hub interrotta. La causa precisa del reset richiede misure sul PC interessato. Interventi possibili in ISSUE-169.
+
 **Aggiornamento 2026-11-20 — finestra unica di installazione ([REP-20261120-001](reports/REP-20261120-001-finestra-unica-installazione.md)):** l'app per PC 0.2.0 guida l'installazione della centrale in una sola finestra, in stile Vetro Bianco. Senza un indirizzo salvato mostra i controlli (VirtualBox, memoria e processore, spazio, rete, Internet), poi:
 - scarica il disco con avanzamento e ripresa;
 - crea la VM con `Installa-Centrale.ps1 -Disco -NonInterattivo`;
@@ -2334,3 +2342,19 @@ Proposte, nessuna applicata:
 1. App per PC e telefono: se l'indirizzo risponde sulle porte di Home Assistant ma non su 3002, mostrare «La centrale si sta preparando (primo avvio, 15-30 minuti)» e riprovare da sola. Cambia solo l'app.
 2. Centrale: messaggio a schermo dal servizio di primo avvio prima dell'installazione della schermata, che arriva solo dopo il download di Core. Richiede una nuova immagine e una nuova release del disco.
 3. Installatore: indicare sulla pagina finale un'attesa realistica (oggi 10-20 minuti).
+
+### ISSUE-169 — Primo avvio lento su PC con trasferimento di Core instabile
+
+**Aperta il 2026-11-23 dopo la diagnosi [REP-20261123-001](reports/REP-20261123-001-diagnosi-installazione-pc.md).** Il Supervisor sul PC lento ha registrato `connection reset by peer` da Docker Hub e Core era al 44,2% dopo 44 minuti. Sul PC di sviluppo lo ZIP pubblico da 591 MB arriva in circa 59 s. Il controllo iniziale da Windows attesta la raggiungibilità dello ZIP GitHub. Per misurare la causa del reset servono orari delle fasi, log del Supervisor e traffico della VM su due connessioni del PC interessato.
+
+Proposte da valutare. Distinguere trasferimento, estrazione e retry nell'avanzamento, con tempi per fase. Verificare una variante con immagini container precaricate e trasferibili da una connessione più veloce o da supporto locale.
+
+**Riscontro del 2026-11-23.** Il PC interessato ha mostrato `running` dopo 61 h 35 min di pausa della VM. La lettura è avvenuta 10 min dopo la ripresa e non ha accertato lo stato di Core. Per distinguere il problema iniziale da un eventuale blocco dopo la ripresa servono l'IP corrente della VM, risposte dei servizi e log del Supervisor. [Evidenza successiva nel report](reports/REP-20261123-001-diagnosi-installazione-pc.md#evidenza-successiva--pc-lento-2026-11-23).
+
+**Conferma delle 12:44 CET.** Il file del layer di Core 2026.11.2 da 408,2 MB cresceva a circa 70,4 kB/s ed era all'81,7% mentre il job del Supervisor riportava 0%. Dal PC di sviluppo, campione dello stesso layer GHCR a 8,24 MB/s. Identificata la fase lenta dopo la ripresa. Origine del divario ed esito finale dell'installazione da verificare. [Misure e confronto](reports/REP-20261123-001-diagnosi-installazione-pc.md#conferma-del-trasferimento-lento-di-core--pc-lento-2026-11-23).
+
+**Confronto delle 13:39 CET.** Sul PC interessato, a Docker inattivo, lo stesso intervallo GHCR da 8 MiB ha richiesto 1,565 s da Windows e 143,288 s da `ACA-Centrale`. L'avvio della risposta è stato rapido in entrambi gli ambienti. Il limite emerge nel trasferimento dal guest. Prossima verifica proposta con VM di prova sullo stesso PC in bridge e NAT. [Misure del confronto](reports/REP-20261123-001-diagnosi-installazione-pc.md#confronto-windows-e-vm-sul-pc-lento--2026-11-23).
+
+**Correzione locale.** Il client mostra la preparazione indeterminata a zero e considera la ricezione sostenuta del guest mentre è attivo il job di Core. Il contatore non fornisce la percentuale del singolo download. [Implementazione e verifiche](reports/REP-20261123-002-avanzamento-preparazione-core.md).
+
+**Mitigazione locale.** L'installatore 0.2.2 usa NAT durante i download iniziali e passa in automatico al bridge per l'uso quotidiano. Prova reale superata sul PC di sviluppo. Prestazioni del NAT sul PC lento e causa del rallentamento in bridge restano aperte. [Risultati dell'installatore](reports/REP-20261123-003-nat-installatore-pc.md).

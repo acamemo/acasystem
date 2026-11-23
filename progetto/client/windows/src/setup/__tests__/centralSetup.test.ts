@@ -213,7 +213,7 @@ describe('errori', () => {
     expect(failed).toEqual({
       phase: 'failed',
       step: 'preparing',
-      message: 'Da 20 minuti la centrale non fa progressi. Controlla la connessione a Internet e riprova.',
+      message: 'Da 20 minuti non rileviamo progressi nella preparazione. Controlla la connessione a Internet e riprova.',
       canRetry: true,
     });
     state.aca = { status: 200, body: '{"status":"ok"}' };

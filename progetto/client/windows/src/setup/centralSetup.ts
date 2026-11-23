@@ -105,6 +105,8 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
   const startTracking = async (vmId: string, startedAt: number): Promise<void> => {
     stopTracking();
     const vbox = await findVBoxManage(deps);
+    const installInfo = await readInstallInfo(centraleDir);
+    const setupNat = installInfo?.vmId === vmId ? installInfo.setupNat : undefined;
     setPhase({
       phase: 'preparing',
       steps: buildSteps({ vm: false, core: false, aca: false }),
@@ -129,13 +131,14 @@ export const createCentralSetup = (options: CentralSetupOptions): CentralSetup =
           .finally(() => setPhase(readyPhase(outcome.ip, startedAt, readyAt)));
       } else {
         stopTracking();
-        fail('preparing', PREPARING_STALL_MESSAGE);
+        fail('preparing', outcome.message ?? PREPARING_STALL_MESSAGE);
       }
     };
     const created = createTracker({
       deps,
       vbox,
       vmId,
+      ...(setupNat ? { setupNat } : {}),
       windowStart: deps.now(),
       ...(downloadBytesPerSecond !== undefined ? { downloadBytesPerSecond } : {}),
       onOutcome,

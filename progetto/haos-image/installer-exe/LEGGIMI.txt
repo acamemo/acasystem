@@ -20,10 +20,10 @@ Installare
      prepara e alla fine mostra il codice QR per telefono e tablet.
   3. VirtualBox (https://www.virtualbox.org) non serve prima: se manca, l'app lo dice e
      apre la pagina di download; poi si torna all'app e si preme "Controlla di nuovo".
-  4. Tempi: circa 30 minuti, quasi tutti di attesa (download e primo avvio della
-     centrale). Con una connessione lenta il download puo richiedere piu tempo; se la
-     connessione cade, riprende da dove si era fermato. Si puo usare il PC nel frattempo
-     e ridurre a icona la finestra: l'app avvisa quando la centrale e pronta.
+  4. Il primo avvio scarica Home Assistant e Acasystem via NAT. L'app passa in automatico
+     alla rete di casa prima di mostrare il QR. I tempi dipendono dalla connessione.
+     Si puo usare il PC nel frattempo e ridurre a icona la finestra: l'app avvisa quando
+     la centrale e pronta.
   Reinstallare o aggiornare l'app sopra una versione esistente e possibile e non tocca la
   centrale gia creata.
   In caso di errore il registro e in %TEMP%\aca-installazione.log.

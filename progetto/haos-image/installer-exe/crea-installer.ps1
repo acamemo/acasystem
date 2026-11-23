@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Uscita,   # file .exe da creare, fuori dal repository
-    [string]$Versione = '0.2.1',
-    [string]$ClientZip = (Join-Path $PSScriptRoot '..\..\client\windows\release\Acasystem-0.2.1-win-x64.zip'),
+    [string]$Versione = '0.2.2',
+    [string]$ClientZip,
     [string]$MakeNsis = (Join-Path $env:LOCALAPPDATA 'electron-builder\Cache\nsis-3.0.4.1\nsis-3.0.4.1-1mx3n\makensis.exe')
 )
 # Crea l'installatore .exe di ACA SYSTEM (REP-20261118-001, REP-20261120-001): app per PC, script della
@@ -10,10 +10,11 @@ param(
 # NSIS e quello gia scaricato da electron-builder per il client Windows.
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$qui = $PSScriptRoot
+if (-not $ClientZip) { $ClientZip = Join-Path $qui "..\..\client\windows\release\Acasystem-$Versione-win-x64.zip" }
 if (Test-Path -LiteralPath $Uscita) { throw "Il file $Uscita esiste gia" }
 foreach ($f in $MakeNsis, $ClientZip) { if (-not (Test-Path -LiteralPath $f)) { throw "Non trovato: $f" } }
 
-$qui = $PSScriptRoot
 $pacchetto = Join-Path $qui '..\pacchetto-prova'
 $pilot = Join-Path $qui '..\..\ha-app\pilot'
 $lavoro = Join-Path $env:TEMP ("aca-installer-" + [guid]::NewGuid().ToString('N'))

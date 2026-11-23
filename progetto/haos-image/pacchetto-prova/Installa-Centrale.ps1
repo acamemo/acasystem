@@ -122,9 +122,29 @@ VBox @('internalcommands', 'sethduuid', $discoVm) | Out-Null   # UUID nuovo: piu
 Scrivi 'Creazione della VM...'
 $creata = VBox @('createvm', '--name', $NomeVm, '--ostype', 'Linux_64', '--basefolder', $Cartella, '--register')
 $uuid = ([regex]::Match(($creata | Out-String), 'UUID:\s*([0-9a-f-]{36})')).Groups[1].Value
-VBox @('modifyvm', $uuid, '--memory', $MemoriaMB, '--cpus', $Cpu, '--firmware', 'efi', '--ioapic', 'on', '--rtc-use-utc', 'on', '--hpet', 'off',
+$retePreparazione = $null
+$reteVm = @('--nic1', 'bridged', '--bridge-adapter1', $scheda.InterfaceDescription)
+if ($NonInterattivo) {
+    # Durante il primo avvio l'app legge i tre servizi solo da loopback.
+    $retePreparazione = @{ bridgeAdapter = $scheda.InterfaceDescription }
+    $reteVm = @('--nic1', 'nat')
+    $prese = @()
+    try {
+        foreach ($porta in @(@{ nome = 'jobsPort'; guest = 80 }, @{ nome = 'corePort'; guest = 8123 }, @{ nome = 'appPort'; guest = 3002 })) {
+            $presa = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
+            $prese += $presa
+            $presa.Start()
+            $numero = ([Net.IPEndPoint]$presa.LocalEndpoint).Port
+            $retePreparazione[$porta.nome] = $numero
+            $reteVm += @('--nat-pf1', "aca-$($porta.nome),tcp,127.0.0.1,$numero,,$($porta.guest)")
+        }
+    } finally {
+        foreach ($presa in $prese) { $presa.Stop() }
+    }
+}
+VBox (@('modifyvm', $uuid, '--memory', $MemoriaMB, '--cpus', $Cpu, '--firmware', 'efi', '--ioapic', 'on', '--rtc-use-utc', 'on', '--hpet', 'off',
     '--graphicscontroller', 'vmsvga', '--vram', '16', '--audio-enabled', 'off', '--usb-ohci', 'off', '--mouse', 'ps2',
-    '--nic1', 'bridged', '--bridge-adapter1', $scheda.InterfaceDescription, '--nic-type1', '82540EM') | Out-Null
+    '--nic-type1', '82540EM') + $reteVm) | Out-Null
 VBox @('storagectl', $uuid, '--name', 'SATA', '--add', 'sata', '--controller', 'IntelAhci', '--portcount', '1') | Out-Null
 VBox @('storageattach', $uuid, '--storagectl', 'SATA', '--port', '0', '--device', '0', '--type', 'hdd', '--medium', $discoVm) | Out-Null
 
@@ -138,7 +158,9 @@ $azione = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfi
 $avvio = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
 $regole = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName "ACA SYSTEM - $NomeVm" -Action $azione -Trigger $avvio -Settings $regole -Description 'Avvia e mantiene attiva la centrale ACA in VirtualBox.' | Out-Null
-@{ vmId = $uuid; nomeVm = $NomeVm; cartella = $Cartella; attivita = "ACA SYSTEM - $NomeVm" } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Cartella 'installazione.json') -Encoding UTF8
+$installazione = @{ vmId = $uuid; nomeVm = $NomeVm; cartella = $Cartella; attivita = "ACA SYSTEM - $NomeVm" }
+if ($retePreparazione) { $installazione.setupNat = $retePreparazione }
+$installazione | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Cartella 'installazione.json') -Encoding UTF8
 
 Scrivi 'Avvio della centrale...'
 Start-ScheduledTask -TaskName "ACA SYSTEM - $NomeVm"

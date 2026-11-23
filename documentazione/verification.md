@@ -1,5 +1,19 @@
 # Verifiche ed evidenze
 
+## NAT per il primo avvio della centrale su PC — 2026-11-23
+
+[REP-20261123-003](reports/REP-20261123-003-nat-installatore-pc.md): 187 test, typecheck e build superati. Su VirtualBox 7.2.22 e disco pubblico verificati primo download in NAT, passaggio automatico a bridge, health e QR LAN. Bridge confermato dopo un avvio a freddo. Contenuto dell'EXE 0.2.2 confrontato byte per byte con i file di setup collaudati. Prova di destinazione e telefono fisico non eseguiti.
+
+Pubblicazione verificata il 2026-11-23 con download anonimo completo. HTTP 200, 115.591.051 byte e SHA-256 corrispondente all'EXE collaudato e all'impronta pubblica. [Pre-release centrale-vm-18.4-2](https://github.com/acamemo/acasystem-releases/releases/tag/centrale-vm-18.4-2).
+
+## Avanzamento del primo avvio di Home Assistant — 2026-11-23
+
+[REP-20261123-002](reports/REP-20261123-002-avanzamento-preparazione-core.md): 184 test del client Windows, typecheck e build superati. Contatore di ricezione verificato da VirtualBox 7.2.22 su VM temporanea. Renderer compilato verificato con Playwright per preparazione indeterminata, ricezione, progresso positivo e ritorno indeterminato, anche a 390 px. Installazione completa del nuovo client sul PC lento non eseguita.
+
+## Diagnosi installazione su PC Windows — 2026-11-23
+
+[REP-20261123-001](reports/REP-20261123-001-diagnosi-installazione-pc.md): client 0.2.1, asset GitHub da 591.441.407 byte scaricato in 58,89 s al primo tentativo. SHA-256 e `tar.exe` in 0,44 s e 1,90 s. Verificati digest dell'EXE, campione GitHub e campioni GHCR dal PC host. 178 test del client e typecheck superati. Creazione e avvio della VM ricostruiti con codice ed evidenze storiche. Nuovo primo avvio e verifica sul PC lento da eseguire separatamente.
+
 ## Tentativi di recupero LAN/stabilità VM — 2026-11-16
 
 [REP007](reports/REP-20261116-007-recupero-lan-stabilita-vm.md): **problema non risolto**,5profili rifiutati. nohz=off:VirtualSync109,424s su300,349s; cap99:85,508s su300,653s; guestHyperV:300,383s su300,383s PASS, poi vero EXE10/30slinkoff PASS e60s FALLITO con ulteriori134,047s GivenUp. VirtIO e3CPU testati con nuovo programma completo suPS5.1/7, linkoff per300s:0,841s/43,787s sincronizzati e contatori/avvisi negativi. Nessun keepalive o pausa/ripresa per ottenere PASS. Provider/cap/NIC/CPU e cmdline originari ripristinati; Windows/protezioni/hypervisor host non modificati. Un singolo campione positivo non viene promosso.

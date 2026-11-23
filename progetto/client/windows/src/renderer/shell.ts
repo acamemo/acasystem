@@ -340,7 +340,7 @@ const prepRows = (phase: Extract<SetupPhase, { phase: 'preparing' }>): RowData[]
 
 const renderPreparing = (phase: Extract<SetupPhase, { phase: 'preparing' }>): void => {
   setStepper(2);
-  setTexts('La centrale si sta preparando', 'Al primo avvio scarica Home Assistant e Acasystem. Di solito servono 15-30 minuti.');
+  setTexts('La centrale si sta preparando', 'Al primo avvio scarica Home Assistant e Acasystem. Il tempo dipende dalla connessione della centrale.');
   fillRows(byId('prep-steps'), prepRows(phase));
   updateProgress(prepView, {
     label: phase.progress.label,
