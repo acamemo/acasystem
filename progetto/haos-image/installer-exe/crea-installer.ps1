@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Uscita,   # file .exe da creare, fuori dal repository
-    [string]$Versione = '0.2.2',
+    [string]$Versione = '0.2.3',
     [string]$ClientZip,
     [string]$MakeNsis = (Join-Path $env:LOCALAPPDATA 'electron-builder\Cache\nsis-3.0.4.1\nsis-3.0.4.1-1mx3n\makensis.exe')
 )

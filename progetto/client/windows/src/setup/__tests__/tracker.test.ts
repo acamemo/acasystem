@@ -21,7 +21,9 @@ const world = (bytesPerSecond?: number, setupNat?: typeof NAT) => {
     network: 'bridged',
     cableConnected: true,
     bridgeFails: false,
+    disconnectFails: false,
     bridgeCommands: [] as string[][],
+    bridgeWaits: [] as Array<{ ms: number; network: string; cableConnected: boolean }>,
     arp: '',
     core: 0,
     jobs: { status: 404, body: '' } as { status: number; body: string },
@@ -35,7 +37,10 @@ const world = (bytesPerSecond?: number, setupNat?: typeof NAT) => {
   const deps = resolveDeps({
     env: { SystemRoot: 'C:\\Windows' },
     now: () => state.time,
-    ...(setupNat ? { sleep: async () => undefined } : {}),
+    ...(setupNat ? { sleep: async (ms: number) => {
+      state.bridgeWaits.push({ ms, network: state.network, cableConnected: state.cableConnected });
+      state.time += ms;
+    } } : {}),
     networkInterfaces: () => ({}),
     exec: async (file, args) => {
       if (file === VBOX && args[0] === 'debugvm') {
@@ -45,7 +50,10 @@ const world = (bytesPerSecond?: number, setupNat?: typeof NAT) => {
       }
       if (file === VBOX && args[0] === 'controlvm') {
         state.bridgeCommands.push(args.slice(2));
-        if (args[2] === 'setlinkstate1') state.cableConnected = args[3] === 'on';
+        if (args[2] === 'setlinkstate1') {
+          state.cableConnected = args[3] === 'on';
+          if (!state.cableConnected && state.disconnectFails) return { code: null, stdout: '', stderr: '', timedOut: true };
+        }
         if (args[2] === 'nic1') {
           if (state.bridgeFails) return { code: 1, stdout: '', stderr: 'scheda non disponibile', timedOut: false };
           state.network = args[3] ?? '';
@@ -306,8 +314,9 @@ describe('primo avvio in NAT', () => {
     state.natOnboarding = { status: 200, body: '[{"step":"user","done":false}]' };
     await tracker.tick();
     expect(state.bridgeCommands).toEqual([
-      ['setlinkstate1', 'off'], ['nic1', 'bridged', NAT.bridgeAdapter], ['setlinkstate1', 'on'],
+      ['nic1', 'bridged', NAT.bridgeAdapter], ['setlinkstate1', 'off'], ['setlinkstate1', 'on'],
     ]);
+    expect(state.bridgeWaits).toEqual([{ ms: 10_000, network: 'bridged', cableConnected: false }]);
     expect(progressOf(outcomes.at(-1)).label).toBe('Collegamento alla rete di casa');
 
     state.arp = ARP;
@@ -318,7 +327,7 @@ describe('primo avvio in NAT', () => {
     expect(outcomes.at(-1)).toEqual({ kind: 'ready', ip: '192.168.1.66' });
   });
 
-  it('riattacca il link se il passaggio fallisce e lascia disponibile il nuovo tentativo', async () => {
+  it('lascia il link attivo in NAT se il passaggio al bridge fallisce', async () => {
     const { state, tracker, outcomes } = world(undefined, NAT);
     state.vmState = 'running';
     state.network = 'nat';
@@ -328,6 +337,22 @@ describe('primo avvio in NAT', () => {
     await tracker.tick();
     expect(state.network).toBe('nat');
     expect(state.cableConnected).toBe(true);
+    expect(state.bridgeCommands).toEqual([['nic1', 'bridged', NAT.bridgeAdapter]]);
+    expect(outcomes.at(-1)).toMatchObject({ kind: 'failed', message: expect.stringContaining('rete di casa') });
+  });
+
+  it('riattacca il cavo anche se il comando di scollegamento va in timeout', async () => {
+    const { state, tracker, outcomes } = world(undefined, NAT);
+    state.vmState = 'running';
+    state.network = 'nat';
+    state.disconnectFails = true;
+    state.natCore = 401;
+    state.natAca = { status: 200, body: '{"status":"ok"}' };
+    await tracker.tick();
+    expect(state.network).toBe('bridged');
+    expect(state.cableConnected).toBe(true);
+    expect(state.bridgeCommands.at(-1)).toEqual(['setlinkstate1', 'on']);
+    expect(state.bridgeWaits).toHaveLength(0);
     expect(outcomes.at(-1)).toMatchObject({ kind: 'failed', message: expect.stringContaining('rete di casa') });
   });
 

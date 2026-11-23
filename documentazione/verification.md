@@ -6,6 +6,12 @@
 
 Pubblicazione verificata il 2026-11-23 con download anonimo completo. HTTP 200, 115.591.051 byte e SHA-256 corrispondente all'EXE collaudato e all'impronta pubblica. [Pre-release centrale-vm-18.4-2](https://github.com/acamemo/acasystem-releases/releases/tag/centrale-vm-18.4-2).
 
+Riscontro successivo sul PC ACA. Dopo un'installazione pulita, Core e Acasystem erano raggiungibili via NAT. VirtualBox è passato in bridge a 10 min 40 s dall'avvio della VM. La scoperta LAN è scaduta. Health LAN e tempo totale non misurati. [Collaudo sul PC ACA](reports/REP-20261123-003-nat-installatore-pc.md#collaudo-sul-pc-aca--2026-11-23).
+
+Ripristino sul PC ACA. Ciclo manuale del cavo di 10 s a bridge attivo, DHCP Request con ACK, quindi health LAN HTTP 200 e QR aggiornato. L'utente conferma la conclusione dell'installazione, il funzionamento del QR e l'apertura dell'app. Nell'automazione locale, 188 test, typecheck e build superati. [Evidenze e limiti](reports/REP-20261123-003-nat-installatore-pc.md#ripristino-lan-con-ciclo-del-cavo-ore-1646-cet).
+
+Versione 0.2.3 pubblicata. Flusso reale del setup da zero su VM isolata, pronto in 422,7 s con ciclo da 10 s e health e QR LAN. Build e contenuto dell'EXE verificati. Download anonimo HTTP 200, 115.648.834 byte e SHA-256 corrispondente. [Collaudo e pubblicazione](reports/REP-20261123-003-nat-installatore-pc.md#preparazione-della-023--2026-11-23).
+
 ## Avanzamento del primo avvio di Home Assistant — 2026-11-23
 
 [REP-20261123-002](reports/REP-20261123-002-avanzamento-preparazione-core.md): 184 test del client Windows, typecheck e build superati. Contatore di ricezione verificato da VirtualBox 7.2.22 su VM temporanea. Renderer compilato verificato con Playwright per preparazione indeterminata, ricezione, progresso positivo e ritorno indeterminato, anche a 390 px. Installazione completa del nuovo client sul PC lento non eseguita.

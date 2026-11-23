@@ -2,7 +2,7 @@
   "name": "acasystem-client-windows",
   "productName": "Acasystem",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Acasystem per Windows",
   "author": "MeMo Srl",
   "license": "GPL-3.0",

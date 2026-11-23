@@ -1,5 +1,11 @@
 # Stato effettivo del progetto
 
+**Pubblicazione 0.2.3 del 2026-11-23.** Il nuovo installer Windows è scaricabile da GitHub. Su VM nuova il ciclo in bridge ha mantenuto il cavo scollegato 10 s e raggiunto health LAN e QR corretto in 7 min 3 s complessivi. 188 test, pacchetto e download anonimo verificati. Resta la conferma sulla rete Wi-Fi del PC ACA. [Release](https://github.com/acamemo/acasystem-releases/releases/tag/centrale-vm-18.4-2) · [Collaudo e pubblicazione](reports/REP-20261123-003-nat-installatore-pc.md#preparazione-della-023--2026-11-23).
+
+**Installazione conclusa sul PC ACA del 2026-11-23.** Un ciclo manuale del cavo di 10 s con bridge attivo ha ottenuto un ACK DHCP e health LAN positiva. L'utente ha confermato QR funzionante e apertura dell'app. La stessa sequenza è ora nel sorgente del setup Windows. 188 test, typecheck e build superati. Collaudo del passaggio automatico con un nuovo EXE da eseguire. [Riscontro e correzione](reports/REP-20261123-003-nat-installatore-pc.md#ripristino-lan-con-ciclo-del-cavo-ore-1646-cet).
+
+**Collaudo PC ACA del 2026-11-23.** Installazione pulita 0.2.2. Core e Acasystem raggiungibili in NAT e passaggio VirtualBox al bridge dopo 10 min 40 s di esecuzione. Timeout nella scoperta LAN, IP effettivo nel guest da verificare. La VM è disponibile per distinguere DHCP e scoperta lato Windows. [Riscontro di collaudo](reports/REP-20261123-003-nat-installatore-pc.md#collaudo-sul-pc-aca--2026-11-23).
+
 **Pubblicazione 2026-11-23.** L'installatore Windows 0.2.2 con NAT iniziale è scaricabile da GitHub. Download anonimo completo e SHA-256 verificati. Il collaudo sul PC ACA è il prossimo riscontro richiesto. [Release](https://github.com/acamemo/acasystem-releases/releases/tag/centrale-vm-18.4-2) · [Evidenze](reports/REP-20261123-003-nat-installatore-pc.md#pubblicazione-successiva--2026-11-23).
 
 **Aggiornamento 2026-11-23 — installatore Windows con NAT ([REP-20261123-003](reports/REP-20261123-003-nat-installatore-pc.md)).** L'EXE locale 0.2.2 usa NAT per il primo avvio delle nuove centrali e passa al bridge prima di mostrare il QR. Verificati download in NAT, health e QR LAN, persistenza dopo avvio a freddo, 187 test e contenuto del pacchetto. Collaudo e velocità sul PC lento da misurare.
@@ -2358,3 +2364,13 @@ Proposte da valutare. Distinguere trasferimento, estrazione e retry nell'avanzam
 **Correzione locale.** Il client mostra la preparazione indeterminata a zero e considera la ricezione sostenuta del guest mentre è attivo il job di Core. Il contatore non fornisce la percentuale del singolo download. [Implementazione e verifiche](reports/REP-20261123-002-avanzamento-preparazione-core.md).
 
 **Mitigazione locale.** L'installatore 0.2.2 usa NAT durante i download iniziali e passa in automatico al bridge per l'uso quotidiano. Prova reale superata sul PC di sviluppo. Prestazioni del NAT sul PC lento e causa del rallentamento in bridge restano aperte. [Risultati dell'installatore](reports/REP-20261123-003-nat-installatore-pc.md).
+
+**Esito sul PC ACA.** La 0.2.2 supera l'avvio in NAT e cambia in bridge, poi scade senza health LAN. Per distinguere mancato rinnovo DHCP da mancata scoperta serve leggere lo stato IPv4 direttamente dalla VM. Proposta di correzione del messaggio di timeout per distinguere «centrale avviata» da «indirizzo LAN non rilevato». [Cronologia e confronto](reports/REP-20261123-003-nat-installatore-pc.md#collaudo-sul-pc-aca--2026-11-23).
+
+**Verifica delle 16:35 CET.** La console è rimasta sul QR NAT e il PC non ha trovato il MAC virtuale tra i vicini IPv4. Il QR si legge, ma la pagina su `10.0.2.15` non si apre né da telefono né da PC nella prova riferita dall'utente. Lettura di IP e DHCP dal guest non riuscita. Prossimi riscontri proposti da router o da una breve traccia della scheda virtuale. [Verifica in sola lettura](reports/REP-20261123-003-nat-installatore-pc.md#verifica-in-sola-lettura-ore-1635-cet).
+
+**Cattura passiva delle 16:38 CET.** In bridge la VM trasmetteva ancora da `10.0.2.15` e cercava il gateway NAT. Nessun DHCP nella finestra osservata. Resta da verificare se un ciclo controllato del cavo in bridge avvia DHCP e rende disponibile la centrale sulla LAN. [Riscontro della cattura](reports/REP-20261123-003-nat-installatore-pc.md#cattura-passiva-dalle-163854-alle-163954-cet).
+
+**Ripristino delle 16:46 CET.** Il router ha dato ACK al DHCP Request dopo il ciclo del cavo in bridge. Windows raggiunge Acasystem, il MAC è quello atteso e il QR si è aggiornato. Sequenza adottata nel codice e verificata localmente. Ripetibilità su una nuova installazione ancora da verificare. [Riscontro e correzione](reports/REP-20261123-003-nat-installatore-pc.md#ripristino-lan-con-ciclo-del-cavo-ore-1646-cet).
+
+**Rilascio del recupero automatico.** Sequenza automatica superata su una nuova VM sul PC di sviluppo, con durata del link assente misurata in 10 s e verifica finale di health e QR LAN. EXE 0.2.3 pubblicato. Conferma sul PC ACA ancora da eseguire. [Collaudo e pubblicazione](reports/REP-20261123-003-nat-installatore-pc.md#preparazione-della-023--2026-11-23).

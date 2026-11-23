@@ -95,19 +95,20 @@ const parseSetupNat = (value: unknown): SetupNat | undefined => {
 export const connectVmCable = async (deps: SetupDeps, vbox: string, vmId: string): Promise<boolean> =>
   (await deps.exec(vbox, ['controlvm', vmId, 'setlinkstate1', 'on'], { timeoutMs: 5_000 })).code === 0;
 
-/** Passaggio a caldo. Il ciclo del link fa rinnovare il DHCP nel guest. */
+/** Passaggio a caldo. Sul PC ACA il guest ha rinnovato il DHCP dopo 10 s senza link in bridge. */
 export const switchVmToBridge = async (deps: SetupDeps, vbox: string, vmId: string, adapter: string): Promise<boolean> => {
-  const link = await deps.exec(vbox, ['controlvm', vmId, 'setlinkstate1', 'off'], { timeoutMs: 5_000 });
-  if (link.code !== 0) return false;
+  const bridge = await deps.exec(vbox, ['controlvm', vmId, 'nic1', 'bridged', adapter], { timeoutMs: 10_000 });
+  if (bridge.code !== 0) return false;
+  let disconnected = false;
   let connected = false;
-  let changed = false;
   try {
-    changed = (await deps.exec(vbox, ['controlvm', vmId, 'nic1', 'bridged', adapter], { timeoutMs: 10_000 })).code === 0;
-    await deps.sleep(1_000);
+    const link = await deps.exec(vbox, ['controlvm', vmId, 'setlinkstate1', 'off'], { timeoutMs: 5_000 });
+    disconnected = link.code === 0;
+    if (disconnected) await deps.sleep(10_000);
   } finally {
     connected = await connectVmCable(deps, vbox, vmId);
   }
-  return changed && connected;
+  return disconnected && connected;
 };
 
 /** installazione.json: PowerShell 5.1 lo scrive con BOM. */
