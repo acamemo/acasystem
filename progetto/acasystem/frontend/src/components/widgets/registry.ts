@@ -149,7 +149,8 @@ export function findWidgetDefinition(
     }
     definition = product;
   }
-  if (!definition || !ADAPTIVE_WIDGET_TYPES.has(String(settings.categoryWidgetType)))
+  // Grid-format widgets keep their own sizes: their formats are the sizes (REP-20261127-001).
+  if (!definition || definition.cellFormats || !ADAPTIVE_WIDGET_TYPES.has(String(settings.categoryWidgetType)))
     return definition;
   let adaptive = adaptiveDefinitions.get(definition);
   if (!adaptive) {

@@ -95,8 +95,14 @@ describe('Guardia dei comandi: il corpo è un apritore sotto i comandi', () => {
       expect(openers).toHaveLength(1);
       const opener = openers[0]!;
       expect(opener.tagName).toBe('BUTTON');
-      expect(opener).toHaveAttribute('aria-label', 'Apri dettagli');
-      expect(opener).toHaveClass('aca-adaptive-widget__open');
+      // The light draws the grid formats (REP-20261127-001) with the cell opener.
+      if (type === 'light') {
+        expect(opener).toHaveAccessibleName(/^Dettagli: /);
+        expect(opener).toHaveClass('aca-cell-open');
+      } else {
+        expect(opener).toHaveAttribute('aria-label', 'Apri dettagli');
+        expect(opener).toHaveClass('aca-adaptive-widget__open');
+      }
       // The dot is gone: the opener draws nothing, it is the body.
       expect(opener.childElementCount).toBe(0);
       expect(opener.textContent).toBe('');
@@ -117,7 +123,7 @@ describe('Guardia dei comandi: il corpo è un apritore sotto i comandi', () => {
     async (type) => {
       const body = mount(type);
       await act(async () => undefined);
-      fireEvent.click(screen.getByRole('button', { name: 'Apri dettagli' }));
+      fireEvent.click(screen.getByRole('button', { name: type === 'light' ? /^Dettagli: / : 'Apri dettagli' }));
       expect(body.openDetails).toHaveBeenCalledOnce();
       expect(body.callService).not.toHaveBeenCalled();
       body.unmount();

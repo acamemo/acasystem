@@ -6,7 +6,6 @@ import type { CardSettings } from '@/@types/dashboard';
 import type { CellSize, WidgetProps } from '@/@types/launcher';
 import { CoverWidget } from '@/components/widgets/controls/cover/CoverWidget';
 import { FanWidget } from '@/components/widgets/controls/fan/FanWidget';
-import { LightWidget } from '@/components/widgets/controls/light/LightWidget';
 import { LockWidget } from '@/components/widgets/controls/lock/LockWidget';
 import { SensorWidget } from '@/components/widgets/controls/sensor/SensorWidget';
 import {
@@ -189,46 +188,6 @@ describe('SensorWidget 2×2: due poli', () => {
 });
 
 describe('Coerenza degli altri widget 2×2: lettura e comando in basso', () => {
-  it('luce senza luminosità: lo stato è la lettura in basso, una sola volta', () => {
-    const { container } = mount(LightWidget, 'light.ingresso', [
-      fixtureEntity('light.ingresso', 'on', {
-        friendly_name: 'Ingresso',
-        supported_color_modes: ['onoff'],
-      }),
-    ]);
-    const reading = screen.getByText('Acceso');
-    expect(pole(container)).toContainElement(reading);
-    expect(reading).toHaveClass('ctl-fit');
-    expect(screen.getAllByText('Acceso')).toHaveLength(1);
-    expect(top(container)).toHaveTextContent('Ingresso');
-  });
-
-  it('luce non disponibile: avviso con il glifo, su una riga, in basso', () => {
-    const { container } = mount(LightWidget, 'light.giardino', [
-      fixtureEntity('light.giardino', 'unavailable', { friendly_name: 'Giardino' }),
-    ]);
-    const reading = screen.getByText('Non disponibile');
-    expect(pole(container)).toContainElement(reading);
-    expect(reading.closest('.ctl-fit')).toHaveClass('ctl-clamp-1');
-    expect(reading.closest('.ctl-unavailable')?.querySelector('svg, .aca-icon')).not.toBeNull();
-    expect(screen.getAllByText('Non disponibile')).toHaveLength(1);
-  });
-
-  it('luce dimmerabile: percentuale e cursore insieme in basso', () => {
-    const { container } = mount(LightWidget, 'light.cucina', [
-      fixtureEntity('light.cucina', 'on', {
-        friendly_name: 'Cucina',
-        supported_color_modes: ['brightness'],
-        brightness: 128,
-      }),
-    ]);
-    const area = pole(container);
-    expect(area).toContainElement(screen.getByRole('slider', { name: 'Luminosità di Cucina' }));
-    expect(area?.querySelector('.ctl-figure')).not.toBeNull();
-    expect(area?.querySelector('.ctl-fit')).toBeNull();
-    expect(screen.getByText('Acceso')).toBeInTheDocument();
-  });
-
   it('ventilatore: senza velocità lo stato cresce, con la velocità resta sopra il cursore', () => {
     const bagno = mount(FanWidget, 'fan.bagno', [
       fixtureEntity('fan.bagno', 'off', { friendly_name: 'Bagno', supported_features: 48 }),

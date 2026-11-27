@@ -1,5 +1,7 @@
 # Stato effettivo del progetto
 
+**Aggiornamento 2026-11-27 — rifacimento progressivo del frontend, Luci ([REP-20261127-001](reports/REP-20261127-001-luci-formati-griglia.md)):** l'utente ha scelto il rifacimento progressivo per famiglie, con i layout delle reference fornite (Centro di Controllo in stile vetro). Primo lotto: formati comuni della griglia Home (rotondo 1×1, pillola 2×1, alto 1×2, quadrato 2×2) come primitive condivise e tessera Luci rifatta su questi; `LightWidget` rimosso, dettagli invariati. Le altre famiglie seguono in lotti successivi. Il client Windows riceve il design con la release dell'interfaccia.
+
 **Aggiornamento 2026-11-20 — finestra unica di installazione ([REP-20261120-001](reports/REP-20261120-001-finestra-unica-installazione.md)):** l'app per PC 0.2.0 guida l'installazione della centrale in una sola finestra, in stile Vetro Bianco. Senza un indirizzo salvato mostra i controlli (VirtualBox, memoria e processore, spazio, rete, Internet), poi:
 - scarica il disco con avanzamento e ripresa;
 - crea la VM con `Installa-Centrale.ps1 -Disco -NonInterattivo`;
@@ -2334,3 +2336,11 @@ Proposte, nessuna applicata:
 1. App per PC e telefono: se l'indirizzo risponde sulle porte di Home Assistant ma non su 3002, mostrare «La centrale si sta preparando (primo avvio, 15-30 minuti)» e riprovare da sola. Cambia solo l'app.
 2. Centrale: messaggio a schermo dal servizio di primo avvio prima dell'installazione della schermata, che arriva solo dopo il download di Core. Richiede una nuova immagine e una nuova release del disco.
 3. Installatore: indicare sulla pagina finale un'attesa realistica (oggi 10-20 minuti).
+
+### ISSUE-169 — Proposte dal rifacimento delle Luci
+
+**Aperta 2026-11-27, proposte non autorizzate ([REP-20261127-001](reports/REP-20261127-001-luci-formati-griglia.md)):** nate dal confronto con le reference, nessuna applicata.
+1. Pressione lunga su una tessera: nelle reference apre un menu sopra la tessera (modalità, scene, preset); oggi entra nella modifica (ADR-0016). Cambiarla richiede una decisione sul gesto globale.
+2. Dettagli dal formato 1×1: il cerchio intero accende e spegne, come nelle reference, quindi i dettagli si aprono dai formati più grandi o dalla pagina Luci. Possibile accesso con il menu del punto 1.
+3. Dettagli delle luci (`LightDetails`, `ProductLightDetails`) nello stesso stile dei formati.
+

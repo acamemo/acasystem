@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
+// AdaptiveBody directly: the light no longer uses it on the Home (REP-20261127-001), its fitting does.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
+import { AdaptiveBody } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { adaptiveFixtureServices } from '@/utils/fixtures/adaptiveData';
 import { createFixtureRuntime, fixtureEntity } from '@/utils/fixtures/runtime';
@@ -19,7 +20,7 @@ function mount(settings: CardSettings = {}, size = { w: 2, h: 2 }) {
   const saveCardSetting = vi.fn();
   const runtime = createFixtureRuntime({ conn: {} as never, services: adaptiveFixtureServices,
     entities: { 'light.salotto': fixtureEntity('light.salotto', 'on', { friendly_name: 'Luce soggiorno', brightness: 128, supported_color_modes: ['brightness'] }) }, saveCardSetting });
-  const view = render(<WidgetRuntimeProvider value={runtime}><AdaptiveCategoryWidget type="light" entityId="light.salotto" settings={settings} size={size} editMode={false} /></WidgetRuntimeProvider>);
+  const view = render(<WidgetRuntimeProvider value={runtime}><AdaptiveBody type="light" entityId="light.salotto" settings={settings} size={size} editMode={false} /></WidgetRuntimeProvider>);
   const card = view.container.querySelector('article')!;
   const observer = observers.find((candidate) => candidate.target === card)!;
   const resize = (width: number, height: number, padding = 24) => act(() => observer.callback([

@@ -135,7 +135,8 @@ describe('cornice: il widget disegna solo contenuto dentro WidgetHost', () => {
                 )
               : mountDefinition(definition, size, state === 'missing' ? { entities: [] } : {});
           const root = view.container.firstElementChild;
-          expect(root).toHaveClass('ctl-widget');
+          // The grid formats (REP-20261127-001) lay out their content with the cell primitives.
+          expect(root).toHaveClass(definition.cellFormats ? 'aca-cell-tile' : 'ctl-widget');
           expect(root).not.toHaveClass('aca-m');
           expect(view.container.querySelector('.aca-m--card')).toBeNull();
           view.unmount();
@@ -184,31 +185,15 @@ describe('data-no-long-press sui gesti che tengono il puntatore', () => {
     return found;
   };
 
-  it('manopola della luce: solo quando la luminosità si regola col gesto', () => {
+  it('luce rotonda: il cerchio che accende non avvia la pressione lunga', () => {
     mountDefinition(definition('light'), { w: 1, h: 1 });
-    expect(screen.getByRole('switch', { name: 'Luce cucina' })).toHaveAttribute(
-      'data-no-long-press'
-    );
-    cleanup();
-    mountDefinition(
-      definition('light'),
-      { w: 1, h: 1 },
-      {
-        entities: [
-          fixtureEntity('light.cucina', 'on', {
-            friendly_name: 'Luce cucina',
-            supported_color_modes: ['onoff'],
-          }),
-        ],
-      }
-    );
-    expect(screen.getByRole('switch', { name: 'Luce cucina' })).not.toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Luce cucina: spegni/ })).toHaveAttribute(
       'data-no-long-press'
     );
   });
 
   it.each([
-    ['light', { w: 2, h: 2 }, 'Luminosità di Luce cucina'],
+    ['light', { w: 1, h: 2 }, 'Luminosità di Luce cucina'],
     ['fan', { w: 2, h: 1 }, 'Velocità di Ventilatore'],
     ['cover', { w: 2, h: 2 }, 'Apertura di Tapparella'],
   ])('cursore del widget %s', (type, size, name) => {

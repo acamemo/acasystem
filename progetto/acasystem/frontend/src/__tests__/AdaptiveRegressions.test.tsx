@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
+import { AdaptiveBody, AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { createFixtureRuntime, fixtureEntity } from '@/utils/fixtures/runtime';
 import { haEntityToCapabilities, resolveHaService } from '@/utils/haEntityToCapabilities';
@@ -33,7 +33,7 @@ function mount(type: string, id: string, state: string, attributes = {}) {
   });
   const tree = (value = runtime) => (
     <WidgetRuntimeProvider value={value}>
-      <AdaptiveCategoryWidget type={type} entityId={id} size={{ w: 2, h: 2 }} editMode={false} />
+      <AdaptiveBody type={type} entityId={id} size={{ w: 2, h: 2 }} editMode={false} />
     </WidgetRuntimeProvider>
   );
   return { ...render(tree()), tree, runtime, callService };

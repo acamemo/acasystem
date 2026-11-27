@@ -282,7 +282,8 @@ describe('category pages', () => {
       expect(content).toHaveAttribute('inert');
       // The widget's own words and controls are there, not a dimmed or hidden picture of them.
       expect(content).toHaveTextContent('Luce');
-      expect(content).toHaveTextContent('Spento');
+      // The light tile (REP-20261127-001) agrees with «luce».
+      expect(content).toHaveTextContent('Spenta');
       const buttons = reachableButtons();
       expect(buttons).toHaveLength(1);
       expect(buttons[0]).toBe(screen.getByRole('button', { name: 'Collega Luce' }));
