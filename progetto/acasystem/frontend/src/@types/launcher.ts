@@ -211,6 +211,12 @@ export interface WidgetDefinition {
   Console?: ComponentType<WidgetDetailsProps>;
   /** Drawn without the kit frame (e.g. the spacer). */
   frameless?: boolean;
+  /**
+   * Drawn with the grid formats (CellTile, REP-20261127-001): the frame takes the shape of the
+   * format of the current size (1×1 round, 2×1 pill, 1×2 tall, 2×2 square) and the sizes stay
+   * the definition's own, also for catalog widgets.
+   */
+  cellFormats?: boolean;
   /** The detail sheet shows no type label under its title (a TV named «UE50J6200» is not «Android TV»). */
   detailsWithoutLabel?: boolean;
 }

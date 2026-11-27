@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
+import { AdaptiveBody, AdaptiveCategoryWidget } from '@/components/widgets/adaptive/AdaptiveCategoryWidget';
 import { WidgetRuntimeProvider } from '@/hooks/launcher/WidgetRuntimeContext';
 import { PageVisibilityContext } from '@/hooks/launcher/PageVisibilityContext';
 import { createFixtureRuntime } from '@/utils/fixtures/runtime';
@@ -17,7 +17,7 @@ import { RoomDetails } from '@/components/widgets/utilities/room/RoomDetails';
 
 const commandCases = [
   ['sensor', 'switch', 'switch.charging', 'state', 'on'],
-  ['light', 'power', 'light.fixture', 'state', 'off'],
+  // The light draws the grid formats (REP-20261127-001): its commands are in ControlsLight.
   ['fan', 'power', 'fan.fixture', 'state', 'off'],
   ['climate', 'target', 'climate.fixture', 'temperature', 22.5],
   ['cover', 'position', 'cover.fixture', 'current_position', 61],
@@ -39,7 +39,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 const connection = () => ({ sendMessagePromise: vi.fn().mockResolvedValue({}) }) as never;
-function mount(type: string, overrides = {}, detailsMode = false) {
+// `Body`: AdaptiveBody directly for the light, whose Home tile no longer uses it.
+function mount(type: string, overrides = {}, detailsMode = false, Body = AdaptiveCategoryWidget) {
   const source = fixtures[type]!;
   const runtime = createFixtureRuntime({
     entities,
@@ -59,7 +60,7 @@ function mount(type: string, overrides = {}, detailsMode = false) {
   };
   const tree = (current = runtime, settings = props.settings) => (
     <WidgetRuntimeProvider value={current}>
-      <AdaptiveCategoryWidget
+      <Body
         {...props}
         settings={settings}
         openDetails={() => runtime.openDetails('widget')}
@@ -179,13 +180,15 @@ describe('Percorso operativo dei venti tipi', () => {
     const openDetails = vi.fn();
     const view = mount(type, { openDetails });
     await act(async () => undefined);
+    // The light draws the grid formats (REP-20261127-001), opened by «Dettagli: name».
+    const light = type === 'light';
     expect(
       view.container.querySelector(
-        type === 'spacer' ? '.aca-adaptive-spacer' : `[data-widget-type="${type}"]`
+        type === 'spacer' ? '.aca-adaptive-spacer' : light ? '.aca-cell-tile' : `[data-widget-type="${type}"]`
       )
     ).toBeInTheDocument();
     if (type !== 'spacer') {
-      fireEvent.click(screen.getByRole('button', { name: type === 'car' ? /^Auto, apri i dettagli/ : 'Apri dettagli' }));
+      fireEvent.click(screen.getByRole('button', { name: type === 'car' ? /^Auto, apri i dettagli/ : light ? /^Dettagli: / : 'Apri dettagli' }));
       expect(openDetails).toHaveBeenCalledOnce();
     }
   });
@@ -194,7 +197,7 @@ describe('Percorso operativo dei venti tipi', () => {
     async (type) => {
       const view = mount(type, { entities: {} });
       if (type === 'car') expect(screen.getAllByText('Fonte non presente').length).toBeGreaterThan(0);
-      else expect(screen.getByText('Dispositivo non disponibile')).toBeInTheDocument();
+      else expect(screen.getByText(type === 'light' ? 'Dispositivo non trovato' : 'Dispositivo non disponibile')).toBeInTheDocument();
       view.rerender(
         view.tree({
           ...view.runtime,
@@ -209,7 +212,7 @@ describe('Percorso operativo dei venti tipi', () => {
       // A room has no entity of its own to be unreachable: it keeps the plain notice.
       if (type === 'car') expect(screen.getAllByText('Non disponibile').length).toBeGreaterThan(0);
       else expect(
-        screen.getByText(type === 'room' ? 'Dispositivo non disponibile' : 'Non raggiungibile')
+        screen.getByText(type === 'room' ? 'Dispositivo non disponibile' : type === 'light' ? 'Non disponibile' : 'Non raggiungibile')
       ).toBeInTheDocument();
       expect(view.runtime.callService).not.toHaveBeenCalled();
       await act(async () => undefined);
@@ -225,7 +228,7 @@ describe('Percorso operativo dei venti tipi', () => {
     await act(async () => undefined);
   });
   it('mantiene la selezione e l’ordine dopo un rimontaggio; i dettagli mostrano anche i controlli nascosti', async () => {
-    const view = mount('light');
+    const view = mount('light', {}, false, AdaptiveBody);
     const settings = {
       ...fixtures.light!.settings,
       adaptiveControls: { visible: ['hue', 'power'], order: ['hue', 'power'] },
@@ -259,7 +262,7 @@ describe('Percorso operativo dei venti tipi', () => {
       .fn()
       .mockRejectedValueOnce(new Error('Rifiutato'))
       .mockResolvedValue(undefined);
-    const view = mount('light', { callService });
+    const view = mount('light', { callService }, false, AdaptiveBody);
     const button = screen.getByRole('button', { name: 'Accensione luce' });
     fireEvent.click(button);
     await act(async () => undefined);

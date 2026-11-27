@@ -63,6 +63,7 @@ import { GestureControl } from './GestureControl';
 import { ProductClimateWidget } from '../home/climate/ProductClimateWidget';
 import { ProductClimateDetails } from '../home/climate/ProductClimateDetails';
 import { climateProductBinding } from '../home/climate/productClimateModel';
+import { LightTile } from '../controls/light/LightTile';
 import { PlugWidget } from '../controls/plug/PlugWidget';
 import { wantsTrendChart } from './chartPolicy';
 import { WidgetDesignChart } from './WidgetDesignChart';
@@ -478,12 +479,17 @@ export function AdaptiveCategoryWidget(props: AdaptiveCategoryWidgetProps) {
     return props.detailsMode ? <ProductClimateDetails {...productProps} onClose={() => undefined} />
       : <ProductClimateWidget {...productProps} openDetails={props.openDetails} />;
   }
+  // The light family draws the grid formats on the Home (REP-20261127-001); details unchanged.
+  if (props.type === 'light' && !props.detailsMode) return <LightTile id={props.id ?? resolved}
+    settingsKey={props.settingsKey ?? props.id ?? resolved} settings={props.settings ?? EMPTY_SETTINGS}
+    entityId={resolved} size={props.size} editMode={props.editMode} openDetails={props.openDetails} />;
   if (props.type === 'plug' && !props.detailsMode) return <PlugWidget id={props.id ?? resolved}
     settingsKey={props.settingsKey ?? props.id ?? resolved} settings={props.settings ?? EMPTY_SETTINGS}
     entityId={resolved} size={props.size} editMode={props.editMode} openDetails={props.openDetails} />;
   return <AdaptiveBody key={props.type + '|' + resolved} {...props} entityId={resolved} />;
 }
-function AdaptiveBody({
+/** The generic adaptive card; exported for the tests of its fitting and requested state. */
+export function AdaptiveBody({
   type,
   entityId,
   id = entityId,

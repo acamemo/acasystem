@@ -30,14 +30,12 @@ const tree = (runtime: ReturnType<typeof runtimeWith>, size: { w: number; h: num
   </WidgetRuntimeProvider>
 );
 
-describe('Nome e stato a parole sulle schede adattive', () => {
-  it('sopra la scheda più piccola il nome è la prima riga, con lo stato sotto', () => {
-    render(tree(runtimeWith({ 'light.salotto': light('on') }), { w: 2, h: 2 }));
-    const name = screen.getByRole('heading', { name: 'Luce soggiorno' });
-    expect(name).toHaveClass('aca-adaptive-widget__name');
-    const header = name.closest('.aca-adaptive-widget__header') as HTMLElement;
-    expect(header.parentElement?.firstElementChild).toBe(header);
-    expect(within(header).getByText('Accesa')).toBeInTheDocument();
+describe('Nome e stato delle luci nei formati della griglia (REP-20261127-001)', () => {
+  it('quadrato: il nome sopra lo stato, in fondo alla tessera', () => {
+    const view = render(tree(runtimeWith({ 'light.salotto': light('on') }), { w: 2, h: 2 }));
+    const label = view.container.querySelector('.aca-cell-label') as HTMLElement;
+    expect(within(label).getByText('Luce soggiorno')).toHaveClass('aca-cell-label__name');
+    expect(within(label).getByText('Accesa · 50%')).toHaveClass('aca-cell-label__state');
   });
 
   it('il nome scelto dalla persona vince su quello del dispositivo', () => {
@@ -46,32 +44,29 @@ describe('Nome e stato a parole sulle schede adattive', () => {
       { 'light.salotto': 'Lampada del divano' }
     );
     render(tree(runtime, { w: 2, h: 2 }));
-    expect(screen.getByRole('heading', { name: 'Lampada del divano' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Luce soggiorno' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Lampada del divano' })).toBeInTheDocument();
+    expect(screen.queryByText('Luce soggiorno')).toBeNull();
   });
 
-  it('lo stato cambia con il dispositivo e non ripete la luminosità', () => {
+  it('lo stato cambia con il dispositivo', () => {
     const view = render(tree(runtimeWith({ 'light.salotto': light('on') }), { w: 2, h: 2 }));
-    expect(screen.getByText('Accesa')).toBeInTheDocument();
-    expect(screen.queryByText('Spenta')).toBeNull();
+    expect(screen.getByText('Accesa · 50%')).toBeInTheDocument();
     view.rerender(tree(runtimeWith({ 'light.salotto': light('off') }), { w: 2, h: 2 }));
     expect(screen.getByText('Spenta')).toBeInTheDocument();
-    expect(screen.queryByText('Accesa')).toBeNull();
+    expect(screen.queryByText(/Accesa/)).toBeNull();
   });
 
-  it('alla scheda più piccola il nome sta nei comandi e lo stato prende il posto dell’etichetta', () => {
+  it('nel formato rotondo il nome e lo stato stanno nel comando', () => {
     render(tree(runtimeWith({ 'light.salotto': light('on') }), { w: 1, h: 1 }));
-    expect(screen.queryByRole('heading')).toBeNull();
-    const toggle = screen.getByRole('button', { name: 'Accensione luce: Luce soggiorno' });
+    const toggle = screen.getByRole('button', { name: 'Luce soggiorno: spegni (Accesa)' });
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('Accesa')).toBeInTheDocument();
-    expect(document.querySelector('article')).toHaveAttribute('aria-label', 'Luce soggiorno');
+    expect(screen.getByRole('group', { name: 'Luce soggiorno' })).toBeInTheDocument();
   });
 
   it('un dispositivo non raggiungibile resta con il suo nome e lo dice a parole', () => {
     render(tree(runtimeWith({ 'light.salotto': light('unavailable') }), { w: 2, h: 2 }));
-    expect(screen.getByRole('heading', { name: 'Luce soggiorno' })).toBeInTheDocument();
-    expect(screen.getByText('Non raggiungibile')).toBeInTheDocument();
+    expect(screen.getByText('Luce soggiorno')).toBeInTheDocument();
+    expect(screen.getByText('Non disponibile')).toBeInTheDocument();
   });
 });
 

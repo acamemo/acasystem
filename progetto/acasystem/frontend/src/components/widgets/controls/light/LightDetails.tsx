@@ -17,7 +17,7 @@ import {
   supportsColor,
   supportsColorTemp,
 } from './lightModel';
-import { lightStatusText } from './LightWidget';
+import { lightStatusText } from './LightTile';
 import { useLightControl, type LightControl } from './useLightControl';
 
 type ColorField = 'color_temp_kelvin' | 'hs_color';

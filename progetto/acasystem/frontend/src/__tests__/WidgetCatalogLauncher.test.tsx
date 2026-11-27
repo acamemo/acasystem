@@ -49,7 +49,7 @@ const ready = async () => {
   await waitFor(() => {
     const current = document.querySelector('.aca-widget-catalog__page:not([inert])');
     expect(current).not.toBeNull();
-    expect(current?.querySelector('.aca-adaptive-widget')).not.toBeNull();
+    expect(current?.querySelector('.aca-adaptive-widget, .aca-cell-tile')).not.toBeNull();
     expect(current?.querySelector('.aca-widget-catalog-preview__placeholder')).toBeNull();
     expect(document.querySelector('.aca-widget-catalog')).toHaveAttribute('aria-busy', 'false');
   }, { timeout: 5000 });

@@ -8,7 +8,7 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react';
-import { Caption, Surface } from '@/components/primitives';
+import { Caption, Surface, cellFormat } from '@/components/primitives';
 import {
   ResizeFrame,
   edgeFromPoint,
@@ -274,6 +274,7 @@ export const WidgetHost = memo(function WidgetHost({
     hidden && 'is-hidden',
     dragging === 'move' && 'is-dragging',
     dragging === 'resize' && 'is-resizing',
+    definition?.cellFormats && !stack && `is-cell-${cellFormat({ w: contentRect.w, h: contentRect.h })}`,
     shape.shaped && 'is-shaped',
     shape.skipped && 'is-skipped',
     shape.shaped && shapeInvalid && 'is-shape-invalid',

@@ -1,5 +1,6 @@
 /* Vetro Bianco: materiali, movimento e composizione condivisi nella build corrente. */
 @import '../liquid-glass/index.css';
 @import './white.css';
+@import './cellTile.css';
 @import './motion.css';
 @import './layout.css';

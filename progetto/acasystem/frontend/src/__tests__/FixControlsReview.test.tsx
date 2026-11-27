@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CoverWidget } from '@/components/widgets/controls/cover/CoverWidget';
 import { FanDetails } from '@/components/widgets/controls/fan/FanDetails';
-import { LightWidget } from '@/components/widgets/controls/light/LightWidget';
+import { LightTile } from '@/components/widgets/controls/light/LightTile';
 import { LightsPageView } from '@/components/widgets/controls/light/LightsPage';
 import { LockWidget } from '@/components/widgets/controls/lock/LockWidget';
 import { SensorWidget } from '@/components/widgets/controls/sensor/SensorWidget';
@@ -91,22 +91,17 @@ describe('DES-3: «Non trovato» e «Non disponibile» non tagliati a metà paro
   const unavailableText = (container: HTMLElement) =>
     container.querySelector('.ctl-unavailable > span')?.textContent;
 
-  it('luce 1×1 non disponibile: il testo ha un proprio elemento, troncabile con i puntini', () => {
-    const view = renderWithRuntime(
-      <LightWidget
-        id="light.giardino"
-        settingsKey="k"
-        settings={{}}
-        size={{ w: 1, h: 1 }}
-        editMode={false}
-      />,
+  it('luce 1×1 non disponibile: glifo di avviso e testo completo nel nome accessibile', () => {
+    renderWithRuntime(
+      <LightTile id="light.giardino" settingsKey="k" settings={{}} size={{ w: 1, h: 1 }} editMode={false} />,
       {
         entities: fixtureEntities([
           fixtureEntity('light.giardino', 'unavailable', { friendly_name: 'Giardino' }),
         ]),
+        conn: fakeConnection().conn,
       }
     );
-    expect(unavailableText(view.container)).toBe('Non disponibile');
+    expect(screen.getByRole('button', { name: 'Giardino: accendi (Non disponibile)' })).toBeDisabled();
   });
 
   it('tapparella 2×1 non disponibile: stesso elemento, nascosto a vista solo sulla riga del telefono', () => {
@@ -153,35 +148,23 @@ describe('DES-3: «Non trovato» e «Non disponibile» non tagliati a metà paro
 });
 
 describe('DES-4: acceso e spento si distinguono anche senza colore', () => {
-  it('il pomello espone lo stato in aria-checked, su cui si basa la profondità', () => {
+  it('la luce espone lo stato in aria-pressed, oltre al riempimento del cerchio', () => {
     const light = (state: string) =>
       fixtureEntity('light.cucina', state, {
         friendly_name: 'Cucina',
         supported_color_modes: ['onoff'],
       });
     const on = renderWithRuntime(
-      <LightWidget
-        id="light.cucina"
-        settingsKey="k"
-        settings={{}}
-        size={{ w: 1, h: 1 }}
-        editMode={false}
-      />,
-      { entities: fixtureEntities([light('on')]) }
+      <LightTile id="light.cucina" settingsKey="k" settings={{}} size={{ w: 1, h: 1 }} editMode={false} />,
+      { entities: fixtureEntities([light('on')]), conn: fakeConnection().conn }
     );
-    expect(screen.getByRole('switch', { name: 'Cucina' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('button', { name: /^Cucina: spegni/ })).toHaveAttribute('aria-pressed', 'true');
     on.unmount();
     renderWithRuntime(
-      <LightWidget
-        id="light.cucina"
-        settingsKey="k"
-        settings={{}}
-        size={{ w: 1, h: 1 }}
-        editMode={false}
-      />,
-      { entities: fixtureEntities([light('off')]) }
+      <LightTile id="light.cucina" settingsKey="k" settings={{}} size={{ w: 1, h: 1 }} editMode={false} />,
+      { entities: fixtureEntities([light('off')]), conn: fakeConnection().conn }
     );
-    expect(screen.getByRole('switch', { name: 'Cucina' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('button', { name: /^Cucina: accendi/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('CSS: il pomello acceso è in pressione stabile (incavo), con token esistenti del kit', async () => {

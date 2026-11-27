@@ -1,5 +1,18 @@
 # ACA SYSTEM — Specifica di design
 
+## Formati della griglia Home e Luci (approvato 2026-11-27)
+
+Richiesta dall'utente il 2026-11-27 dopo la demo «ACA Home Vetro» e le reference del Centro di Controllo in stile vetro: «procedi con la versione finale di luci» ([REP-20261127-001](../reports/REP-20261127-001-luci-formati-griglia.md)). Nella griglia Home la cella quadrata è l'unità e ogni misura deriva dal suo lato.
+- **Formati:**
+  - rotondo 1×1: solo l'icona; acceso, il cerchio si riempie di bianco;
+  - pillola 2×1: cerchio con margini uguali (64% della cella), poi nome e stato; il cerchio comanda, il testo apre i dettagli;
+  - alto 1×2: riempimento bianco che sale dal basso come cursore, nome e valore in alto, icona in basso; il testo diventa scuro quando il bianco lo raggiunge;
+  - quadrato 2×2: cerchio in alto a sinistra, nome e stato in basso; oppure un modulo fino a quattro cerchi.
+- **Forma del frame:** 1×1, 2×1 e 1×2 completamente arrotondati, 2×2 con raggio pari a un terzo della cella; nessun padding del frame.
+- **Colore:** materiale e token di Vetro Bianco invariati; acceso è bianco pieno con glifo scuro, ambra per le luci. Nessun nuovo blur, zoom o transizione globale.
+- **Tipografia:** nome peso 500, stato attenuato con cifre a larghezza fissa; corpo dal 15-16% della cella, tra 12 e 20 px.
+- **Luci:** prima famiglia sui formati. Il layout a poli precedente resta per le famiglie non ancora rifatte.
+
 ## Finestra unica di installazione dell'app per PC, v2 (approvata 2026-11-20)
 
 Approvata dall'utente («Approve v2») il 2026-11-20 per [REP-20261120-001](../reports/REP-20261120-001-finestra-unica-installazione.md). Le demo sono nel canvas privato «Finestra unica di installazione», riga «Proposta v2». È la rifinitura delle viste locali del guscio Windows (installazione, collegamento, errori), nello stesso Vetro Bianco: paesaggio, una card di vetro, testo bianco. La revisione è stata fatta con le skill impeccable, Apple design e UI/UX Pro Max su richiesta dell'utente.

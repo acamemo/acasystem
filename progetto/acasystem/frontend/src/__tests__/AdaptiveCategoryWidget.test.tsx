@@ -38,7 +38,7 @@ describe('calculateWidgetTier', () => {
 });
 
 describe('AdaptiveCategoryWidget (Fase 4 / Tappa A - Controlli singoli)', () => {
-  it('renders a bound light with brightness knob and dispatches HA service calls', () => {
+  it('renders a bound light in the grid formats and dispatches HA service calls', () => {
     const callService = vi.fn().mockResolvedValue(undefined);
     const lightEntity = fixtureEntity('light.salotto', 'on', {
       friendly_name: 'Luce Salotto',
@@ -63,17 +63,14 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa A - Controlli singoli)', () => 
       </WidgetRuntimeProvider>
     );
 
-    expect(screen.getByRole('slider', { name: 'Luminosità della luce' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Accensione luce' })).toBeInTheDocument();
-    // The brightness is a command the user gave: no chart, no slot for one.
+    // The light family draws the grid formats (REP-20261127-001), not the adaptive body.
+    expect(container.querySelector('[data-cell-format="square"]')).toBeInTheDocument();
     expect(container.querySelector('.aca-adaptive-widget__chart-wrap')).not.toBeInTheDocument();
-
-    const toggleBtn = screen.getByRole('button', { name: 'Accensione luce' });
-    fireEvent.click(toggleBtn);
-    expect(callService).toHaveBeenCalledWith('light', 'turn_off', { entity_id: 'light.salotto' });
+    fireEvent.click(screen.getByRole('button', { name: 'Luce Salotto: spegni' }));
+    expect(callService).toHaveBeenCalledWith('light', 'toggle', { entity_id: 'light.salotto' });
   });
 
-  it('renders compact light without chart, centered with single primary knob or toggle', () => {
+  it('renders a 1×1 light as the round format, the whole circle switching it', () => {
     const lightEntity = fixtureEntity('light.salotto', 'on', {
       friendly_name: 'Luce Salotto',
       brightness: 128,
@@ -96,11 +93,10 @@ describe('AdaptiveCategoryWidget (Fase 4 / Tappa A - Controlli singoli)', () => 
       </WidgetRuntimeProvider>
     );
 
-    expect(container.querySelector('.aca-adaptive-widget')).toHaveAttribute('data-tier', 'compact');
-    expect(container.querySelector('.aca-adaptive-widget__chart-wrap')).toBeNull();
-    // The smallest card prints no name: the control carries it, so cards can be told apart.
+    expect(container.querySelector('[data-cell-format="round"]')).toBeInTheDocument();
+    // The command carries the name, so small tiles can be told apart.
     expect(
-      screen.getByRole('button', { name: 'Accensione luce: Luce Salotto' })
+      screen.getByRole('button', { name: 'Luce Salotto: spegni (Accesa)' })
     ).toBeInTheDocument();
   });
 
@@ -331,9 +327,9 @@ describe('CategoryWidgetContent integration with AdaptiveCategoryWidget', () => 
       </WidgetRuntimeProvider>
     );
 
-    expect(container.querySelector('.aca-adaptive-widget')).toBeInTheDocument();
-    expect(container.querySelector('[data-widget-type="light"]')).toBeInTheDocument();
-    expect(screen.getByRole('slider', { name: 'Luminosità della luce' })).toBeInTheDocument();
+    expect(container.querySelector('[data-cell-format="square"]')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Luce Cucina' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Luce Cucina: spegni' })).toBeEnabled();
   });
 
   it('switches to AdaptiveCategoryWidget when bound and ready for media widgets', () => {

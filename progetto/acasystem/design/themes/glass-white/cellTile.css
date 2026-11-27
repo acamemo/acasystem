@@ -1,0 +1,11 @@
+/* Token dei formati della griglia Home (REP-20261127-001), nel tema Vetro Bianco. */
+:root {
+  --aca-cell-orb-rest: rgb(255 255 255 / 16%);
+  --aca-cell-orb-on: #ffffff;
+  --aca-cell-on-ink: #28213d;
+  --aca-cell-warm-ink: #e8930c;
+  --aca-cell-level: rgb(255 255 255 / 94%);
+  --aca-cell-level-warm: linear-gradient(0deg, #ffffff 30%, #fff1d2);
+  --aca-cell-ink: var(--aca-ink-solid);
+  --aca-cell-ink-muted: var(--aca-ink-muted);
+}

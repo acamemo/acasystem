@@ -1,0 +1,296 @@
+/*
+ * Formati della griglia Home (REP-20261127-001): rotondo 1×1, pillola 2×1, alto 1×2,
+ * quadrato 2×2. Ogni misura deriva dal lato della cella (--aca-cell, impostato dalla griglia);
+ * fuori dalla griglia vale il ripiego di 80 px. Il frame resta quello del launcher.
+ */
+@layer components {
+  .aca-cell-tile {
+    --aca-cell-side: var(--aca-cell, 80px);
+    --aca-cell-orb: calc(var(--aca-cell-side) * 0.64);
+    --aca-cell-inset: calc((var(--aca-cell-side) - var(--aca-cell-orb)) / 2);
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    color: var(--aca-cell-ink);
+    border-radius: inherit;
+  }
+
+  /* Rotondo: l'icona da sola; acceso, tutto il cerchio si riempie. */
+  .aca-cell-tile--round {
+    align-items: center;
+    justify-content: center;
+  }
+  .aca-cell-tile--round > .aca-cell-round {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color var(--aca-dur-reveal, 200ms) ease, color var(--aca-dur-reveal, 200ms) ease;
+  }
+  .aca-cell-tile--round.is-on > .aca-cell-round {
+    background: var(--aca-cell-orb-on);
+    color: var(--aca-cell-on-ink);
+  }
+  .aca-cell-tile--round.is-on.aca-cell-tone--warm > .aca-cell-round {
+    color: var(--aca-cell-warm-ink);
+  }
+  .aca-cell-round > .aca-icon,
+  .aca-cell-round > svg {
+    width: calc(var(--aca-cell-side) * 0.38);
+    height: calc(var(--aca-cell-side) * 0.38);
+  }
+
+  /* Pillola: cerchio con margini uguali, poi nome e stato. */
+  .aca-cell-tile--pill {
+    align-items: center;
+    gap: calc(var(--aca-cell-inset) * 0.6);
+    padding-inline: var(--aca-cell-inset) calc(var(--aca-cell-inset) * 1.2);
+  }
+  .aca-cell-tile--pill .aca-cell-label {
+    font-size: clamp(0.75rem, calc(var(--aca-cell-side) * 0.15), 1.25rem);
+    line-height: 1.15;
+  }
+
+  /* Quadrato: icona in alto a sinistra, testo in basso. */
+  .aca-cell-tile--square,
+  .aca-cell-tile--tall {
+    flex-direction: column;
+    justify-content: space-between;
+    padding: var(--aca-cell-inset);
+  }
+  .aca-cell-tile--square.aca-cell-tile--module {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    place-items: center;
+    padding: calc(var(--aca-cell-inset) * 0.6);
+  }
+
+  /* Cerchio di comando. */
+  .aca-cell-orb {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    flex: none;
+    width: var(--aca-cell-orb);
+    height: var(--aca-cell-orb);
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--aca-cell-orb-rest);
+    color: var(--aca-cell-ink);
+    cursor: pointer;
+    transition:
+      background-color var(--aca-dur-reveal, 200ms) ease,
+      color var(--aca-dur-reveal, 200ms) ease,
+      scale 120ms var(--aca-ease-out, ease);
+  }
+  .aca-cell-orb--lg {
+    width: calc(var(--aca-cell-side) * 0.74);
+    height: calc(var(--aca-cell-side) * 0.74);
+  }
+  .aca-cell-orb > .aca-icon,
+  .aca-cell-orb > svg {
+    width: 46%;
+    height: 46%;
+  }
+  .aca-cell-orb:active:not(:disabled) {
+    scale: 0.94;
+  }
+  .aca-cell-orb.is-on {
+    background: var(--aca-cell-orb-on);
+    color: var(--aca-cell-on-ink);
+  }
+  .aca-cell-orb.is-on.aca-cell-tone--warm {
+    color: var(--aca-cell-warm-ink);
+  }
+  .aca-cell-orb.is-pending,
+  .aca-cell-tile--round.is-pending > .aca-cell-round {
+    animation: aca-cell-pending 1.2s ease-in-out infinite;
+  }
+  .aca-cell-orb:disabled,
+  .aca-cell-round:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+  .aca-cell-orb:focus-visible,
+  .aca-cell-round:focus-visible,
+  .aca-cell-fill:focus-visible,
+  .aca-cell-open:focus-visible {
+    outline: 2px solid var(--aca-focus);
+    outline-offset: 2px;
+  }
+
+  /* Nome e stato. */
+  .aca-cell-label {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.1em;
+    font-size: clamp(0.8125rem, calc(var(--aca-cell-side) * 0.16), 1.25rem);
+    line-height: 1.2;
+    pointer-events: none;
+  }
+  .aca-cell-label__name {
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  .aca-cell-label__state {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.25em;
+    color: var(--aca-cell-ink-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .aca-cell-clamp-1 {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .aca-cell-clamp-2 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+
+  /* Area che apre i dettagli: trasparente, sotto i comandi. */
+  .aca-cell-open {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* Alto: riempimento verticale che sale dal basso. */
+  .aca-cell-fill {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    cursor: ns-resize;
+    touch-action: none;
+  }
+  .aca-cell-fill.is-disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+  .aca-cell-fill__level {
+    position: absolute;
+    inset: auto 0 0;
+    height: var(--aca-cell-fill, 0%);
+    background: var(--aca-cell-level);
+    transition: height 90ms linear;
+  }
+  .aca-cell-fill.aca-cell-tone--warm .aca-cell-fill__level {
+    background: var(--aca-cell-level-warm);
+  }
+  .aca-cell-fill.is-pending .aca-cell-fill__level {
+    opacity: 0.8;
+  }
+  .aca-cell-fill__content {
+    position: absolute;
+    inset: auto 0 calc(var(--aca-cell-side) * 0.22);
+    display: grid;
+    place-items: center;
+    color: var(--aca-cell-on-ink);
+    pointer-events: none;
+  }
+  .aca-cell-fill.aca-cell-tone--warm .aca-cell-fill__content {
+    color: var(--aca-cell-warm-ink);
+  }
+  .aca-cell-fill[data-level='low'] .aca-cell-fill__content {
+    color: var(--aca-cell-ink);
+  }
+  .aca-cell-fill__content > .aca-icon,
+  .aca-cell-fill__content > svg {
+    width: calc(var(--aca-cell-side) * 0.34);
+    height: calc(var(--aca-cell-side) * 0.34);
+  }
+  /* Nome e valore sopra il riempimento: diventano scuri quando il bianco li raggiunge. */
+  .aca-cell-tall-head {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15em;
+    padding: calc(var(--aca-cell-side) * 0.16) calc(var(--aca-cell-side) * 0.1) 0;
+    text-align: center;
+    pointer-events: none;
+  }
+  .aca-cell-tall-head .aca-cell-label {
+    align-items: center;
+    font-size: clamp(0.75rem, calc(var(--aca-cell-side) * 0.15), 0.9375rem);
+  }
+  .aca-cell-tall-head .aca-cell-label__state {
+    justify-content: center;
+  }
+  .aca-cell-tile--tall:has(.aca-cell-fill[data-level='high']) .aca-cell-tall-head {
+    --aca-cell-ink: var(--aca-cell-on-ink);
+    --aca-cell-ink-muted: color-mix(in srgb, var(--aca-cell-on-ink) 70%, transparent);
+    color: var(--aca-cell-on-ink);
+  }
+  .aca-cell-tall-head .aca-cell-open {
+    position: relative;
+    inset: auto;
+    padding: 0.2em 0.4em;
+    border-radius: 0.6em;
+    color: inherit;
+    font: inherit;
+    pointer-events: auto;
+  }
+
+  /* Live region of the command: announced, not drawn (the state line shows the failure). */
+  .aca-cell-feedback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .aca-cell-warning {
+    color: var(--aca-danger-ink-icon);
+    flex: none;
+  }
+
+  @keyframes aca-cell-pending {
+    50% {
+      opacity: 0.6;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aca-cell-orb,
+    .aca-cell-round,
+    .aca-cell-fill__level {
+      transition: none;
+    }
+    .aca-cell-orb.is-pending,
+    .aca-cell-tile--round.is-pending > .aca-cell-round {
+      animation: none;
+      opacity: 0.75;
+    }
+  }
+}

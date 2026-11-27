@@ -8,7 +8,7 @@ import { FanDetails } from './fan/FanDetails';
 import { FanWidget } from './fan/FanWidget';
 import { LightDetails } from './light/LightDetails';
 import { LightsPage } from './light/LightsPage';
-import { LightWidget } from './light/LightWidget';
+import { LightTile } from './light/LightTile';
 import { LockDetails } from './lock/LockDetails';
 import { LockWidget } from './lock/LockWidget';
 import { SensorDetails } from './sensor/SensorDetails';
@@ -33,9 +33,11 @@ export const lightWidget: WidgetDefinition = {
   type: 'light',
   label: 'Luce',
   icon: 'light' satisfies IconName,
-  sizes: { min: { w: 1, h: 1 }, max: { w: 2, h: 2 }, default: { w: 1, h: 1 } },
+  // The four grid formats: 1×1 round, 2×1 pill, 1×2 tall, 2×2 square (REP-20261127-001).
+  sizes: { min: { w: 1, h: 1 }, max: { w: 2, h: 2 }, default: { w: 2, h: 1 } },
+  cellFormats: true,
   matches: (id) => id.startsWith('light_') || id.startsWith('light.'),
-  Widget: LightWidget,
+  Widget: LightTile,
   Details: LightDetails,
 };
 

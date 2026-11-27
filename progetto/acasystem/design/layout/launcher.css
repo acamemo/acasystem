@@ -699,6 +699,19 @@
     --aca-pad: clamp(var(--aca-space-2), calc(var(--aca-cell) * 0.1), var(--aca-space-4));
   }
   /*
+   * Widgets drawn with the grid formats (CellTile, REP-20261127-001) take the shape of their
+   * format: 1×1, 2×1 and 1×2 are fully rounded, 2×2 and larger a rounder square. The content
+   * places itself from the cell side, so the frame adds no padding.
+   */
+  .aca-launcher-widget:is(.is-cell-round, .is-cell-pill, .is-cell-tall) > .aca-launcher-widget__frame.aca-m--card {
+    --aca-radius: calc(var(--aca-cell) * 0.5);
+    --aca-pad: 0px;
+  }
+  .aca-launcher-widget.is-cell-square > .aca-launcher-widget__frame.aca-m--card {
+    --aca-radius: calc(var(--aca-cell) * 0.34);
+    --aca-pad: 0px;
+  }
+  /*
    * The face of the frame already clips (overflow: clip + rounded clip-path), so the content
    * must not clip again: the shadows of knobs, toggles and buttons near the edge stay whole.
    * Static positioning lets the widget's [data-widget-open] opener (inset: 0) cover the whole

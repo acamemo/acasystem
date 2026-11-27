@@ -55,6 +55,16 @@ export type { PasswordFieldProps } from './components/PasswordField';
 export { Slider } from './components/Slider';
 export { Meter } from './components/Meter';
 export { AddTile, Tile } from './components/Tile';
+export { CellLabel, CellOrb, CellTile, FillSlider, cellFormat } from './components/CellTile';
+export type {
+  CellFormat,
+  CellLabelProps,
+  CellOrbProps,
+  CellTileProps,
+  CellTone,
+  FillPhase,
+  FillSliderProps,
+} from './components/CellTile';
 export { ProgressRing } from './components/ProgressRing';
 export { Badge } from './components/Badge';
 export { SelectTrigger } from './components/SelectTrigger';

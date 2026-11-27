@@ -189,18 +189,19 @@ describe('#/mockup is the real app', () => {
     await widgetsReady(container);
     const light = () => {
       const card = container.querySelector('[aria-label="Luce soggiorno"]')!;
-      return within(card as HTMLElement).getByRole('button', { name: 'Accensione luce' });
+      // The light draws the grid formats (REP-20261127-001): the circle switches it.
+      return within(card as HTMLElement).getByRole('button', { name: /^Luce soggiorno: (spegni|accendi)/ });
     };
     await waitFor(() => expect(light()).toHaveAttribute('aria-pressed', 'true'));
     const card = () => container.querySelector('[aria-label="Luce soggiorno"]') as HTMLElement;
-    expect(within(card()).getByText('Accesa')).toBeInTheDocument();
+    expect(within(card()).queryByText('Spenta')).toBeNull();
     fireEvent.click(light());
     await waitFor(() => expect(light()).toHaveAttribute('aria-pressed', 'false'));
     // The simulated house confirms: the state word follows and no command is left pending.
     await waitFor(() => expect(within(card()).getByText('Spenta')).toBeInTheDocument(), {
       timeout: 5_000,
     });
-    await waitFor(() => expect(within(card()).queryByText('Sto inviando il comando…')).toBeNull());
+    await waitFor(() => expect(light()).not.toHaveAttribute('aria-busy'));
     fireEvent.click(light());
     await waitFor(() => expect(light()).toHaveAttribute('aria-pressed', 'true'));
   }, 120_000);

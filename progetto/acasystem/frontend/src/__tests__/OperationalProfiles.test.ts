@@ -33,8 +33,10 @@ describe('Disponibilità e quattro dimensioni nel launcher', () => {
         categoryWidgetType: undefined,
       })!;
       expect(definition.sizes.min).toEqual(previous.sizes.min);
-      expect(definition.sizes.max.w).toBeGreaterThanOrEqual(4);
-      expect(definition.sizes.max.h).toBeGreaterThanOrEqual(4);
+      // The grid formats keep their own sizes, up to 2×2 (REP-20261127-001).
+      const max = definition.cellFormats ? 2 : 4;
+      expect(definition.sizes.max.w).toBeGreaterThanOrEqual(max);
+      expect(definition.sizes.max.h).toBeGreaterThanOrEqual(max);
       expect(findWidgetDefinition(sample.id, settings)).toBe(definition);
       expect(
         isCardHiddenByLogic(fixtures[type]!.entityId, {

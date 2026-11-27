@@ -43,7 +43,7 @@ const item = (type: string) => ADD_WIDGET_TYPES.find((entry) => entry.type === t
 const reveal = () => act(() => VisibilityObserver.instances.forEach((observer) => observer.show()));
 async function adaptiveReady(container: HTMLElement, count = 1) {
   await act(async () => { await vi.dynamicImportSettled(); });
-  await waitFor(() => expect(container.querySelectorAll('.aca-adaptive-widget, .aca-adaptive-spacer, .product-plug, .product-climate, .product-cover, .product-mower, .product-vacuum, .product-camera, .product-alarm, .product-lock, .product-fan, .product-tv, .product-media, .product-sensor, .energy-widget')).toHaveLength(count));
+  await waitFor(() => expect(container.querySelectorAll('.aca-adaptive-widget, .aca-cell-tile, .aca-adaptive-spacer, .product-plug, .product-climate, .product-cover, .product-mower, .product-vacuum, .product-camera, .product-alarm, .product-lock, .product-fan, .product-tv, .product-media, .product-sensor, .energy-widget')).toHaveLength(count));
 }
 
 beforeEach(() => {
@@ -68,7 +68,7 @@ afterEach(() => { suspendedPreview.promise = null; cleanup(); style.remove(); vi
 describe('isolated widget catalogue previews', () => {
   it('keeps an offscreen card unmounted until its first visibility and disconnects its observer', async () => {
     const view = render(<WidgetCatalogPreview item={item('light')} />);
-    expect(view.container.querySelector('.aca-adaptive-widget')).toBeNull();
+    expect(view.container.querySelector('.aca-adaptive-widget, .aca-cell-tile')).toBeNull();
     expect(view.container.querySelector('.aca-widget-catalog-preview__placeholder')).toBeVisible();
     const observer = VisibilityObserver.instances[0]!;
     expect(observer.target).toBe(view.container.querySelector('.aca-widget-catalog-preview'));
@@ -225,7 +225,7 @@ describe('isolated widget catalogue previews', () => {
     const ready = vi.fn();
     const view = render(<WidgetCatalogPreview item={item('fan')} eager onReady={ready} />);
     await act(async () => { await vi.dynamicImportSettled(); });
-    expect(view.container.querySelector('.aca-adaptive-widget')).toBeNull();
+    expect(view.container.querySelector('.aca-adaptive-widget, .aca-cell-tile')).toBeNull();
     expect(ready).not.toHaveBeenCalledWith(true);
     await act(async () => { suspendedPreview.promise = null; release(); });
     await adaptiveReady(view.container);
